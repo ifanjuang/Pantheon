@@ -2,8 +2,8 @@
 """Authenticated loopback MCP exposing scoped, read-only Hindsight recall.
 
 HINDSIGHT_ROUTER_MODE selects one surface per service instance:
-``project`` (default) forces one exact project scope; ``library`` serves a
-reference library restricted to its source tag, optionally narrowed to a folder.
+``project`` (default) forces one exact project scope; ``knowledge`` serves the
+knowledge vault (reference documents) restricted to its source tag, optionally narrowed to a folder.
 """
 
 from __future__ import annotations
@@ -21,8 +21,8 @@ from hindsight_project_recall import ProjectRecallClient, ProjectRecallError
 
 
 MODE = os.environ.get("HINDSIGHT_ROUTER_MODE", "project").strip() or "project"
-if MODE not in {"project", "library"}:
-    raise SystemExit("HINDSIGHT_ROUTER_MODE must be 'project' or 'library'")
+if MODE not in {"project", "knowledge"}:
+    raise SystemExit("HINDSIGHT_ROUTER_MODE must be 'project' or 'knowledge'")
 
 _SHARED_INSTRUCTIONS = (
     "It returns at most eight source-grounded world/experience facts, each carrying "
@@ -42,13 +42,13 @@ if MODE == "project":
     )
 else:
     mcp = MCPServer(
-        "hindsight-library",
+        "hindsight-knowledge",
         instructions=(
-            "Read-only reference-library Hindsight recall (standards, guides, insurer "
-            "recommendations, glossaries). Every request is forced into the library "
+            "Read-only knowledge-vault Hindsight recall (standards, guides, insurer "
+            "recommendations, glossaries). Every request is forced into the knowledge "
             "source tag with tags_match=all_strict and may be narrowed to one folder. "
             + _SHARED_INSTRUCTIONS
-            + " Library content is transversal reference, never a project fact."
+            + " Knowledge-vault content is transversal reference, never a project fact."
         ),
     )
 READ_ONLY = ToolAnnotations(
@@ -62,7 +62,7 @@ READ_ONLY = ToolAnnotations(
 def _client() -> ProjectRecallClient:
     return ProjectRecallClient(
         os.environ.get("HINDSIGHT_PROJECT_URL", "http://127.0.0.1:8888"),
-        os.environ.get("HINDSIGHT_PROJECT_BANK_ID", "AGENCY_PROJECTS"),
+        os.environ.get("HINDSIGHT_PROJECT_BANK_ID", "PROJECTS"),
         source_kind=os.environ.get("HINDSIGHT_PROJECT_SOURCE_KIND", "project-sync"),
         authorization=os.environ.get("HINDSIGHT_PROJECT_AUTHORIZATION", ""),
         timeout_seconds=float(os.environ.get("HINDSIGHT_PROJECT_TIMEOUT_SECONDS", "45")),
@@ -101,24 +101,24 @@ def hindsight_project_list(limit: int = 100) -> str:
     return json.dumps(payload, ensure_ascii=False)
 
 
-def recall_library_memory(query: str, folder: str = "", max_tokens: int = 2048) -> str:
-    """Recall up to eight facts from the reference library.
+def recall_knowledge_memory(query: str, folder: str = "", max_tokens: int = 2048) -> str:
+    """Recall up to eight facts from the knowledge vault.
 
     Put the user's complete question in ``query``. Use ``folder`` only to narrow
-    to one folder returned by ``hindsight_library_folders`` (for example a
-    standards or insurer folder); leave it empty to search the whole library.
+    to one folder returned by ``hindsight_knowledge_folders`` (for example a
+    standards or insurer folder); leave it empty to search the whole knowledge vault.
     """
     try:
-        payload = _client().recall_library(query, folder=folder, max_tokens=max_tokens)
+        payload = _client().recall_knowledge(query, folder=folder, max_tokens=max_tokens)
     except (ProjectRecallError, OSError, ValueError) as exc:
         payload = {"status": "error", "reason": str(exc)}
     return json.dumps(payload, ensure_ascii=False)
 
 
-def hindsight_library_folders(limit: int = 100) -> str:
-    """List indexed library folders and memory counts; does not read documents."""
+def hindsight_knowledge_folders(limit: int = 100) -> str:
+    """List indexed knowledge-vault folders and memory counts; does not read documents."""
     try:
-        payload = _client().list_library_folders(limit)
+        payload = _client().list_knowledge_folders(limit)
     except (ProjectRecallError, OSError, ValueError) as exc:
         payload = {"status": "error", "reason": str(exc)}
     return json.dumps(payload, ensure_ascii=False)
@@ -126,7 +126,7 @@ def hindsight_library_folders(limit: int = 100) -> str:
 
 TOOLS = {
     "project": (recall_project_memory, hindsight_project_list),
-    "library": (recall_library_memory, hindsight_library_folders),
+    "knowledge": (recall_knowledge_memory, hindsight_knowledge_folders),
 }
 for _tool in TOOLS[MODE]:
     mcp.tool(annotations=READ_ONLY)(_tool)

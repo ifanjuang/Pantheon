@@ -12,7 +12,7 @@ PORT="8189"
 ENABLE_PRODUCER=0
 ENABLE_COCKPIT=0
 DOCTOR=0
-AFFAIRES_ROOT="${AFFAIRES_ROOT:-}"
+PROJECTS_ROOT="${PROJECTS_ROOT:-}"
 
 usage() {
   cat <<'EOF'
@@ -24,8 +24,8 @@ Options:
   --bind ADDRESS   Bind address (default 127.0.0.1)
   --port PORT      HTTP port (default 8189)
   --user USER      Unprivileged service user (default invoking sudo user)
-  --affaires-root PATH
-                   Linux-mounted NAS AFFAIRES root (or set AFFAIRES_ROOT)
+  --projects-root PATH
+                   Linux-mounted NAS AFFAIRES root (or set PROJECTS_ROOT)
   --enable-producer
                    Enable and start only the standalone Hindsight producer
   --enable-cockpit Enable and start the optional read-only Cockpit (also starts
@@ -43,7 +43,7 @@ while (($#)); do
     --bind) BIND_ADDRESS="${2:?missing bind address}"; shift 2 ;;
     --port) PORT="${2:?missing port}"; shift 2 ;;
     --user) SERVICE_USER="${2:?missing service user}"; shift 2 ;;
-    --affaires-root) AFFAIRES_ROOT="${2:?missing AFFAIRES root}"; shift 2 ;;
+    --projects-root) PROJECTS_ROOT="${2:?missing AFFAIRES root}"; shift 2 ;;
     --enable-producer) ENABLE_PRODUCER=1; shift ;;
     --enable-cockpit) ENABLE_COCKPIT=1; shift ;;
     --enable) ENABLE_PRODUCER=1; ENABLE_COCKPIT=1; shift ;;
@@ -58,22 +58,22 @@ done
 [[ -f "$SOURCE_ROOT/static/styles.css" && -f "$SOURCE_ROOT/static/app.js" && -f "$SOURCE_ROOT/static/role_trace_graph.css" && -f "$SOURCE_ROOT/static/vendor/swiper-14.3.0-bundle.min.js" && -f "$SOURCE_ROOT/static/vendor/swiper-14.3.0-bundle.min.css" && -f "$SOURCE_ROOT/static/vendor/swiper-14.3.0-LICENSE" && -f "$SOURCE_ROOT/static/vendor/pdfjs/LICENSE" && -f "$SOURCE_ROOT/static/vendor/pdfjs/web/viewer.html" ]] || die "workspace cockpit static assets are incomplete"
 command -v python3 >/dev/null || die "python3 is required"
 python3 -c 'import yaml' >/dev/null 2>&1 || die "python3-yaml is required"
-[[ -n "$AFFAIRES_ROOT" ]] || die "set --affaires-root PATH or AFFAIRES_ROOT"
-[[ "$AFFAIRES_ROOT" = /* ]] || die "AFFAIRES root must be an absolute Linux mount path"
-[[ -d "$AFFAIRES_ROOT" ]] || die "AFFAIRES mount is missing: $AFFAIRES_ROOT"
+[[ -n "$PROJECTS_ROOT" ]] || die "set --projects-root PATH or PROJECTS_ROOT"
+[[ "$PROJECTS_ROOT" = /* ]] || die "AFFAIRES root must be an absolute Linux mount path"
+[[ -d "$PROJECTS_ROOT" ]] || die "AFFAIRES mount is missing: $PROJECTS_ROOT"
 if ((DOCTOR)); then
-  printf 'workspace-cockpit: prerequisites ready; bind=%s:%s; user=%s; affaires=%s\n' "$BIND_ADDRESS" "$PORT" "$SERVICE_USER" "$AFFAIRES_ROOT"
+  printf 'workspace-cockpit: prerequisites ready; bind=%s:%s; user=%s; affaires=%s\n' "$BIND_ADDRESS" "$PORT" "$SERVICE_USER" "$PROJECTS_ROOT"
   exit 0
 fi
 
 ((EUID == 0)) || die "installation requires root"
 [[ -n "$SERVICE_USER" && "$SERVICE_USER" != root ]] || die "pass --user with an unprivileged Linux user"
 id "$SERVICE_USER" >/dev/null 2>&1 || die "unknown service user: $SERVICE_USER"
-if ! runuser -u "$SERVICE_USER" -- test -r "$AFFAIRES_ROOT"; then
-  die "service user cannot read AFFAIRES mount: $AFFAIRES_ROOT"
+if ! runuser -u "$SERVICE_USER" -- test -r "$PROJECTS_ROOT"; then
+  die "service user cannot read AFFAIRES mount: $PROJECTS_ROOT"
 fi
-if ! runuser -u "$SERVICE_USER" -- test -x "$AFFAIRES_ROOT"; then
-  die "service user cannot traverse AFFAIRES mount: $AFFAIRES_ROOT"
+if ! runuser -u "$SERVICE_USER" -- test -x "$PROJECTS_ROOT"; then
+  die "service user cannot traverse AFFAIRES mount: $PROJECTS_ROOT"
 fi
 if [[ -d "$INSTALL_ROOT" ]]; then
   backup="${INSTALL_ROOT}.backup.$(date -u +%Y%m%dT%H%M%SZ)"
@@ -106,12 +106,12 @@ trap 'rm -f "$producer_unit_tmp" "$cockpit_unit_tmp"' EXIT
   printf '%s\n' '[Unit]'
   printf '%s\n' 'Description=Pantheon AFFAIRES Hindsight producer'
   printf '%s\n' 'After=network.target'
-  printf 'RequiresMountsFor=%s\n' "$AFFAIRES_ROOT"
+  printf 'RequiresMountsFor=%s\n' "$PROJECTS_ROOT"
   printf '\n%s\n' '[Service]'
   printf 'User=%s\n' "$SERVICE_USER"
   printf 'WorkingDirectory=%s\n' "$INSTALL_ROOT"
   printf '%s\n' 'EnvironmentFile=-/etc/pantheon-workspace-cockpit.env'
-  printf 'ExecStart=/usr/bin/python3 %s/producer_daemon.py --max-depth 8 --state-db /var/lib/pantheon-workspace-cockpit/index.sqlite3 --reconcile-seconds 60 --watch-debounce-ms 500 --root Affaires=%s\n' "$INSTALL_ROOT" "$AFFAIRES_ROOT"
+  printf 'ExecStart=/usr/bin/python3 %s/producer_daemon.py --max-depth 8 --state-db /var/lib/pantheon-workspace-cockpit/index.sqlite3 --reconcile-seconds 60 --watch-debounce-ms 500 --root Affaires=%s\n' "$INSTALL_ROOT" "$PROJECTS_ROOT"
   printf '%s\n' 'Restart=on-failure' 'RestartSec=3' 'UMask=0077'
   printf '%s\n' 'StateDirectory=pantheon-workspace-cockpit' 'StateDirectoryMode=0700'
   printf '%s\n' 'NoNewPrivileges=true' 'PrivateDevices=true' 'PrivateTmp=true'
@@ -126,12 +126,12 @@ trap 'rm -f "$producer_unit_tmp" "$cockpit_unit_tmp"' EXIT
   printf '%s\n' 'Description=Pantheon optional read-only Workspace Cockpit'
   printf '%s\n' 'Requires=pantheon-affaires-producer.service'
   printf '%s\n' 'After=network.target pantheon-affaires-producer.service'
-  printf 'RequiresMountsFor=%s\n' "$AFFAIRES_ROOT"
+  printf 'RequiresMountsFor=%s\n' "$PROJECTS_ROOT"
   printf '\n%s\n' '[Service]'
   printf 'User=%s\n' "$SERVICE_USER"
   printf 'WorkingDirectory=%s\n' "$INSTALL_ROOT"
   printf '%s\n' 'EnvironmentFile=-/etc/pantheon-workspace-cockpit.env'
-  printf 'ExecStart=/usr/bin/python3 %s/server.py --projection-only --host %s --port %s --max-depth 8 --state-db /var/lib/pantheon-workspace-cockpit/index.sqlite3 --root Affaires=%s\n' "$INSTALL_ROOT" "$BIND_ADDRESS" "$PORT" "$AFFAIRES_ROOT"
+  printf 'ExecStart=/usr/bin/python3 %s/server.py --projection-only --host %s --port %s --max-depth 8 --state-db /var/lib/pantheon-workspace-cockpit/index.sqlite3 --root Affaires=%s\n' "$INSTALL_ROOT" "$BIND_ADDRESS" "$PORT" "$PROJECTS_ROOT"
   printf '%s\n' 'Restart=on-failure' 'RestartSec=3' 'UMask=0077'
   printf '%s\n' 'StateDirectory=pantheon-workspace-cockpit' 'StateDirectoryMode=0700'
   printf '%s\n' 'NoNewPrivileges=true' 'PrivateDevices=true' 'PrivateTmp=true'

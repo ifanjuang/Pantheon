@@ -11,8 +11,8 @@ APP_ROOT="/opt/pantheon-node/vault-read"
 UV="/opt/pantheon-node/uv/bin/uv"
 TOKEN_FILE="/srv/pantheon/docling/vault-read.token"
 UNIT_FILE="/etc/systemd/system/pantheon-vault-read.service"
-AFFAIRES_ROOT="${AFFAIRES_ROOT:-}"
-DOCUMENTAIRES_ROOT="${DOCUMENTAIRES_ROOT:-}"
+PROJECTS_ROOT="${PROJECTS_ROOT:-}"
+KNOWLEDGE_ROOT="${KNOWLEDGE_ROOT:-}"
 APPLY=0
 ENABLE=0
 
@@ -23,10 +23,10 @@ usage() {
   cat <<'USAGE'
 Usage:
   deployment/ubuntu/configure-vault-read-local --check
-  sudo deployment/ubuntu/configure-vault-read-local --apply --affaires-root PATH --documentaires-root PATH [--enable]
+  sudo deployment/ubuntu/configure-vault-read-local --apply --projects-root PATH --knowledge-root PATH [--enable]
 
 Stages a pinned, read-only, authenticated agency vault MCP service on loopback.
-Paths are the Linux-mounted NAS roots (or set AFFAIRES_ROOT and DOCUMENTAIRES_ROOT).
+Paths are the Linux-mounted NAS roots (or set PROJECTS_ROOT and KNOWLEDGE_ROOT).
 --enable is explicit. No Hermes profile or project document is changed here.
 USAGE
 }
@@ -35,8 +35,8 @@ while (($#)); do
   case "$1" in
     --check) APPLY=0 ;;
     --apply) APPLY=1 ;;
-    --affaires-root) AFFAIRES_ROOT="${2:?missing AFFAIRES root}"; shift ;;
-    --documentaires-root) DOCUMENTAIRES_ROOT="${2:?missing DOCUMENTAIRES root}"; shift ;;
+    --projects-root) PROJECTS_ROOT="${2:?missing projects root}"; shift ;;
+    --knowledge-root) KNOWLEDGE_ROOT="${2:?missing knowledge root}"; shift ;;
     --enable) ENABLE=1 ;;
     -h|--help) usage; exit 0 ;;
     *) die "unknown argument: $1" ;;
@@ -53,10 +53,10 @@ if ((APPLY == 0)); then
     || log "isolated runtime absent"
   [[ -f "$TOKEN_FILE" ]] && log "bearer token present (not displayed)" \
     || log "bearer token absent"
-  [[ -n "$AFFAIRES_ROOT" ]] && log "AFFAIRES root selected" \
-    || log "AFFAIRES root not selected"
-  [[ -n "$DOCUMENTAIRES_ROOT" ]] && log "DOCUMENTAIRES root selected" \
-    || log "DOCUMENTAIRES root not selected"
+  [[ -n "$PROJECTS_ROOT" ]] && log "projects root selected" \
+    || log "projects root not selected"
+  [[ -n "$KNOWLEDGE_ROOT" ]] && log "knowledge root selected" \
+    || log "knowledge root not selected"
   if systemctl is-active --quiet pantheon-vault-read.service; then
     log "loopback service active"
   else
@@ -70,20 +70,20 @@ fi
 id -u pantheon-docling >/dev/null 2>&1 \
   || die "pantheon-docling service user is required; install Docling first"
 [[ -x "$UV" ]] || die "managed uv is missing: $UV"
-[[ -n "$AFFAIRES_ROOT" && "$AFFAIRES_ROOT" = /* ]] \
-  || die "set --affaires-root to an absolute Linux-mounted NAS path"
-[[ -d "$AFFAIRES_ROOT" ]] || die "AFFAIRES mount is missing"
-runuser -u pantheon-docling -- test -r "$AFFAIRES_ROOT" \
-  || die "pantheon-docling cannot read AFFAIRES mount"
-runuser -u pantheon-docling -- test -x "$AFFAIRES_ROOT" \
-  || die "pantheon-docling cannot traverse AFFAIRES mount"
-[[ -n "$DOCUMENTAIRES_ROOT" && "$DOCUMENTAIRES_ROOT" = /* ]] \
-  || die "set --documentaires-root to an absolute Linux-mounted NAS path"
-[[ -d "$DOCUMENTAIRES_ROOT" ]] || die "DOCUMENTAIRES mount is missing"
-runuser -u pantheon-docling -- test -r "$DOCUMENTAIRES_ROOT" \
-  || die "pantheon-docling cannot read DOCUMENTAIRES mount"
-runuser -u pantheon-docling -- test -x "$DOCUMENTAIRES_ROOT" \
-  || die "pantheon-docling cannot traverse DOCUMENTAIRES mount"
+[[ -n "$PROJECTS_ROOT" && "$PROJECTS_ROOT" = /* ]] \
+  || die "set --projects-root to an absolute Linux-mounted NAS path"
+[[ -d "$PROJECTS_ROOT" ]] || die "projects mount is missing"
+runuser -u pantheon-docling -- test -r "$PROJECTS_ROOT" \
+  || die "pantheon-docling cannot read projects mount"
+runuser -u pantheon-docling -- test -x "$PROJECTS_ROOT" \
+  || die "pantheon-docling cannot traverse projects mount"
+[[ -n "$KNOWLEDGE_ROOT" && "$KNOWLEDGE_ROOT" = /* ]] \
+  || die "set --knowledge-root to an absolute Linux-mounted NAS path"
+[[ -d "$KNOWLEDGE_ROOT" ]] || die "knowledge mount is missing"
+runuser -u pantheon-docling -- test -r "$KNOWLEDGE_ROOT" \
+  || die "pantheon-docling cannot read knowledge mount"
+runuser -u pantheon-docling -- test -x "$KNOWLEDGE_ROOT" \
+  || die "pantheon-docling cannot traverse knowledge mount"
 
 install -d -m 0755 "$APP_ROOT"
 if [[ -f "$APP_ROOT/vault_mcp.py" || -f "$UNIT_FILE" ]]; then
@@ -116,15 +116,15 @@ cat > "$UNIT_FILE" <<EOF_UNIT
 Description=Read-only agency vault MCP reader for Hermes
 After=network-online.target
 Wants=network-online.target
-RequiresMountsFor=$AFFAIRES_ROOT $DOCUMENTAIRES_ROOT
+RequiresMountsFor=$PROJECTS_ROOT $KNOWLEDGE_ROOT
 
 [Service]
 Type=simple
 User=pantheon-docling
 Group=pantheon-docling
 WorkingDirectory=$APP_ROOT
-Environment=VAULT_AFFAIRES_ROOT=$AFFAIRES_ROOT
-Environment=VAULT_DOCUMENTAIRES_ROOT=$DOCUMENTAIRES_ROOT
+Environment=VAULT_PROJECTS_ROOT=$PROJECTS_ROOT
+Environment=VAULT_KNOWLEDGE_ROOT=$KNOWLEDGE_ROOT
 Environment=VAULT_TOKEN_FILE=$TOKEN_FILE
 ExecStart=$APP_ROOT/.venv/bin/python $APP_ROOT/vault_mcp.py --http
 Restart=on-failure
@@ -133,7 +133,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectHome=true
 ProtectSystem=strict
-ReadOnlyPaths=$AFFAIRES_ROOT $DOCUMENTAIRES_ROOT $TOKEN_FILE
+ReadOnlyPaths=$PROJECTS_ROOT $KNOWLEDGE_ROOT $TOKEN_FILE
 
 [Install]
 WantedBy=multi-user.target

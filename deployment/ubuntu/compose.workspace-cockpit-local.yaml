@@ -32,7 +32,7 @@ services:
       WORKSPACE_WATCH_DEBOUNCE_MS: ${WORKSPACE_WATCH_DEBOUNCE_MS:-500}
       WORKSPACE_EXCLUDED_FOLDERS: ${WORKSPACE_EXCLUDED_FOLDERS:-Archive,Archives,RATP,AGENCY_RATP}
       WORKSPACE_HINDSIGHT_URL: ${WORKSPACE_HINDSIGHT_URL:-http://127.0.0.1:8888}
-      WORKSPACE_HINDSIGHT_BANK_ID: ${WORKSPACE_HINDSIGHT_BANK_ID:-AGENCY_PROJECTS}
+      WORKSPACE_HINDSIGHT_BANK_ID: ${WORKSPACE_HINDSIGHT_BANK_ID:-PROJECTS}
       WORKSPACE_HINDSIGHT_PARSER: ${WORKSPACE_HINDSIGHT_PARSER:-markitdown}
       WORKSPACE_HINDSIGHT_MAX_SUBMITS_PER_RECONCILE: ${WORKSPACE_HINDSIGHT_MAX_SUBMITS_PER_RECONCILE:-100}
       WORKSPACE_HINDSIGHT_MAX_FILE_MB: ${WORKSPACE_HINDSIGHT_MAX_FILE_MB:-100}
@@ -40,7 +40,7 @@ services:
       WORKSPACE_HINDSIGHT_SOURCE_KIND: ${WORKSPACE_HINDSIGHT_SOURCE_KIND:-project-sync}
       WORKSPACE_HINDSIGHT_AUTHORIZATION: ${WORKSPACE_HINDSIGHT_AUTHORIZATION:-}
     volumes:
-      - ${AFFAIRES_ROOT:?set AFFAIRES_ROOT to the Linux-mounted NAS AFFAIRES path}:/workspace/affaires:ro
+      - ${PROJECTS_ROOT:?set PROJECTS_ROOT to the Linux-mounted NAS AFFAIRES path}:/workspace/affaires:ro
       - workspace-cockpit-state:/state
     healthcheck:
       test:
@@ -94,7 +94,7 @@ services:
       WORKSPACE_ROLE_TRACE_KEY: ${ROLE_TRACE_READ_KEY:?set ROLE_TRACE_READ_KEY outside the repository}
       WORKSPACE_INDEX_DB: /state/index.sqlite3
       WORKSPACE_HINDSIGHT_URL: ${WORKSPACE_HINDSIGHT_URL:-http://127.0.0.1:8888}
-      WORKSPACE_HINDSIGHT_BANK_ID: ${WORKSPACE_HINDSIGHT_BANK_ID:-AGENCY_PROJECTS}
+      WORKSPACE_HINDSIGHT_BANK_ID: ${WORKSPACE_HINDSIGHT_BANK_ID:-PROJECTS}
       WORKSPACE_HINDSIGHT_PARSER: ${WORKSPACE_HINDSIGHT_PARSER:-markitdown}
       WORKSPACE_HINDSIGHT_MAX_FILE_MB: ${WORKSPACE_HINDSIGHT_MAX_FILE_MB:-100}
       WORKSPACE_HINDSIGHT_AUTHORIZATION: ${WORKSPACE_HINDSIGHT_AUTHORIZATION:-}
@@ -106,7 +106,7 @@ services:
       role-trace:
         condition: service_healthy
     volumes:
-      - ${AFFAIRES_ROOT:?set AFFAIRES_ROOT to the Linux-mounted NAS AFFAIRES path}:/workspace/affaires:ro
+      - ${PROJECTS_ROOT:?set PROJECTS_ROOT to the Linux-mounted NAS AFFAIRES path}:/workspace/affaires:ro
       - workspace-cockpit-state:/state:ro
     healthcheck:
       test:
@@ -169,7 +169,7 @@ services:
     env_file:
       - /etc/pantheon-hindsight-enrichment-hook.env
     environment:
-      HINDSIGHT_ENRICHMENT_BANK_ID: ${WORKSPACE_HINDSIGHT_BANK_ID:-AGENCY_PROJECTS}
+      HINDSIGHT_ENRICHMENT_BANK_ID: ${WORKSPACE_HINDSIGHT_BANK_ID:-PROJECTS}
     volumes:
       - workspace-cockpit-state:/state
     healthcheck:

@@ -88,7 +88,7 @@ RestartSec=10
 PrivateTmp=true
 ProtectHome=true
 ProtectSystem=strict
-ReadWritePaths=$DOCLING_STATE $DOCLING_CACHE $STATE_ROOT/obsidian-documentaires /tmp
+ReadWritePaths=$DOCLING_STATE $DOCLING_CACHE /tmp
 NoNewPrivileges=true
 
 [Install]

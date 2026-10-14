@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail-closed scoped recall adapter for Hindsight (project or reference library)."""
+"""Fail-closed scoped recall adapter for Hindsight (project or knowledge vault)."""
 
 from __future__ import annotations
 
@@ -183,8 +183,8 @@ class ProjectRecallClient:
         return {"status": "ok", "source_scope": f"source:{self.source_kind}", "projects": projects,
                 "total": len(projects), "scope_is_indexed_not_identity": True}
 
-    def list_library_folders(self, limit: int = 100) -> dict[str, Any]:
-        """List bounded reference-library folder tags and their memory counts."""
+    def list_knowledge_folders(self, limit: int = 100) -> dict[str, Any]:
+        """List bounded knowledge-vault folder tags and their memory counts."""
         folders = [
             {"folder": row["tag"].removeprefix("folder:"), "memory_count": row["memory_count"]}
             for row in self._list_tags("folder:*", limit)
@@ -231,14 +231,14 @@ class ProjectRecallClient:
             "chunks": chunks,
         }
 
-    def recall_library(
+    def recall_knowledge(
         self,
         query: str,
         *,
         folder: str = "",
         max_tokens: int = 2048,
     ) -> dict[str, Any]:
-        """Recall from a reference library: one source, optional folder, no project."""
+        """Recall from the knowledge vault: one source, optional folder, no project."""
         query = query.strip()
         if not query or len(query) > 2000:
             raise ProjectRecallError("Query must contain between 1 and 2000 characters")

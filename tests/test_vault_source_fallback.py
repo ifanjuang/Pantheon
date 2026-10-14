@@ -120,7 +120,7 @@ def test_nested_alpha_cerfa_is_read_at_exact_lines_not_from_a_directory(vaults) 
     assert hit["search_hit_is_source_inspection"] is False
     passage = reader.read_markdown_lines(str(files["cerfa"]), 2, 1, "Project Alpha")
     assert passage["lines"] == [{"line": 2, "text": "Surface déclarée : exemple fictif."}]
-    assert passage["source_family"] == "AFFAIRES"
+    assert passage["source_family"] == "projects"
     with pytest.raises(VaultSourceError, match="Markdown file"):
         reader.read_markdown_lines(str(files["cerfa"].parent), project_ref="Project Alpha")
 
@@ -128,7 +128,7 @@ def test_nested_alpha_cerfa_is_read_at_exact_lines_not_from_a_directory(vaults) 
 def test_maf_stays_documentary_and_cross_project_reads_are_rejected(vaults) -> None:
     reader, files = vaults
     maf = reader.read_markdown_lines(str(files["maf"]))
-    assert maf["source_family"] == "DOCUMENTAIRES"
+    assert maf["source_family"] == "knowledge"
     assert maf["evidence_admitted"] is False
     with pytest.raises(VaultSourceError, match="must not be presented as a project"):
         reader.read_markdown_lines(str(files["maf"]), project_ref="Project Beta")
@@ -155,9 +155,9 @@ def test_reader_rejects_escape_symlinks_and_unbounded_results(vaults, tmp_path: 
                                    project_ref="Project Beta")
 
     redirected_root = tmp_path / "redirected-affaires"
-    redirected_root.symlink_to(reader.affaires_root, target_is_directory=True)
+    redirected_root.symlink_to(reader.projects_root, target_is_directory=True)
     with pytest.raises(VaultSourceError, match="source roots"):
-        VaultSources(redirected_root, reader.documentaires_root)
+        VaultSources(redirected_root, reader.knowledge_root)
 
 
 def test_runtime_binding_is_explicitly_read_only_and_bounded() -> None:
@@ -185,14 +185,14 @@ def test_local_service_keeps_vault_acl_off_hermes_and_authenticates_http() -> No
     )
     assert "User=pantheon-docling" in installer
     assert "Group=pantheon-docling" in installer
-    assert "--apply --affaires-root PATH --documentaires-root PATH [--enable]" in installer
-    assert "--affaires-root" in installer
-    assert "AFFAIRES_ROOT" in installer
-    assert "--documentaires-root" in installer
-    assert 'DOCUMENTAIRES_ROOT="${DOCUMENTAIRES_ROOT:-}"' in installer
-    assert 'Environment=VAULT_DOCUMENTAIRES_ROOT=$DOCUMENTAIRES_ROOT' in installer
-    assert 'ReadOnlyPaths=$AFFAIRES_ROOT $DOCUMENTAIRES_ROOT $TOKEN_FILE' in installer
-    assert 'RequiresMountsFor=$AFFAIRES_ROOT $DOCUMENTAIRES_ROOT' in installer
+    assert "--apply --projects-root PATH --knowledge-root PATH [--enable]" in installer
+    assert "--projects-root" in installer
+    assert "PROJECTS_ROOT" in installer
+    assert "--knowledge-root" in installer
+    assert 'KNOWLEDGE_ROOT="${KNOWLEDGE_ROOT:-}"' in installer
+    assert 'Environment=VAULT_KNOWLEDGE_ROOT=$KNOWLEDGE_ROOT' in installer
+    assert 'ReadOnlyPaths=$PROJECTS_ROOT $KNOWLEDGE_ROOT $TOKEN_FILE' in installer
+    assert 'RequiresMountsFor=$PROJECTS_ROOT $KNOWLEDGE_ROOT' in installer
     assert "/mnt/nas/BIBLIOTHEQUE" not in installer
     assert "/srv/pantheon/obsidian-affaires" not in installer
     assert "openssl rand -hex 32" in installer
@@ -254,8 +254,8 @@ def test_stdio_mcp_opens_only_the_selected_synthetic_project(vaults) -> None:
         args=[str(SCRIPTS / "vault_mcp.py")],
         env={
             **os.environ,
-            "VAULT_AFFAIRES_ROOT": str(reader.affaires_root),
-            "VAULT_DOCUMENTAIRES_ROOT": str(reader.documentaires_root),
+            "VAULT_PROJECTS_ROOT": str(reader.projects_root),
+            "VAULT_KNOWLEDGE_ROOT": str(reader.knowledge_root),
         },
     )
 
@@ -299,8 +299,8 @@ def test_authenticated_http_mcp_reads_beta_but_not_alpha(vaults, tmp_path: Path)
         [sys.executable, str(SCRIPTS / "vault_mcp.py"), "--http"],
         env={
             **os.environ,
-            "VAULT_AFFAIRES_ROOT": str(reader.affaires_root),
-            "VAULT_DOCUMENTAIRES_ROOT": str(reader.documentaires_root),
+            "VAULT_PROJECTS_ROOT": str(reader.projects_root),
+            "VAULT_KNOWLEDGE_ROOT": str(reader.knowledge_root),
             "VAULT_TOKEN_FILE": str(token_file),
             "VAULT_MCP_PORT": str(port),
         },

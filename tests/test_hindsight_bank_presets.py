@@ -98,7 +98,7 @@ def test_overlay_only_appends_missions_and_adds_labels() -> None:
 def test_configurator_rejects_overlay_keys_beyond_additions_and_uses_per_bank_endpoint() -> None:
     text = SCRIPT.read_text(encoding="utf-8")
     assert 'keys - ["mission_additions", "entity_labels"] | length == 0' in text
-    assert 'BANK_ID="${BANK_ID:-AGENCY_PROJECTS}"' in text
+    assert 'BANK_ID="${BANK_ID:-PROJECTS}"' in text
     assert 'BANK_ID="${BANK_ID:-KNOWLEDGE}"' in text
     assert 'banks/$BANK_ID/config' in text
     assert "-X PATCH" in text
