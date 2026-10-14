@@ -78,6 +78,24 @@ The installer is intentionally interactive unless `--yes` is supplied. If the Ub
 the already-installed native Hermes/Hindsight services in their current
 activation state. It does not perform Hermes first-time setup.
 
+The policy package lives in `/srv/pantheon/policy-venv` and reads the pinned
+release through `/opt/pantheon/current`. `install-node` and `update-node` keep
+both readable (never writable) by service users, so the native Hermes binding
+should use them rather than a separate hand-installed copy that no updater
+refreshes:
+
+```yaml
+mcp_servers:
+  pantheon-policy:
+    command: /srv/pantheon/policy-venv/bin/pantheon-mcp-server
+    env:
+      PANTHEON_REPO_PATH: /opt/pantheon/current
+```
+
+Keep the reviewed tool allowlist and posture from
+`templates/hermes/connection/pantheon_policy_mcp.template.yaml`. After a release
+switch, Hermes picks up the new policy package on its next restart.
+
 The optional Hindsight container alone is not a qualified AFFAIRES ingestion route. Pantheon-Next#660 owns the single AFFAIRES producer and Pantheon-Next#659 owns Hindsight retain/retrieval qualification. Historical Obsidian integrations remain separate reference material and are not installed by this baseline.
 
 ## Private WireGuard DynHost update

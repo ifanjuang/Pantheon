@@ -185,7 +185,8 @@ require_native_runtimes() {
 }
 
 prepare_layout() {
-  install -d -m 0750 "$CONFIG_ROOT" "$PANTHEON_ROOT"
+  install -d -m 0750 "$CONFIG_ROOT"
+  install -d -m 0755 "$PANTHEON_ROOT"
   # Service users must be able to traverse APP_ROOT without being able to list it.
   install -d -m 0711 "$APP_ROOT"
   install -d -m 0755 "$STATE_ROOT" "$AI_ROOT"
@@ -253,6 +254,14 @@ validate_policy_package() {
     </dev/null >/dev/null
 }
 
+# The release checkout and policy environment are public repository content.
+# The Hermes service user runs the policy MCP from them, so they must stay
+# readable (never writable) whatever umask root used for the clone and install.
+publish_release_readable() {
+  chmod 0755 "$PANTHEON_ROOT"
+  chmod -R u+rwX,go+rX,go-w "$1" "$STATE_ROOT/policy-venv"
+}
+
 # Root cannot authenticate to a private remote, so an operator-owned local
 # checkout may be the reviewed source. Git refuses repositories owned by
 # another user; trust one only for reads of that local source.
@@ -288,6 +297,7 @@ install_pantheon_checkout() {
   rm -rf "$STATE_ROOT/policy-venv"
   "$APP_ROOT/uv/bin/uv" venv --python "$managed_python" "$STATE_ROOT/policy-venv"
   "$APP_ROOT/uv/bin/uv" pip install --python "$STATE_ROOT/policy-venv/bin/python" "$target/mcp-server"
+  publish_release_readable "$target"
   validate_policy_package "$target"
 }
 

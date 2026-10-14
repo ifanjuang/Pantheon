@@ -70,6 +70,14 @@ validate_policy_package() {
     </dev/null >/dev/null
 }
 
+# The release checkout and policy environment are public repository content.
+# The Hermes service user runs the policy MCP from them, so they must stay
+# readable (never writable) whatever umask root used for the clone and install.
+publish_release_readable() {
+  chmod 0755 "$PANTHEON_ROOT"
+  chmod -R u+rwX,go+rX,go-w "$1" "$STATE_ROOT/policy-venv"
+}
+
 # Root cannot authenticate to a private remote, so an operator-owned local
 # checkout may be the reviewed source. Git refuses repositories owned by
 # another user; trust one only for reads of that local source.
@@ -160,6 +168,7 @@ restore_pantheon_checkpoint() {
     if [[ -n "$PANTHEON_PREVIOUS_CHECKOUT" && -d "$PANTHEON_PREVIOUS_CHECKOUT/mcp-server" ]]; then
       if "$APP_ROOT/uv/bin/uv" pip install --python "$STATE_ROOT/policy-venv/bin/python" \
         --force-reinstall "$PANTHEON_PREVIOUS_CHECKOUT/mcp-server" \
+        && publish_release_readable "$PANTHEON_PREVIOUS_CHECKOUT" \
         && validate_policy_package "$PANTHEON_PREVIOUS_CHECKOUT"; then
         log "previous Pantheon policy package restored"
       else
@@ -260,6 +269,7 @@ update_pantheon() {
   PANTHEON_TRANSACTION_ACTIVE=1
   PANTHEON_PACKAGE_INSTALL_ATTEMPTED=1
   "$APP_ROOT/uv/bin/uv" pip install --python "$STATE_ROOT/policy-venv/bin/python" --force-reinstall "$target/mcp-server"
+  publish_release_readable "$target"
   validate_policy_package "$target"
   PANTHEON_LINK_SWITCH_ATTEMPTED=1
   ln -sfn "$target" "$PANTHEON_ROOT/current"

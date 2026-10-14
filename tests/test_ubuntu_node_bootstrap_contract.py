@@ -370,6 +370,22 @@ def test_policy_package_validation_never_launches_the_stdio_server() -> None:
     assert 'validate_policy_package "$PANTHEON_PREVIOUS_CHECKOUT"' in update
 
 
+def test_release_and_policy_package_stay_readable_by_service_users() -> None:
+    # Hermes runs the policy MCP as its own user from the pinned release; a
+    # restrictive root umask must not leave either unreadable to it.
+    install = _text(INSTALL)
+    update = _text(UPDATE)
+    assert 'install -d -m 0755 "$PANTHEON_ROOT"' in install
+    assert 'install -d -m 0750 "$CONFIG_ROOT"\n' in install
+    for text in (install, update):
+        assert 'chmod -R u+rwX,go+rX,go-w "$1" "$STATE_ROOT/policy-venv"' in text
+        assert text.index('publish_release_readable "$target"') < text.index('validate_policy_package "$target"')
+    assert 'publish_release_readable "$PANTHEON_PREVIOUS_CHECKOUT"' in update
+    readme = _text(README)
+    assert "command: /srv/pantheon/policy-venv/bin/pantheon-mcp-server" in readme
+    assert "PANTHEON_REPO_PATH: /opt/pantheon/current" in readme
+
+
 def test_private_repository_can_use_a_local_operator_checkout() -> None:
     for script in (INSTALL, UPDATE):
         text = _text(script)
