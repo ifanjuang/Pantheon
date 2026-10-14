@@ -40,7 +40,7 @@ def test_spatial_navigation_keeps_sibling_and_parent_boundaries() -> None:
       const nav = window.PantheonSpatialNavigation.create({ root_collection_id: "primary-spaces", root_item_ids: ["pantheon", "affaires", "knowledge", "tools"] });
       nav.selectSibling("affaires");
       if (nav.snapshot().current_id !== "affaires") throw new Error("root selection failed");
-      nav.descend({ parent_entity_id: "affaires", collection_id: "projects", item_ids: ["verger", "pinede", "mannevillette"] });
+      nav.descend({ parent_entity_id: "affaires", collection_id: "projects", item_ids: ["verger", "pinede", "ormeaux"] });
       nav.moveHorizontal(1);
       if (nav.snapshot().current_id !== "pinede") throw new Error("sibling navigation escaped collection");
       if (nav.snapshot().depth !== 1) throw new Error("horizontal navigation changed depth");
