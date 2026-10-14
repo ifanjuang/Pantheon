@@ -29,7 +29,7 @@ SENTINEL_PLUGIN = (
 VARIANT_HARNESS = ROOT / "tools" / "run_hermes_project_variant_lab_acceptance.py"
 VARIANT_FIXTURE = ROOT / "tools" / "hermes_project_variant_lab_fixture.py"
 DISTRIBUTION = ROOT / "mvp_vertical" / "hermes_distribution.py"
-DISTRIBUTION_AUTHORITY_REF = "1afbcdb25209fa6e411dc3792ddeb56447685ebf"
+DISTRIBUTION_AUTHORITY_REF = "c1e8db4e7c949768b5f7ade94cd9931b7062f316"
 
 
 def _workflow(path: Path) -> tuple[str, dict]:
