@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Understanding modern AI — Pantheon Next</title>
+  <meta name="description" content="A plain-language guide to how AI receives context, retrieves sources, organizes memory and acts — then how Pantheon keeps mission, provenance, evidence and decisions readable.">
+  <link rel="canonical" href="https://ifanjuang.github.io/Pantheon/understand.html">
+  <link rel="alternate" hreflang="fr" href="https://ifanjuang.github.io/Pantheon/comprendre.html">
+  <link rel="alternate" hreflang="en" href="https://ifanjuang.github.io/Pantheon/understand.html">
+  <link rel="alternate" hreflang="x-default" href="https://ifanjuang.github.io/Pantheon/comprendre.html">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon.svg">
+  <link rel="apple-touch-icon" href="assets/brand/apple-touch-icon.png">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Understanding modern AI — Pantheon Next">
+  <meta property="og:description" content="From question to decision: what AI receives, retrieves, keeps and does — and what can actually be relied on in a professional record.">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="fr_FR">
+  <link rel="stylesheet" href="assets/landing-docs-core.css">
+  <link rel="stylesheet" href="assets/landing-docs-components.css">
+  <link rel="stylesheet" href="assets/landing-docs-responsive.css">
+  <link rel="stylesheet" href="assets/landing-language-switch.css">
+  <link rel="stylesheet" href="assets/understand.css">
+</head>
+<body class="understand-page">
+<header class="topbar">
+  <a class="brand" href="index-en.html" aria-label="Back to Pantheon">
+    <img src="assets/brand/pantheon-next-wordmark-white.svg" alt="Pantheon Next">
+  </a>
+  <div class="header-actions">
+    <nav aria-label="Main navigation">
+      <a href="index-en.html">Pantheon</a>
+      <a href="rag-probatoire.html">Probative RAG</a>
+      <a href="manifesto.html">Manifesto</a>
+    </nav>
+    <div class="language-switch" aria-label="Language selection">
+      <a href="comprendre.html" lang="fr" hreflang="fr" aria-label="Afficher la version française">FR</a>
+      <a href="understand.html" lang="en" hreflang="en" aria-label="View the English version" aria-current="page">EN</a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="u-hero" id="top">
+    <div>
+      <p class="u-kicker">Understand · no prerequisites</p>
+      <h1>Between your question and the answer, what is AI actually doing?</h1>
+      <p class="lead">On screen, everything feels immediate. Behind the answer, the system receives context, retrieves useful passages, sometimes remembers, sometimes acts — and we still need to know what the result is actually worth. This page follows that path without unnecessary jargon.</p>
+    </div>
+    <aside class="u-hero-note">
+      <strong>Pantheon is not another AI.</strong>
+      <p>It keeps the work readable when sources, versions, responsibilities and decisions start to matter.</p>
+      <p><a class="button primary" href="#two-minutes">See the map in two minutes</a></p>
+    </aside>
+  </section>
+
+  <nav class="u-nav" aria-label="Page journey">
+    <a href="#two-minutes">In brief</a>
+    <a href="#retrieve">Retrieve</a>
+    <a href="#organize">Organize</a>
+    <a href="#act">Act</a>
+    <a href="#count">What can count</a>
+    <a href="#pantheon">Pantheon</a>
+    <a href="#candidates">Candidates</a>
+    <a href="#local">Local / cloud</a>
+  </nav>
+
+  <section class="u-section" id="two-minutes">
+    <div class="u-section-head"><p class="u-kicker">The map before the details</p><h2>The essentials fit into six ideas.</h2><p>Technical terms become simpler once each one has a clear job.</p></div>
+    <div class="u-grid">
+      <article class="u-card"><small>01 · Produce</small><h3>The model</h3><p class="short">The engine that composes the answer.</p><p>It writes, compares, analyses or reasons from what it is given. It does not automatically have your entire dossier in view.</p></article>
+      <article class="u-card"><small>02 · Make available</small><h3>Context</h3><p class="short">What is on the desk right now.</p><p>The question, instructions, excerpts, tool results or useful memories: this is the material available for the task.</p></article>
+      <article class="u-card"><small>03 · Retrieve</small><h3>RAG</h3><p class="short">Search before answering.</p><p>It looks through the sources for useful passages and brings them to the model when they are needed.</p></article>
+      <article class="u-card"><small>04 · Continue</small><h3>Memory</h3><p class="short">What prevents every task from starting at zero.</p><p>It carries continuity through time. But a memory still belongs to a dossier, a date, a version and a status.</p></article>
+      <article class="u-card"><small>05 · Do</small><h3>The executor</h3><p class="short">The part that carries out the mission.</p><p>It mobilizes models, tools and reusable know-how, works through several steps and returns a result.</p></article>
+      <article class="u-card"><small>06 · Keep the frame</small><h3>Pantheon</h3><p class="short">What keeps the path reviewable.</p><p>Mission, scope, sources, capabilities, provenance, evidence, statuses and decisions do not dissolve into one polished answer.</p></article>
+    </div>
+    <div class="u-story"><div class="badge">LIA21</div><div><blockquote>“Mme. C asks whether the ventilation item is closed. Can you prepare a reply?”</blockquote><p>We will use this fictional dossier throughout the page. Every project and person named here is synthetic.</p></div></div>
+  </section>
+
+  <section class="u-section" id="retrieve">
+    <div class="u-section-head"><p class="u-kicker">1 · Retrieve</p><h2>AI answers with what it actually has in front of it.</h2><p>A model may be excellent and still miss the decisive piece. Context must therefore be prepared, and the right material retrieved without pouring an entire library into every request.</p></div>
+    <div class="u-grid two">
+      <article class="u-card"><h3>Context</h3><p class="short">The working desk.</p><p>Too empty and a key piece is missing. Too full and it becomes noisy. Good context contains what the mission actually needs.</p></article>
+      <article class="u-card"><h3>Tokens</h3><p class="short">The units a model handles.</p><p>Text is broken into small units, and the amount a model can inspect at once remains finite. That is one reason useful passages are selected.</p></article>
+      <article class="u-card"><h3>The chunk</h3><p class="short">A piece that keeps its address.</p><p>A long document is prepared as searchable passages. Each piece stays linked to its document, page, section and, when possible, the version it came from.</p></article>
+      <article class="u-card"><h3>The embedding</h3><p class="short">A mathematical representation of semantic proximity.</p><p>It helps bring together different wordings that are nevertheless about the same subject.</p></article>
+    </div>
+    <div class="u-flow" aria-label="Simplified RAG flow"><div>Question</div><div class="arrow">↓</div><div>Search the sources</div><div class="arrow">↓</div><div>Candidate passages</div><div class="arrow">↓</div><div>Model context</div><div class="arrow">↓</div><div>Answer</div></div>
+    <details><summary>Why combine exact search and semantic search?</summary><div><p>An index, reference or exact name is often easy to find by words. The same idea expressed differently may be easier to retrieve by semantic proximity. Hybrid retrieval combines both and then ranks the results.</p><p>That ranking helps retrieval. It does not give the top passage any special authority.</p></div></details>
+    <details><summary>What might be retrieved in LIA21?</summary><div><p>The ventilation question may bring back a specification, a meeting note and an inspection record. The model can use them to draft a reply; we still need to know which piece is newer, which revision applies and what each one actually supports.</p></div></details>
+  </section>
+
+  <section class="u-section" id="organize">
+    <div class="u-section-head"><p class="u-kicker">2 · Organize</p><h2>Memory is only useful if we know what it belongs to, where it came from and when it applied.</h2><p>One giant memory eventually mixes projects, experiments and old assumptions. Continuity becomes useful when it stays classified, dated and reversible.</p></div>
+    <h3>Three working-memory domains</h3>
+    <div class="u-memory">
+      <article><span class="memory-mark">A</span><h3>Agency</h3><p class="short">What deserves to be reused.</p><p>Methods, references, templates, working habits and lessons that outlive one particular dossier.</p></article>
+      <article><span class="memory-mark">P</span><h3>Projects</h3><p class="short">What belongs to one case.</p><p>Meetings, hypotheses, decisions, drafts, exchanges and context that belong to LIA21, SOL14 or another dossier.</p></article>
+      <article><span class="memory-mark">S</span><h3>Sandbox</h3><p class="short">What can be tested without blurring real dossiers.</p><p>Synthetic data, new models, new versions and experimental integrations stay isolated from professional dossiers.</p></article>
+    </div>
+    <p>These domains organize working memory. They do not replace task scope, information status or navigation categories.</p>
+
+    <h3>Classify so retrieval does not become mixing</h3>
+    <pre class="u-code" aria-label="Classification example">DOMAIN       Projects
+  ↓
+DOSSIER      LIA21
+  ↓
+CONTEXT      Site / Meeting / Ventilation
+  ↓
+SOURCE       LIA21_CR_014.md
+  ↓
+PASSAGE      retrieved chunk</pre>
+    <p>This lets the system search LIA21 without silently letting SOL14 leak into the answer. Categories and tags may help navigation; they are not evidence or authorization.</p>
+
+    <h3>Versions: keep the history without mistaking old for current</h3>
+    <div class="u-grid two"><article class="u-card"><h3>Keep the trace</h3><p>An older revision may explain why a decision was made. Deleting it would erase part of the history.</p></article><article class="u-card"><h3>Recover the applicable state</h3><p>Index, date, active revision, supersession and obsolescence need to remain visible so an old passage does not quietly return as current.</p></article></div>
+
+    <h3>Why Markdown?</h3>
+    <p>A Markdown file, usually ending in <code>.md</code>, is plain text with a few simple marks for headings, lists and links.</p>
+    <pre class="u-code" aria-label="Small Markdown example"># LIA21 — 14 August meeting
+
+## Ventilation
+The inspection still needs confirmation.
+
+- expected source
+- contractor reply pending</pre>
+    <p>It stays readable without specialist software, easy to compare across versions, easy to search and practical for both people and AI tools. Most importantly, it is portable: the content does not depend on one application to remain understandable.</p>
+    <p>The format does not change the authority of the source. A received PDF remains the received PDF. Markdown produced from it is a working representation that should continue to point back to the original.</p>
+    <div class="u-flow" aria-label="Source and derived structure"><div>Original source</div><div class="arrow">↓</div><div>Extraction</div><div class="arrow">↓</div><div>Derived source-located structure</div><div class="arrow">↓</div><div>Provenance-bearing chunks</div></div>
+    <div class="u-grid two" style="margin-top:14px"><article class="u-card"><h3>Derived Markdown</h3><p>Produced from a PDF or another document, it is a working representation and remains linked to its source.</p></article><article class="u-card"><h3>Original Markdown</h3><p>Written directly as <code>.md</code>, it may itself be a source. Status therefore depends on origin, not on the file extension.</p></article></div>
+
+    <div class="u-story"><div class="badge">M</div><div><blockquote>Good memory does not merely ask “what looks similar?” It searches in the right place, by the right method, then checks whether what it found still applies.</blockquote><p>This is <strong>Mnemosyne’s</strong> territory, as Pantheon’s canonical continuity role. She directs retrieval toward the right domain or dossier, chooses the appropriate search strategy, watches for duplicates, indices, dates, versions and superseded records. The executor performs the retrieval; Mnemosyne keeps the memory discipline.</p></div></div>
+    <div class="u-grid">
+      <article class="u-card"><small>Memory · MNEMOSYNE</small><h3>Where should we look?</h3><p>Active Project, Agency, Sandbox, working corpus, qualified sources or the Register: scope comes before the search engine.</p></article>
+      <article class="u-card"><small>Retrieval · MNEMOSYNE</small><h3>How should we look?</h3><p>Exact words, semantic proximity, chronology and declared relations can be combined. The question chooses the method.</p></article>
+      <article class="u-card"><small>Continuity · MNEMOSYNE</small><h3>What should be kept, and where?</h3><p>She may propose session, Project, Agency, Sandbox, archive or Register Candidate. A proposed destination never becomes promotion by itself.</p></article>
+    </div>
+    <details><summary>What about conversational memory?</summary><div><p>It can make an assistant more convenient by retaining preferences or continuity. For a governed task, its injection may be limited or disabled so the result rests on explicit context rather than invisible recall.</p></div></details>
+  </section>
+
+  <section class="u-section" id="act">
+    <div class="u-section-head"><p class="u-kicker">3 · Act</p><h2>An answer changes nature once it can produce an effect.</h2><p>Opening a file, searching the Web, calling an API, editing a document or preparing a send means distinguishing what knows, what knows how, and what actually executes.</p></div>
+    <div class="u-grid">
+      <article class="u-card"><h3>The tool</h3><p class="short">A concrete capability.</p><p>Read, search, calculate, export, call a service or write somewhere.</p></article>
+      <article class="u-card"><h3>The skill</h3><p class="short">A reusable way to do the job well.</p><p>The tool opens the PDF; the skill describes how to analyse it, what to check and how to return the result.</p></article>
+      <article class="u-card"><h3>The agent</h3><p class="short">An objective rather than one immediate answer.</p><p>It can observe, choose a step, use a tool, read the result and continue toward the expected output.</p></article>
+      <article class="u-card"><h3>The executor</h3><p class="short">The engine that actually does the work.</p><p>An external agentic engine or service receives a bounded mission. Pantheon must be able to replace it without changing its own responsibility.</p></article>
+      <article class="u-card"><h3>The run</h3><p class="short">This particular execution.</p><p>The same task run tomorrow creates another run, with its own events, tool calls and results.</p></article>
+      <article class="u-card"><h3>The workflow</h3><p class="short">The repeatable method.</p><p>It describes a path through the work. The executor that follows the path remains a separate responsibility.</p></article>
+    </div>
+    <div class="u-flow" aria-label="Simplified agentic execution"><div>Mission</div><div class="arrow">↓</div><div>Executor</div><div class="arrow">↓</div><div>Models · skills · tools</div><div class="arrow">↓</div><div>Run</div><div class="arrow">↓</div><div>Result</div></div>
+    <details><summary>API, connector, MCP: three words for three levels</summary><div><p>An API lets two pieces of software communicate in a structured way. A connector adapts a particular service. MCP provides a shared convention for exposing tools and resources to AI systems.</p><p>These mechanisms make connection easier; they do not decide whether a capability is authorized for this mission.</p></div></details>
+    <details><summary>Task, session, run: the simplest distinction</summary><div><p>The task says what must be accomplished. The session carries the thread of an interaction. The run is one concrete execution. A session can therefore contain several tasks and several runs.</p></div></details>
+  </section>
+
+  <section class="u-section" id="count">
+    <div class="u-section-head"><p class="u-kicker">4 · What can count</p><h2>Producing an answer is easy. Knowing what it allows is another matter.</h2><p>In LIA21, one sentence says the ventilation is compliant. The model can turn that into an excellent email. The dossier still asks: which document, which date, which index, what scope, what inspection?</p></div>
+    <div class="u-story"><div class="badge">?</div><div><blockquote>Which document? Which version? Who is speaking? Is there a newer piece? Is this a statement, an observation, an approval?</blockquote><p>Pantheon keeps the path reviewable: not to declare truth for the professional, but to stop a conclusion from losing the conditions it came from.</p></div></div>
+    <div class="u-grid two">
+      <article class="u-card"><h3>The mission brief</h3><p class="short">What is requested, allowed and expected.</p><p>The <em>Task Contract</em> states intent, scope, constraints, useful Pantheon viewpoints, approvals, expected evidence, allowed or forbidden outputs and memory rules.</p></article>
+      <article class="u-card"><h3>The execution green light</h3><p class="short">This exact mission may proceed.</p><p><em>Execution Admission</em> checks launch conditions. It does not say the run already happened or that its future result will be valid.</p></article>
+      <article class="u-card"><h3>Provenance</h3><p class="short">Being able to return to the origin.</p><p>Document, email, Web, memory, calculation, tool or person: the conclusion keeps a path back to the actual material.</p></article>
+      <article class="u-card"><h3>Candidate result</h3><p class="short">A result whose status has not yet changed.</p><p>Execution may be technically complete while the content remains a draft to review, discuss or approve.</p></article>
+      <article class="u-card"><h3>Evidence Item</h3><p class="short">One item supporting one bounded point.</p><p>An Evidence Item links a claim to a source, a locator and an explicit support scope.</p></article>
+      <article class="u-card"><h3>Evidence Pack</h3><p class="short">The review dossier for the result.</p><p>It gathers sources, evidence, assumptions, actions, risks, outputs, reviews and approval state.</p></article>
+      <article class="u-card"><h3>Register Candidate</h3><p class="short">What we may want to retain durably.</p><p>Before the Probative Register, an item can remain a candidate with scope, provenance, certainty, risk and remaining validations.</p></article>
+      <article class="u-card"><h3>The Probative Register</h3><p class="short">What remains together with the reasons it may be relied on.</p><p>It retains qualified, sourced and reviewable assertions. It is not a pile of whatever the assistant remembers.</p></article>
+      <article class="u-card"><h3>The question for the human</h3><p class="short">Make the missing decision visible.</p><p>When arbitration becomes necessary, Pantheon presents the question, options, missing material and blocked action. A request for decision is still distinct from the decision.</p></article>
+    </div>
+    <div class="u-flow" aria-label="Probative Register admission"><div>Worth retaining?</div><div class="arrow">↓</div><div>Register Candidate</div><div class="arrow">↓</div><div>Scope · source · evidence · certainty · risk</div><div class="arrow">↓</div><div>Review / approval when required</div><div class="arrow">↓</div><div>Entry retained with its status</div></div>
+    <details><summary>Why does Pantheon avoid one “reliability” score?</summary><div><p>Because four different questions would be crushed into one number: what evidence do we have? what has actually been verified? what are the consequences? who still needs to approve?</p><div class="u-grid two" style="margin-top:14px"><article class="u-card"><h3>E · Certainty</h3><p>How strong is the probative support for the claim?</p></article><article class="u-card"><h3>V · Verification</h3><p>What has actually been checked or observed?</p></article><article class="u-card"><h3>K · Consequence</h3><p>What could happen if we act or conclude on this basis?</p></article><article class="u-card"><h3>C · Approval</h3><p>What level of decision is still required?</p></article></div><p>The technical codes E0–E4, V0–V4, K0–K4 and C0–C5 make these axes comparable without collapsing them together.</p></div></details>
+  </section>
+
+  <section class="u-section" id="pantheon">
+    <div class="u-section-head"><p class="u-kicker">Inside Pantheon</p><h2>A useful architecture starts by not doing everything in one place.</h2><p>Pantheon owns governance. An operational implementation carries candidate data and projections. An external executor performs the mission. Models, tools and services remain specialized and replaceable.</p></div>
+    <div class="u-flow" aria-label="Pantheon functional architecture"><div><strong>Human</strong><br>asks, reviews, decides when it matters</div><div class="arrow">↓</div><div><strong>Surface</strong><br>Cockpit / conversational interface</div><div class="arrow">↓</div><div><strong>Pantheon</strong><br>mission · scope · status · evidence · decision</div><div class="arrow">↓</div><div><strong>Candidate operational implementation</strong><br>APIs · data · projections · adapters</div><div class="arrow">↓</div><div><strong>External executor</strong><br>performs admitted work</div><div class="arrow">↓</div><div><strong>Models · tools · services</strong><br>specialized and replaceable capabilities</div></div>
+    <p>This separation prevents Pantheon from turning into an agent, scheduler, queue, model provider or memory engine. It keeps responsibilities and status changes visible instead of absorbing every technical function.</p>
+    <div class="u-story"><div class="badge">P</div><div><blockquote>Roles bring different viewpoints. Rites bring a method when a recurring difficulty appears. Spaces stop contexts from blending together. The executor works. The human keeps decisions that carry consequence.</blockquote><p>The mythology is a mental shortcut. It does not turn Pantheon into a theatre of autonomous little agents.</p></div></div>
+
+    <h3>The eight canonical Roles: eight angles of judgment</h3>
+    <p>They are not all invoked at once. A mission calls only the viewpoints that can materially improve the decision or prevent a bad status change.</p>
+    <div class="u-grid">
+      <article class="u-card"><small>Structure · ATHENA</small><h3>Athena puts the problem in order.</h3><p>She clarifies the goal, decomposes what needs decomposing and notices when a request expands without limit.</p><p class="short">Useful when objectives, phases or decisions are tangled together.</p></article>
+      <article class="u-card"><small>Sources · ARGOS</small><h3>Argos asks what the claim rests on.</h3><p>He examines provenance, source quality, missing pieces and contradictions that weaken a claim.</p><p class="short">His viewpoint matters whenever we need to show where a statement came from.</p></article>
+      <article class="u-card"><small>Continuity · MNEMOSYNE</small><h3>Mnemosyne finds the right state in time.</h3><p>She knows where to search history, how to search it, which version or index matters now, and where retained material should be proposed to live.</p><p class="short">She becomes useful whenever a memory, prior decision, duplicate or version can change the answer.</p></article>
+      <article class="u-card"><small>Limits · THEMIS</small><h3>Themis looks at how far we may go.</h3><p>Mission, risk, rule, responsibility and approval level: she makes limits visible before they are crossed.</p><p class="short">Especially valuable before external action or a consequential conclusion.</p></article>
+      <article class="u-card"><small>Quality · APOLLO</small><h3>Apollo rereads what already looks finished.</h3><p>He looks for gaps behind polished wording: clarity, completeness, sufficient evidence and readiness to present.</p><p class="short">The last-review viewpoint before a draft begins to look too much like a deliverable.</p></article>
+      <article class="u-card"><small>Fabrication · HEPHAISTOS</small><h3>Hephaistos prepares what needs to be built.</h3><p>He qualifies the structure of a document, export, patch or other candidate artifact. The executor then performs the admitted production.</p><p class="short">Useful when an intention must become something concrete without confusing fabrication with validation.</p></article>
+      <article class="u-card"><small>Transmission · IRIS</small><h3>Iris looks at what is about to cross the door.</h3><p>Recipient, channel, wording, ambiguity and message effect: she shapes transmission without rewriting the underlying decision.</p><p class="short">Important before a send, especially when tone, confidentiality or responsibility matter.</p></article>
+      <article class="u-card"><small>Arbitration · ZEUS</small><h3>Zeus qualifies the next procedure.</h3><p>Faced with conflict or variants, he may keep a draft, request a piece, narrow scope, block a passage or return the choice to the human.</p><p class="short">He appears when the next move itself needs deciding. He does not decree truth.</p></article>
+    </div>
+    <p><strong>The Task Contract connects these viewpoints to a real mission.</strong> It can name an owner Role and a few useful viewpoints rather than activating the whole college by reflex.</p>
+
+    <details><summary>Mnemosyne and Argos: where is the boundary?</summary><div><p><strong>Argos</strong> asks about the value of a source: where did it come from, what does it support, what is missing?</p><p><strong>Mnemosyne</strong> asks which state of history is in play: where should we look, which version or index is current, what was superseded, what is duplicated, and where should the next retained item belong?</p><p>Both may inspect a date or version, but for different reasons. The newest memory is not automatically the strongest source.</p></div></details>
+    <details><summary>And where does Hermes fit?</summary><div><p><strong>Hermes Agent</strong> is an execution-side candidate: an external engine may receive a bounded mission, use the required capabilities and return the run result. A Pantheon viewpoint remains a governance jurisdiction; a posture, Method or Skill guides the work. A distinct Hermes Profile is justified only by a real runtime boundary — for example different credentials, context or memory injection, tool surface, data exposure, or execution isolation.</p><p>Mnemosyne therefore does not require a dedicated Hermes Profile: the Role frames memory retrieval; the executor performs the admitted retrieval inside the appropriate runtime boundary.</p></div></details>
+
+    <h3>Rites: when a precise method is better than one more answer</h3>
+    <p>A Rite is a temporary review procedure. It treats a recognizable difficulty; it is neither automatic nor necessary for every task.</p>
+    <div class="u-grid two">
+      <article class="u-card"><h3>Controlled Divergence</h3><p class="short">We converged too quickly on one path.</p><p>Open several possibilities before criticizing them and converging.</p></article>
+      <article class="u-card"><h3>Contradictory Self-Review</h3><p class="short">The first result is too convincing to accept without resistance.</p><p>Reread it as a third party would, looking for weaknesses, omissions and contradictions.</p></article>
+      <article class="u-card"><h3>Source Concordance</h3><p class="short">Several pieces discuss the same point without saying exactly the same thing.</p><p>Compare date, scope, actual support and contradictions before relying on them.</p></article>
+      <article class="u-card"><h3>Hidden Premises</h3><p class="short">A reasoning chain stands on assumptions nobody has stated.</p><p>Make them visible before they become invisible constraints.</p></article>
+      <article class="u-card"><h3>Session Refoundation</h3><p class="short">The thread has become too long or too burdened by old assumptions.</p><p>Restart from clean bounded context instead of stacking more onto it.</p></article>
+      <article class="u-card"><h3>And sometimes: no Rite.</h3><p class="short">A simple task deserves to stay simple.</p><p>Governance matters only when it genuinely improves decision quality, evidence or risk control.</p></article>
+    </div>
+
+    <h3>Spaces: do not let something count in the wrong place</h3>
+    <p>Spaces are governance distinctions, not necessarily folders or screens. They separate what should endure as a rule, what belongs only to one Project and what remains open to deliberation.</p>
+    <p><strong>They are different from Agency / Projects / Sandbox.</strong> Those organize working memory; the Spaces below describe the context in which an activity or decision has meaning.</p>
+    <div class="u-grid">
+      <article class="u-card"><small>Reusable</small><h3>Governance Reference Space</h3><p>Rules, methods, statuses and principles intended to outlive one dossier.</p><p class="short">It stops a habit from LIA21 from silently becoming a general rule.</p></article>
+      <article class="u-card"><small>Bounded</small><h3>Project Space</h3><p>Sources, constraints, decisions, candidate evidence and context belonging to one defined case.</p><p class="short">It keeps LIA21 separate from SOL14 when several dossiers coexist.</p></article>
+      <article class="u-card"><small>Deliberation</small><h3>Agora</h3><p>The conceptual place where positions and what sources can no longer settle are made visible.</p><p class="short">Useful for professional preference, legitimate alternatives or disagreement requiring a human decision.</p></article>
+    </div>
+    <details><summary>Does all of this already exist as machine schemas?</summary><div><p>Not uniformly, and deliberately so. Task Contracts, Role Signals, Evidence Packs, Register Candidates and several other objects already have validation contracts. Rites and Spaces remain primarily documented governance grammar.</p></div></details>
+
+    <div class="u-story"><div class="badge">LIA21</div><div><blockquote>Good governance does not activate everything. It calls only what genuinely changes decision quality.</blockquote><p>The Task Contract bounds Mme. C’s request: prepare a draft, do not send it. Athena clarifies the work. Mnemosyne points retrieval toward LIA21 and checks whether a revision relation is actually established; when chronology remains ambiguous, it preserves that uncertainty instead of selecting the document that merely looks newest. Argos then examines the value of the pieces. If they diverge, Source Concordance becomes useful. Themis flags the external effect; Apollo reviews the draft; Iris shapes its wording. Zeus may keep the message as a draft and request the missing piece. If several professional choices remain legitimate, the Agora exposes them and the human decides.</p></div></div>
+    <div class="u-flow" aria-label="LIA21 example with memory Roles Rites and Spaces"><div>Project Space · LIA21</div><div class="arrow">↓</div><div>Task Contract · mission and useful viewpoints</div><div class="arrow">↓</div><div>Mnemosyne · where to search, chronology established or uncertain</div><div class="arrow">↓</div><div>Athena · structure / Argos · source value</div><div class="arrow">↓</div><div>Rite only when tension justifies it</div><div class="arrow">↓</div><div>Themis · limits / Apollo · quality / Iris · transmission</div><div class="arrow">↓</div><div>Zeus · next procedure</div><div class="arrow">↓</div><div>Agora if a real choice remains</div><div class="arrow">↓</div><div>Human decision</div></div>
+  </section>
+
+  <section class="u-section" id="candidates">
+    <div class="u-section-head"><p class="u-kicker">Candidate technologies</p><h2>Functions outlast products.</h2><p>The names below are candidates being studied today. They do not define the architecture and may be replaced.</p></div>
+    <div class="u-candidate"><h3>Agentic execution</h3><div><p><strong>Hermes Agent</strong> is being studied as the main external-executor candidate: receive a bounded mission, mobilize models, skills and tools, then return the run result.</p><span class="u-status">candidate · replaceable</span></div></div>
+    <div class="u-candidate"><h3>Documents and workspace</h3><div><p>The selected productive target keeps <strong>NAS / AFFAIRES</strong> as the only durable store for professional source files. Linux mounts that tree directly; Workspace indexes it without creating a durable local source mirror. Hidden Markdown cartouches may sit beside sources to describe them without replacing them. Obsidian, LiveSync, and CouchDB remain historical qualifications or optional tools, not dependencies of this topology.</p><span class="u-status">selected target · bounded candidate implementation</span></div></div>
+    <div class="u-candidate"><h3>Derived memory and retrieval</h3><div><p><strong>Hindsight</strong> now receives, on the AFFAIRES target, bounded operations produced by Workspace from admitted sources. Its chunks and memories remain retrieval derivatives: they help recall and relate, but replace neither the NAS file, its provenance, nor Evidence. An on-demand Hermes reconciliation may propose a critique without automatically mutating that memory.</p><span class="u-status">selected candidate · bounded producer · live qualification open</span></div></div>
+    <div class="u-candidate"><h3>Memory alternative</h3><div><p><strong>TencentDB Agent Memory</strong> has been evaluated. The tested topology raised state-consistency and identity-isolation problems; activation is deferred and may be revisited.</p><span class="u-status">evaluated · deferred</span></div></div>
+    <div class="u-candidate"><h3>Document analysis</h3><div><p><strong>Docling</strong> is the preferred candidate for extracting useful structure: headings, paragraphs, tables, reading order and derivatives linked back to the source. Execution-layer integration remains a separate qualification topic.</p><span class="u-status">preferred candidate · integration to qualify</span></div></div>
+    <p class="audience"><strong>Do not confuse the names:</strong> Pantheon Role <strong>MNEMOSYNE</strong> is a governance responsibility. Any external product also called “Mnemosyne” remains a distinct replaceable technology candidate.</p>
+  </section>
+
+  <section class="u-section" id="local">
+    <div class="u-section-head"><p class="u-kicker">Data and confidentiality</p><h2>Cloud is not an architectural requirement.</h2></div>
+    <div class="u-local"><h3>The chain can remain local when the selected components allow it.</h3><p>On the current AFFAIRES target, professional files remain on the NAS and are read in place from the Linux mount. Workspace’s SQLite index is reconstructible; Hindsight retains retrieval derivatives within its own storage boundary without becoming the source owner. Extraction, retrieval, databases, and models can also run locally when the selected components support it.</p><p>Cloud remains available when an external capability is useful and accepted. Web search, a hosted model or a third-party API then crosses the local boundary explicitly.</p><p><strong>The real question is not “all local” versus “all cloud”.</strong> It is knowing, for each capability, where the data goes, what persists there, and why.</p></div>
+    <div class="u-grid" style="margin-top:14px"><article class="u-card"><h3>Local</h3><p>The stack stays in the private environment when the selected models and services allow it.</p></article><article class="u-card"><h3>Hybrid</h3><p>Sensitive data stays local while a few external capabilities are called explicitly and within bounds.</p></article><article class="u-card"><h3>Cloud</h3><p>Hosted services can be chosen when they provide the right capability. Availability does not make them mandatory.</p></article></div>
+  </section>
+
+  <section class="u-section" id="remember">
+    <div class="u-section-head"><p class="u-kicker">Pocket map</p><h2>If you remember only eight things.</h2></div>
+    <div class="u-grid two">
+      <article class="u-card"><h3>The model composes.</h3><p>It works from the context it receives.</p></article>
+      <article class="u-card"><h3>RAG retrieves.</h3><p>It finds useful passages before the answer.</p></article>
+      <article class="u-card"><h3>Memory links time.</h3><p>It helps recover the thread without turning recall into truth.</p></article>
+      <article class="u-card"><h3>Mnemosyne orients continuity.</h3><p>She knows where to look, what to compare, which version to reuse and where retention should be proposed.</p></article>
+      <article class="u-card"><h3>The executor does.</h3><p>It mobilizes models, skills and tools during a run.</p></article>
+      <article class="u-card"><h3>Evidence keeps the link.</h3><p>A result can return to its sources, limits and status.</p></article>
+      <article class="u-card"><h3>Pantheon keeps the frame.</h3><p>Roles, Rites, Spaces, scopes and decisions remain separate and readable.</p></article>
+      <article class="u-card"><h3>The human decides what carries consequence.</h3><p>Automation prepares and executes; consequential decisions remain human.</p></article>
+    </div>
+  </section>
+
+  <section class="u-section" id="deeper">
+    <div class="u-section-head"><p class="u-kicker">Go deeper</p><h2>The map is in place. The details remain available.</h2></div>
+    <div class="u-grid two">
+      <article class="u-card"><h3>Probative RAG</h3><p>Why retrieving a source is not enough, and how provenance, status and decision remain visible.</p><p><a class="button" href="rag-probatoire.html">Explore RAG</a></p></article>
+      <article class="u-card"><h3>Manifesto</h3><p>Why Pantheon aims to preserve continuity of professional reasoning as production becomes abundant.</p><p><a class="button" href="manifesto.html">Read the manifesto</a></p></article>
+      <article class="u-card"><h3>Technical governance</h3><p>Canonical documents, schemas, statuses and responsibilities remain the doctrine owners behind this public explanation.</p><p><a class="button" href="governance/README.md">Open governance</a></p></article>
+      <article class="u-card"><h3>Reference reviews</h3><p>External technologies are evaluated separately so a candidate never becomes a dependency merely because it is available.</p><p><a class="button" href="governance/reference_reviews/index.html">View reviews</a></p></article>
+    </div>
+  </section>
+
+  <section class="u-final">
+    <p>AI can retrieve, reason and act. Memory gives it continuity. Mnemosyne keeps that continuity situated and reviewable. An executor performs the mission. Pantheon keeps the frame readable — what enters, what is used, what comes back, what may be retained — and the human keeps decisions that carry consequence.</p>
+    <p><a class="button primary" href="index-en.html">Back to Pantheon</a></p>
+  </section>
+</main>
+
+<footer>
+  <p>Static educational page. It explains documented responsibilities and candidates without creating a new execution engine, memory engine or authority.</p>
+  <a href="https://github.com/ifanjuang/Pantheon">Pantheon Next on GitHub</a>
+</footer>
+</body>
+</html>

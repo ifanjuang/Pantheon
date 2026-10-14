@@ -1,0 +1,89 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Next Install Verification Evidence
+description: >-
+  Input contract for the read-only verify_install policy tool. It is evidence
+  already gathered elsewhere about a component install — log excerpt, liveness
+  probe result and check results — provided to the tool, never fetched by it.
+  The tool classifies this evidence into a verdict as data (installed, answers,
+  checks green; green / degraded / absent / unknown) and reports capability gaps
+  when evidence is insufficient. It performs no probe, no NAS access, installs
+  nothing and decides nothing. Every field is optional and missing signals
+  become capability gaps, but any field that is present is validated strictly
+  before classification; malformed evidence returns an error and no positive
+  verdict.
+type: object
+properties:
+  component:
+    type: string
+    description: Name of the component whose install is being verified.
+  installed:
+    type: boolean
+    description: >-
+      Explicit installation signal. If absent, installation is inferred from
+      installed_markers (presence ⇒ installed) or from install_success_markers
+      matched in logs; if none is determinable the verdict carries a gap.
+  installed_markers:
+    type: array
+    items:
+      type: string
+    description: Evidence that the install is present (e.g. version files found).
+  install_success_markers:
+    type: array
+    items:
+      type: string
+    description: Strings whose presence in logs is taken as install success.
+  logs:
+    type: string
+    description: Provided log excerpt (the tool only matches install_success_markers in it).
+  health:
+    type: object
+    description: Provided liveness probe result. The tool runs no probe itself.
+    properties:
+      reachable:
+        type: boolean
+      status_code:
+        type: integer
+      latency_ms:
+        type: number
+    additionalProperties: false
+  checks:
+    type: array
+    description: >-
+      Provided check results. The tool treats any status other than "green" as
+      not green; expected_checks that are absent count as not green.
+    items:
+      type: object
+      required:
+        - name
+        - status
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+          enum: [green, red, unknown]
+        detail:
+          type: string
+      additionalProperties: false
+  expected_checks:
+    type: array
+    items:
+      type: string
+    description: Checks that must all be present and green for the verdict to be green.
+required: []
+additionalProperties: false
+governance_refs:
+  - docs/governance/PANTHEON_MCP_POLICY_SERVER_DEVELOPMENT.md
+  - docs/governance/PANTHEON_CONTROL_BOUNDARY.md
+x-boundary:
+  runtime_execution: false
+  decision_is_data: true
+  performs_probe: false
+  nas_access: false
+  installs: false
+  autonomous_loop: false
+  provider_routing: false
+  scheduler: false
+  queue_system: false
+  memory_promotion: false
+  automatic_canonization: false

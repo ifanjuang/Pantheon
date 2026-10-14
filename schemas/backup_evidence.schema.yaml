@@ -1,0 +1,66 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Next Backup Evidence
+description: >-
+  Input contract for the read-only verify_backup policy tool. It is evidence
+  already gathered elsewhere about whether a component can be recovered — does a
+  backup exist, is it recent, and has a restore actually been demonstrated —
+  provided to the tool, never fetched by it. The tool classifies this evidence
+  into a verdict as data (protected / degraded / unprotected / unknown) and
+  reports capability gaps when evidence is insufficient. It performs no probe, no
+  NAS access, runs no backup or restore and decides nothing. Every field is
+  optional and missing signals become capability gaps, but any field that is
+  present is validated strictly before classification; malformed evidence
+  returns an error and no positive verdict.
+type: object
+properties:
+  component:
+    type: string
+    description: Name of the component whose recoverability is being verified.
+  present:
+    type: boolean
+    description: >-
+      Explicit backup-present signal. If absent, presence is inferred from
+      backup_markers (presence ⇒ a backup exists); if neither is determinable the
+      verdict carries a gap.
+  backup_markers:
+    type: array
+    items:
+      type: string
+    description: Evidence that a backup exists (e.g. snapshot files found).
+  freshness:
+    type: object
+    description: Provided backup freshness. The tool runs no backup itself.
+    properties:
+      last_backup_age_s:
+        type: number
+      max_age_s:
+        type: number
+    additionalProperties: false
+  restore:
+    type: object
+    description: >-
+      Provided restore evidence. A demonstrated restore is recoverability;
+      "we have backups" with no restore test is false comfort.
+    properties:
+      verified:
+        type: boolean
+      detail:
+        type: string
+    additionalProperties: false
+required: []
+additionalProperties: false
+governance_refs:
+  - docs/governance/PANTHEON_MCP_POLICY_SERVER_DEVELOPMENT.md
+  - docs/governance/PANTHEON_CONTROL_BOUNDARY.md
+x-boundary:
+  runtime_execution: false
+  decision_is_data: true
+  performs_probe: false
+  nas_access: false
+  runs_backup_or_restore: false
+  autonomous_loop: false
+  provider_routing: false
+  scheduler: false
+  queue_system: false
+  memory_promotion: false
+  automatic_canonization: false

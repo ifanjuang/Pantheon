@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pantheon Next — Workflow agence sous le capot</title>
+<style>
+:root{--bg:#090d15;--fg:#f8fafc;--muted:#9aa6ba;--line:rgba(255,255,255,.13);--panel:rgba(255,255,255,.055);--blue:#b7d8ff;--amber:#ffcf8f;--gold:#fde68a;--green:#86efac;--red:#fecaca;--violet:#ddd6fe;--cyan:#ccfbf1;--ink:#0b1220}*{box-sizing:border-box}body{margin:0;background:radial-gradient(900px 520px at 0% 0%,rgba(96,165,250,.13),transparent 60%),linear-gradient(180deg,#0b111d,#070a11);color:var(--fg);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.5}.wrap{width:min(1180px,100%);margin:0 auto;padding:26px 18px 60px}header{padding:18px 0 24px;border-bottom:1px solid var(--line)}h1{font-size:clamp(30px,5vw,54px);line-height:1;margin:0 0 12px;letter-spacing:-.055em}p.lead{max-width:82ch;color:var(--muted);font-size:16px;margin:0}.doctrine{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}.pill{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:6px 10px;color:#dbeafe;font-size:12px;font-weight:800}.section{margin-top:28px}.section h2{font-size:24px;letter-spacing:-.03em;margin:0 0 10px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.card,.panel{border:1px solid var(--line);background:var(--panel);border-radius:20px;padding:16px}.card h3,.panel h3{margin:0 0 8px;font-size:17px}.card p,.panel p{color:var(--muted);font-size:13.5px;margin:0 0 10px}.tag{display:inline-block;border-radius:999px;padding:4px 8px;margin:2px 3px 2px 0;font-size:11px;border:1px solid var(--line);color:#dce8f7}.tag.blue{background:rgba(183,216,255,.12);color:#bfdbfe}.tag.gold{background:rgba(253,230,138,.13);color:#fde68a}.tag.green{background:rgba(134,239,172,.12);color:#bbf7d0}.tag.red{background:rgba(254,202,202,.12);color:#fecaca}.tag.violet{background:rgba(221,214,254,.12);color:#ddd6fe}.flow{display:grid;gap:10px;margin-top:12px}.step{display:grid;grid-template-columns:150px 1fr;gap:12px;align-items:start;border:1px solid var(--line);background:rgba(255,255,255,.035);border-radius:15px;padding:11px}.step b{color:#fff}.step span{color:var(--muted);font-size:13px}.rail{display:grid;grid-template-columns:repeat(7,1fr);gap:9px;margin-top:14px}.node{min-height:92px;border:1px solid rgba(255,255,255,.18);border-radius:16px;padding:12px;color:var(--ink);position:relative}.node h4{margin:0 0 6px;font-size:13px;letter-spacing:-.01em}.node p{margin:0;color:rgba(10,18,32,.72);font-size:11.5px}.node:after{content:"→";position:absolute;right:-13px;top:34px;color:#cbd5e1;font-weight:900}.node:last-child:after{content:""}.n1{background:var(--blue)}.n2{background:var(--amber)}.n3{background:var(--gold)}.n4{background:var(--cyan)}.n5{background:var(--violet)}.n6{background:var(--green)}.n7{background:#e2e8f0}.under{display:grid;grid-template-columns:240px 1fr;gap:14px;margin-top:16px}.stack{display:grid;gap:8px}.tool{border:1px dashed rgba(255,255,255,.22);background:rgba(255,255,255,.035);border-radius:14px;padding:10px}.tool b{display:block;font-size:13px}.tool span{display:block;color:var(--muted);font-size:12px;margin-top:2px}.checks{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.check{border-radius:14px;padding:11px;border:1px solid var(--line);background:rgba(255,255,255,.035)}.check b{display:block;font-size:13px}.check span{color:var(--muted);font-size:12px}.outputs{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.out{border:1px solid var(--line);background:rgba(255,255,255,.04);border-radius:15px;padding:12px}.out b{display:block;font-size:13px}.out span{display:block;color:var(--muted);font-size:12px;margin-top:4px}.status{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#05070b;border:1px solid var(--line);border-radius:14px;padding:12px;color:#dbeafe;font-size:12px;white-space:pre-wrap}.warn{border-color:rgba(254,202,202,.35);background:rgba(254,202,202,.06)}.ok{border-color:rgba(134,239,172,.28);background:rgba(134,239,172,.05)}@media(max-width:900px){.grid,.under,.checks,.outputs{grid-template-columns:1fr}.rail{grid-template-columns:1fr}.node:after{content:"↓";right:18px;top:auto;bottom:-20px;color:#cbd5e1}.step{grid-template-columns:1fr}.wrap{padding:18px 14px 44px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>Workflow agence : simple en surface, rigoureux sous le capot</h1>
+<p class="lead">L’utilisateur voit une trajectoire courte : question, fiche situation, sources, impacts, questions, sorties candidates, décision. Le détail reste disponible : rôles, skills, tools, modules, preuves, gaps, validation et limites de mission.</p>
+<div class="doctrine"><span class="pill">OpenWebUI expose</span><span class="pill">IRIS clarifie</span><span class="pill">ATHENA structure</span><span class="pill">ARGOS situe la preuve</span><span class="pill">THEMIS qualifie le risque</span><span class="pill">ZEUS arbitre</span><span class="pill">Hermes exécute</span></div>
+</header>
+
+<section class="section">
+<h2>Lecture utilisateur</h2>
+<div class="rail">
+<div class="node n1"><h4>Question projet</h4><p>Le client a envoyé une nouvelle hypothèse. Quels impacts ?</p></div>
+<div class="node n7"><h4>Fiche situation</h4><p>phase, lieu, contrat, tension, sources, risques.</p></div>
+<div class="node n2"><h4>Sources</h4><p>Email, pièce jointe, plans, notice, contrat, Notion.</p></div>
+<div class="node n3"><h4>Analyse IA</h4><p>OCR, vision plan, comparaison, versioning.</p></div>
+<div class="node n4"><h4>Impacts</h4><p>Escalier, circulation, alarme, coût, délai, mission.</p></div>
+<div class="node n5"><h4>Questions</h4><p>Ce qui bloque, ce qui est seulement hypothèse.</p></div>
+<div class="node n6"><h4>Décision</h4><p>PDF annoté, brouillon, gate humain, registre candidat.</p></div>
+</div>
+</section>
+
+<section class="section grid">
+<div class="card">
+<h3>Cas A — changement d’effectif reçu par email</h3>
+<p>Objectif : comprendre un changement d’hypothèse, détecter les impacts projet et éviter un engagement externe non validé.</p>
+<div><span class="tag blue">email reader</span><span class="tag blue">attachment extractor</span><span class="tag blue">OCR</span><span class="tag violet">vision plan</span><span class="tag gold">contract scope check</span><span class="tag green">PDF annotation</span></div>
+<div class="flow">
+<div class="step"><b>1. IRIS</b><span>Clarifie la demande : impact interne, réponse client, notice, ou simple lecture de pièce ?</span></div>
+<div class="step"><b>2. Intake</b><span>Fiche situation : phase, adresse, commune, tension client / mairie, sources, contrat, version, risques.</span></div>
+<div class="step"><b>3. Dossier</b><span>Derniers plans, notice précédente, base projet, Registre Probatoire et limites de mission.</span></div>
+<div class="step"><b>4. Analyse</b><span>Vision plan : escalier et circulations isolés ; comparaison avec hypothèse d’effectif précédente.</span></div>
+<div class="step"><b>5. Sortie</b><span>Matrice d’impact, PDF annoté, questions bloquantes, brouillon non envoyé.</span></div>
+</div>
+</div>
+<div class="card">
+<h3>Cas B — notice sécurité incendie ERP</h3>
+<p>Objectif : préparer une notice candidate sans confondre rédaction, validation réglementaire, mission contractuelle et transmission externe.</p>
+<div><span class="tag blue">project lookup</span><span class="tag blue">plan retrieval</span><span class="tag violet">vision plan</span><span class="tag gold">evidence check</span><span class="tag red">capability gaps</span><span class="tag green">draft generator</span></div>
+<div class="flow">
+<div class="step"><b>1. Pré-vol</b><span>Contrat, mission, dernière version des plans, informations client, effectif, type / catégorie ERP à confirmer.</span></div>
+<div class="step"><b>2. Situation</b><span>Phase réelle, géographie, interlocuteurs, mairie / ABF / SDIS, niveau de tension, échéance.</span></div>
+<div class="step"><b>3. Lecture</b><span>Plans, locaux à risque, circulations, sorties, escalier, alarme, zones à clarifier.</span></div>
+<div class="step"><b>4. Manques</b><span>Fonction de local inconnue, alarme non visible, pièce absente, destinataire non confirmé.</span></div>
+<div class="step"><b>5. Sortie</b><span>Notice candidate, questions client, mail brouillon, Evidence Pack Candidate.</span></div>
+</div>
+</div>
+</section>
+
+<section class="section panel">
+<h3>Sous le capot</h3>
+<div class="under">
+<div class="stack">
+<div class="tool"><b>Dossier Situation Brief</b><span>requête clarifiée, phase, lieu, contrat, sources, tension, risques, questions.</span></div>
+<div class="tool"><b>Task Contract</b><span>périmètre, sources admises, sorties autorisées, effets interdits.</span></div>
+<div class="tool"><b>Context Pack</b><span>pièces, versions, registre, contrat, hypothèses.</span></div>
+<div class="tool"><b>Governed Handoff</b><span>demande bornée envoyée au runtime ; jamais une approbation.</span></div>
+<div class="tool"><b>Hermes runtime</b><span>exécute OCR, vision, extraction, comparaison, annotation.</span></div>
+<div class="tool"><b>Return path</b><span>Result Candidate + Evidence Pack Candidate + gaps.</span></div>
+</div>
+<div>
+<div class="checks">
+<div class="check"><b>IRIS</b><span>La vraie question est-elle comprise et reformulée ?</span></div>
+<div class="check"><b>ATHENA</b><span>Le problème est-il structuré en workflow candidat ?</span></div>
+<div class="check"><b>ARGOS</b><span>Les sources, versions, lieux et preuves sont-ils situés ?</span></div>
+<div class="check"><b>THEMIS</b><span>Le niveau de tension, risque ou engagement est-il explicite ?</span></div>
+<div class="check"><b>APOLLO</b><span>La sortie est-elle complète, lisible et exploitable ?</span></div>
+<div class="check"><b>ZEUS</b><span>Le statut et la procédure sont-ils arbitrés avant lancement ?</span></div>
+</div>
+<div class="outputs" style="margin-top:14px">
+<div class="out ok"><b>Fiche situation</b><span>phase, lieu, contrat, tension, risques.</span></div>
+<div class="out ok"><b>PDF annoté</b><span>zone concernée, source et statut visibles.</span></div>
+<div class="out ok"><b>Matrice d’impact</b><span>sécurité, structure, coût, délai, mission.</span></div>
+<div class="out warn"><b>Brouillon</b><span>draft-only, not sent, approval required.</span></div>
+</div>
+<pre class="status">dossier_situation_status: candidate | pending_source | pending_contract_scope | blocked
+workflow_status: workflow_candidate
+launch_mode: read_only | propose_only | assisted
+governance_result_status: candidate | to_verify | blocked
+external_action_status: not_sent
+memory_status: candidate_only
+registre_status: unchanged_unless_human_validated
+user_decision_gate: required_if_external_or_consequential</pre>
+</div>
+</div>
+</section>
+
+<section class="section panel warn">
+<h3>Règle de rigueur</h3>
+<p>Le système peut accélérer la lecture, l’annotation et la rédaction. Il ne doit pas transformer une phrase ambiguë, une pièce jointe, une mémoire, une ligne Notion ou une lecture de plan en vérité opposable sans situation clarifiée, source, version, contrat, preuve et décision humaine.</p>
+</section>
+</div>
+</body>
+</html>

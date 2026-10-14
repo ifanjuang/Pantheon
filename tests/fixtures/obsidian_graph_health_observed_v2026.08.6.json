@@ -1,0 +1,204 @@
+{
+  "pilot_id": "obsidian-graph-health-001",
+  "execution_status": "executed_real_upstream_not_accepted",
+  "provider_acceptance": "not_accepted",
+  "provider": {
+    "repository": "Ar9av/obsidian-wiki",
+    "stable_release": "v2026.08.6",
+    "stable_release_sha": "8b5859d0f895e51e785d3ba22ed8008297e8d367",
+    "current_main_observed_sha": "37596cffeef43faecd9b61246b0b119b11a87bc4",
+    "source_blobs": {
+      "graph_analysis.py": "9e2ff9be961f4149aa09d490e10089fb1d700c69",
+      "lint.py": "09a2b8207e02296455fd4d9a9401e6aa1fbdd66d"
+    },
+    "current_main_uses_same_deterministic_blobs": true
+  },
+  "execution_scope": {
+    "included": [
+      "exact upstream checkout",
+      "real obsidian_wiki graph-analyse CLI",
+      "real obsidian_wiki graph-analyse --path CLI",
+      "real obsidian_wiki lint CLI",
+      "scoped subtree execution",
+      "whole-vault negative control",
+      "read-only mutation check"
+    ],
+    "not_executed": [
+      "memory server",
+      "capture hooks",
+      "provider trust recording",
+      "provider manifest writes",
+      "sync",
+      "semantic LLM duplicate detection",
+      "semantic LLM contradiction detection"
+    ],
+    "method": "GitHub Actions checked out the exact stable upstream commit, materialized the canonical Pantheon pilot fixture into a disposable vault without normalizing away explicit .md targets, executed python -m obsidian_wiki directly from that checkout, retained raw outputs as an artifact, and compared tracked file digests before and after execution."
+  },
+  "execution_record": {
+    "pantheon_pr": 857,
+    "pantheon_execution_head": "5fb920e57610cf7c46f41be3c8d75b85813c702b",
+    "workflow": ".github/workflows/obsidian-wiki-graph-health-q1.yml",
+    "workflow_run_id": 33331529533,
+    "artifact_id": 9737779875,
+    "artifact_name": "obsidian-wiki-graph-health-q1-33331529533",
+    "artifact_sha256": "1dabfa025b443970a97743bba53a954206afeddfb50ea641ef1def04c8253f97",
+    "artifact_expires_at": "2026-09-29T19:40:59Z",
+    "harness_status": "success"
+  },
+  "raw_observations": {
+    "scoped_graph": {
+      "pages": 7,
+      "edges": 2,
+      "god_nodes": [
+        {"page": "cctp", "degree": 2, "in_degree": 2, "out_degree": 0},
+        {"page": "liens-valides", "degree": 2, "in_degree": 0, "out_degree": 2}
+      ],
+      "isolated": [
+        "chauffage-notes",
+        "chauffage",
+        "decisions",
+        "programme",
+        "question-ouverte"
+      ]
+    },
+    "shortest_programme_cctp": null,
+    "scoped_lint": {
+      "exit_code": 1,
+      "status": "fail",
+      "pages": 7,
+      "link_count": 17,
+      "broken_link_count": 15,
+      "orphan_count": 5,
+      "confidence_missing_fields_count": 7,
+      "confidence_ledger_error_count": 1,
+      "broken_links": [
+        {"page": "liens-valides.md", "target": "cctp.md"},
+        {"page": "liens-valides.md", "target": "chauffage.md"},
+        {"page": "liens-valides.md", "target": "plan.pdf"},
+        {"page": "liens-valides.md", "target": "perspective.png"},
+        {"page": "liens-valides.md", "target": "planning.base"},
+        {"page": "liens-valides.md", "target": "schema.canvas"},
+        {"page": "liens-valides.md", "target": "cctp.md"},
+        {"page": "liens-valides.md", "target": "chauffage\\"},
+        {"page": "programme.md", "target": "decisions.md"},
+        {"page": "programme.md", "target": "chauffage.md"},
+        {"page": "chauffage-notes.md", "target": "chauffage.md"},
+        {"page": "chauffage.md", "target": "cctp.md"},
+        {"page": "cctp.md", "target": "details-menuiseries.md"},
+        {"page": "decisions.md", "target": "chauffage.md"},
+        {"page": "decisions.md", "target": "cctp.md"}
+      ],
+      "orphan_pages": [
+        "chauffage-notes.md",
+        "chauffage.md",
+        "decisions.md",
+        "programme.md",
+        "question-ouverte.md"
+      ],
+      "provider_schema_noise": {
+        "required_trust_fields": ["base_confidence", "lifecycle"],
+        "ledger_missing": true
+      }
+    },
+    "whole_vault_negative_control": {
+      "pages": 8,
+      "sentinel_present": true,
+      "sentinel_page": "sentinel-hors-perimetre",
+      "sentinel_isolated": true
+    },
+    "write_check": {
+      "tracked_file_count": 16,
+      "changed": false,
+      "added_removed_or_modified": []
+    }
+  },
+  "case_results": {
+    "bookkeeping_not_hub": {
+      "status": "pass",
+      "reason": "The root bookkeeping index was absent from scoped and whole-vault graph results."
+    },
+    "raw_staging_excluded": {
+      "status": "pass",
+      "reason": "The _raw staging page was absent from scoped and whole-vault graph results."
+    },
+    "bounded_shortest_path": {
+      "status": "fail",
+      "reason": "The real upstream CLI returned path=null for programme -> cctp because explicit .md wikilink targets were not resolved to known page stems."
+    },
+    "isolated_question": {
+      "status": "fail",
+      "reason": "question-ouverte was isolated as expected, but programme, decisions, chauffage and chauffage-notes were false isolates after their explicit .md links were dropped."
+    },
+    "broken_menuiseries_link": {
+      "status": "partial",
+      "reason": "The true missing details-menuiseries.md target was detected, but it was mixed with fourteen additional broken-link findings, so precision is not acceptable."
+    },
+    "valid_obsidian_links_not_broken": {
+      "status": "fail",
+      "false_positive_targets": [
+        "cctp.md",
+        "chauffage.md",
+        "plan.pdf",
+        "perspective.png",
+        "planning.base",
+        "schema.canvas",
+        "chauffage\\"
+      ],
+      "reason": "Valid explicit .md links, attachments/non-Markdown targets and the escaped-pipe alias were reported as broken."
+    },
+    "heating_duplicate_candidate": {
+      "status": "not_demonstrated",
+      "reason": "The deterministic CLI lint surface checks duplicate titles, not semantic near-duplicate/consolidation candidates."
+    },
+    "heating_contradiction_candidate": {
+      "status": "not_demonstrated",
+      "reason": "The deterministic CLI surfaces do not evaluate body-claim semantic contradictions."
+    },
+    "bounded_scope": {
+      "status": "conditional_pass",
+      "native_scope_parameter": false,
+      "sentinel_in_scoped_graph": false,
+      "sentinel_in_full_vault_graph": true,
+      "reason": "Passing projects/maison/ as the vault root excludes the sentinel; passing the whole vault includes it. Scope is therefore enforceable by the caller-supplied root, not owned or inferred by the provider."
+    },
+    "protected_material_no_mutation": {
+      "status": "pass",
+      "reason": "All 16 tracked synthetic workspace/source/Evidence files retained identical digests and none disappeared."
+    }
+  },
+  "qualification_decision": {
+    "accepted_now": [
+      "root bookkeeping exclusion",
+      "_raw staging exclusion",
+      "read-only execution of the tested graph/lint surfaces",
+      "caller-enforced subtree scoping when the correct root is supplied"
+    ],
+    "not_accepted_now": [
+      "explicit .md wikilink graph correctness",
+      "shortest-path qualification on the canonical corpus",
+      "isolated-page precision",
+      "broken-link health as a reliable Obsidian check",
+      "provider-native task/project scope enforcement",
+      "near-duplicate semantic qualification",
+      "contradiction semantic qualification",
+      "automatic repair",
+      "provider-wide adoption"
+    ],
+    "blocking_observations": [
+      "explicit .md wikilinks are dropped by graph_analysis, producing missing edges, path failure and false isolates",
+      "lint reports valid Obsidian attachment/non-Markdown/explicit-.md/escaped-alias forms as broken",
+      "lint injects provider-specific trust/lifecycle findings into a neutral Pantheon workspace",
+      "semantic duplicate and contradiction capabilities were not exercised"
+    ],
+    "next_action": "Keep obsidian-wiki unbound and retain only the report-only patterns already absorbed by Pantheon. Re-run the same real-upstream corpus after link-resolution changes. Do not add a Pantheon-specific compatibility adapter solely to compensate for this release without a demonstrated workflow requirement."
+  },
+  "invariants": [
+    "observed result != provider-wide truth",
+    "partial capability pass != provider adoption",
+    "read-only success != authorization",
+    "graph relation != Evidence",
+    "health finding != defect confirmed",
+    "provider output != governed Knowledge",
+    "caller-supplied scope != provider-owned authorization"
+  ]
+}

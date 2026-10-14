@@ -1,0 +1,21 @@
+api_version: pantheon.next/v0alpha1
+kind: Capability
+metadata:
+  id: google_drive_read
+  title: Lecture Google Drive gouvernée
+  status: candidate
+spec:
+  outcome: Lire des documents dans des dossiers explicitement autorisés.
+  required_roles:
+    - governed_document_source
+  acceptance:
+    - explicit_folder_scope_supported
+    - read_only_mode_supported
+    - source_locator_preserved
+  candidate_resources:
+    preferred:
+      - google_drive
+    alternatives: []
+  boundaries:
+    - connected_is_not_authorized_for_all_folders
+    - reachable_source_is_not_admitted_evidence

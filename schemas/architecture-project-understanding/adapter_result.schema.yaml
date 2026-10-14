@@ -1,0 +1,128 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Architecture Project Understanding Adapter Mapping Result
+description: >-
+  Candidate-only mapping prepared from a reviewed fragment qualification toward
+  existing APU stable-object references. It records possible correspondences and
+  unresolved ambiguity; it creates no APU object and adopts no project truth.
+type: object
+additionalProperties: false
+required:
+  - mapping_set_id
+  - source_execution_result_ref
+  - source_qualification_result_ref
+  - document_ref
+  - structure_ref
+  - mappings
+  - authority
+properties:
+  mapping_set_id:
+    type: string
+    minLength: 1
+  source_execution_result_ref:
+    type: string
+    minLength: 1
+  source_qualification_result_ref:
+    type: string
+    minLength: 1
+  project_ref:
+    type: string
+    minLength: 1
+  document_ref:
+    type: string
+    minLength: 1
+  structure_ref:
+    type: string
+    minLength: 1
+  mappings:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - mapping_id
+        - fragment_ref
+        - candidate_object_ref
+        - status
+        - certainty
+        - rationale
+        - match_candidates
+      properties:
+        mapping_id:
+          type: string
+          minLength: 1
+        fragment_ref:
+          type: string
+          minLength: 1
+        candidate_object_ref:
+          type: string
+          minLength: 1
+        proposed_object_family:
+          $ref: "shared.schema.yaml#/$defs/object_family"
+        status:
+          type: string
+          enum: [unmatched, candidate_matches, needs_clarification]
+        certainty:
+          $ref: "shared.schema.yaml#/$defs/certainty"
+        rationale:
+          type: string
+          minLength: 3
+        qualification_snapshot:
+          type: object
+          additionalProperties: true
+        match_candidates:
+          type: array
+          uniqueItems: true
+          items:
+            type: object
+            additionalProperties: false
+            required: [stable_object_ref, certainty, rationale]
+            properties:
+              stable_object_ref:
+                type: string
+                minLength: 1
+              certainty:
+                $ref: "shared.schema.yaml#/$defs/certainty"
+              rationale:
+                type: string
+                minLength: 3
+        clarification_question:
+          type: string
+          minLength: 3
+  limitations:
+    type: array
+    uniqueItems: true
+    items:
+      type: string
+      minLength: 1
+  authority:
+    type: object
+    additionalProperties: false
+    required:
+      - is_fact
+      - is_evidence
+      - is_decision
+      - is_memory
+      - is_apu_write
+      - authorizes_external_effect
+    properties:
+      is_fact: { const: false }
+      is_evidence: { const: false }
+      is_decision: { const: false }
+      is_memory: { const: false }
+      is_apu_write: { const: false }
+      authorizes_external_effect: { const: false }
+  governance_refs:
+    type: array
+    items: { type: string }
+    default:
+      - docs/domain-packs/architecture/PROJECT_UNDERSTANDING_ADAPTER_CONTRACT.md
+      - schemas/execution_result.schema.yaml
+      - schemas/architecture-project-understanding/stable_object.schema.yaml
+x-boundary:
+  runtime_execution: false
+  provider_routing: false
+  memory_promotion: false
+  automatic_apu_write: false
+  automatic_canonization: false
+  approval_engine: false

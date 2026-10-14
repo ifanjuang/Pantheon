@@ -1,0 +1,108 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Architecture Proof Register Review Trigger
+description: A condition that should produce a human review item. A trigger reports a gate need; it does not apply any change.
+type: object
+additionalProperties: false
+required: [review_trigger_id, scope_id, trigger_type, severity, consequence_level, requires_user_decision_gate, decision_gate_required, status]
+properties:
+  review_trigger_id: { $ref: "#/$defs/uuid" }
+  human_ref: { type: string, minLength: 1, maxLength: 160 }
+  scope_id: { $ref: "#/$defs/uuid" }
+  scope_type: { type: string, enum: [project, phase, lot, agency_library, global_reference, external_project_subset] }
+  scope_notes: { type: string }
+  trigger_type:
+    type: string
+    enum: [index_label_missing, effect_class_missing, phase_attachment_missing, key_index_missing_signature, ordinary_revision_used_as_contractual, superseded_index_used_as_current, semantic_result_used_as_proof, approval_missing, hash_missing, scope_ambiguous, requested_use_exceeds_allowed_use, external_effect_unknown, other]
+  severity: { type: string, enum: [low, medium, high, critical] }
+  consequence_level:
+    type: string
+    description: K0-K4 consequence axis from schemas/shared_axes.schema.yaml. C0-C5 is approval only.
+    enum: [K0, K1, K2, K3, K4]
+  approval_ceiling:
+    type: string
+    enum: [C0, C1, C2, C3, C4, C5]
+  source_object_type: { type: string }
+  source_object_id: { $ref: "#/$defs/uuid" }
+  source_object_label: { type: string }
+  reason: { type: string }
+  allowed_use:
+    type: array
+    items: { $ref: "#/$defs/use_type" }
+    uniqueItems: true
+  requested_use:
+    type: array
+    items: { $ref: "#/$defs/use_type" }
+    uniqueItems: true
+  external_effect_possible: { type: string, enum: [yes, no, unknown] }
+  external_effect_type:
+    type: string
+    enum: [client_transmission, contractor_transmission, contractual_action, administrative_filing, payment_or_financial, memory_promotion, other]
+  external_effect_notes: { type: string }
+  requires_user_decision_gate: { type: boolean }
+  decision_gate_required: { type: boolean }
+  decision_gate_reason_code:
+    type: string
+    enum: [K4_consequence, K3_external_effect, external_effect_unknown, contractual_authority_claimed, key_index_missing_evidence, signature_missing, approval_missing, source_authority_too_low, superseded_index_used_as_current, memory_promotion_requested, administrative_filing_requested, payment_or_financial_effect, other]
+  decision_gate_notes: { type: string }
+  evidence_refs:
+    type: array
+    items: { $ref: "#/$defs/evidence_ref" }
+    default: []
+  status: { type: string, enum: [open, answered, applied_elsewhere, reverted, obsolete, rejected] }
+  created_at: { type: string, format: date }
+  metadata: { type: object }
+  governance_refs:
+    type: array
+    items: { type: string }
+    default:
+      - docs/domain-packs/architecture/PROOF_REGISTER.md
+      - docs/domain-packs/architecture/INDEX_EFFECT_MATRIX.md
+      - docs/governance/USER_DECISION_GATE.md
+      - docs/governance/GLOSSARY.md
+      - schemas/shared_axes.schema.yaml
+$defs:
+  uuid: { type: string, format: uuid }
+  use_type:
+    type: string
+    enum: [internal_review, meeting_preparation, client_review, external_transmission, consultation, contract_preparation, contractual_action, execution_use, site_record, reserve_followup, doe_handover, gpa_followup, memory_promotion, administrative_filing, payment_or_financial]
+  evidence_ref:
+    type: object
+    additionalProperties: false
+    required: [evidence_id]
+    properties:
+      evidence_id: { $ref: "#/$defs/uuid" }
+      evidence_type: { type: string }
+      evidence_label: { type: string }
+      source_version_id: { $ref: "#/$defs/uuid" }
+allOf:
+  - if:
+      properties: { consequence_level: { const: K4 } }
+      required: [consequence_level]
+    then:
+      properties:
+        decision_gate_required: { const: true }
+        requires_user_decision_gate: { const: true }
+  - if:
+      properties:
+        consequence_level: { const: K3 }
+        external_effect_possible: { const: yes }
+      required: [consequence_level, external_effect_possible]
+    then:
+      properties:
+        decision_gate_required: { const: true }
+        requires_user_decision_gate: { const: true }
+  - if:
+      properties: { external_effect_possible: { const: unknown } }
+      required: [external_effect_possible]
+    then:
+      properties:
+        decision_gate_required: { const: true }
+        requires_user_decision_gate: { const: true }
+x-boundary:
+  runtime_execution: false
+  provider_routing: false
+  scheduler: false
+  queue_system: false
+  memory_promotion: false
+  automatic_canonization: false
+  approval_engine: false

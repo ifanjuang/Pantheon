@@ -1,0 +1,47 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$title: ArchitecteBaseMetierKnowledgeChunk
+$type: object
+required:
+  - id
+  - title
+  - source_path
+  - source_family
+  - status
+  - visibility
+properties:
+  id:
+    type: string
+  title:
+    type: string
+  source_path:
+    type: string
+  source_family:
+    type: string
+    enum:
+      - referentiel_agence
+      - source_reference
+      - pratique_interne
+  chapter:
+    type: string
+  phase:
+    type: string
+  theme:
+    type: string
+  risk_tags:
+    type: array
+    items:
+      type: string
+  status:
+    type: string
+    enum:
+      - draft
+      - reviewed
+      - validated
+  visibility:
+    type: string
+    enum:
+      - internal
+      - public
+  editable:
+    type: boolean
+    default: false

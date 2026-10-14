@@ -1,0 +1,23 @@
+# Fictional example for validation only. Not professional advice.
+candidate_id: belvedere.p-150.erp-classification
+created_at: "2026-05-02T10:00:00Z"
+proposed_by: HEPHAISTOS
+claim: The building is classified ERP type N, 5th category, based on the initial program without a fitted basement.
+scope:
+  scope_type: project
+  scope_id: belvedere
+  scope_label: Projet Belvedere
+source: programme initial
+evidence_link: belvedere.ev.programme-initial
+certainty: E3
+risk:
+  level: medium
+  notes: Established on the initial program; superseded if the basement is fitted.
+proposed_durability: project
+required_approval: C3
+status: approved
+link_ids: []
+governance_refs:
+  - docs/governance/EVIDENCE_MEMORY_CANONICALIZATION.md
+  - schemas/register_link.schema.yaml
+  - schemas/impact_review.schema.yaml

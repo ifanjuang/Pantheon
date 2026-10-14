@@ -1,0 +1,110 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Signature Provider Observation
+description: Authenticated provider observation. It is not Evidence, approval or governed professional truth.
+type: object
+required:
+  - schema_version
+  - provider
+  - provider_event_type
+  - provider_event_digest
+  - observation_type
+  - provider_submission_id
+  - provider_status
+  - authenticity
+  - artifacts
+  - governance
+properties:
+  schema_version:
+    const: pantheon.signature-provider-observation/v1
+  provider:
+    type: string
+    minLength: 1
+  provider_event_type:
+    type: string
+    minLength: 1
+  provider_event_digest:
+    type: string
+    pattern: "^[a-f0-9]{64}$"
+  observation_type:
+    enum: [signer_completed, submission_completed]
+  provider_observed_at:
+    type: [string, "null"]
+    format: date-time
+  received_signature_timestamp:
+    type: integer
+    minimum: 0
+  provider_submission_id:
+    type: string
+    minLength: 1
+  provider_submitter_id:
+    type: [string, "null"]
+  provider_status:
+    type: string
+    minLength: 1
+  completed_at:
+    type: [string, "null"]
+    format: date-time
+  signer:
+    type: [object, "null"]
+    additionalProperties: false
+    properties:
+      name:
+        type: [string, "null"]
+      email:
+        type: [string, "null"]
+        format: email
+      role:
+        type: [string, "null"]
+  submitters:
+    type: array
+    items:
+      type: object
+  authenticity:
+    type: object
+    additionalProperties: false
+    required: [verified, scheme]
+    properties:
+      verified:
+        const: true
+      scheme:
+        type: string
+        minLength: 1
+  artifacts:
+    type: object
+    additionalProperties: false
+    required: [documents, audit_log_url, combined_document_url]
+    properties:
+      documents:
+        type: array
+        items:
+          type: object
+          additionalProperties: true
+          required: [name, url]
+          properties:
+            name:
+              type: string
+              minLength: 1
+            url:
+              type: string
+              minLength: 1
+      audit_log_url:
+        type: [string, "null"]
+      combined_document_url:
+        type: [string, "null"]
+  governance:
+    type: object
+    additionalProperties: false
+    required: [authoritative, evidence_admitted, authorization_inferred]
+    properties:
+      authoritative:
+        const: false
+      evidence_admitted:
+        const: false
+      authorization_inferred:
+        const: false
+additionalProperties: false
+x-boundary:
+  provider_authenticated_is_evidence: false
+  provider_completed_is_governed_truth: false
+  observation_authorizes_external_effect: false
+  artifact_reference_is_persistence: false

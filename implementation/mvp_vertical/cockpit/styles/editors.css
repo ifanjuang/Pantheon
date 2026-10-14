@@ -1,0 +1,485 @@
+@layer reset, tokens, shell, navigation, cards, families, states, editors, responsive;
+@import url("change_candidate_review.css") layer(editors);
+
+@layer editors {
+  :where(.v2-schema-editor, .v2-contacts-editor, .v2-information-create-dialog, .v2-document-chunk-inspector) {
+    width: min(70rem, calc(100vw - 2rem));
+    max-height: min(90dvh, 58rem);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--cockpit-ink);
+  }
+
+  :where(.v2-schema-editor, .v2-contacts-editor, .v2-information-create-dialog, .v2-document-chunk-inspector)::backdrop {
+    background: rgb(0 0 0 / 58%);
+  }
+
+  :where(.v2-schema-editor-shell, .v2-contacts-editor-shell, .v2-information-create-shell) {
+    display: grid;
+    max-height: min(90dvh, 58rem);
+    overflow: hidden;
+    border: 1px solid var(--cockpit-line);
+    border-radius: var(--cockpit-radius);
+    background: var(--cockpit-surface);
+    color: var(--cockpit-ink);
+  }
+
+  .v2-schema-editor-shell { grid-template-rows: auto minmax(0, 1fr) auto auto; }
+  .v2-contacts-editor-shell { grid-template-rows: auto minmax(0, 1fr) auto auto auto; }
+  .v2-information-create-shell { gap: 1rem; overflow: auto; padding: 1.25rem; }
+
+  .v2-document-chunk-shell {
+    display: grid;
+    grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
+    max-height: min(90dvh, 58rem);
+    overflow: hidden;
+    border: 1px solid var(--cockpit-line);
+    border-radius: var(--cockpit-radius);
+    background: var(--cockpit-surface);
+    color: var(--cockpit-ink);
+  }
+
+  .v2-document-chunk-header,
+  .v2-document-chunk-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: 1rem 1.1rem;
+  }
+
+  .v2-document-chunk-header { border-bottom: 1px solid var(--cockpit-line); }
+  .v2-document-chunk-header h2,
+  .v2-document-chunk-eyebrow { margin: 0; }
+  .v2-document-chunk-eyebrow { color: var(--cockpit-muted); font-size: .72rem; text-transform: uppercase; }
+  .v2-document-chunk-filters { display: flex; align-items: end; gap: 1rem; padding: .8rem 1.1rem; }
+  .v2-document-chunk-filters label { display: grid; gap: .3rem; }
+  .v2-document-chunk-check { display: flex !important; align-items: center; }
+  .v2-document-chunk-note,
+  .v2-document-chunk-message { margin: 0; padding: 0 1.1rem .7rem; color: var(--cockpit-muted); font-size: .75rem; }
+  .v2-document-chunk-list { display: grid; gap: .75rem; overflow-y: auto; padding: 0 1rem 1rem; }
+  .v2-document-chunk-item { display: grid; gap: .55rem; padding: .85rem; border: 1px solid var(--cockpit-line); border-radius: 14px; background: #f7f7f5; }
+  .v2-document-chunk-item header { display: flex; justify-content: space-between; gap: .75rem; font-size: .78rem; }
+  .v2-document-chunk-item blockquote { max-height: 10rem; margin: 0; overflow: auto; white-space: pre-wrap; }
+  .v2-document-chunk-item dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .45rem .8rem; margin: 0; }
+  .v2-document-chunk-item dl div { min-width: 0; }
+  .v2-document-chunk-item dt { color: var(--cockpit-muted); font-size: .68rem; text-transform: uppercase; }
+  .v2-document-chunk-item dd { margin: .15rem 0 0; overflow-wrap: anywhere; }
+  .v2-document-chunk-section { margin: 0; color: var(--cockpit-muted); font-size: .78rem; }
+  .v2-document-chunk-pagination { border-top: 1px solid var(--cockpit-line); }
+
+  :where(.v2-schema-editor-header, .v2-schema-editor-actions, .v2-contacts-editor-header, .v2-contacts-editor-actions, .v2-contact-editor-row-head, .v2-information-create-shell > header, .v2-information-create-shell > footer) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+  }
+
+  :where(.v2-schema-editor-header, .v2-contacts-editor-header) {
+    padding: 1rem 1.1rem;
+    border-bottom: 1px solid var(--cockpit-line);
+  }
+
+  :where(.v2-schema-editor-header h2, .v2-contacts-editor-header h2) {
+    margin: 0;
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    line-height: 1;
+  }
+
+  :where(.v2-schema-editor-form, .v2-contacts-editor-rows) {
+    display: grid;
+    gap: .85rem;
+    overflow-y: auto;
+    padding: 1rem;
+  }
+
+  :where(.v2-schema-group, .v2-contact-editor-row) {
+    display: grid;
+    gap: .75rem;
+    margin: 0;
+    padding: .85rem;
+    border: 1px solid var(--cockpit-line);
+    border-radius: 14px;
+    background: #f7f7f5;
+  }
+
+  .v2-schema-group,
+  .v2-contact-editor-grid,
+  .v2-information-create-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  :where(.v2-schema-group, .v2-contact-editor-grid, .v2-information-create-form) {
+    display: grid;
+    gap: .75rem;
+  }
+
+  :where(.v2-schema-field, .v2-contact-editor-grid label, .v2-information-create-field) {
+    display: grid;
+    gap: .35rem;
+  }
+
+  :where(.v2-contact-editor-notes, .v2-information-create-field, .v2-information-source-modes, .v2-information-create-form > [data-information-source-field], .v2-information-source-note) {
+    grid-column: 1 / -1;
+  }
+
+  :where(.v2-schema-field input, .v2-schema-field textarea, .v2-schema-field select, .v2-contact-editor-row-head select, .v2-contact-editor-grid input, .v2-contact-editor-grid textarea, .v2-information-create-field input, .v2-information-create-field textarea, .v2-information-create-field select, [data-information-source-field] input, [data-information-source-field] textarea, .v2-handoff-question, .v2-context-input) {
+    width: 100%;
+    min-width: 0;
+    padding: .65rem .7rem;
+    border: 1px solid var(--cockpit-line);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--cockpit-ink);
+    font: inherit;
+  }
+
+  :where(textarea) { resize: vertical; line-height: 1.4; }
+
+  :where(.v2-schema-editor button, .v2-contacts-editor button, .v2-information-create-dialog button, .v2-document-chunk-inspector button, .v2-document-chunk-inspector select, .v2-information-create-card, .v2-claim-provenance-action, .v2-handoff-actions button) {
+    min-height: 2.25rem;
+    padding: .5rem .75rem;
+    border: 1px solid var(--cockpit-line);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--cockpit-ink);
+    font: inherit;
+    cursor: pointer;
+  }
+
+  :where(.primary-action, .v2-handoff-actions button) {
+    border-color: var(--cockpit-ink);
+    background: var(--cockpit-ink);
+    color: #fff;
+  }
+
+  :where(.v2-schema-editor-actions, .v2-contacts-editor-actions) {
+    padding: .85rem 1rem 1rem;
+    border-top: 1px solid var(--cockpit-line);
+  }
+
+  :where(.v2-schema-editor-message, .v2-contacts-editor-message, .v2-information-create-message, .v2-information-source-note, .v2-handoff-message, .v2-context-message, .v2-claim-provenance) {
+    margin: 0;
+    color: var(--cockpit-muted);
+    font-size: .75rem;
+    line-height: 1.4;
+  }
+
+  :where([data-error="true"]) { color: #9a352e; }
+  :where(button:disabled) { cursor: not-allowed; opacity: .45; }
+
+  .v2-information-create-card {
+    width: 100%;
+    min-height: 96px;
+    display: flex;
+    align-items: center;
+    gap: .8rem;
+    text-align: left;
+    border-style: dashed;
+    background: #fff;
+  }
+
+  .v2-information-create-mark {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    font-size: 1.35rem;
+  }
+
+  .v2-information-source-modes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem 1rem;
+    padding: 0;
+    border: 0;
+  }
+
+  .v2-information-source-modes legend { width: 100%; }
+  .v2-information-source-modes label { display: inline-flex; align-items: center; gap: .4rem; }
+
+  .v2-hermes-dock {
+    position: fixed;
+    inset: auto 12px 12px auto;
+    z-index: 60;
+    width: min(28rem, calc(100vw - 24px));
+    max-height: min(78dvh, 42rem);
+    overflow: auto;
+    border: 1px solid var(--cockpit-line);
+    border-radius: var(--cockpit-radius);
+    background: #fff;
+    color: var(--cockpit-ink);
+  }
+
+  .v2-handoff-shell { display: grid; gap: .75rem; padding: 1rem; }
+  .v2-handoff-head { display: flex; align-items: center; gap: .6rem; }
+  .v2-handoff-scope { flex: 1; min-width: 0; }
+  .v2-context-panel { display: grid; gap: .5rem; }
+  .v2-context-selected, .v2-context-results { display: grid; gap: .4rem; }
+
+  .v2-role-dialogue {
+    display: grid;
+    gap: .55rem;
+    padding-top: .75rem;
+    border-top: 1px solid var(--cockpit-line);
+  }
+  .v2-role-dialogue-head { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; }
+  .v2-role-dialogue-state {
+    color: var(--cockpit-muted);
+    font-size: .78rem;
+    text-align: right;
+  }
+  .v2-role-dialogue-boundary {
+    margin: 0;
+    color: var(--cockpit-muted);
+    font-size: .76rem;
+  }
+  .v2-role-dialogue-events {
+    display: grid;
+    gap: .5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .v2-role-stage {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    gap: .2rem .55rem;
+    padding: .6rem;
+    border: 1px solid var(--cockpit-line);
+    border-radius: 14px;
+    background: #f8f9fa;
+  }
+  .v2-role-stage.is-running { border-color: color-mix(in srgb, var(--pantheon-cyan) 60%, var(--cockpit-line)); }
+  .v2-role-stage-icon { grid-row: 1 / span 2; font-size: 1.15rem; }
+  .v2-role-stage-title { min-width: 0; font-size: .86rem; }
+  .v2-role-stage-status,
+  .v2-role-stage-origin {
+    border-radius: 999px;
+    padding: .1rem .4rem;
+    background: #e8ebed;
+    color: var(--cockpit-muted);
+    font-size: .67rem;
+    white-space: nowrap;
+  }
+  .v2-role-stage-summary { grid-column: 2 / -1; margin: 0; color: var(--cockpit-muted); font-size: .8rem; }
+  .v2-role-stage details { grid-column: 2 / -1; font-size: .76rem; }
+  .v2-role-stage details dl { display: grid; grid-template-columns: auto 1fr; gap: .2rem .5rem; margin: .35rem 0 0; }
+  .v2-role-stage details dt { color: var(--cockpit-muted); }
+  .v2-role-stage details dd { margin: 0; overflow-wrap: anywhere; }
+
+  @media (max-width: 420px) {
+    .v2-role-stage { grid-template-columns: auto minmax(0, 1fr) auto; }
+    .v2-role-stage-origin { grid-column: 2; justify-self: start; }
+    .v2-role-stage-summary { grid-column: 2 / -1; }
+  }
+
+  :where(button, input, textarea, select):focus-visible {
+    outline: 3px solid var(--pantheon-cyan);
+    outline-offset: 2px;
+  }
+}
+
+@layer responsive {
+  @media (max-width: 680px) {
+    :where(.v2-schema-editor, .v2-contacts-editor, .v2-information-create-dialog, .v2-document-chunk-inspector) {
+      width: calc(100vw - 12px);
+      max-height: calc(100dvh - 12px);
+    }
+
+    :where(.v2-schema-editor-shell, .v2-contacts-editor-shell, .v2-information-create-shell) {
+      max-height: calc(100dvh - 12px);
+    }
+
+    :where(.v2-schema-group, .v2-contact-editor-grid, .v2-information-create-form) {
+      grid-template-columns: 1fr;
+    }
+
+    :where(.v2-contact-editor-notes, .v2-information-create-field, .v2-information-source-modes, .v2-information-create-form > [data-information-source-field], .v2-information-source-note) {
+      grid-column: auto;
+    }
+
+    .v2-document-chunk-filters,
+    .v2-document-chunk-item header { align-items: stretch; flex-direction: column; }
+    .v2-document-chunk-item dl { grid-template-columns: 1fr; }
+  }
+}
+
+@layer editors {
+  .v2-role-trace-tabs {
+    display: inline-flex;
+    width: max-content;
+    padding: .18rem;
+    border: 1px solid var(--cockpit-line);
+    border-radius: 999px;
+    background: #f2f3f4;
+  }
+
+  .v2-role-trace-tab {
+    min-height: 1.9rem;
+    padding: .28rem .7rem;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--cockpit-muted);
+    font: inherit;
+    font-size: .74rem;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .v2-role-trace-tab[aria-selected="true"] {
+    background: var(--cockpit-ink);
+    color: #fff;
+  }
+
+  .v2-role-dialogue-events[hidden],
+  .v2-role-graph[hidden] {
+    display: none !important;
+  }
+
+  .v2-role-graph {
+    display: grid;
+    gap: .55rem;
+  }
+
+  .v2-role-graph-boundary,
+  .v2-role-graph-empty,
+  .v2-role-graph-detail-empty,
+  .v2-role-graph-detail-summary,
+  .v2-role-graph-detail-origin {
+    margin: 0;
+    color: var(--cockpit-muted);
+    font-size: .74rem;
+    line-height: 1.4;
+  }
+
+  .v2-role-graph-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    padding: .25rem 0 .35rem;
+    scrollbar-width: thin;
+  }
+
+  .v2-role-graph-lanes {
+    display: grid;
+    gap: .42rem;
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .v2-role-graph-lane {
+    display: grid;
+    grid-template-columns: 7.2rem auto;
+    align-items: center;
+    gap: .45rem;
+    min-height: 2.5rem;
+  }
+
+  .v2-role-graph-label {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    min-height: 2.2rem;
+    padding: .28rem .45rem;
+    border-right: 1px solid var(--cockpit-line);
+    background: #fff;
+    font-size: .75rem;
+  }
+
+  .v2-role-graph-label span { font-size: 1rem; }
+
+  .v2-role-graph-rail {
+    position: relative;
+    display: grid;
+    align-items: center;
+    min-height: 2.2rem;
+    padding: .1rem .45rem;
+  }
+
+  .v2-role-graph-rail::before {
+    content: "";
+    position: absolute;
+    inset: 50% .45rem auto;
+    height: 1px;
+    background: color-mix(in srgb, var(--cockpit-line) 82%, transparent);
+    transform: translateY(-50%);
+  }
+
+  .v2-role-graph-node {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    justify-self: center;
+    padding: 0;
+    border: 1px solid var(--cockpit-line);
+    border-radius: 50%;
+    background: #fff;
+    color: var(--cockpit-ink);
+    font-size: .9rem;
+    cursor: pointer;
+  }
+
+  .v2-role-graph-node[data-phase="started"],
+  .v2-role-graph-node[data-phase="updated"] {
+    border-color: color-mix(in srgb, var(--pantheon-cyan) 60%, var(--cockpit-line));
+  }
+
+  .v2-role-graph-node[data-projection="derived_transient"] { border-style: dashed; }
+
+  .v2-role-graph-node.is-selected {
+    outline: 2px solid var(--cockpit-ink);
+    outline-offset: 2px;
+  }
+
+  .v2-role-graph-detail {
+    display: grid;
+    gap: .38rem;
+    padding: .65rem;
+    border: 1px solid var(--cockpit-line);
+    border-radius: 12px;
+    background: #f8f9fa;
+  }
+
+  .v2-role-graph-detail:empty { display: none; }
+
+  .v2-role-graph-detail-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: .75rem;
+    font-size: .78rem;
+  }
+
+  .v2-role-graph-detail-head span {
+    color: var(--cockpit-muted);
+    font-size: .68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .v2-role-graph-detail details { font-size: .74rem; }
+  .v2-role-graph-detail details dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: .2rem .5rem;
+    margin: .35rem 0 0;
+  }
+  .v2-role-graph-detail details dt { color: var(--cockpit-muted); }
+  .v2-role-graph-detail details dd { margin: 0; overflow-wrap: anywhere; }
+
+  @media (max-width: 420px) {
+    .v2-role-graph-lane { grid-template-columns: 5.6rem auto; }
+    .v2-role-graph-label { font-size: .7rem; }
+  }
+}

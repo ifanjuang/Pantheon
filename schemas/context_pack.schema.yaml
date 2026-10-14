@@ -1,0 +1,189 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Next Context Pack
+description: Governance schema for a scoped context bundle prepared for an assistant, cockpit, external runtime or reviewer.
+type: object
+required:
+  - context_pack_id
+  - purpose
+  - scope
+  - target_surface
+  - included_doctrine
+  - included_context
+  - task_constraints
+  - evidence_expectations
+  - approval_expectations
+  - output_expectations
+  - forbidden_assumptions
+  - status
+properties:
+  context_pack_id:
+    type: string
+    pattern: "^[a-z0-9._-]+$"
+  purpose:
+    type: string
+    minLength: 10
+  scope:
+    type: object
+    required:
+      - scope_type
+      - scope_id
+      - included_scopes
+      - excluded_scopes
+    properties:
+      scope_type:
+        type: string
+        enum:
+          - session
+          - task
+          - dossier
+          - project
+          - domain
+          - user
+          - organization
+          - repository
+          - governance
+          - system
+      scope_id:
+        type: string
+        minLength: 1
+      scope_label:
+        type: string
+      included_scopes:
+        type: array
+        items:
+          type: string
+      excluded_scopes:
+        type: array
+        items:
+          type: string
+    additionalProperties: false
+  target_surface:
+    type: string
+    enum:
+      - claude_code
+      - chatgpt_project
+      - openwebui_folder
+      - openwebui_knowledge_base
+      - hermes_profile
+      - hermes_task_contract
+      - external_assistant
+      - human_reviewer
+  included_doctrine:
+    type: array
+    minItems: 1
+    items:
+      type: string
+  included_context:
+    type: array
+    items:
+      type: object
+      required:
+        - label
+        - value
+        - status
+      properties:
+        label:
+          type: string
+        value:
+          type: string
+        status:
+          type: string
+          enum:
+            - working_context
+            - approved_memory_excerpt
+            - memory_candidate
+            - knowledge_reference
+            - source_reference
+            - assumption
+            - risk_note
+        source_ref:
+          type: string
+      additionalProperties: false
+  included_memory_excerpts:
+    type: array
+    items:
+      type: object
+      required:
+        - claim
+        - scope
+        - approval_state
+      properties:
+        claim:
+          type: string
+        scope:
+          type: string
+        evidence_link:
+          type: string
+        approval_state:
+          type: string
+      additionalProperties: false
+  included_knowledge_references:
+    type: array
+    items:
+      type: string
+  task_constraints:
+    type: array
+    minItems: 1
+    items:
+      type: string
+  protected_areas:
+    type: array
+    items:
+      type: string
+  evidence_expectations:
+    type: array
+    minItems: 1
+    items:
+      type: string
+  approval_expectations:
+    type: array
+    minItems: 1
+    items:
+      type: string
+  output_expectations:
+    type: array
+    minItems: 1
+    items:
+      type: string
+  forbidden_assumptions:
+    type: array
+    minItems: 1
+    items:
+      type: string
+  staleness_notes:
+    type: array
+    items:
+      type: string
+  risk_notes:
+    type: array
+    items:
+      type: string
+  status:
+    type: string
+    enum:
+      - draft
+      - active
+      - stale
+      - superseded
+      - revoked
+      - archived
+  governance_refs:
+    type: array
+    items:
+      type: string
+    default:
+      - docs/governance/CONTEXT_PACKS.md
+      - docs/governance/SCOPE_ISOLATION.md
+      - docs/governance/KNOWLEDGE_TAXONOMY.md
+      - docs/governance/TASK_CONTRACTS.md
+      - docs/governance/EVIDENCE_PACK.md
+additionalProperties: false
+x-boundary:
+  runtime_execution: false
+  canonical_memory: false
+  evidence_substitute: false
+  approval_substitute: false
+  hidden_prompt_authority: false
+  automatic_task_launcher: false
+  memory_promotion: false
+  cross_project_context_leak: false

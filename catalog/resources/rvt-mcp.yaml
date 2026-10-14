@@ -1,0 +1,29 @@
+api_version: pantheon.next/v0alpha1
+kind: Resource
+metadata:
+  id: rvt_mcp
+  title: Bimwright rvt-mcp
+  status: candidate
+spec:
+  resource_type: runtime
+  provides_roles:
+    - revit_observation
+    - revit_query
+  lifecycle:
+    installable: true
+    connectable_existing_instance: true
+  interfaces:
+    - local_mcp
+    - revit_addin
+  boundaries:
+    selected_release: v1.1.0
+    license: Apache-2.0
+    read_only_mode_required: true
+    send_code_admitted: false
+    baked_tool_execution_admitted: false
+    change_history_is_pantheon_memory: false
+    write_tools_admitted: false
+    target_rebinding_must_be_explicit: true
+    direct_project_anatomy_write: false
+    direct_evidence_admission: false
+    source_element_id_is_stable_identity: false

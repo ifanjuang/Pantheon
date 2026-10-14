@@ -1,0 +1,95 @@
+name: Hermes Project Variant Lab
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/implementation-hermes-project-variant-lab.yml"
+      - "implementation/qualification/external-pins.json"
+      - "implementation/tools/export_external_qualification_pins.py"
+      - "implementation/hermes/distribution/pantheon-standard.lock.yaml"
+      - "implementation/mvp_vertical/hermes_execution_api.py"
+      - "implementation/mvp_vertical/hermes_run_binding.py"
+      - "implementation/mvp_vertical/hermes_runtime_return.py"
+      - "implementation/mvp_vertical/project_change_variant_api.py"
+      - "implementation/mvp_vertical/project_change_variants.py"
+      - "schemas/project_change_variant_candidate.schema.yaml"
+      - "implementation/tools/hermes_runtime_lab_fixture.py"
+      - "implementation/tools/hermes_project_variant_lab_fixture.py"
+      - "implementation/tools/run_hermes_runtime_lab_acceptance.py"
+      - "implementation/tools/run_hermes_runtime_lab_acceptance.sh"
+      - "implementation/tools/run_hermes_project_variant_lab_acceptance.py"
+      - "implementation/tools/run_hermes_project_variant_lab_acceptance.sh"
+      - "implementation/tests/test_hermes_project_change_variant_binding.py"
+      - "implementation/tests/test_hermes_project_change_variant_return.py"
+      - "implementation/tests/test_project_change_variant_api.py"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hermes-project-variant-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ephemeral-project-variant-lab:
+    name: produce alternatives and rollback
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      PANTHEON_DISTRIBUTION_AUTHORITY_REF: 1afbcdb25209fa6e411dc3792ddeb56447685ebf
+      PROFILE: pantheon-governed
+      PROFILE_KEY: hermes-profile-lab-key
+      FIXTURE_URL: http://127.0.0.1:9010
+      HERMES_API_BASE: http://127.0.0.1:8642/p/pantheon-governed
+      HERMES_API_KEY: hermes-profile-lab-key
+      PANTHEON_HERMES_API_BASE: http://127.0.0.1:9010
+      PANTHEON_HERMES_API_KEY: pantheon-lab-key
+      PANTHEON_HERMES_ACTOR: hermes-project-variant-lab-binding
+
+    steps:
+      - name: Checkout current monorepo candidate
+        uses: actions/checkout@v4
+        with:
+          path: monorepo
+
+      - name: Load canonical Hermes qualification pin
+        shell: bash
+        run: python3 monorepo/implementation/tools/export_external_qualification_pins.py --github-env "$GITHUB_ENV" hermes-agent
+
+      - name: Checkout pinned Hermes distribution authority
+        uses: actions/checkout@v4
+        with:
+          repository: ifanjuang/Pantheon
+          ref: ${{ env.PANTHEON_DISTRIBUTION_AUTHORITY_REF }}
+          path: distribution-authority
+          sparse-checkout: |
+            templates/hermes/distribution/distribution-lock.schema.yaml
+          sparse-checkout-cone-mode: false
+
+      - name: Checkout exact qualified Hermes source
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.HERMES_REPOSITORY }}
+          ref: ${{ env.HERMES_REF }}
+          path: hermes-upstream
+          fetch-depth: 1
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Execute bounded Project variant laboratory
+        working-directory: monorepo/implementation
+        shell: bash
+        run: bash tools/run_hermes_project_variant_lab_acceptance.sh
+
+      - name: Upload Project variant laboratory observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hermes-project-variant-lab-${{ github.run_id }}
+          path: ${{ runner.temp }}/hermes-runtime-lab/artifacts/
+          if-no-files-found: error
+          retention-days: 14

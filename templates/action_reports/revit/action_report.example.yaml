@@ -1,0 +1,39 @@
+# Example Action Report for the future Pantheon Revit Gate add-in.
+# Documentation only. Non-executable example. The plugin does not exist.
+# See docs/governance/PANTHEON_REVIT_GATE_DEVELOPER_DOSSIER.md (section 14).
+#
+# No Revit transaction may be committed without an Action Report. This sample
+# shows the expected trace; it is not produced by any runtime in this repository.
+
+schema_version: "0.1-draft"
+report_id: RPT-REVIT-0001
+contract_id: ACT-REVIT-0001
+action_type: create_text_note
+mode: execute
+status: executed
+revit_context:
+  document_title: "Projet test.rvt"
+  active_view: "RDC - Plan"
+  revit_version: "2026"
+control:
+  control_profile: "Annotation"
+  control_level_at_execution: N1_ANNOTATION
+  permission_used:
+    domain: text_notes
+    operation: create
+transaction:
+  name: "Pantheon Revit Gate - Create Text Note"
+  status: committed
+result:
+  created_elements:
+    - element_id: "921844"
+      category: "Text Notes"
+  modified_elements: []
+  deleted_elements: []
+warnings:
+  - class: A1_ACCEPTABLE_WARNING
+    message: "Position inferred near selected element."
+governance:
+  canonicalizes_project_truth: false
+  writes_pantheon_memory: false
+  requires_human_review: true

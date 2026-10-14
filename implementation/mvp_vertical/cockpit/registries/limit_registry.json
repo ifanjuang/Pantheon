@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "kind": "limits",
+  "values": [
+    {"slug":"questionnement","title":"Questionnement","icon_key":"QuestionMarkCircledIcon","color":"amber"},
+    {"slug":"hypothese","title":"Hypothèse","icon_key":"QuestionMarkIcon","color":"violet"},
+    {"slug":"consultatif","title":"Consultatif","icon_key":"InfoCircledIcon","color":"blue"},
+    {"slug":"obligatoire","title":"Obligatoire","icon_key":"ExclamationTriangleIcon","color":"red"},
+    {"slug":"contractuel","title":"Contractuel","icon_key":"LockClosedIcon","color":"orange"}
+  ]
+}

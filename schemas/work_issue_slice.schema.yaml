@@ -1,0 +1,660 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Next Work Issue Slice
+description: >-
+  Validation contract for the first Work Issue persistence slice: one issue,
+  its comments, external Hermes runs and material events. Declarative only;
+  persistence and transition enforcement belong to a separately reviewed
+  external adapter.
+type: object
+required:
+  - work_issue
+  - comments
+  - hermes_runs
+  - events
+properties:
+  work_issue:
+    $ref: "#/$defs/work_issue"
+  comments:
+    type: array
+    items:
+      $ref: "#/$defs/issue_comment"
+  hermes_runs:
+    type: array
+    items:
+      $ref: "#/$defs/hermes_run"
+  events:
+    type: array
+    items:
+      $ref: "#/$defs/issue_event"
+  governance_refs:
+    type: array
+    items:
+      type: string
+    default:
+      - docs/governance/WORK_ISSUE_AND_DELEGATED_MERGE_MODEL.md
+      - docs/governance/TASK_CONTRACTS.md
+      - docs/governance/CONTEXT_PACKS.md
+      - docs/governance/APPROVALS.md
+additionalProperties: false
+$defs:
+  issue_status:
+    type: string
+    enum:
+      - open
+      - in_progress
+      - waiting
+      - review
+      - done
+      - cancelled
+  run_status:
+    type: string
+    enum:
+      - not_started
+      - running
+      - returned
+      - partial
+      - failed
+      - cancelled
+      - unknown
+  requested_effect:
+    type: string
+    enum:
+      - read_only
+      - draft
+      - internal_write
+      - external_effect
+      - canonical_effect
+  close_reason:
+    type: string
+    enum:
+      - answered
+      - merged
+      - duplicate
+      - obsolete
+      - rejected
+      - impossible
+      - cancelled
+  work_issue:
+    type: object
+    required:
+      - issue_id
+      - case_ref
+      - title
+      - description
+      - origin
+      - issue_type
+      - priority
+      - requested_effect
+      - status
+      - version
+      - created_by
+      - created_at
+      - updated_at
+    properties:
+      issue_id:
+        type: string
+        pattern: "^[a-z0-9._-]+$"
+      case_ref:
+        type: string
+        minLength: 1
+      title:
+        type: string
+        minLength: 3
+      description:
+        type: string
+        minLength: 1
+      origin:
+        type: string
+        enum:
+          - human
+          - hermes_child
+          - promoted_suggestion
+      parent_issue_ref:
+        type: string
+        minLength: 1
+      primary_card_ref:
+        type: string
+        minLength: 1
+      issue_type:
+        type: string
+        enum:
+          - research
+          - verification
+          - correction
+          - drafting
+          - decision
+          - action
+      priority:
+        type: string
+        minLength: 1
+      assigned_to:
+        type: string
+        minLength: 1
+      requested_effect:
+        $ref: "#/$defs/requested_effect"
+      status:
+        $ref: "#/$defs/issue_status"
+      close_reason:
+        $ref: "#/$defs/close_reason"
+      task_contract_ref:
+        type: string
+        minLength: 1
+      context_pack_ref:
+        type: string
+        minLength: 1
+      version:
+        type: integer
+        minimum: 1
+      created_by:
+        type: string
+        minLength: 1
+      created_at:
+        type: string
+        format: date-time
+      updated_at:
+        type: string
+        format: date-time
+    allOf:
+      - if:
+          properties:
+            status:
+              enum:
+                - done
+                - cancelled
+          required:
+            - status
+        then:
+          required:
+            - close_reason
+        else:
+          not:
+            required:
+              - close_reason
+    additionalProperties: false
+  issue_comment:
+    type: object
+    required:
+      - comment_id
+      - issue_ref
+      - body
+      - author
+      - created_at
+    properties:
+      comment_id:
+        type: string
+        pattern: "^[a-z0-9._-]+$"
+      issue_ref:
+        type: string
+        minLength: 1
+      body:
+        type: string
+        minLength: 1
+      author:
+        type: string
+        minLength: 1
+      created_at:
+        type: string
+        format: date-time
+    additionalProperties: false
+  execution_trace_summary:
+    type: object
+    required:
+      - schema_version
+      - correlation
+      - provenance
+    properties:
+      schema_version:
+        const: hermes-execution-trace-summary-v1
+      correlation:
+        type: object
+        required:
+          - admission_id
+          - launch_reservation_id
+          - snapshot_id
+          - snapshot_digest
+          - run_id
+        properties:
+          admission_id:
+            type: string
+            minLength: 1
+            maxLength: 300
+          launch_reservation_id:
+            type: string
+            minLength: 1
+            maxLength: 300
+          snapshot_id:
+            type: string
+            minLength: 1
+            maxLength: 300
+          snapshot_digest:
+            type: string
+            minLength: 1
+            maxLength: 300
+          run_id:
+            type: string
+            minLength: 1
+            maxLength: 300
+        additionalProperties: false
+      runtime:
+        type: object
+        minProperties: 1
+        properties:
+          implementation:
+            type: string
+            minLength: 1
+            maxLength: 300
+          version:
+            type: string
+            minLength: 1
+            maxLength: 300
+          profile:
+            type: string
+            minLength: 1
+            maxLength: 80
+        additionalProperties: false
+      execution:
+        type: object
+        minProperties: 1
+        properties:
+          started_at:
+            type: string
+            format: date-time
+          ended_at:
+            type: string
+            format: date-time
+          terminal_status:
+            type: string
+            enum:
+              - completed
+              - failed
+              - cancelled
+              - timed_out
+              - partial
+          step_count:
+            type: integer
+            minimum: 0
+            maximum: 2147483647
+          tool_call_count:
+            type: integer
+            minimum: 0
+            maximum: 2147483647
+          retry_count:
+            type: integer
+            minimum: 0
+            maximum: 2147483647
+          repair_count:
+            type: integer
+            minimum: 0
+            maximum: 2147483647
+        additionalProperties: false
+      tools:
+        type: array
+        maxItems: 100
+        items:
+          type: object
+          required:
+            - tool_id
+            - call_count
+            - terminal_status
+          properties:
+            tool_id:
+              type: string
+              minLength: 1
+              maxLength: 300
+            call_count:
+              type: integer
+              minimum: 0
+              maximum: 2147483647
+            terminal_status:
+              type: string
+              minLength: 1
+              maxLength: 300
+          additionalProperties: false
+      limits:
+        type: object
+        minProperties: 1
+        properties:
+          max_steps:
+            type: integer
+            minimum: 0
+            maximum: 2147483647
+          observed_steps:
+            type: integer
+            minimum: 0
+            maximum: 2147483647
+          timeout_seconds:
+            type: integer
+            minimum: 0
+            maximum: 2147483647
+          timed_out:
+            type: boolean
+        additionalProperties: false
+      refusals:
+        type: array
+        maxItems: 100
+        items:
+          type: object
+          required:
+            - code
+            - count
+          properties:
+            code:
+              const: context_entity_not_admitted
+            count:
+              type: integer
+              minimum: 0
+              maximum: 2147483647
+          additionalProperties: false
+      trace_refs:
+        type: array
+        minItems: 1
+        maxItems: 100
+        uniqueItems: true
+        items:
+          type: string
+          minLength: 1
+          maxLength: 500
+      provenance:
+        type: object
+        required:
+          - pantheon_observed
+          - binding_observed
+          - runtime_reported
+        properties:
+          pantheon_observed:
+            type: array
+            maxItems: 200
+            uniqueItems: true
+            items:
+              type: string
+              minLength: 1
+              maxLength: 300
+          binding_observed:
+            type: array
+            maxItems: 200
+            uniqueItems: true
+            items:
+              type: string
+              minLength: 1
+              maxLength: 300
+          runtime_reported:
+            type: array
+            maxItems: 200
+            uniqueItems: true
+            items:
+              type: string
+              minLength: 1
+              maxLength: 300
+        additionalProperties: false
+    additionalProperties: false
+  normalized_hermes_return:
+    type: object
+    required:
+      - outcome
+      - summary
+      - trace_refs
+    properties:
+      outcome:
+        type: string
+        enum:
+          - result_candidate
+          - partial
+          - failed
+          - capability_gap
+      summary:
+        type: string
+        minLength: 1
+      result_refs:
+        type: array
+        items:
+          type: string
+      evidence_candidate_refs:
+        type: array
+        items:
+          type: string
+      trace_refs:
+        type: array
+        minItems: 1
+        items:
+          type: string
+      execution_trace_summary:
+        $ref: "#/$defs/execution_trace_summary"
+    additionalProperties: false
+  hermes_run:
+    type: object
+    required:
+      - run_id
+      - issue_ref
+      - task_contract_ref
+      - context_pack_ref
+      - status
+      - requested_effect
+      - created_at
+      - updated_at
+    properties:
+      run_id:
+        type: string
+        pattern: "^[a-z0-9._-]+$"
+      issue_ref:
+        type: string
+        minLength: 1
+      task_contract_ref:
+        type: string
+        minLength: 1
+      context_pack_ref:
+        type: string
+        minLength: 1
+      status:
+        $ref: "#/$defs/run_status"
+      requested_effect:
+        $ref: "#/$defs/requested_effect"
+      started_at:
+        type: string
+        format: date-time
+      returned_at:
+        type: string
+        format: date-time
+      normalized_return:
+        $ref: "#/$defs/normalized_hermes_return"
+      created_at:
+        type: string
+        format: date-time
+      updated_at:
+        type: string
+        format: date-time
+    allOf:
+      - if:
+          properties:
+            status:
+              enum:
+                - returned
+                - partial
+                - failed
+          required:
+            - status
+        then:
+          required:
+            - returned_at
+            - normalized_return
+    additionalProperties: false
+  status_transition:
+    type: object
+    required:
+      - from_status
+      - to_status
+      - actor_kind
+    properties:
+      from_status:
+        $ref: "#/$defs/issue_status"
+      to_status:
+        $ref: "#/$defs/issue_status"
+      actor_kind:
+        type: string
+        enum:
+          - human
+          - hermes
+    allOf:
+      - if:
+          properties:
+            actor_kind:
+              const: hermes
+          required:
+            - actor_kind
+        then:
+          properties:
+            to_status:
+              enum:
+                - in_progress
+                - waiting
+                - review
+      - oneOf:
+          - properties:
+              from_status:
+                const: open
+              to_status:
+                enum:
+                  - in_progress
+                  - waiting
+                  - cancelled
+          - properties:
+              from_status:
+                const: in_progress
+              to_status:
+                enum:
+                  - waiting
+                  - review
+                  - cancelled
+          - properties:
+              from_status:
+                const: waiting
+              to_status:
+                enum:
+                  - in_progress
+                  - review
+                  - cancelled
+          - properties:
+              from_status:
+                const: review
+              to_status:
+                enum:
+                  - in_progress
+                  - waiting
+                  - done
+                  - cancelled
+    additionalProperties: false
+  issue_event:
+    type: object
+    required:
+      - event_id
+      - issue_ref
+      - event_type
+      - actor
+      - actor_kind
+      - expected_version
+      - resulting_version
+      - idempotency_key
+      - occurred_at
+    properties:
+      event_id:
+        type: string
+        pattern: "^[a-z0-9._-]+$"
+      issue_ref:
+        type: string
+        minLength: 1
+      run_ref:
+        type: string
+        minLength: 1
+      event_type:
+        type: string
+        enum:
+          - issue_created
+          - comment_added
+          - status_changed
+          - hermes_started
+          - hermes_returned
+          - review_requested
+          - issue_closed
+      actor:
+        type: string
+        minLength: 1
+      actor_kind:
+        type: string
+        enum:
+          - human
+          - hermes
+          - system
+      transition:
+        $ref: "#/$defs/status_transition"
+      expected_version:
+        type: integer
+        minimum: 0
+        description: Version the caller observed before the write.
+      resulting_version:
+        type: integer
+        minimum: 1
+        description: Must equal expected_version plus one; enforced by the persistence adapter.
+      idempotency_key:
+        type: string
+        minLength: 1
+      occurred_at:
+        type: string
+        format: date-time
+    allOf:
+      - if:
+          properties:
+            event_type:
+              const: status_changed
+          required:
+            - event_type
+        then:
+          required:
+            - transition
+        else:
+          not:
+            required:
+              - transition
+      - if:
+          properties:
+            actor_kind:
+              const: hermes
+          required:
+            - actor_kind
+        then:
+          properties:
+            transition:
+              properties:
+                actor_kind:
+                  const: hermes
+      - if:
+          properties:
+            actor_kind:
+              const: human
+          required:
+            - actor_kind
+        then:
+          properties:
+            transition:
+              properties:
+                actor_kind:
+                  const: human
+      - if:
+          properties:
+            actor_kind:
+              const: system
+          required:
+            - actor_kind
+        then:
+          properties:
+            event_type:
+              not:
+                const: status_changed
+    additionalProperties: false
+x-boundary:
+  runtime_execution: false
+  persistence_execution: false
+  direct_postgres_write: false
+  queue_system: false
+  scheduler: false
+  automatic_approval: false
+  automatic_issue_creation: false
+  memory_promotion: false

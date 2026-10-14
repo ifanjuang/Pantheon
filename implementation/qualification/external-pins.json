@@ -1,0 +1,155 @@
+{
+  "schema_id": "pantheon.external_qualification_pins",
+  "revision": 1,
+  "status": "candidate",
+  "description": "Canonical inputs for current external-component qualification. This registry is not deployment truth, installation state, authorization, Evidence, or a record of historical qualification runs.",
+  "pins": {
+    "hermes-agent": {
+      "kind": "git",
+      "env_prefix": "HERMES",
+      "repository": "NousResearch/hermes-agent",
+      "tracking_policy": "follow_latest_stable",
+      "release_tag": "v2026.9.14",
+      "version": "0.21.3",
+      "ref": "345cd2b057a452236de401d3534b8502a7465e8d",
+      "aliases": {
+        "ref": [
+          "HERMES_RELEASE_COMMIT",
+          "HERMES_COMMIT"
+        ]
+      }
+    },
+    "personal-ai-router": {
+      "kind": "git",
+      "env_prefix": "PAIR",
+      "repository": "NVIDIA/Personal-AI-Router",
+      "version": "0.1.1",
+      "ref": "13b68115fa2c9c1d94f1ead1358f8d5a527cfecf"
+    },
+    "unsloth": {
+      "kind": "git",
+      "env_prefix": "UNSLOTH",
+      "repository": "unslothai/unsloth",
+      "version": "0.1.806-beta",
+      "ref": "d90c0320664ef9812a1fb1d2a31f0977feaf7916"
+    },
+    "hindsight": {
+      "kind": "container",
+      "env_prefix": "HINDSIGHT",
+      "image": "ghcr.io/vectorize-io/hindsight",
+      "version": "0.10.2",
+      "digest": null
+    },
+    "hindsight-obsidian-sync": {
+      "kind": "git",
+      "env_prefix": "HINDSIGHT_OBSIDIAN",
+      "repository": "vectorize-io/hindsight-obsidian",
+      "version": "0.2.1",
+      "ref": "daf529aacad14a5b8f7db9f34a7f49c9e3629b61",
+      "aliases": {
+        "ref": [
+          "OBSIDIAN_SYNC_COMMIT"
+        ]
+      }
+    },
+    "obsidian-desktop": {
+      "kind": "release",
+      "env_prefix": "OBSIDIAN",
+      "repository": "obsidianmd/obsidian-releases",
+      "version": "1.13.7"
+    },
+    "obsidian-wiki": {
+      "kind": "git",
+      "env_prefix": "OBSIDIAN_WIKI",
+      "repository": "Ar9av/obsidian-wiki",
+      "version": "2026.8.6",
+      "ref": "8b5859d0f895e51e785d3ba22ed8008297e8d367"
+    },
+    "notemesh": {
+      "kind": "git",
+      "env_prefix": "NOTEMESH",
+      "repository": "ChangeNode/notemesh",
+      "version": "1.0.0",
+      "ref": "a9011dc0ed547a7db78e3327c33b5f00ae4f0ea6"
+    },
+    "graphify": {
+      "kind": "package",
+      "env_prefix": "GRAPHIFY",
+      "repository": "Graphify-Labs/graphify",
+      "package": "graphifyy",
+      "version": "0.9.53",
+      "ref": "33362d969292b57eda82f3fbd9eb5f3f5bc9bbc2"
+    },
+    "mnemosyne-memory": {
+      "kind": "package",
+      "env_prefix": "MNEMOSYNE_MEMORY",
+      "package": "mnemosyne-memory",
+      "version": "3.15.1"
+    },
+    "mnemosyne-hermes": {
+      "kind": "package",
+      "env_prefix": "MNEMOSYNE_HERMES",
+      "package": "mnemosyne-hermes",
+      "version": "0.7.0"
+    },
+    "haystack": {
+      "kind": "package",
+      "env_prefix": "HAYSTACK",
+      "repository": "deepset-ai/haystack",
+      "package": "haystack-ai",
+      "version": "3.1.0",
+      "ref": "859a6eb3ac4d0bd33f069bab57fb041e3434a353"
+    },
+    "isnad": {
+      "kind": "package",
+      "env_prefix": "ISNAD",
+      "repository": "alizahidraja/isnad",
+      "package": "isnad",
+      "version": "2.20.1",
+      "ref": "4a9a9a3dd22b459c5e6a15d87af0997febad1703"
+    },
+    "harnessrouter": {
+      "kind": "git",
+      "env_prefix": "HARNESSROUTER",
+      "repository": "HarnessRouter/harnessrouter",
+      "version": "0.26.14",
+      "ref": "7d0fa14bf70e81a2226d232bc519e729d32793d3",
+      "release_tag": "v0.26.14",
+      "protocol_version": "2026-09-28",
+      "tracking_policy": "reviewed_pin"
+    },
+    "contrastive-lm": {
+      "kind": "git",
+      "env_prefix": "CLM",
+      "repository": "Contrastive-LM/CLM",
+      "package": "contrastive-lm",
+      "version": "0.1.0",
+      "ref": "bb42c6c5bf914fd449bed2f6ca65be80602cb1f7",
+      "tracking_policy": "reviewed_pin",
+      "encoder_model": "Qwen/Qwen3-8B",
+      "api_surface": "/v1/rank",
+      "encoder_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+      "head_repository": "Contrastive-LM/CLM-v0.1-8B",
+      "head_revision": "a6cabbc226257a8ad572e818e13a23f2e1c8b9d7",
+      "head_file": "CLM_v0.1-8B.pt",
+      "head_sha256": "b2b4a8c9c2d39263eff78a351eb909a342ce9b3bf21a3f07c1d1bf15f1c4eda5",
+      "vllm_version": "0.30.0",
+      "experimental_quantized_encoder_repository": "Qwen/Qwen3-8B-GGUF",
+      "experimental_q8_file": "Qwen3-8B-Q8_0.gguf",
+      "experimental_q8_sha256": "408b955510e196121c1c375201744783b5c9a43c7956d73fc78df54c66e883d6",
+      "experimental_q4_file": "Qwen3-8B-Q4_K_M.gguf",
+      "experimental_q4_sha256": "d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785",
+      "experimental_encoder_backend_repository": "ggml-org/llama.cpp",
+      "experimental_encoder_backend_version": "0.5.0",
+      "experimental_encoder_backend_ref": "7fe450e19305b828c199d602c23a8337aaa1f03b",
+      "experimental_quantized_encoder_revision": "86e51c53be47cd9d82e0acb3ca6b4faedb51171d"
+    }
+  },
+  "authority": {
+    "deployment_truth": false,
+    "installation_state": false,
+    "runtime_activation": false,
+    "task_authorization": false,
+    "evidence_admission": false
+  }
+}

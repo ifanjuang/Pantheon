@@ -1,0 +1,45 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Next Update Evidence
+description: >-
+  Input contract for the read-only verify_update policy tool. It is evidence
+  already gathered elsewhere about a component's versions — the current version
+  and the latest available version — provided to the tool, never fetched by it.
+  The tool classifies this evidence into a verdict as data (current /
+  update_available / ahead / unknown) and reports capability gaps when evidence is
+  insufficient. It performs no probe, no network fetch, no NAS access, no update
+  and decides nothing. The classifier is permissive by design: every field is
+  optional and missing signals become capability gaps rather than validation
+  errors, so this schema documents the recommended shape; it is not enforced as a
+  gate on the evidence.
+type: object
+properties:
+  component:
+    type: string
+    description: Name of the component whose update availability is being verified.
+  current_version:
+    type: string
+    description: Provided current version (a leading v and pre-release suffix are tolerated).
+  available_version:
+    type: string
+    description: Provided latest available version. The tool fetches nothing itself.
+  channel:
+    type: string
+    description: Optional release channel the available version comes from (e.g. stable, beta).
+required: []
+additionalProperties: false
+governance_refs:
+  - mcp-server/docs/HTTP_API_CONTRACT.md
+  - docs/governance/PANTHEON_CONTROL_BOUNDARY.md
+x-boundary:
+  runtime_execution: false
+  decision_is_data: true
+  performs_probe: false
+  network_fetch: false
+  nas_access: false
+  runs_update: false
+  autonomous_loop: false
+  provider_routing: false
+  scheduler: false
+  queue_system: false
+  memory_promotion: false
+  automatic_canonization: false

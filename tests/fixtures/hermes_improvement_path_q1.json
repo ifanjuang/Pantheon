@@ -1,0 +1,101 @@
+{
+  "schema_id": "pantheon.hermes_improvement_path_q1",
+  "revision": 2,
+  "status": "candidate",
+  "live_executed": false,
+  "direction": {
+    "durable_owner": "hermes_evaluation_improvement_loop",
+    "method": [
+      "observe",
+      "measure",
+      "classify_failure_layer",
+      "change_one_layer",
+      "compare_on_held_out_cases",
+      "human_review"
+    ],
+    "failure_layers_before_weight_tuning": [
+      "skill",
+      "prompt",
+      "tool_contract",
+      "context_admission_or_budget",
+      "retrieval_or_provenance",
+      "provider_binding_or_routing"
+    ],
+    "weight_tuning_gate": "residual_model_limitation_proven",
+    "training_facade": "llamafactory",
+    "unsloth_role": "optional_llama_lora_accelerator",
+    "self_evolution_role": "optional_future_automation_candidate",
+    "self_evolution_activation": "blocked_unresolved",
+    "serving_path": [
+      "hermes",
+      "pair",
+      "ollama_or_lm_studio",
+      "gpu_node"
+    ]
+  },
+  "observed_upstream": {
+    "self_evolution_main": "0a929e3aa20e15cf04dc7c28492a7d41a5139125",
+    "self_evolution_blocker": "upstream_issue_141_open",
+    "llamafactory_stable_version": "v0.9.5",
+    "llamafactory_stable_ref": "7af909522a951e3ad9f022ea6f88b6755257eaa5",
+    "llamafactory_main": "dced5f8804bfbf7109ef7c14401db6bd5cce7e53",
+    "llamafactory_unsloth_integration": "use_unsloth"
+  },
+  "evaluation_posture": {
+    "new_evaluation_runtime": false,
+    "reuse_existing_tests_and_qualification_labs": true,
+    "candidate_case_categories": [
+      "structured_tool_calling",
+      "scope_isolation",
+      "refusal_and_approval_boundaries",
+      "context_admission_untrusted_content",
+      "pdf_document_understanding",
+      "provenance",
+      "retrieval",
+      "memory_evidence_boundaries",
+      "provider_fallback"
+    ],
+    "evaluation_set_is_evidence": false,
+    "benchmark_corpus_is_training_data": false
+  },
+  "priority": [
+    "execute_existing_pair_q1a_q1b_q1c",
+    "assemble_evaluation_reference_set_from_existing_owners",
+    "measure_baseline",
+    "fix_non_model_layers",
+    "re_evaluate",
+    "qualify_llamafactory_only_if_model_gap_remains"
+  ],
+  "training_posture": {
+    "project_client_data_training_default": false,
+    "synthetic_or_explicitly_authorized_data_default": true,
+    "llamafactory_required_dependency": false,
+    "unsloth_required_dependency": false,
+    "self_evolution_required_dependency": false
+  },
+  "authority": {
+    "deployment_selected": false,
+    "installed": false,
+    "runtime_activated": false,
+    "training_authorized": false,
+    "task_authorized": false,
+    "evidence_admitted": false,
+    "new_scheduler_authority": false,
+    "new_router_authority": false,
+    "new_runtime_owner": false,
+    "new_dataset_authority": false
+  },
+  "non_equivalences": [
+    "optimizer score gain != reviewed skill improvement",
+    "evaluation score != professional correctness",
+    "benchmark corpus != training dataset",
+    "training completed != model qualified",
+    "model qualified != model activated",
+    "model activated != task authorized",
+    "dataset != Evidence",
+    "runtime trace != Evidence",
+    "project data available != training authorized",
+    "Unsloth acceleration enabled != trained model qualified",
+    "PAIR routing != Pantheon authorization"
+  ]
+}

@@ -1,0 +1,252 @@
+name: Obsidian Wiki Graph Health Q1
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/obsidian-wiki-graph-health-q1.yml"
+      - "implementation/qualification/external-pins.json"
+      - "implementation/tools/export_external_qualification_pins.py"
+      - "tests/fixtures/obsidian_graph_health_pilot.json"
+      - "tests/fixtures/obsidian_graph_health_observed_v2026.08.6.json"
+      - "tests/test_workspace_organization_routing.py"
+      - "tests/test_obsidian_graph_health_observed.py"
+      - "tests/test_obsidian_wiki_graph_health_q1_contract.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pytest
+      - run: >-
+          pytest -q
+          tests/test_obsidian_wiki_graph_health_q1_contract.py
+          tests/test_workspace_organization_routing.py
+          tests/test_obsidian_graph_health_observed.py
+
+  upstream-observation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout current Pantheon candidate
+        uses: actions/checkout@v4
+        with:
+          path: monorepo
+
+      - name: Load canonical obsidian-wiki qualification pin
+        shell: bash
+        run: python3 monorepo/implementation/tools/export_external_qualification_pins.py --github-env "$GITHUB_ENV" obsidian-wiki
+
+      - name: Checkout exact obsidian-wiki revision
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.OBSIDIAN_WIKI_REPOSITORY }}
+          ref: ${{ env.OBSIDIAN_WIKI_REF }}
+          path: obsidian-wiki
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify exact upstream source
+        shell: bash
+        run: |
+          test "$(git -C obsidian-wiki rev-parse HEAD)" = "$OBSIDIAN_WIKI_REF"
+          grep -F 'dependencies = []' obsidian-wiki/pyproject.toml
+          grep -F 'graph-analyse' obsidian-wiki/docs/cli.md
+          grep -F 'lint [vault]' obsidian-wiki/docs/cli.md
+
+      - name: Materialize bounded synthetic vault
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          corpus = json.loads(Path("monorepo/tests/fixtures/obsidian_graph_health_pilot.json").read_text(encoding="utf-8"))
+          out = Path(os.environ.get("RUNNER_TEMP", "/tmp")) / "obsidian-wiki-graph-health-q1"
+          vault = out / "vault"
+          vault.mkdir(parents=True, exist_ok=True)
+
+          def title_for(path: Path) -> str:
+              return path.stem.replace("-", " ").replace("_", " ").strip().title()
+
+          tracked = []
+          for note in corpus["workspace"]["notes"]:
+              path = vault / note["path"]
+              path.parent.mkdir(parents=True, exist_ok=True)
+              body = [
+                  "---",
+                  f"title: {title_for(path)}",
+                  "category: qualification",
+                  "tags: [qualification, synthetic]",
+                  "sources: [synthetic-corpus]",
+                  "created: 2026-08-30",
+                  "updated: 2026-08-30",
+                  f"summary: Synthetic qualification note for {note['path']}",
+                  "---",
+                  "",
+                  f"# {title_for(path)}",
+                  "",
+              ]
+              for claim in note.get("claims", []):
+                  body.extend([claim, ""])
+              for heading in note.get("headings", []):
+                  body.extend([f"## {heading}", "", f"Synthetic section {heading}.", ""])
+              for target in note.get("links", []):
+                  body.append(f"[[{target}]]")
+              if note.get("links"):
+                  body.append("")
+              body.extend(note.get("raw_markdown", []))
+              if note.get("raw_markdown"):
+                  body.append("")
+              path.write_text("\n".join(body), encoding="utf-8")
+              tracked.append(note["path"])
+
+          for rel in corpus["workspace"].get("non_markdown_files", []):
+              path = vault / rel
+              path.parent.mkdir(parents=True, exist_ok=True)
+              if path.suffix == ".pdf":
+                  path.write_bytes(b"%PDF-1.4\n% synthetic qualification artifact\n")
+              elif path.suffix == ".png":
+                  path.write_bytes(b"\x89PNG\r\n\x1a\nsynthetic")
+              else:
+                  path.write_text("synthetic qualification artifact\n", encoding="utf-8")
+              tracked.append(rel)
+
+          for rel in corpus["workspace"].get("protected_external_material", []):
+              path = vault / rel
+              path.parent.mkdir(parents=True, exist_ok=True)
+              path.write_bytes(b"PANTHEON_PROTECTED_SYNTHETIC_MATERIAL\n")
+              tracked.append(rel)
+
+          def digest(path: Path):
+              return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
+
+          baseline = {rel: digest(vault / rel) for rel in sorted(tracked)}
+          (out / "tracked-files.json").write_text(json.dumps(sorted(tracked), indent=2) + "\n", encoding="utf-8")
+          (out / "before.json").write_text(json.dumps(baseline, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          (out / "metadata.json").write_text(json.dumps({
+              "pilot_id": corpus["pilot_id"],
+              "candidate_repository": os.environ["OBSIDIAN_WIKI_REPOSITORY"],
+              "candidate_version": os.environ["OBSIDIAN_WIKI_VERSION"],
+              "candidate_ref": os.environ["OBSIDIAN_WIKI_REF"],
+              "authorized_scope": corpus["workspace"]["authorized_scope"],
+              "execution_surfaces": ["graph-analyse", "lint"],
+              "excluded_surfaces": corpus["reference_candidate"]["excluded_surfaces"],
+          }, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          print(vault)
+          PY
+
+      - name: Execute pinned structural and health surfaces
+        shell: bash
+        run: |
+          OUT="$RUNNER_TEMP/obsidian-wiki-graph-health-q1"
+          VAULT="$OUT/vault"
+          export PYTHONPATH="$GITHUB_WORKSPACE/obsidian-wiki"
+
+          python -m obsidian_wiki graph-analyse "$VAULT/projects/maison" --top 20 --pretty > "$OUT/scoped-graph.json"
+          python -m obsidian_wiki graph-analyse "$VAULT/projects/maison" --path programme cctp --pretty > "$OUT/scoped-path.json"
+          python -m obsidian_wiki graph-analyse "$VAULT" --top 20 --pretty > "$OUT/root-graph-negative-control.json"
+
+          set +e
+          python -m obsidian_wiki lint "$VAULT/projects/maison" --json > "$OUT/scoped-lint.json" 2> "$OUT/scoped-lint.stderr.txt"
+          LINT_EXIT=$?
+          set -e
+          printf '%s\n' "$LINT_EXIT" > "$OUT/scoped-lint.exit-code.txt"
+
+          LINT_EXIT="$LINT_EXIT" OUT="$OUT" python - <<'PY'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          out = Path(os.environ["OUT"])
+          exit_code = int(os.environ["LINT_EXIT"])
+          payload_path = out / "scoped-lint.json"
+          stderr_path = out / "scoped-lint.stderr.txt"
+
+          if exit_code not in {0, 1}:
+              print(stderr_path.read_text(encoding="utf-8", errors="replace"), file=sys.stderr)
+              raise SystemExit(f"unexpected obsidian-wiki lint exit code: {exit_code}")
+          try:
+              report = json.loads(payload_path.read_text(encoding="utf-8"))
+          except (OSError, json.JSONDecodeError) as exc:
+              print(stderr_path.read_text(encoding="utf-8", errors="replace"), file=sys.stderr)
+              raise SystemExit(f"lint did not produce valid JSON: {exc}") from exc
+
+          if not isinstance(report, dict) or not {"status", "stats", "findings"} <= set(report):
+              raise SystemExit("lint JSON is missing required report structure")
+          status = report["status"]
+          if exit_code == 0 and status == "fail":
+              raise SystemExit("lint reported fail with zero exit code")
+          if exit_code == 1 and status not in {"fail", "warn"}:
+              print(stderr_path.read_text(encoding="utf-8", errors="replace"), file=sys.stderr)
+              raise SystemExit(f"exit 1 is not an expected finding result for status={status!r}")
+          PY
+
+      - name: Record complete mutation boundary observation
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          out = Path(os.environ.get("RUNNER_TEMP", "/tmp")) / "obsidian-wiki-graph-health-q1"
+          vault = out / "vault"
+          tracked = json.loads((out / "tracked-files.json").read_text(encoding="utf-8"))
+          before = json.loads((out / "before.json").read_text(encoding="utf-8"))
+
+          def digest(path: Path):
+              return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
+
+          tracked_set = set(tracked)
+          post_run_files = sorted(
+              path.relative_to(vault).as_posix()
+              for path in vault.rglob("*")
+              if path.is_file()
+          )
+          post_run_set = set(post_run_files)
+          added = sorted(post_run_set - tracked_set)
+          missing = sorted(tracked_set - post_run_set)
+          modified = sorted(
+              rel for rel in tracked
+              if rel in post_run_set and before.get(rel) != digest(vault / rel)
+          )
+          observation = {
+              "tracked_file_count": len(tracked),
+              "post_run_file_count": len(post_run_files),
+              "added_files": added,
+              "missing_tracked_files": missing,
+              "modified_tracked_files": modified,
+              "tracked_material_unchanged": not modified and not missing,
+              "complete_vault_inventory_unchanged": not added and not missing and not modified,
+              "pantheon_state_mutated": False,
+              "evidence_admitted": False,
+              "provider_binding_changed": False,
+              "automatic_rewrite_qualified": False,
+          }
+          (out / "mutation-observation.json").write_text(json.dumps(observation, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          print(json.dumps(observation, sort_keys=True))
+          PY
+
+      - name: Upload raw bounded observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: obsidian-wiki-graph-health-q1-${{ github.run_id }}
+          path: ${{ runner.temp }}/obsidian-wiki-graph-health-q1/
+          if-no-files-found: error
+          retention-days: 30

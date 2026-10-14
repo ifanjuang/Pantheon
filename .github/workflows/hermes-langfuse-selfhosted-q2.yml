@@ -1,0 +1,135 @@
+name: Hermes Langfuse Self-hosted Q2
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/hermes-langfuse-selfhosted-q2.yml"
+      - "implementation/tools/run_hermes_langfuse_selfhosted_q2.py"
+      - "tests/test_hermes_langfuse_selfhosted_q2_contract.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pytest
+      - run: pytest -q tests/test_hermes_langfuse_selfhosted_q2_contract.py
+
+  real-ingestion:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      HERMES_COMMIT: 4c1f53be10d0fce1d25aee1975e5149b6c54f25a
+      LANGFUSE_COMMIT: c2257f7d86b4407a2b27e8d3a95f719736ef4b01
+      HERMES_LANGFUSE_PUBLIC_KEY: pk-lf-pantheon-q2-synthetic-public-key
+      HERMES_LANGFUSE_SECRET_KEY: sk-lf-pantheon-q2-synthetic-secret-key
+      HERMES_LANGFUSE_BASE_URL: http://127.0.0.1:3000
+      HERMES_LANGFUSE_CAPTURE: metadata
+      HERMES_LANGFUSE_DEBUG: "true"
+      TELEMETRY_ENABLED: "false"
+      LANGFUSE_INIT_ORG_ID: pantheon-q2-org
+      LANGFUSE_INIT_ORG_NAME: Pantheon-Q2-Synthetic
+      LANGFUSE_INIT_PROJECT_ID: pantheon-q2-project
+      LANGFUSE_INIT_PROJECT_NAME: Pantheon-Q2-Synthetic
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: pk-lf-pantheon-q2-synthetic-public-key
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: sk-lf-pantheon-q2-synthetic-secret-key
+      LANGFUSE_INIT_USER_EMAIL: q2@example.invalid
+      LANGFUSE_INIT_USER_NAME: Pantheon Q2
+      LANGFUSE_INIT_USER_PASSWORD: synthetic-q2-password-only
+      NEXTAUTH_SECRET: pantheon-q2-nextauth-secret-only
+      SALT: pantheon-q2-salt-only
+      ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      REDIS_AUTH: pantheon-q2-redis-only
+      CLICKHOUSE_PASSWORD: pantheon-q2-clickhouse-only
+      MINIO_ROOT_PASSWORD: pantheon-q2-minio-only
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: pantheon-q2-minio-only
+      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: pantheon-q2-minio-only
+      POSTGRES_PASSWORD: pantheon-q2-postgres-only
+      DATABASE_URL: postgresql://postgres:pantheon-q2-postgres-only@postgres:5432/postgres
+    steps:
+      - name: Checkout Pantheon candidate
+        uses: actions/checkout@v4
+        with:
+          path: monorepo
+
+      - name: Checkout exact Hermes revision
+        uses: actions/checkout@v4
+        with:
+          repository: NousResearch/hermes-agent
+          ref: ${{ env.HERMES_COMMIT }}
+          path: hermes-agent
+          fetch-depth: 1
+
+      - name: Checkout exact Langfuse revision
+        uses: actions/checkout@v4
+        with:
+          repository: langfuse/langfuse
+          ref: ${{ env.LANGFUSE_COMMIT }}
+          path: langfuse
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify exact upstream identities
+        shell: bash
+        run: |
+          test "$(git -C hermes-agent rev-parse HEAD)" = "$HERMES_COMMIT"
+          test "$(git -C langfuse rev-parse HEAD)" = "$LANGFUSE_COMMIT"
+          grep -q 'docker.langfuse.com/langfuse/langfuse:4' langfuse/docker-compose.yml
+          grep -q 'docker.langfuse.com/langfuse/langfuse-worker:4' langfuse/docker-compose.yml
+
+      - name: Install exact Hermes runtime and Langfuse SDK
+        working-directory: hermes-agent
+        run: python -m pip install -e . langfuse==4.14.5 requests
+
+      - name: Start official Langfuse v4 compose
+        working-directory: langfuse
+        run: docker compose -f docker-compose.yml up -d
+
+      - name: Wait for Langfuse web health
+        shell: bash
+        run: |
+          for i in $(seq 1 120); do
+            if curl -fsS http://127.0.0.1:3000/api/public/health >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose -f langfuse/docker-compose.yml ps
+          docker compose -f langfuse/docker-compose.yml logs --tail=200 langfuse-web langfuse-worker
+          exit 1
+
+      - name: Run real Hermes to self-hosted Langfuse ingestion probe
+        working-directory: monorepo
+        env:
+          HERMES_ROOT: ${{ github.workspace }}/hermes-agent
+        run: python implementation/tools/run_hermes_langfuse_selfhosted_q2.py
+
+      - name: Capture Langfuse diagnostics on probe failure
+        if: failure()
+        working-directory: langfuse
+        shell: bash
+        run: |
+          docker compose -f docker-compose.yml logs --tail=300 langfuse-web langfuse-worker || true
+
+      - name: Capture service identities
+        if: always()
+        working-directory: langfuse
+        shell: bash
+        run: |
+          docker compose -f docker-compose.yml images || true
+          docker compose -f docker-compose.yml ps || true
+
+      - name: Shutdown ephemeral Langfuse stack
+        if: always()
+        working-directory: langfuse
+        run: docker compose -f docker-compose.yml down -v --remove-orphans

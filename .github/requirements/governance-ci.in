@@ -1,0 +1,5 @@
+# Direct Python dependencies for read-only governance CI checks.
+# This file records intent only; the workflow installs governance-ci.lock.txt.
+jsonschema==4.26.0
+referencing==0.37.0
+PyYAML==6.0.3

@@ -1,0 +1,52 @@
+@layer foundations {
+  select {
+    width: 100%;
+    border: 1px solid rgb(21 22 24 / 17%);
+    border-radius: .8rem;
+    background: rgb(255 255 255 / 82%);
+    color: var(--ink-950);
+    padding: .8rem .9rem;
+    font: inherit;
+  }
+}
+
+@layer layout {
+  .effect-form,
+  .effect-proposal-detail {
+    display: grid;
+    gap: var(--space-5);
+  }
+
+  .effect-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
+  }
+
+  .effect-message {
+    min-height: 1.4rem;
+    color: var(--ink-650);
+    font-size: .84rem;
+    line-height: 1.45;
+  }
+
+  #question-summary .secondary-action {
+    margin-top: var(--space-4);
+  }
+
+  @media (max-width: 620px) {
+    .effect-grid { grid-template-columns: 1fr; }
+  }
+}
+
+@layer variants {
+  .p-card[data-kind="effect"] {
+    --card-surface-start: var(--accent-effect-a);
+    --card-surface-end: var(--accent-effect-b);
+    --card-border-gradient: linear-gradient(145deg, #5a4fc8, #b35d8d 62%, #f0b6d1);
+  }
+
+  .p-card[data-status="proposal"] {
+    --card-status-color: var(--status-proposal);
+  }
+}

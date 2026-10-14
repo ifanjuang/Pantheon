@@ -1,0 +1,61 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Architecture Project Understanding Write Authorization Event
+description: >-
+  Append-only human gate over one exact write-command candidate. Authorization is
+  separate from application and does not itself mutate APU or validate the
+  professional truth of the proposed match.
+type: object
+additionalProperties: false
+required:
+  - authorization_id
+  - command_ref
+  - command_payload_digest
+  - action
+  - authorized_by
+  - authorized_at
+  - authority
+properties:
+  authorization_id: { type: string, minLength: 1 }
+  command_ref: { type: string, minLength: 1 }
+  command_payload_digest: { type: string, pattern: "^[a-f0-9]{64}$" }
+  action:
+    type: string
+    enum: [authorize_application, reject_application]
+  note: { type: string }
+  authorized_by: { type: string, minLength: 1 }
+  authorized_at: { type: string, format: date-time }
+  authority:
+    type: object
+    additionalProperties: false
+    required:
+      - authorizes_command_application
+      - applies_command
+      - confirms_stable_identity
+      - admits_evidence
+      - promotes_memory
+    properties:
+      authorizes_command_application: { type: boolean }
+      applies_command: { const: false }
+      confirms_stable_identity: { const: false }
+      admits_evidence: { const: false }
+      promotes_memory: { const: false }
+allOf:
+  - if:
+      properties: { action: { const: authorize_application } }
+    then:
+      properties:
+        authority:
+          properties: { authorizes_command_application: { const: true } }
+  - if:
+      properties: { action: { const: reject_application } }
+    then:
+      properties:
+        authority:
+          properties: { authorizes_command_application: { const: false } }
+x-boundary:
+  runtime_execution: false
+  provider_routing: false
+  memory_promotion: false
+  automatic_apu_write: false
+  automatic_canonization: false
+  approval_engine: false

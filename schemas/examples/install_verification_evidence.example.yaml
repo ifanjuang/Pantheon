@@ -1,0 +1,25 @@
+# Example install verification evidence (green verdict). Provided to verify_install,
+# which classifies it; it probes nothing, accesses no NAS and decides nothing.
+component: hermes
+installed: true
+installed_markers:
+  - /opt/hermes/VERSION
+install_success_markers:
+  - bootstrap complete
+logs: |
+  starting hermes...
+  bootstrap complete
+  listening on :8080
+health:
+  reachable: true
+  status_code: 200
+  latency_ms: 41
+checks:
+  - name: health
+    status: green
+    detail: 200 OK
+  - name: ready
+    status: green
+expected_checks:
+  - health
+  - ready

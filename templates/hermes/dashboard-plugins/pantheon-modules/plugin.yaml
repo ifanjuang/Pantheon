@@ -1,0 +1,8 @@
+manifest_version: 1
+name: pantheon-modules
+version: 0.3.0
+description: >-
+  Dashboard-only Hermes inventory for governed module and Cron observations,
+  bounded night-operation proposals, and explicitly confirmed native Hermes
+  configuration actions.
+author: Pantheon Next

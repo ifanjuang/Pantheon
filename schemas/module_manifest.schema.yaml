@@ -1,0 +1,258 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Next Module Manifest
+description: Generic governance manifest for declaring a capability module without installing, executing or authorizing it.
+type: object
+required:
+  - module_id
+  - title
+  - purpose
+  - owner_layer
+  - type
+  - status
+  - activation
+  - task_authorization
+  - interface
+  - governance
+  - composition
+  - governance_refs
+properties:
+  module_id:
+    type: string
+    pattern: "^[a-z0-9._-]+$"
+  title:
+    type: string
+    minLength: 3
+  purpose:
+    type: string
+    minLength: 10
+  owner_layer:
+    type: string
+    enum:
+      - exposure_surface
+      - execution_runtime
+      - pantheon
+      - observability_layer
+      - connector_gateway
+      - data_registry
+      - administration_cockpit
+  type:
+    type: string
+    enum:
+      - skill
+      - tool
+      - function
+      - pipe
+      - filter
+      - action
+      - flow
+      - profile
+      - connector
+      - workflow
+      - template
+      - domain_pack_projection
+  status:
+    type: string
+    description: Documentary lifecycle status. Activation and task authorization are separate axes.
+    enum:
+      - candidate
+      - active_support
+      - active_doctrine
+      - deprecated
+      - rejected
+      - archived
+  activation:
+    type: object
+    required:
+      - state
+      - scope
+    properties:
+      state:
+        type: string
+        enum:
+          - unavailable
+          - detected
+          - disabled
+          - watch
+          - candidate
+          - sandbox_enabled
+          - project_enabled
+          - dossier_enabled
+          - domain_enabled
+          - organization_enabled
+          - suspended
+          - deprecated
+          - rejected
+      scope:
+        type: string
+        enum:
+          - session
+          - task
+          - dossier
+          - project
+          - domain
+          - user
+          - organization
+          - repository
+          - governance
+          - system
+      scope_id:
+        type: string
+      scope_label:
+        type: string
+    additionalProperties: false
+  task_authorization:
+    type: object
+    required:
+      - state
+    properties:
+      state:
+        type: string
+        enum:
+          - unauthorized
+          - task_authorized
+      task_contract_ref:
+        type:
+          - string
+          - "null"
+      authorization_notes:
+        type: string
+    additionalProperties: false
+  interface:
+    type: object
+    required:
+      - allowed_inputs
+      - allowed_outputs
+      - forbidden_outputs
+      - envelope
+    properties:
+      allowed_inputs:
+        type: array
+        minItems: 1
+        items:
+          type: string
+      allowed_outputs:
+        type: array
+        minItems: 1
+        items:
+          type: string
+      forbidden_outputs:
+        type: array
+        minItems: 1
+        items:
+          type: string
+      envelope:
+        type: string
+        enum:
+          - task_contract_in__candidate_out__evidence_pack_out
+          - task_contract_in__result_candidate_out
+          - display_only
+          - review_capture_only
+    additionalProperties: false
+  governance:
+    type: object
+    required:
+      - consequential
+      - risk_level
+      - approval_behavior
+      - memory_behavior
+      - scope_behavior
+    properties:
+      consequential:
+        type: boolean
+      risk_level:
+        type: string
+        enum:
+          - low
+          - medium
+          - high
+          - critical
+      approval_behavior:
+        type: string
+        enum:
+          - none
+          - C0
+          - C1
+          - C2
+          - C3
+          - C4
+          - C5
+      memory_behavior:
+        type: string
+        enum:
+          - none
+          - candidate_only
+          - never_canonical
+          - may_propose_register_candidate
+      scope_behavior:
+        type: string
+      policy_check_required:
+        type: boolean
+      evidence_expectation:
+        type: array
+        items:
+          type: string
+    additionalProperties: false
+  dependencies:
+    type: object
+    properties:
+      requires:
+        type: array
+        items:
+          type: string
+      optional:
+        type: array
+        items:
+          type: string
+    additionalProperties: false
+  composition:
+    type: object
+    required:
+      - talks_only_via_envelope
+    properties:
+      talks_only_via_envelope:
+        const: true
+      direct_module_calls_allowed:
+        const: false
+      notes:
+        type: string
+    additionalProperties: false
+  provenance:
+    type: object
+    properties:
+      source:
+        type: string
+      author:
+        type: string
+      reviewed_by:
+        type: string
+      review_status:
+        type: string
+        enum:
+          - unreviewed
+          - to_verify
+          - accepted
+          - rejected
+          - superseded
+    additionalProperties: false
+  governance_refs:
+    type: array
+    minItems: 1
+    items:
+      type: string
+    default:
+      - docs/governance/MODULAR_DOMAIN_REORIENTATION.md
+      - docs/governance/MODULE_ACTIVATION.md
+      - docs/governance/CAPABILITY_PLACEMENT.md
+      - docs/governance/UNIFORM_CAPABILITY_GOVERNANCE.md
+additionalProperties: false
+x-boundary:
+  runtime_execution: false
+  autonomous_loop: false
+  provider_routing: false
+  scheduler: false
+  queue_system: false
+  plugin_manager: false
+  skill_installer: false
+  tool_runtime: false
+  memory_promotion: false
+  automatic_authorization: false

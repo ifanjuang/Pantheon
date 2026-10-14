@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pantheon-next.local/catalog/schemas/capability-binding.schema.json",
+  "title": "Pantheon Capability Binding candidate",
+  "description": "Non-runtime relation from a Capability Slot to an exact governed Capability/release candidate. Binding selection does not install, adopt, activate or authorize execution.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["api_version", "kind", "metadata", "spec", "governance"],
+  "properties": {
+    "api_version": {"const": "pantheon.next/v0alpha1"},
+    "kind": {"const": "CapabilityBinding"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^capability_binding_[a-z0-9_]+$"},
+        "status": {
+          "enum": [
+            "external_reference",
+            "watch",
+            "candidate",
+            "to_verify",
+            "preferred_candidate",
+            "fallback_candidate",
+            "rejected",
+            "superseded",
+            "unbound"
+          ]
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slot_id",
+        "binding_role",
+        "capability_passport_id",
+        "implementation_anchor",
+        "resource_id",
+        "supersedes"
+      ],
+      "properties": {
+        "slot_id": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "binding_role": {"enum": ["preferred", "fallback", "watch", "rejected", "unbound"]},
+        "capability_passport_id": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z0-9._-]+$"
+        },
+        "implementation_anchor": {
+          "oneOf": [
+            {"type": "null"},
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "value"],
+              "properties": {
+                "kind": {"enum": ["commit_ref", "content_digest", "package_digest"]},
+                "value": {"type": "string", "minLength": 1}
+              }
+            }
+          ]
+        },
+        "resource_id": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "supersedes": {
+          "type": ["string", "null"],
+          "pattern": "^capability_binding_[a-z0-9_]+$"
+        }
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "selection_only",
+        "dependency_adopted",
+        "installation_authorized",
+        "activation_authorized",
+        "task_authorized"
+      ],
+      "properties": {
+        "selection_only": {"const": true},
+        "dependency_adopted": {"const": false},
+        "installation_authorized": {"const": false},
+        "activation_authorized": {"const": false},
+        "task_authorized": {"const": false}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "spec": {"properties": {"binding_role": {"const": "unbound"}}}
+        }
+      },
+      "then": {
+        "properties": {
+          "metadata": {"properties": {"status": {"const": "unbound"}}},
+          "spec": {
+            "properties": {
+              "capability_passport_id": {"type": "null"},
+              "implementation_anchor": {"type": "null"},
+              "resource_id": {"type": "null"},
+              "supersedes": {"type": "null"}
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "spec": {
+            "properties": {
+              "capability_passport_id": {"type": "string"},
+              "implementation_anchor": {"type": "object"}
+            }
+          }
+        }
+      }
+    }
+  ]
+}

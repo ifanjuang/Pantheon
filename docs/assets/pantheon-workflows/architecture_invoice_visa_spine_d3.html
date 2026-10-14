@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pantheon Next — Workflow facture et visa</title>
+<style>
+:root{--bg:#080c14;--fg:#f7f8fb;--muted:#9aa6ba;--soft:#c6cfde;--line:rgba(255,255,255,.13);--panel:rgba(255,255,255,.055);--panel2:rgba(255,255,255,.085);--blue:#8fc6ff;--amber:#ffcf8f;--gold:#fde68a;--green:#86efac;--red:#fca5a5;--violet:#c4b5fd;--ink:#0a0e16}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(900px 540px at 8% -10%,rgba(59,130,246,.12),transparent 60%),linear-gradient(180deg,#0b111d,#070a11 76%);color:var(--fg);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.45}.wrap{width:min(1180px,100%);margin:0 auto;padding:20px}header{padding:28px 0 12px}a{color:#bfdbfe;text-decoration:none}a:hover{text-decoration:underline}.kicker{font-size:12px;color:#dbeafe;border:1px solid var(--line);border-radius:999px;padding:7px 12px;display:inline-flex;background:var(--panel);font-weight:750}h1{font-size:clamp(34px,6vw,68px);letter-spacing:-.055em;line-height:.96;margin:18px 0 14px;max-width:13ch}p.lead{max-width:78ch;color:var(--soft);font-size:17px;margin:0}.stage{margin-top:22px;border:1px solid var(--line);border-radius:24px;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.025));overflow:hidden}.bar{display:flex;justify-content:space-between;gap:12px;align-items:center;border-bottom:1px solid var(--line);padding:12px 14px;color:var(--muted);font-size:13px}.legend{display:flex;gap:10px;flex-wrap:wrap}.legend span{display:inline-flex;align-items:center;gap:6px}.dot{width:9px;height:9px;border-radius:999px;display:inline-block}.d-blue{background:var(--blue)}.d-amber{background:var(--amber)}.d-gold{background:var(--gold)}.d-red{background:var(--red)}.d-green{background:var(--green)}svg{width:100%;height:auto;display:block}.panel{border-top:1px solid var(--line);padding:14px 16px;color:var(--soft);min-height:86px}.panel b{color:var(--fg)}.panel .meta{color:var(--muted);font-size:13px;margin-top:6px}.node rect{filter:drop-shadow(0 14px 18px rgba(0,0,0,.28))}.role{font-size:9px;letter-spacing:.08em;text-transform:uppercase;font-weight:900;fill:rgba(10,14,22,.62)}.title{font-size:13px;font-weight:900;fill:#0a0e16}.sub{font-size:10px;fill:rgba(10,14,22,.72)}.spine{fill:none;stroke:rgba(226,232,240,.65);stroke-width:4;stroke-linecap:round}.link{fill:none;stroke:rgba(226,232,240,.48);stroke-width:2;marker-end:url(#arrow)}.link.branch{stroke-dasharray:5 7}.link.warn{stroke:rgba(252,165,165,.8);stroke-dasharray:4 6;marker-end:url(#arrowRed)}.link.loop{stroke:rgba(253,230,138,.78);stroke-dasharray:6 7;marker-end:url(#arrowGold)}.link.memory{stroke:rgba(134,239,172,.76);stroke-dasharray:4 7;marker-end:url(#arrowGreen)}.label{fill:rgba(226,232,240,.76);font-size:11px;font-weight:850;letter-spacing:.05em;text-transform:uppercase}.frame{fill:rgba(253,230,138,.035);stroke:rgba(253,230,138,.30);stroke-width:1.5;stroke-dasharray:7 7}.frameText{fill:rgba(253,230,138,.9);font-size:12px;font-weight:800}@media(max-width:740px){.wrap{padding:16px}.bar{align-items:flex-start;flex-direction:column}.legend{font-size:12px}.panel{font-size:14px}h1{font-size:42px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <a href="../../index.html">← Landing</a>
+  <div style="height:18px"></div>
+  <div class="kicker">Workflow D3 · facture, CCTP, CR, visa</div>
+  <h1>Le dossier avance, les modules se branchent.</h1>
+  <p class="lead">Prototype visuel : la colonne vertébrale porte le chemin de décision. Les modules latéraux se branchent pour chercher les sources, poser une question, produire un brouillon, préparer une note de visa ou décider quoi garder en mémoire.</p>
+</header>
+<section class="stage">
+  <div class="bar">
+    <div><b>Exemple :</b> facture entreprise → analyse CCTP / dernier CR → transmission simple ou visa</div>
+    <div class="legend"><span><i class="dot d-blue"></i>sources</span><span><i class="dot d-amber"></i>production</span><span><i class="dot d-gold"></i>gate</span><span><i class="dot d-red"></i>retour</span><span><i class="dot d-green"></i>trace</span></div>
+  </div>
+  <svg id="workflow" role="img" aria-label="Schéma D3 du workflow facture visa"></svg>
+  <div class="panel" id="panel"><b>Sélectionnez un nœud.</b><div class="meta">Le schéma montre une proposition de workflow documentée, non implémentée.</div></div>
+</section>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script>
+(function(){
+if(typeof d3==='undefined')return;
+var svg=d3.select('#workflow'),panel=d3.select('#panel');
+var colors={src:'#8fc6ff',work:'#ffcf8f',gate:'#fde68a',human:'#e2e8f0',risk:'#fca5a5',mem:'#86efac',local:'#c4b5fd'};
+var details={
+ ask:['Demande','L’utilisateur demande : analyse cette facture par rapport au CCTP et au dernier CR. Le système ouvre un chemin de dossier, pas une validation automatique.'],
+ sources:['Sources du dossier','Facture, CCTP, marché signé, dernier CR, réserves, avenants, situations précédentes et mails récents. Chaque source garde son statut.'],
+ rag:['RAG / tri','Le système retrouve les passages utiles. Il ne prouve pas encore : il prépare des extraits à vérifier, avec date, version et contradiction éventuelle.'],
+ analysis:['Analyse candidate','La facture semble conforme ou non au CCTP et à l’avancement constaté. Le résultat reste candidat à relecture.'],
+ userok:['Demande de transmission','Quand l’utilisateur dit “ok transmets au client”, le système ne transforme pas cela en envoi direct. Il déclenche une porte de décision.'],
+ gate:['Information ou visa ?','Question obligatoire : simple transmission d’information ou visa / avis de validation ? Le niveau d’engagement change.'],
+ info:['Brouillon neutre','Transmission pour information : pas de recommandation de paiement, pas de validation définitive. Le brouillon reste non envoyé.'],
+ visa:['Note de visa candidate','Si visa : note PDF candidate avec sources, réserves, date et champ de signature. Rappel explicite de l’engagement.'],
+ qcheck:['Contrôles','Montant, lot, avenant, réserve ouverte, situation précédente, cohérence avec le dernier CR, vocabulaire agence.'],
+ question:['Retour utilisateur','Si doute : le système pose une question et revient à l’analyse. Exemple : réserve ouverte ou montant différent du marché.'],
+ draft:['Préparation sortie','Brouillon de message et pièces candidates préparés pour relecture. Rien n’est envoyé ni signé seul.'],
+ trace:['Que garder ?','Le système demande : ne rien garder, trace minimale, ligne Notion, tableur, note ou mémoire candidate validable.'],
+ decision:['Décision architecte','L’architecte corrige, signe, envoie, refuse ou demande une reprise. La décision reste située et visible.']
+};
+function marker(defs,id,color){defs.append('marker').attr('id',id).attr('viewBox','0 -5 10 10').attr('refX',9).attr('markerWidth',7).attr('markerHeight',7).attr('orient','auto').append('path').attr('d','M0,-5L10,0L0,5').attr('fill',color)}
+function draw(){
+ var w=svg.node().parentNode.getBoundingClientRect().width,mobile=w<740,W=mobile?420:1100,H=mobile?1220:660;
+ svg.selectAll('*').remove();svg.attr('viewBox','0 0 '+W+' '+H);
+ var defs=svg.append('defs');marker(defs,'arrow','rgba(226,232,240,.68)');marker(defs,'arrowRed','rgba(252,165,165,.9)');marker(defs,'arrowGold','rgba(253,230,138,.9)');marker(defs,'arrowGreen','rgba(134,239,172,.88)');
+ var spine=mobile?[
+  ['ask','Demande','Facture reçue',210,50,colors.human],['sources','Sources','Facture + CCTP + CR',210,160,colors.src],['rag','Tri','RAG + statut source',210,270,colors.src],['analysis','Analyse','Conforme ?',210,380,colors.work],['userok','Utilisateur','Ok, transmets',210,490,colors.human],['gate','Gate','Info ou visa ?',210,600,colors.gate],['qcheck','Contrôle','Qualité + cohérence',210,710,colors.gate],['draft','Sortie','Brouillon / note',210,820,colors.work],['trace','Trace','Que garder ?',210,930,colors.mem],['decision','Décision','Signer / envoyer / refuser',210,1040,colors.human]
+ ]:[
+  ['ask','Demande','Facture reçue',90,90,colors.human],['sources','Sources','Facture + CCTP + CR',250,90,colors.src],['rag','Tri','RAG + statut source',410,90,colors.src],['analysis','Analyse','Conforme ?',570,90,colors.work],['userok','Utilisateur','Ok, transmets',730,90,colors.human],['gate','Gate','Info ou visa ?',890,90,colors.gate],['qcheck','Contrôle','Qualité + cohérence',890,250,colors.gate],['draft','Sortie','Brouillon / note',730,410,colors.work],['trace','Trace','Que garder ?',570,410,colors.mem],['decision','Décision','Signer / envoyer / refuser',410,410,colors.human]
+ ];
+ var branches=mobile?[
+  ['info','Option','Brouillon neutre',78,600,colors.work],['visa','Option','Note visa PDF',342,600,colors.work],['question','Retour','Question architecte',342,710,colors.risk]
+ ]:[
+  ['info','Option','Brouillon neutre',890,410,colors.work],['visa','Option','Note visa PDF',1030,250,colors.work],['question','Retour','Question architecte',1030,410,colors.risk]
+ ];
+ var all=spine.concat(branches),map={};all.forEach(function(n){map[n[0]]={id:n[0],role:n[1],title:n[2],x:n[3],y:n[4],fill:n[5]}});var bw=mobile?190:132,bh=66;
+ if(mobile){svg.append('rect').attr('class','frame').attr('x',36).attr('y',245).attr('width',348).attr('height',720).attr('rx',24);svg.append('text').attr('class','frameText').attr('x',210).attr('y',235).attr('text-anchor','middle').text('cadre Pantheon · sources · statut · engagement · trace')}
+ else{svg.append('rect').attr('class','frame').attr('x',345).attr('y',50).attr('width',610).attr('height',410).attr('rx',26);svg.append('text').attr('class','frameText').attr('x',650).attr('y',39).attr('text-anchor','middle').text('cadre Pantheon · sources · statut · engagement · trace')}
+ function edge(a,b,cls){a=map[a];b=map[b];var p=svg.append('path').attr('class','link '+(cls||''));if(mobile){p.attr('d','M'+a.x+','+(a.y+bh)+' L'+b.x+','+b.y)}else{var dx=Math.abs(a.x-b.x)>10?((a.x<b.x)?bw/2:-bw/2):0;var dx2=Math.abs(a.x-b.x)>10?((a.x<b.x)?-bw/2:bw/2):0;p.attr('d','M'+(a.x+dx)+','+(a.y+bh/2)+' L'+(b.x+dx2)+','+(b.y+bh/2))}}
+ for(var i=0;i<spine.length-1;i++)edge(spine[i][0],spine[i+1][0]);
+ edge('gate','info','branch');edge('gate','visa','branch');edge('question','analysis','warn');edge('qcheck','question','warn');edge('trace','decision','memory');
+ if(!mobile){svg.append('path').attr('class','spine').attr('d','M90,90 C250,90 410,90 570,90 S730,90 890,90');svg.append('text').attr('class','label').attr('x',90).attr('y',42).text('colonne vertébrale du dossier');}
+ var g=svg.selectAll('.node').data(all.map(function(n){return map[n[0]]})).enter().append('g').attr('class','node').attr('transform',function(d){return 'translate('+(d.x-bw/2)+','+d.y+')'}).style('cursor','pointer').on('click',function(e,d){panel.html('<b>'+details[d.id][0]+'</b><div>'+details[d.id][1]+'</div><div class="meta">Statut : candidat / à vérifier selon le contexte du dossier.</div>')});
+ g.append('rect').attr('width',bw).attr('height',bh).attr('rx',15).attr('fill',function(d){return d.fill}).attr('stroke','rgba(255,255,255,.22)').attr('stroke-width',1.4);
+ g.append('text').attr('class','role').attr('x',bw/2).attr('y',17).attr('text-anchor','middle').text(function(d){return d.role});
+ g.append('text').attr('class','title').attr('x',bw/2).attr('y',40).attr('text-anchor','middle').text(function(d){return d.title});
+ g.append('text').attr('class','sub').attr('x',bw/2).attr('y',57).attr('text-anchor','middle').text(function(d){return details[d.id][0]});
+}
+draw();var t;window.addEventListener('resize',function(){clearTimeout(t);t=setTimeout(draw,120)});
+})();
+</script>
+</body>
+</html>

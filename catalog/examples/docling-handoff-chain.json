@@ -1,0 +1,102 @@
+{
+  "installation_candidate": {
+    "api_version": "pantheon.next/v0alpha1",
+    "kind": "InstallationCandidate",
+    "metadata": {
+      "id": "installation_candidate_docling_cpu_demo",
+      "created_at": "2026-07-12T12:00:00Z",
+      "status": "prepared"
+    },
+    "spec": {
+      "capability": "document_analysis",
+      "resource": "docling",
+      "configuration": {"execution_profile": "cpu", "exposure": "internal_only"},
+      "bindings": [{"from": "hermes", "to": "docling", "mode": "internal_http"}],
+      "allowed_provisioners": ["docker_compose", "portainer"],
+      "health": {"kind": "http"},
+      "rollback": {"strategy": "previous_image_candidate"}
+    },
+    "governance": {
+      "installation_authorized": false,
+      "execution_started": false,
+      "activation_authorized": false,
+      "human_approval_required": true
+    }
+  },
+  "handoff_candidate": {
+    "api_version": "pantheon.next/v0alpha1",
+    "kind": "ProvisionerHandoffCandidate",
+    "metadata": {
+      "id": "handoff_candidate_docling_cpu_demo",
+      "created_at": "2026-07-12T12:05:00Z",
+      "status": "prepared",
+      "installation_candidate_id": "installation_candidate_docling_cpu_demo"
+    },
+    "spec": {
+      "selected_provisioner": "docker_compose",
+      "install_mode": "compose_stack",
+      "artifact": {
+        "type": "compose_candidate",
+        "reference": "artifact://docling/compose-candidate.yaml",
+        "digest_required": true
+      },
+      "expected_changes": ["create internal Docling service", "create isolated temporary volume"],
+      "preflight": ["container substrate available", "backup posture recorded", "port conflict absent"],
+      "rollback": ["remove candidate service", "restore previous image reference"],
+      "secret_references": []
+    },
+    "governance": {
+      "handoff_authorized": false,
+      "execution_authorized": false,
+      "execution_started": false,
+      "human_approval_required": true
+    }
+  },
+  "execution_result_candidate": {
+    "api_version": "pantheon.next/v0alpha1",
+    "kind": "ExecutionResultCandidate",
+    "metadata": {
+      "id": "execution_result_candidate_docling_cpu_demo",
+      "created_at": "2026-07-12T12:20:00Z",
+      "status": "reported_success",
+      "handoff_candidate_id": "handoff_candidate_docling_cpu_demo"
+    },
+    "spec": {
+      "provisioner": "docker_compose",
+      "started_at": "2026-07-12T12:10:00Z",
+      "finished_at": "2026-07-12T12:19:00Z",
+      "exit_status": 0,
+      "observed_changes": ["service reported running", "temporary volume reported created"],
+      "receipts": ["receipt://demo/docling-compose-output"],
+      "warnings": ["fixture only; no real execution occurred"]
+    },
+    "governance": {
+      "runtime_success_is_evidence": false,
+      "installation_verified": false,
+      "activation_authorized": false,
+      "human_review_required": true
+    }
+  },
+  "health_observation": {
+    "api_version": "pantheon.next/v0alpha1",
+    "kind": "HealthObservation",
+    "metadata": {
+      "id": "health_observation_docling_cpu_demo",
+      "observed_at": "2026-07-12T12:22:00Z",
+      "execution_result_candidate_id": "execution_result_candidate_docling_cpu_demo"
+    },
+    "spec": {
+      "resource": "docling",
+      "status": "healthy",
+      "checks": [{"name": "http_health", "result": "pass", "detail": "fixture response only"}],
+      "version_observed": "fixture-version",
+      "endpoint_scope": "internal_only"
+    },
+    "governance": {
+      "health_is_safety_claim": false,
+      "health_is_admission": false,
+      "activation_authorized": false,
+      "human_review_required": true
+    }
+  }
+}

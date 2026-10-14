@@ -1,0 +1,32 @@
+mapping_set_id: mapping.project-tilleul.001
+source_execution_result_ref: execution.project-tilleul.001
+source_qualification_result_ref: result.fragment-qualification.001
+project_ref: project-tilleul
+document_ref: document.project-tilleul.avp-d
+structure_ref: structure.project-tilleul.avp-d
+mappings:
+  - mapping_id: mapping.fragment.chambre-r2
+    fragment_ref: fragment.chambre-r2
+    candidate_object_ref: candidate.fragment.chambre-r2
+    proposed_object_family: spatial
+    status: candidate_matches
+    certainty: E3
+    rationale: Le libellé de pièce et les références de couverture désignent un espace existant du projet.
+    qualification_snapshot:
+      topic: chambre
+      discipline: architecture
+      representation_kind: floor_plan
+      project_state: projected
+    match_candidates:
+      - stable_object_ref: space.chambre-r2
+        certainty: E3
+        rationale: La référence de couverture correspond au même niveau et au même libellé.
+limitations:
+  - Le rapprochement reste candidat jusqu’à une revue humaine distincte.
+authority:
+  is_fact: false
+  is_evidence: false
+  is_decision: false
+  is_memory: false
+  is_apu_write: false
+  authorizes_external_effect: false

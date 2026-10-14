@@ -1,0 +1,24 @@
+api_version: pantheon.next/v0alpha1
+kind: Capability
+metadata:
+  id: document_analysis
+  title: Analyse documentaire
+  status: candidate
+spec:
+  outcome: Extraire une représentation structurée et traçable de documents professionnels.
+  required_roles:
+    - document_extraction
+  optional_roles:
+    - markdown_derivation
+    - table_extraction
+  acceptance:
+    - original_source_reference_preserved
+    - page_or_location_provenance_preserved
+    - extraction_warnings_exposed
+  candidate_resources:
+    preferred:
+      - docling
+    alternatives: []
+  boundaries:
+    - derivative_is_not_original
+    - healthy_service_is_not_validated_extraction

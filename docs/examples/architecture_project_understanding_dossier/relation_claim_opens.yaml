@@ -1,0 +1,15 @@
+relation_claim_id: RC-OP217-OPENS
+subject_ref:
+  entity_type: stable_object
+  entity_id: SO-OP-217
+relation_type: architecture.opens_to
+object_ref:
+  entity_type: stable_object
+  entity_id: SO-CHB-201
+qualifier:
+  side: bedroom_side
+assertion_mode: proposed
+source_authority: project_working_document
+proof_status: candidate
+source_representation_refs: [REP-DRAW-OP-088]
+notes: "Candidate project relation from the reviewed worked dossier."

@@ -1,0 +1,152 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Architecture Document Purpose Currentness Projection
+description: >-
+  Read-only calculated projection identifying which indexed document version,
+  if any, is current for one declared professional purpose. The projection is
+  not an approval record, version event, proof entry or persisted universal
+  current-version authority.
+type: object
+additionalProperties: false
+required:
+  - document_family_id
+  - purpose
+  - resolution_status
+  - document_version_id
+  - basis
+  - evaluated_at
+properties:
+  document_family_id: { $ref: "#/$defs/uuid" }
+  purpose:
+    type: string
+    enum:
+      - latest_received
+      - latest_reviewed
+      - current_working
+      - current_for_coordination
+      - current_for_consultation
+      - current_contractual
+      - current_for_execution
+      - current_for_site
+      - latest_as_built_candidate
+  resolution_status:
+    type: string
+    enum: [resolved, unresolved, conflicting]
+  document_version_id:
+    type: [string, "null"]
+    format: uuid
+  index_label:
+    type: [string, "null"]
+  effect_class:
+    anyOf:
+      - { $ref: "#/$defs/effect_class" }
+      - { type: "null" }
+  version_status:
+    anyOf:
+      - { $ref: "#/$defs/version_status" }
+      - { type: "null" }
+  authority_status:
+    anyOf:
+      - { $ref: "#/$defs/authority_status" }
+      - { type: "null" }
+  basis:
+    type: object
+    additionalProperties: false
+    required: [basis_type, basis_refs, missing_requirements, conflict_refs]
+    properties:
+      basis_type:
+        type: string
+        enum:
+          - receipt_chronology
+          - review_event
+          - version_effect_event
+          - transmission_or_package_event
+          - approval_event
+          - signature_event
+          - visa_or_instruction_event
+          - composite
+          - insufficient_inputs
+          - conflicting_inputs
+      basis_refs:
+        type: array
+        items: { type: string, minLength: 1 }
+        uniqueItems: true
+      missing_requirements:
+        type: array
+        items: { type: string, minLength: 1 }
+        uniqueItems: true
+      conflict_refs:
+        type: array
+        items: { type: string, minLength: 1 }
+        uniqueItems: true
+      notes: { type: string }
+  evaluated_at:
+    type: string
+    format: date-time
+allOf:
+  - if:
+      properties:
+        resolution_status: { const: resolved }
+    then:
+      properties:
+        document_version_id: { $ref: "#/$defs/uuid" }
+  - if:
+      properties:
+        resolution_status: { enum: [unresolved, conflicting] }
+    then:
+      properties:
+        document_version_id: { type: "null" }
+$defs:
+  uuid:
+    type: string
+    format: uuid
+  effect_class:
+    type: string
+    enum:
+      - working_revision
+      - minor_correction
+      - coordination_update
+      - modification_candidate
+      - issued_for_review
+      - issued_for_client_approval
+      - approved_phase_decision
+      - issued_for_consultation
+      - issued_for_contract
+      - signed_contractual_version
+      - issued_for_execution
+      - issued_for_site
+      - visa_status_record
+      - signed_or_contradictory_record
+      - as_built_record
+      - obsolete_superseded
+  version_status:
+    type: string
+    enum: [draft, issued, under_review, approved, signed, effective, superseded, obsolete, rejected, withdrawn]
+  authority_status:
+    type: string
+    enum:
+      - not_authoritative
+      - internal_working_authority
+      - internal_review_authority
+      - client_review_authority
+      - phase_approval_authority
+      - consultation_authority
+      - execution_authority
+      - site_record_authority
+      - contractual_authority
+      - as_built_authority
+      - historical_evidence_only
+x-currentness:
+  calculated_projection: true
+  universal_current_version: false
+  highest_index_wins: false
+  latest_received_is_authority: false
+x-boundary:
+  projected_only: true
+  persisted_authority: false
+  runtime_execution: false
+  provider_routing: false
+  scheduler: false
+  queue_system: false
+  memory_promotion: false
+  automatic_canonization: false
+  approval_engine: false

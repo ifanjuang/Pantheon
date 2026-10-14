@@ -1,0 +1,330 @@
+corpus_id: h5.2.project-anatomy.deterministic-adversarial
+description: >-
+  Source-independent qualification scenarios composed from the canonical
+  observation_bundle.example.yaml. Overrides replace arrays and recursively
+  merge objects. They exercise governed semantics without claiming live adapter
+  or real-project qualification.
+base_example: observation_bundle.example.yaml
+scenarios:
+  - scenario_ids: [S01]
+    title: Complete simple source observation
+    expected_valid: true
+    invariants: [candidate_authority]
+    overrides: {}
+
+  - scenario_ids: [S03]
+    title: Contradictory source observations remain separate candidates
+    expected_valid: true
+    invariants: [candidate_authority, contradictions_preserved]
+    overrides:
+      observation_bundle_id: observation-bundle.corpus.s03
+      basis:
+        source_artifact_refs: [source.drawing.a, source.survey.b]
+        source_version_refs: [drawing.a.issue-02, survey.b.2026-08-08]
+        exact_digests:
+          - source_artifact_ref: source.drawing.a
+            source_version_ref: drawing.a.issue-02
+            digest: sha256:drawing-a-issue-02
+          - source_artifact_ref: source.survey.b
+            source_version_ref: survey.b.2026-08-08
+            digest: sha256:survey-b-2026-08-08
+      scope:
+        document_refs: [drawing-document:a, survey-document:b]
+        classes: [space]
+      coverage:
+        completeness: complete_for_declared_scope
+        observed_scope:
+          document_refs: [drawing-document:a, survey-document:b]
+          classes: [space]
+        excluded_reasons: []
+        absence_inference_allowed: true
+      limitations:
+        - Divergent values remain source-scoped candidates pending review.
+      source_representations:
+        - representation_id: rep.drawing.a.room-101
+          project_ref: project-a
+          source_artifact_ref: source.drawing.a
+          source_version_ref: drawing.a.issue-02
+          source_kind: drawing
+          identifiers:
+            - scheme: drawing.room_label
+              value: A-101
+          observed_at: "2026-08-08T08:00:00Z"
+          binding_ref: binding.synthetic.drawing
+          adapter_version: 1.0.0
+          freshness_token: sha256:drawing-a-issue-02
+          proof_status: candidate
+        - representation_id: rep.survey.b.room-101
+          project_ref: project-a
+          source_artifact_ref: source.survey.b
+          source_version_ref: survey.b.2026-08-08
+          source_kind: manual
+          identifiers:
+            - scheme: survey.room_label
+              value: A-101
+          observed_at: "2026-08-08T09:00:00Z"
+          binding_ref: binding.synthetic.survey
+          adapter_version: 1.0.0
+          freshness_token: sha256:survey-b-2026-08-08
+          proof_status: candidate
+      attribute_claim_candidates:
+        - attribute_claim_id: claim.drawing.a.room-101.area
+          subject_ref:
+            entity_type: source_representation
+            entity_id: rep.drawing.a.room-101
+          attribute_key: space.area
+          value: {value_type: number, value: 21.4, unit: m2}
+          assertion_mode: observed
+          source_authority: project_working_document
+          proof_status: candidate
+          source_representation_refs: [rep.drawing.a.room-101]
+        - attribute_claim_id: claim.survey.b.room-101.area
+          subject_ref:
+            entity_type: source_representation
+            entity_id: rep.survey.b.room-101
+          attribute_key: space.area
+          value: {value_type: number, value: 20.9, unit: m2}
+          assertion_mode: observed
+          source_authority: model_interpretation_candidate
+          proof_status: candidate
+          source_representation_refs: [rep.survey.b.room-101]
+
+  - scenario_ids: [S04, S16]
+    title: Partial snapshot cannot imply absence or deletion
+    expected_valid: true
+    invariants: [candidate_authority, partial_absence_refused]
+    overrides:
+      observation_bundle_id: observation-bundle.corpus.s04-s16
+      scope:
+        document_refs: [revit-document:model-a]
+        level_refs: [level:00, level:01]
+        categories: [OST_Rooms]
+      coverage:
+        completeness: partial_for_declared_scope
+        observed_scope:
+          document_refs: [revit-document:model-a]
+          level_refs: [level:00]
+          categories: [OST_Rooms]
+        excluded_reasons: [level_01_not_traversed]
+        absence_inference_allowed: false
+      gaps:
+        - code: coverage.level_not_traversed
+          subject_refs: [level:01]
+      warnings:
+        - code: absence.inference_forbidden
+          message: Missing occurrences outside the observed level are not deletions.
+
+  - scenario_ids: [S05, S06, S07]
+    title: Source chronology, bytes and receipt identities remain distinct
+    expected_valid: true
+    invariants:
+      - candidate_authority
+      - source_chronology_preserved
+      - business_index_not_identity
+      - receipt_identity_preserved
+    overrides:
+      observation_bundle_id: observation-bundle.corpus.s05-s06-s07
+      observed_at: "2026-08-09T10:00:00Z"
+      freshness_token: sha256:receipt-set-2026-08-09
+      basis:
+        source_artifact_refs:
+          - source.drawing.a.receipt-new
+          - source.drawing.a.receipt-late-old
+          - source.drawing.a.receipt-copy
+        source_version_refs: [drawing.a.issue-42, drawing.a.issue-41]
+        exact_digests:
+          - source_artifact_ref: source.drawing.a.receipt-new
+            source_version_ref: drawing.a.issue-42
+            digest: sha256:bytes-issue-42
+          - source_artifact_ref: source.drawing.a.receipt-late-old
+            source_version_ref: drawing.a.issue-41
+            digest: sha256:bytes-issue-41
+          - source_artifact_ref: source.drawing.a.receipt-copy
+            source_version_ref: drawing.a.issue-42
+            digest: sha256:bytes-issue-42
+      scope:
+        document_refs: [drawing-document:a]
+        sheet_refs: [A-101]
+      coverage:
+        completeness: complete_for_declared_scope
+        observed_scope:
+          document_refs: [drawing-document:a]
+          sheet_refs: [A-101]
+        excluded_reasons: []
+        absence_inference_allowed: true
+      source_representations:
+        - representation_id: rep.drawing.a.issue-42.receipt-new
+          project_ref: project-a
+          source_artifact_ref: source.drawing.a.receipt-new
+          source_version_ref: drawing.a.issue-42
+          source_kind: drawing
+          identifiers: [{scheme: drawing.professional_index, value: A-101}]
+          observed_at: "2026-08-08T11:00:00Z"
+          binding_ref: binding.synthetic.document
+          adapter_version: 1.0.0
+          freshness_token: sha256:bytes-issue-42
+          content_digest: sha256:bytes-issue-42
+          proof_status: candidate
+        - representation_id: rep.drawing.a.issue-41.receipt-late-old
+          project_ref: project-a
+          source_artifact_ref: source.drawing.a.receipt-late-old
+          source_version_ref: drawing.a.issue-41
+          source_kind: drawing
+          identifiers: [{scheme: drawing.professional_index, value: A-101}]
+          observed_at: "2026-08-09T09:00:00Z"
+          binding_ref: binding.synthetic.document
+          adapter_version: 1.0.0
+          freshness_token: sha256:bytes-issue-41
+          content_digest: sha256:bytes-issue-41
+          proof_status: candidate
+        - representation_id: rep.drawing.a.issue-42.receipt-copy
+          project_ref: project-a
+          source_artifact_ref: source.drawing.a.receipt-copy
+          source_version_ref: drawing.a.issue-42
+          source_kind: drawing
+          identifiers: [{scheme: drawing.professional_index, value: A-101}]
+          observed_at: "2026-08-09T09:30:00Z"
+          binding_ref: binding.synthetic.document
+          adapter_version: 1.0.0
+          freshness_token: sha256:bytes-issue-42
+          content_digest: sha256:bytes-issue-42
+          proof_status: candidate
+      attribute_claim_candidates: []
+      relation_claim_candidates: []
+
+  - scenario_ids: [S11, S15]
+    title: Granularity and duplicate labels do not manufacture stable identity
+    expected_valid: true
+    invariants: [candidate_authority, multi_granularity_no_identity, same_label_not_identity]
+    overrides:
+      observation_bundle_id: observation-bundle.corpus.s11-s15
+      basis:
+        source_artifact_refs: [source.ifc.model-a]
+        source_version_refs: [snapshot.ifc.model-a.00042]
+        exact_digests:
+          - source_artifact_ref: source.ifc.model-a
+            source_version_ref: snapshot.ifc.model-a.00042
+            digest: sha256:ifc-model-a
+      scope:
+        document_refs: [ifc-document:model-a]
+        classes: [IfcSystem, IfcFlowTerminal]
+      coverage:
+        completeness: complete_for_declared_scope
+        observed_scope:
+          document_refs: [ifc-document:model-a]
+          classes: [IfcSystem, IfcFlowTerminal]
+        excluded_reasons: []
+        absence_inference_allowed: true
+      source_representations:
+        - representation_id: rep.ifc.system.ventilation
+          project_ref: project-a
+          source_artifact_ref: source.ifc.model-a
+          source_version_ref: snapshot.ifc.model-a.00042
+          source_kind: ifc
+          identifiers: [{scheme: source.label, value: Ventilation}]
+          observed_at: "2026-08-07T21:00:00Z"
+          binding_ref: binding.synthetic.ifc
+          adapter_version: 1.0.0
+          freshness_token: sha256:ifc-model-a
+          proof_status: candidate
+        - representation_id: rep.ifc.terminal.001
+          project_ref: project-a
+          source_artifact_ref: source.ifc.model-a
+          source_version_ref: snapshot.ifc.model-a.00042
+          source_kind: ifc
+          identifiers: [{scheme: source.label, value: Diffuseur}]
+          observed_at: "2026-08-07T21:00:00Z"
+          binding_ref: binding.synthetic.ifc
+          adapter_version: 1.0.0
+          freshness_token: sha256:ifc-model-a
+          proof_status: candidate
+        - representation_id: rep.ifc.terminal.002
+          project_ref: project-a
+          source_artifact_ref: source.ifc.model-a
+          source_version_ref: snapshot.ifc.model-a.00042
+          source_kind: ifc
+          identifiers: [{scheme: source.label, value: Diffuseur}]
+          observed_at: "2026-08-07T21:00:00Z"
+          binding_ref: binding.synthetic.ifc
+          adapter_version: 1.0.0
+          freshness_token: sha256:ifc-model-a
+          proof_status: candidate
+      attribute_claim_candidates: []
+      relation_claim_candidates: []
+
+  - scenario_ids: [S18, S21, S22, S23, S27]
+    title: Physical and urgent observations gain no contractual or external authority
+    expected_valid: true
+    invariants: [candidate_authority, physical_not_contractual, urgent_no_effect]
+    overrides:
+      observation_bundle_id: observation-bundle.corpus.s18-s21-s22-s23-s27
+      limitations:
+        - Apparent installation is not verification, compliance or reception.
+        - Observed quantity is not a contractually payable quantity.
+        - Measured delay does not establish causation or liability.
+      attribute_claim_candidates:
+        - attribute_claim_id: claim.photo.installation-status
+          subject_ref:
+            entity_type: source_representation
+            entity_id: rep.revit.project-a.room-001
+          attribute_key: physical.installation_status
+          value: {value_type: controlled_label, value: apparently_installed}
+          assertion_mode: observed
+          source_authority: model_interpretation_candidate
+          proof_status: candidate
+          source_representation_refs: [rep.revit.project-a.room-001]
+        - attribute_claim_id: claim.photo.observed-quantity
+          subject_ref:
+            entity_type: source_representation
+            entity_id: rep.revit.project-a.room-001
+          attribute_key: physical.observed_quantity
+          value: {value_type: number, value: 12, unit: item}
+          assertion_mode: observed
+          source_authority: model_interpretation_candidate
+          proof_status: candidate
+          source_representation_refs: [rep.revit.project-a.room-001]
+        - attribute_claim_id: claim.report.measured-delay
+          subject_ref:
+            entity_type: source_representation
+            entity_id: rep.revit.project-a.room-001
+          attribute_key: physical.measured_delay_days
+          value: {value_type: number, value: 4, unit: day}
+          assertion_mode: observed
+          source_authority: project_working_document
+          proof_status: candidate
+          source_representation_refs: [rep.revit.project-a.room-001]
+      warnings:
+        - code: attention.urgent_observation
+          message: Human attention is requested; no external action is authorized.
+
+  - scenario_ids: [S04-negative]
+    title: Partial coverage attempting absence inference is contract-invalid
+    expected_valid: false
+    expected_error_path: [coverage, absence_inference_allowed]
+    invariants: []
+    overrides:
+      coverage:
+        completeness: partial_for_declared_scope
+        observed_scope:
+          document_refs: [revit-document:model-a]
+          categories: [OST_Rooms]
+        excluded_reasons: [scope_not_fully_traversed]
+        absence_inference_allowed: true
+
+  - scenario_ids: [S12-negative]
+    title: Prescriptive material cannot masquerade as an observed claim
+    expected_valid: false
+    expected_error_path: [attribute_claim_candidates, 0, assertion_mode]
+    invariants: []
+    overrides:
+      attribute_claim_candidates:
+        - attribute_claim_id: claim.requirement.room-number
+          subject_ref:
+            entity_type: source_representation
+            entity_id: rep.revit.project-a.room-001
+          attribute_key: space.number
+          value: {value_type: text, value: "001"}
+          assertion_mode: prescriptive
+          source_authority: signed_market_document
+          proof_status: candidate
+          source_representation_refs: [rep.revit.project-a.room-001]

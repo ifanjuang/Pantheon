@@ -1,0 +1,62 @@
+context_pack_id: example.context-pack
+purpose: Prepare Hermes for a bounded schema review without granting runtime authority.
+scope:
+  scope_type: repository
+  scope_id: pantheon-next
+  scope_label: Pantheon Next repository
+  included_scopes:
+    - repository:pantheon-next
+    - governance:schema-reconciliation
+  excluded_scopes:
+    - user_private
+    - external_runtime_state
+target_surface: hermes_task_contract
+included_doctrine:
+  - OpenWebUI exposes.
+  - Hermes Agent executes.
+  - Pantheon Next governs.
+  - Schemas are validation contracts only.
+included_context:
+  - label: active task
+    value: Reconcile governance schemas with active Markdown doctrine.
+    status: working_context
+    source_ref: example.task-contract
+  - label: protected area authorization
+    value: User selected schema reconciliation option 1.
+    status: source_reference
+    source_ref: user_input.phase_d1
+included_memory_excerpts: []
+included_knowledge_references:
+  - docs/governance/TASK_CONTRACTS.md
+  - docs/governance/EVIDENCE_PACK.md
+  - docs/governance/SCOPE_ISOLATION.md
+task_constraints:
+  - Do not add runtime semantics.
+  - Keep outputs as candidates until reviewed.
+  - Do not promote memory.
+protected_areas:
+  - schemas/
+evidence_expectations:
+  - List changed files.
+  - Add ai_log.
+  - Preserve boundary notes.
+approval_expectations:
+  - Protected schema edits require explicit user authorization.
+output_expectations:
+  - Schema updates remain validation-only.
+  - Examples remain fictional.
+forbidden_assumptions:
+  - Do not assume schema presence means test coverage.
+  - Do not assume Hermes output is approved.
+  - Do not assume Context Pack is Canonical Memory.
+staleness_notes:
+  - Review after doctrine or schema changes.
+risk_notes:
+  - Context may become stale after future doctrine migration.
+status: draft
+governance_refs:
+  - docs/governance/CONTEXT_PACKS.md
+  - docs/governance/SCOPE_ISOLATION.md
+  - docs/governance/KNOWLEDGE_TAXONOMY.md
+  - docs/governance/TASK_CONTRACTS.md
+  - docs/governance/EVIDENCE_PACK.md

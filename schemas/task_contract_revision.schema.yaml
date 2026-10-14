@@ -1,0 +1,132 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Next Task Contract Revision
+description: Governance schema for controlled Task Contract revision, pause, resume, reset, supersession or closure records.
+type: object
+required:
+  - revision_id
+  - contract_id
+  - revision_type
+  - reason
+  - requested_by
+  - created_at
+  - change_summary
+  - approval_level
+  - status
+  - approval_impact
+  - scope_impact
+  - memory_impact
+  - evidence_expectation
+properties:
+  revision_id:
+    type: string
+    pattern: "^[a-z0-9._-]+$"
+  contract_id:
+    type: string
+    pattern: "^[a-z0-9._-]+$"
+  revision_type:
+    type: string
+    enum:
+      - pause
+      - revise
+      - supersede
+      - resume
+      - reset
+      - close
+      - stop_and_report
+  reason:
+    type: string
+    minLength: 10
+  requested_by:
+    type: string
+  created_at:
+    type: string
+    format: date-time
+  change_summary:
+    type: string
+    minLength: 10
+  approval_level:
+    type: string
+    enum:
+      - C0
+      - C1
+      - C2
+      - C3
+      - C4
+      - C5
+  status:
+    type: string
+    enum:
+      - proposed
+      - under_review
+      - approved
+      - rejected
+      - superseded
+      - closed
+  approval_impact:
+    type: string
+    enum:
+      - unchanged
+      - increased
+      - decreased_requires_themis_review
+      - unclear_requires_review
+  scope_impact:
+    type: string
+    enum:
+      - unchanged
+      - narrowed
+      - expanded
+      - unclear
+  memory_impact:
+    type: string
+    enum:
+      - unchanged
+      - none
+      - memory_candidate_possible
+      - memory_blocked
+      - memory_review_required
+  external_effect:
+    type: boolean
+    default: false
+  resume_policy:
+    type:
+      - object
+      - "null"
+    properties:
+      allowed:
+        type: boolean
+      resume_condition:
+        type: string
+      required_review:
+        type: string
+    additionalProperties: false
+  supersedes_revision_id:
+    type:
+      - string
+      - "null"
+  evidence_pack_id:
+    type:
+      - string
+      - "null"
+  evidence_expectation:
+    type: array
+    minItems: 1
+    items:
+      type: string
+  governance_refs:
+    type: array
+    items:
+      type: string
+    default:
+      - docs/governance/TASK_CONTRACT_REVISIONS.md
+      - docs/governance/TASK_CONTRACTS.md
+      - docs/governance/APPROVALS.md
+      - docs/governance/USER_DECISION_GATE.md
+additionalProperties: false
+x-boundary:
+  self_mutation: false
+  automatic_approval: false
+  runtime_execution: false
+  automatic_resume: false
+  workflow_engine: false
+  scheduler: false
+  queue_system: false

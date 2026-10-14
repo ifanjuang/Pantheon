@@ -1,0 +1,99 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Knowledge Edit Variant Candidate
+description: >-
+  Immutable candidate replacement for one exact selection in one Knowledge
+  revision. It may be transported inside an Execution Result, but it cannot select
+  itself, apply an edit, validate Knowledge, admit Evidence or authorize another
+  task.
+type: object
+required:
+  - candidate_kind
+  - request_ref
+  - request_scope_digest
+  - knowledge_ref
+  - base_version
+  - selection_start
+  - selection_end
+  - selected_text_digest
+  - variant_label
+  - replacement_markdown
+  - replacement_digest
+  - authority
+properties:
+  candidate_kind:
+    const: knowledge_edit_variant
+  request_ref:
+    $ref: "#/$defs/governed_id"
+  request_scope_digest:
+    $ref: "#/$defs/sha256"
+  knowledge_ref:
+    $ref: "#/$defs/governed_id"
+  base_version:
+    type: integer
+    minimum: 1
+  selection_start:
+    type: integer
+    minimum: 0
+  selection_end:
+    type: integer
+    minimum: 1
+  selected_text_digest:
+    $ref: "#/$defs/sha256"
+  variant_label:
+    type: string
+    enum: [A, B]
+  replacement_markdown:
+    type: string
+    minLength: 1
+    maxLength: 500000
+  replacement_digest:
+    $ref: "#/$defs/sha256"
+  rationale:
+    type: string
+    minLength: 1
+    maxLength: 10000
+  source_refs:
+    type: array
+    uniqueItems: true
+    items:
+      type: string
+      minLength: 1
+  limitations:
+    type: array
+    uniqueItems: true
+    items:
+      type: string
+      minLength: 1
+  authority:
+    type: object
+    required:
+      - selects_variant
+      - applies_edit
+      - validates_knowledge
+      - admits_evidence
+      - promotes_memory
+      - authorizes_task
+    properties:
+      selects_variant: { const: false }
+      applies_edit: { const: false }
+      validates_knowledge: { const: false }
+      admits_evidence: { const: false }
+      promotes_memory: { const: false }
+      authorizes_task: { const: false }
+    additionalProperties: false
+additionalProperties: false
+$defs:
+  governed_id:
+    type: string
+    pattern: "^[a-z0-9][a-z0-9._-]*$"
+  sha256:
+    type: string
+    pattern: "^sha256:[a-f0-9]{64}$"
+x-boundary:
+  runtime_execution: false
+  variant_selection: false
+  edit_application: false
+  knowledge_validation: false
+  evidence_admission: false
+  memory_promotion: false
+  task_authorization: false

@@ -1,0 +1,42 @@
+{
+  "fixture_version": 1,
+  "fixture_id": "F04",
+  "title": "ERP / réglementaire / accessibilité / sécurité",
+  "synthetic": true,
+  "purpose": "Stress-test regulatory Information, limits, Work and human Decision without promoting retrieved rules to truth.",
+  "project": {
+    "project_id": "fixture-project-f04",
+    "code": "F04-ERP",
+    "display_name": "Cabinet des Rives",
+    "phase": "PRO",
+    "status": "En cours",
+    "location": "Normandie",
+    "attributes": {
+      "programme_summary": "Réaménagement d'un ERP de 5e catégorie avec accueil, locaux techniques et accessibilité.",
+      "agency_notes": "Toute règle retrouvée doit être recontextualisée avant décision de projet."
+    }
+  },
+  "project_claims": [
+    {"claim_type":"erp_type","value":"Type U — 5e catégorie","status":"source_backed","backing_information_key":"notice-erp-a01"},
+    {"claim_type":"surface_projet","value":148.6,"unit":"m²","status":"source_backed","backing_information_key":"plans-pro-a01"}
+  ],
+  "information": [
+    {"key":"notice-erp-a01","title":"Notice sécurité et classement ERP","category":"Réglementaire","source_type":"file","source_ref":"fixture://f04/notice-securite.pdf","index_label":"A01","summary":"Classement synthétique et principes de sécurité.","details":"Cette Information est ACTÉE pour la fixture ; les prescriptions détaillées doivent rester reliées à leurs sources.","status":"acted","limits":["obligatoire"],"type_tags":["notice","ERP"],"subject_tags":["securite-incendie","ssi"]},
+    {"key":"pmr-a01","title":"Synthèse accessibilité PMR","category":"Réglementaire","source_type":"document","source_ref":"fixture://f04/accessibilite.pdf","index_label":"A01","summary":"Synthèse des points de contrôle accessibilité.","details":"Largeurs, guichet, sanitaires et cheminements à confronter aux plans.","status":"acted","limits":["obligatoire"],"type_tags":["notice"],"subject_tags":["pmr","accessibilite"]},
+    {"key":"question-ssi-a01","title":"Vérification SSI et compartimentage","category":"Question","source_type":"draft","source_note":"Vérifier catégorie SSI, isolements coupe-feu et désenfumage avec le BET/contrôleur.","index_label":"A01","summary":"Point non acté à instruire.","details":"Une règle retrouvée dans une source générale ne vaut pas conclusion de projet.","status":"in_progress","limits":["questionnement"],"type_tags":["note"],"subject_tags":["ssi","desenfumage","coupe-feu"]},
+    {"key":"plans-pro-a01","title":"Plans PRO","category":"Conception","source_type":"file","source_ref":"fixture://f04/plans-pro.pdf","index_label":"A01","summary":"Jeu de plans synthétique 148,60 m².","details":"Source du claim surface_projet.","status":"acted","limits":["contractuel"],"type_tags":["plan"],"subject_tags":["architecture","surfaces"]}
+  ],
+  "contacts": {"groups":{"maitrise_ouvrage":1,"maitrise_oeuvre":1,"bureaux_etudes":2,"bureau_controle":1,"ssi":1},"note":"Tous les contacts sont synthétiques."},
+  "work": [
+    {"id":"work-ssi","title":"Vérifier le dispositif SSI","objective":"Consolider les exigences avec sources projet et avis compétents.","status":"in_progress","requested_effect":"draft"},
+    {"id":"work-notice","title":"Finaliser la notice sécurité","objective":"Préparer la version à soumettre après vérifications.","status":"review","requested_effect":"external_effect"}
+  ],
+  "decisions": [
+    {"title":"Valider la notice sécurité avant dépôt","trigger":"work-notice","human_required":true}
+  ],
+  "expected_observations": [
+    "Une règle retrouvée n'est jamais promue en vérité de projet par simple retrieval.",
+    "Une Information questionnement reste distincte d'une Information obligatoire ACTÉE.",
+    "La validation d'un document officiel reste humaine."
+  ]
+}

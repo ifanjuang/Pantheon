@@ -1,0 +1,98 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Next Register Link
+description: >-
+  Governance schema for a typed, directed relation between two Registre
+  Probatoire entries or Register Candidates. Validation metadata only; it
+  records a relation, it does not execute or promote anything.
+type: object
+required:
+  - link_id
+  - from_id
+  - to_id
+  - relation
+  - created_at
+  - created_by
+properties:
+  link_id:
+    type: string
+    pattern: "^[a-z0-9._-]+$"
+  from_id:
+    type: string
+    minLength: 1
+    description: Subject register entry / candidate id.
+  to_id:
+    type: string
+    minLength: 1
+    description: Related register entry / candidate id.
+  relation:
+    type: string
+    enum:
+      - depends_on
+      - impacts
+      - valid_if
+      - invalid_if
+      - supersedes
+      - superseded_by
+      - derived_from
+      - conflicts_with
+      - supports
+      - requires_arbitration
+  dependency_type:
+    type: string
+    description: Optional qualifier for depends_on / impacts relations.
+    enum:
+      - program_dependency
+      - technical_dependency
+      - budget_dependency
+      - planning_dependency
+      - contractual_dependency
+      - regulatory_dependency
+      - client_preference_dependency
+      - assumption_dependency
+  impact_level:
+    type: string
+    enum: [none, low, medium, high, critical]
+    default: none
+  revalidation_required:
+    type: boolean
+    default: false
+  revalidation_reason:
+    type: [string, "null"]
+  scope:
+    type: object
+    required: [scope_type, scope_id]
+    properties:
+      scope_type:
+        type: string
+        enum: [session, task, dossier, project, domain, user, organization, repository, governance, system]
+      scope_id:
+        type: string
+        minLength: 1
+      scope_label:
+        type: string
+    additionalProperties: false
+  created_at:
+    type: string
+    format: date-time
+  created_by:
+    type: string
+  note:
+    type: [string, "null"]
+  governance_refs:
+    type: array
+    items:
+      type: string
+    default:
+      - docs/governance/EVIDENCE_MEMORY_CANONICALIZATION.md
+      - docs/governance/EVIDENCE_MEMORY_DEV_PLAN.md
+      - docs/governance/GLOSSARY.md
+additionalProperties: false
+x-boundary:
+  runtime_execution: false
+  autonomous_loop: false
+  provider_routing: false
+  scheduler: false
+  queue_system: false
+  memory_promotion: false
+  automatic_canonization: false
+  automatic_cascade_resolution: false

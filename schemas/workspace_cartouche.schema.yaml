@@ -1,0 +1,87 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Workspace Document Cartouche Frontmatter
+description: >-
+  Machine-readable contract for the reserved frontmatter fields of one optional
+  .SOURCE.ext.md cartouche beside a professional source. The cartouche is
+  descriptive enrichment only: it is not Evidence, Project identity,
+  professional currentness, source truth or authorization. Unknown extension
+  fields remain allowed so this contract does not become a second business
+  database.
+type: object
+required: [schema, document_id, source]
+properties:
+  schema:
+    const: pantheon/cartouche/v1
+  document_id:
+    type: string
+    minLength: 1
+    maxLength: 256
+    description: Stable filesystem-bundle identity; not governed Professional Document identity by implication.
+  source:
+    type: string
+    minLength: 1
+    maxLength: 512
+    pattern: '^[^/\\]+$'
+    description: Exact basename of the paired source in the same directory.
+  title:
+    type: string
+    minLength: 1
+  project:
+    type: string
+    minLength: 1
+    description: Descriptive project hint only; not governed project identity.
+  phase:
+    type: string
+    minLength: 1
+  type:
+    type: string
+    minLength: 1
+  index:
+    type: [string, number]
+    description: Opaque descriptive label; no ordering or currentness is implied.
+  document_date:
+    type: string
+    format: date
+    description: Descriptive document date; no revision order is implied.
+  issuer:
+    type: string
+    minLength: 1
+  revision_mode:
+    type: string
+    enum: [supersedes, supplements]
+    description: Explicit declared relation only; never inferred from filename, index or date.
+  revision_of:
+    type: string
+    minLength: 1
+    maxLength: 256
+  tags:
+    oneOf:
+      - type: string
+        minLength: 1
+      - type: array
+        uniqueItems: true
+        items:
+          type: [string, number]
+  source_sha256:
+    type: string
+    pattern: "^[A-Fa-f0-9]{64}$"
+    description: Optional exact source-byte binding.
+  source_size_bytes:
+    type: integer
+    minimum: 0
+  scope_move_confirmed:
+    type: boolean
+    description: Explicit operator confirmation for a cross-project filesystem move; not project authority.
+dependentRequired:
+  revision_mode: [revision_of]
+  revision_of: [revision_mode]
+additionalProperties: true
+x-pantheon-schema-id: pantheon/cartouche/v1
+x-boundary:
+  source_truth: false
+  governed_project_identity: false
+  professional_currentness: false
+  revision_inference: false
+  evidence_admission: false
+  memory_promotion: false
+  authorization: false

@@ -1,0 +1,95 @@
+# Deliberate failing MVP fixture — governance invariant failure
+# Documentation only. This fixture is supposed to fail future governance invariant validation.
+---
+object_type: task_contract
+object_id: mvp.fail.tc-001
+contract_id: mvp.fail.tc-001
+status: ready_for_governed_processing
+requested_by: practitioner
+exposure_surface: openwebui_capture
+consequence_class: K3
+approval_ceiling: draft_only
+intent:
+  action: draft_reply_candidate
+  must_not:
+    - external_action
+    - memory_promotion
+scope:
+  declared_sources:
+    - source_ref: src.example.001
+      title: Fictional scoped source
+      traceable: true
+expected_outputs:
+  - result_candidate
+  - evidence_pack_candidate
+governance_refs:
+  - docs/governance/MVP_GOVERNED_TASK_LOOP.md
+  - schemas/mvp_governed_loop_objects.schema.yaml
+---
+object_type: result_candidate
+object_id: mvp.fail.result-001
+result_candidate_id: mvp.fail.result-001
+status: draft_to_review
+request_ref: mvp.fail.tc-001
+request_scope_digest: sha256:5555555555555555555555555555555555555555555555555555555555555555
+produced_by: hermes_candidate
+body: placeholder draft text for failing fixture
+commitment_flags:
+  - phrase: placeholder external action claim
+    risk: external action asserted without a separate human authorization
+limits:
+  - no separate human external-action decision exists
+external_action_authorized: true
+governance_refs:
+  - docs/governance/MVP_GOVERNED_TASK_LOOP.md
+  - schemas/mvp_governed_loop_objects.schema.yaml
+---
+object_type: evidence_pack_candidate
+object_id: mvp.fail.evidence-001
+evidence_pack_id: mvp.fail.evidence-001
+status: reviewable_with_risk
+request_ref: mvp.fail.tc-001
+request_scope_digest: sha256:5555555555555555555555555555555555555555555555555555555555555555
+applies_to: mvp.fail.result-001
+evidence_items:
+  - claim: scoped source exists
+    source_ref: src.example.001
+    support_status: sourced_not_verified
+risks:
+  - id: risk.external_action_without_gate
+    status: open
+    description: result candidate claims external action authorization without a separate decision
+possible_decisions:
+  - refuse
+  - request_revision
+governance_refs:
+  - docs/governance/MVP_GOVERNED_TASK_LOOP.md
+  - schemas/mvp_governed_loop_objects.schema.yaml
+---
+object_type: decision_record
+object_id: mvp.fail.decision-001
+decision_id: mvp.fail.decision-001
+status: recorded
+applies_to: mvp.fail.result-001
+related_evidence_pack: mvp.fail.evidence-001
+decision: approve
+decided_by: human_practitioner
+identity_assurance: declared
+recorded_at: "2026-07-13T03:10:00Z"
+candidate_digest:
+  algorithm: sha256
+  value: dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+evidence_pack_digest:
+  algorithm: sha256
+  value: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+decision_surface: openwebui_gate
+rationale: draft reviewed only
+consequences:
+  draft_status: approved_for_internal_use
+  external_action: not_authorized
+  send_authorization: not_granted
+  register_candidate_creation: not_granted
+  memory_admission: not_granted
+governance_refs:
+  - docs/governance/MVP_GOVERNED_TASK_LOOP.md
+  - schemas/mvp_governed_loop_objects.schema.yaml

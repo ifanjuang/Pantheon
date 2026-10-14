@@ -1,0 +1,64 @@
+# Hermes trace metadata candidate for Langfuse
+# Status: template candidate. Not an executable schema.
+
+trace_metadata_candidate:
+  trace_provider: langfuse
+  emitted_by: hermes
+  governance_status: trace_context_only
+
+  required_when_available:
+    task_contract_id: null
+    run_id: null
+    requested_effect: read_only
+    approval_ceiling: C0
+    memory_behavior: none
+    scope: local_test
+    redaction_profile: synthetic_only
+
+  optional:
+    dossier_id: null
+    case_id: null
+    result_candidate_id: null
+    evidence_pack_candidate_id: null
+    approval_gate_id: null
+    source_policy_ref: null
+    context_pack_ref: null
+    user_decision_gate_ref: null
+
+  forbidden_payloads:
+    - raw_client_secret
+    - unredacted_identity
+    - full_private_dossier
+    - authentication_token
+    - api_key
+    - password
+    - payment_data
+    - medical_record_without_review
+    - regulated_personal_data_without_review
+
+  status_separation:
+    handoff_delivery_status:
+      - not_sent
+      - sent
+      - refused
+      - failed
+      - timeout
+    runtime_task_status:
+      - not_started
+      - success
+      - partial
+      - failed
+      - blocked
+      - unknown
+    governance_result_status:
+      - candidate
+      - to_verify
+      - approved
+      - rejected
+      - blocked
+
+  boundary:
+    trace_is_not: proof
+    trace_score_is_not: validation
+    trace_success_is_not: approval
+    trace_dataset_is_not: canonical_memory

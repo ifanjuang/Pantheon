@@ -1,0 +1,53 @@
+# Candidate runtime return template. This receipt records source consultation;
+# it is not a source validator, Evidence Pack, approval or professional truth.
+
+template_id: source_preflight_receipt
+template_version: 2
+owner_layer: hermes
+status: candidate_template_only
+
+source_preflight_receipt:
+  request_scope:
+    scope_type: REQUIRED
+    scope_id: REQUIRED
+  required_source_families: []
+  consultations:
+    - source_family: REQUIRED
+      binding: REQUIRED
+      tool: REQUIRED
+      exact_source_ref: REQUIRED
+      exact_source_opened: false
+      inspected_locator: null
+      observed_metadata:
+        title: null
+        date: null
+        version_or_index: null
+      supported_claim_refs: []
+      limitations: []
+      runtime_trace:
+        observed: false
+        session_or_run_ref: null
+        tool_call_ref: null
+        tool_result_ref: null
+  memory_leads:
+    used: false
+    refs: []
+    confirmed_by_exact_source: false
+    label_when_unconfirmed: "indice mémoire — non confirmé"
+  context_pack_validation:
+    required: false
+    tool: validate_context_pack
+    result: not_run
+    context_pack_ref: null
+  completion:
+    assessed_result: REQUIRED
+    consulted_required_families: false
+    exact_required_sources_opened: false
+    contradictions_preserved: true
+    readiness: needs_revision
+    next_safe_action: REQUIRED
+  boundaries:
+    receipt_is_evidence: false
+    receipt_is_source_validation: false
+    receipt_is_approval: false
+    memory_is_source_authority: false

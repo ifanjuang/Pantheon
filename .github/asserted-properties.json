@@ -1,0 +1,196 @@
+{
+  "schema_id": "pantheon.asserted_properties",
+  "revision": 1,
+  "purpose": "Bind every property CLAUDE.md asserts in the present tense to the control that fails when it stops being true, and say honestly how strong that control is.",
+  "how_to_read": [
+    "behavioural: the control exercises executable code or reads source structurally, so it fails when behaviour diverges.",
+    "schema: the control validates instances against a governed contract, so it fails when a conforming document could claim something it may not.",
+    "documentary: the control reads prose. It fails when the wording changes, not when the property stops being true. This is the floor, not a failure of the entry.",
+    "none: nothing controls the property. The count is capped so the debt cannot grow unnoticed.",
+    "A binding stronger than documentary must be supported by evidence in the control's own source; the check reads it rather than trusting this file."
+  ],
+  "uncontrolled_ceiling": 2,
+  "properties": [
+    {
+      "claim": "repository co-location != authority transfer",
+      "binding": "documentary",
+      "controls": [
+        {"path": "tests/test_monorepo_placement_language.py", "name": "test_current_implementation_placement_is_monorepo_native"},
+        {"path": "tests/test_monorepo_placement_language.py", "name": "test_historical_repository_name_remains_valid_provenance"}
+      ],
+      "note": "Held by wording. Nothing structural stops implementation/ from acquiring authority; what exists checks that the documents keep saying it must not."
+    },
+    {
+      "claim": "implementation success != authorization",
+      "binding": "schema",
+      "controls": [
+        {"path": "tests/test_execution_result_contract.py", "name": "test_result_cannot_claim_project_truth_or_write_authority"},
+        {"path": "tests/test_execution_result_contract.py", "name": "test_execution_envelope_cannot_claim_authority"},
+        {"path": "tests/test_execution_result_contract.py", "name": "test_review_disposition_cannot_adopt_or_write"}
+      ],
+      "note": "A successful execution result cannot carry write authority or project truth through the contract."
+    },
+    {
+      "claim": "schema conformance != professional approval",
+      "binding": "schema",
+      "controls": [
+        {"path": "tests/test_devis_reprise_return_validator.py", "name": "test_full_structural_candidate_can_pass_without_claiming_approval"},
+        {"path": "tests/test_devis_reprise_return_validator.py", "name": "test_runtime_cannot_mark_output_approved"},
+        {"path": "tests/test_fragment_qualification_candidate.py", "name": "test_candidate_cannot_emit_reviewed_or_approved_status"}
+      ],
+      "note": "A structurally complete candidate validates and still cannot reach an approved status."
+    },
+    {
+      "claim": "projection != persistence",
+      "binding": "schema",
+      "controls": [
+        {"path": "tests/test_card_projection_definition_schema.py", "name": "test_projection_definition_does_not_admit_runtime_or_transport_fields"},
+        {"path": "tests/test_card_projection_definition_schema.py", "name": "test_card_projection_definition_keeps_authority_boundaries_closed"}
+      ],
+      "note": "A projection definition that admitted transport or runtime fields would fail the contract."
+    },
+    {
+      "claim": "workspace folder != governed identity",
+      "binding": "schema",
+      "controls": [
+        {"path": "tests/test_workspace_manifest_inspector_fixture.py", "name": "test_manifest_maps_existing_document_identity_without_inventing_an_owner"},
+        {"path": "tests/test_workspace_manifest_inspector_fixture.py", "name": "test_card_title_source_stays_physical_while_semantic_name_stays_metadata"}
+      ],
+      "note": "A manifest maps an existing identity; it does not create one from a path."
+    },
+    {
+      "claim": "retrieved data != truth",
+      "binding": "schema",
+      "controls": [
+        {"path": "tests/test_observation_bundle_schema.py", "name": "test_prescriptive_material_cannot_masquerade_as_observed_claim"},
+        {"path": "tests/test_observation_bundle_schema.py", "name": "test_non_complete_coverage_cannot_authorize_absence"},
+        {"path": "tests/test_observation_bundle_schema.py", "name": "test_conflicting_observations_remain_separate_candidates"}
+      ],
+      "note": "Observations stay candidates; incomplete coverage cannot conclude an absence."
+    },
+    {
+      "claim": "memory != Evidence",
+      "binding": "schema",
+      "controls": [
+        {"path": "tests/test_document_knowledge_contract.py", "name": "test_knowledge_publication_remains_outside_evidence_and_memory"},
+        {"path": "tests/test_devis_reprise_return_validator.py", "name": "test_retired_memory_key_is_refused_as_register_admission_risk"}
+      ],
+      "note": "A published Knowledge document cannot cross into Evidence or a Register entry through the contract."
+    },
+    {
+      "claim": "installed != approved",
+      "binding": "schema",
+      "controls": [
+        {"path": "tests/test_capability_activation_contract.py", "name": "test_project_activation_is_scoped_reviewed_and_non_authorizing"},
+        {"path": "tests/test_capability_activation_contract.py", "name": "test_replacement_binding_does_not_inherit_activation"},
+        {"path": "tests/test_capability_binding_contract.py", "name": "test_binding_replacement_does_not_promote_dependency_or_authority"}
+      ],
+      "note": "Activation is scoped and non-authorizing, and a replacement binding inherits nothing."
+    },
+    {
+      "claim": "healthy != safe",
+      "binding": "behavioural",
+      "controls": [
+        {"path": "mcp-server/tests/test_consultation.py", "name": "test_catalog_is_honest_about_implemented_and_future_surfaces"},
+        {"path": "mcp-server/tests/test_consultation.py", "name": "test_dashboard_reports_preview_and_external_plugin_posture"}
+      ],
+      "note": "The consultation surface runs and is required to report a surface's real posture rather than its reachability."
+    },
+
+    {
+      "claim": "Execution Engine",
+      "binding": "documentary",
+      "controls": [
+        {"path": ".github/scripts/check_runtime_boundary_language.py"}
+      ],
+      "note": "A wording guard on docs/governance/, not a structural detector. Nothing scans implementation/ for an execution engine."
+    },
+    {
+      "claim": "Agent Runtime",
+      "binding": "documentary",
+      "controls": [
+        {"path": ".github/scripts/check_runtime_boundary_language.py"}
+      ],
+      "note": "'Pantheon Agent Runtime' is in the guard's forbidden wording list."
+    },
+    {
+      "claim": "Tool Runtime",
+      "binding": "documentary",
+      "controls": [
+        {"path": ".github/scripts/check_runtime_boundary_language.py"}
+      ],
+      "note": "'Pantheon tool runtime' is in the guard's forbidden wording list."
+    },
+    {
+      "claim": "LLM Provider Router",
+      "binding": "documentary",
+      "controls": [
+        {"path": ".github/scripts/check_runtime_boundary_language.py"},
+        {"path": "tests/test_mvp_loop_provider_agnostic.py"}
+      ],
+      "note": "'provider router' is in the guard's forbidden wording list; the loop test checks the documents keep the loop provider-agnostic."
+    },
+    {
+      "claim": "internal scheduler",
+      "binding": "documentary",
+      "controls": [
+        {"path": ".github/scripts/check_runtime_boundary_language.py"},
+        {"path": "tests/test_hermes_pantheon_modules_plugin.py", "name": "test_night_operations_are_finite_review_candidates_not_hidden_jobs"}
+      ],
+      "note": "'scheduler' is in the guard's forbidden wording list. The plugin test is the closest thing to a structural control: it requires night operations to stay finite review candidates."
+    },
+    {
+      "claim": "central LangGraph runtime",
+      "binding": "documentary",
+      "controls": [
+        {"path": "tests/test_langgraph_runtime_candidate_convergence.py"}
+      ],
+      "note": "Keeps the LangGraph material a candidate convergence note rather than an adopted runtime owner."
+    },
+    {
+      "claim": "message bus",
+      "binding": "none",
+      "why": "No control names a message bus. The prohibition rests on review alone; no wording guard covers the term and nothing scans for a broker dependency."
+    },
+    {
+      "claim": "mandatory agent queue",
+      "binding": "documentary",
+      "controls": [
+        {"path": ".github/scripts/check_runtime_boundary_language.py"}
+      ],
+      "note": "'queue' is in the guard's forbidden wording list."
+    },
+    {
+      "claim": "auto-promoted memory",
+      "binding": "documentary",
+      "controls": [
+        {"path": ".github/scripts/check_runtime_boundary_language.py"},
+        {"path": "tests/test_devis_reprise_return_validator.py", "name": "test_retired_memory_key_is_refused_as_register_admission_risk"}
+      ],
+      "note": "'automatic memory promotion' is in the guard's forbidden wording list."
+    },
+    {
+      "claim": "self-evolution auto-merge",
+      "binding": "none",
+      "why": "No control covers it. Nothing checks that no workflow can merge its own change, which is the form this prohibition would take if it were held structurally."
+    },
+    {
+      "claim": "free plugin manager",
+      "binding": "documentary",
+      "controls": [
+        {"path": "tests/test_hermes_pantheon_modules_plugin.py", "name": "test_review_first_install_documentation_uses_supported_subdirectory_form"},
+        {"path": "tests/test_hermes_pantheon_modules_plugin.py", "name": "test_every_native_operation_has_an_immediate_human_confirmation"}
+      ],
+      "note": "Install stays review-first and every native operation requires a human confirmation."
+    },
+    {
+      "claim": "hidden workflow runtime",
+      "binding": "documentary",
+      "controls": [
+        {"path": ".github/scripts/check_runtime_boundary_language.py"},
+        {"path": "tests/test_hermes_pantheon_modules_plugin.py", "name": "test_night_operations_are_finite_review_candidates_not_hidden_jobs"}
+      ],
+      "note": "'hidden workflow runtime' is in the guard's forbidden wording list."
+    }
+  ]
+}

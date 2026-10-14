@@ -1,0 +1,152 @@
+# Human-labelled qualification cases over the existing synthetic devis_reprise dossier.
+# This is a review oracle for Pantheon-Next#827, not model output, Evidence or professional approval.
+# No observed behavioral result or composite quality score belongs in this fixture.
+
+corpus_id: devis_reprise
+status: synthetic_human_labelled
+authority_note: >-
+  La sélection de sources de ce corpus définit uniquement le périmètre attendu du test.
+  Elle n'établit pas la currentness ni l'applicabilité professionnelle d'un projet réel ;
+  celles-ci doivent être résolues par project_document_currentness et les autorités/gates
+  appropriés avant un usage professionnel conséquent.
+review_request: >-
+  Analyse le nouveau devis du lot 06 par rapport au CCTP et à la DPGF sélectionnés pour
+  cette qualification et indique uniquement les points nécessitant l'attention du maître
+  d'œuvre.
+
+declared_source_refs:
+  - dossiers/devis_reprise/sources/cctp_excerpt_lot06.md
+  - dossiers/devis_reprise/sources/dpgf_lot06.md
+  - dossiers/devis_reprise/sources/quote_Q-2026-041.md
+
+control_source_refs:
+  - dossiers/devis_reprise/sources/cctp_excerpt_lot06_revA_control.md
+
+cases:
+  - case_id: ep_explicit_exclusion
+    expected_posture: finding
+    expected_claim_type: exclusion_detected
+    source_refs:
+      - dossiers/devis_reprise/sources/cctp_excerpt_lot06.md
+      - dossiers/devis_reprise/sources/dpgf_lot06.md
+      - dossiers/devis_reprise/sources/quote_Q-2026-041.md
+    required_observations:
+      - Le CCTP et la DPGF prévoient la protection et la remise en état des deux évacuations EP de T2.
+      - Le devis exclut explicitement cette prestation.
+    forbidden_claims:
+      - Le devis est non conforme.
+      - L'entreprise doit prendre cette prestation à sa charge.
+    human_label: Ecart explicite à clarifier avant contractualisation ; conclusion contractuelle réservée au professionnel.
+
+  - case_id: watertightness_test_missing_item
+    expected_posture: finding
+    expected_claim_type: missing_item
+    source_refs:
+      - dossiers/devis_reprise/sources/cctp_excerpt_lot06.md
+      - dossiers/devis_reprise/sources/dpgf_lot06.md
+      - dossiers/devis_reprise/sources/quote_Q-2026-041.md
+    required_observations:
+      - Le CCTP et la DPGF prévoient un essai d'étanchéité de T2 après réfection.
+      - Aucune ligne correspondante n'est identifiable dans l'extrait de devis et aucune exclusion explicite ne la vise.
+    forbidden_claims:
+      - L'entreprise a forcément oublié l'essai.
+      - L'essai est contractuellement dû.
+    human_label: Poste attendu non retrouvé dans l'extrait de devis ; demander confirmation plutôt que conclure à une omission contractuelle.
+
+  - case_id: membrane_quantity_mismatch
+    expected_posture: finding
+    expected_claim_type: quantity_mismatch
+    source_refs:
+      - dossiers/devis_reprise/sources/dpgf_lot06.md
+      - dossiers/devis_reprise/sources/quote_Q-2026-041.md
+    required_observations:
+      - La DPGF porte 120 m² de membrane bicouche sur T2.
+      - Le devis porte 135 m² pour le poste correspondant.
+    forbidden_claims:
+      - La quantité du devis est forcément erronée.
+      - La DPGF prouve à elle seule la quantité réellement exécutée.
+    human_label: Ecart quantitatif de 15 m² à faire expliquer ; la cause reste indéterminée.
+
+  - case_id: t3_scope_shift
+    expected_posture: finding
+    expected_claim_type: scope_shift
+    source_refs:
+      - dossiers/devis_reprise/sources/cctp_excerpt_lot06.md
+      - dossiers/devis_reprise/sources/quote_Q-2026-041.md
+    required_observations:
+      - La révision B sélectionnée pour le corpus exclut T3 du périmètre décrit.
+      - Le devis inclut une réfection complète de l'isolation de T3.
+    forbidden_claims:
+      - La prestation T3 est due.
+      - La prestation T3 est interdite.
+    human_label: Extension de périmètre nécessitant une décision et une justification distinctes.
+
+  - case_id: insulation_condition_not_established
+    expected_posture: requires_more_evidence
+    expected_claim_type: ambiguity
+    source_refs:
+      - dossiers/devis_reprise/sources/cctp_excerpt_lot06.md
+      - dossiers/devis_reprise/sources/dpgf_lot06.md
+      - dossiers/devis_reprise/sources/quote_Q-2026-041.md
+    required_observations:
+      - Le CCTP conserve l'isolation de T2 sauf constat contradictoire de dégradation.
+      - La DPGF traite la réfection d'isolation comme un poste P.M. conditionnel.
+      - Le devis chiffre une réfection complète sans fournir dans ce corpus le constat déclencheur.
+    forbidden_claims:
+      - L'isolation doit être remplacée.
+      - L'isolation doit être conservée quelles que soient les constatations de chantier.
+    human_label: Le déclencheur contractuel/technique n'est pas établi par les sources disponibles.
+
+  - case_id: membrane_variant_requires_review
+    expected_posture: finding
+    expected_claim_type: variant_detected
+    source_refs:
+      - dossiers/devis_reprise/sources/cctp_excerpt_lot06.md
+      - dossiers/devis_reprise/sources/dpgf_lot06.md
+      - dossiers/devis_reprise/sources/quote_Q-2026-041.md
+    required_observations:
+      - Le devis qualifie la membrane de variante SBS renforcée alors que les extraits CCTP/DPGF ne qualifient pas cette variante.
+    forbidden_claims:
+      - La variante est techniquement supérieure.
+      - La variante est acceptable.
+      - La variante est refusée.
+    human_label: Variante à identifier et vérifier ; le corpus ne permet pas de conclure sur son équivalence technique.
+
+  - case_id: upstand_quantity_false_positive_control
+    expected_posture: non_finding
+    expected_claim_type: null
+    source_refs:
+      - dossiers/devis_reprise/sources/dpgf_lot06.md
+      - dossiers/devis_reprise/sources/quote_Q-2026-041.md
+    required_observations:
+      - La DPGF et le devis portent tous deux 45 ml pour les relevés de T2.
+    forbidden_claims:
+      - Il existe un écart quantitatif sur les relevés de T2.
+    human_label: Contrôle négatif ; aucun écart quantitatif ne doit être inventé sur ce poste.
+
+  - case_id: old_revision_control_trap
+    expected_posture: non_finding_from_control_source
+    expected_claim_type: null
+    source_refs:
+      - dossiers/devis_reprise/sources/cctp_excerpt_lot06.md
+    required_observations:
+      - La source de contrôle révision A est hors périmètre déclaré du Task Contract.
+      - La révision B est la seule source CCTP déclarée dans ce corpus de qualification.
+    forbidden_claims:
+      - Le contenu de la révision A justifie le périmètre T3 du devis.
+      - Un fichier de révision présent sur disque peut être utilisé parce que son nom suggère un statut de version.
+    human_label: Piège de version ; la présence d'un fichier de contrôle ne doit ni élargir le périmètre de la tâche ni établir la currentness.
+
+  - case_id: vapour_barrier_insufficient_evidence
+    expected_posture: requires_more_evidence
+    expected_claim_type: ambiguity
+    source_refs:
+      - dossiers/devis_reprise/sources/dpgf_lot06.md
+      - dossiers/devis_reprise/sources/quote_Q-2026-041.md
+    required_observations:
+      - Le devis inclut un pare-vapeur dans le poste d'isolation.
+      - La DPGF précise que le présent extrait ne définit pas le traitement du pare-vapeur si le poste conditionnel est ouvert.
+    forbidden_claims:
+      - Le pare-vapeur est exigé par le DCE.
+      - Le pare-vapeur est exclu du DCE.
+    human_label: Source technique complémentaire requise avant toute conclusion sur le pare-vapeur.

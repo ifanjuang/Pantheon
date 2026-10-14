@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cockpit knowledge map — read-only lens (demo)</title>
+  <style>
+    :root { color-scheme: light dark; --line:#d9dfe8; --ink:#1b2431; --ink3:#8592a8; --surface:#fff; --bg:#eef1f5; }
+    @media (prefers-color-scheme: dark){ :root{ --line:#2c3542; --ink:#e7ecf3; --ink3:#6c7789; --surface:#1a1f29; --bg:#12161d; } }
+    body { margin:0; font-family:system-ui,sans-serif; background:var(--bg); color:var(--ink); }
+    .wrap { max-width:1120px; margin:0 auto; padding:24px 18px; }
+    h1 { font-size:18px; margin:0 0 4px; }
+    p.sub { color:var(--ink3); font-size:13px; margin:0 0 16px; max-width:74ch; }
+    .bar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; align-items:center; }
+    .bar .sep { width:1px; height:22px; background:var(--line); margin:0 4px; }
+    button { font:inherit; font-size:13px; padding:6px 12px; border-radius:8px; border:1px solid var(--line); background:var(--surface); color:var(--ink); cursor:pointer; }
+    button[aria-pressed="true"] { border-color:#3f6597; color:#3f6597; font-weight:600; }
+    label.tg { font-size:13px; color:var(--ink3); display:inline-flex; gap:6px; align-items:center; cursor:pointer; }
+    .canvas { background:var(--surface); border:1px solid var(--line); border-radius:12px; }
+    svg { display:block; width:100%; height:auto; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Cockpit knowledge map — read-only lens</h1>
+    <p class="sub">Prototype branché sur le contrat de projection (<code>state.cards</code> / <code>state.children</code>).
+      Couleur + icône (tokens), metaballs, taille = volume, temps, overlay corroboration (HEB) — rendu vide tant que le signal n'est pas câblé (ici quelques liens de démo). Aucun réseau, aucun build.</p>
+    <div class="bar" role="group" aria-label="Contrôles">
+      <span id="layoutSeg">
+        <button data-layout="cluster" aria-pressed="true">Cluster</button>
+        <button data-layout="radial">Radial</button>
+        <button data-layout="grid">Grille</button>
+        <button data-layout="chain">Chaîne</button>
+      </span>
+      <span class="sep"></span>
+      <label class="tg"><input type="checkbox" id="meta" checked> Metaballs</label>
+      <label class="tg"><input type="checkbox" id="support"> Corroboration (HEB)</label>
+      <label class="tg">Temps <input type="range" id="scrub" min="1" max="8" value="8"></label>
+    </div>
+    <div class="canvas"><svg id="map" role="img" aria-label="Carte de connaissance"></svg></div>
+  </div>
+
+  <script src="map_graph_model.js"></script>
+  <script src="map_layouts.js"></script>
+  <script src="map_tokens.js"></script>
+  <script src="map_corroboration.js"></script>
+  <script src="map_bundle.js"></script>
+  <script src="map_view.js"></script>
+  <script>
+    const SUBJECTS = ["surfaces","assurance","budget","cctp","reservations","plan","structure"];
+    const COLORNAME = { surfaces:"cyan", assurance:"blue", budget:"green", cctp:"orange", reservations:"orange", plan:"indigo", structure:"red" };
+    // Injected registry mirroring tag_registry shape (colour name + icon key).
+    const tagRegistry = { tags: SUBJECTS.map(s => ({ slug:s, presentation:{ color:COLORNAME[s], icon_key:s } })) };
+    const statusRegistry = { values: [
+      {slug:"draft",color:"slate"},{slug:"in_progress",color:"amber"},{slug:"acted",color:"green"},
+      {slug:"review",color:"amber"},{slug:"superseded",color:"slate"},
+    ]};
+
+    const cards = new Map();
+    const children = new Map();
+    const kids = [];
+    let s = 3; const rnd = () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+    const pick = a => a[Math.floor(rnd() * a.length)];
+    for (let i = 0; i < 90; i++) {
+      const fam = rnd() < 0.45 ? "document" : rnd() < 0.6 ? "work_issue" : "information";
+      const id = `${fam}:${i}`;
+      cards.set(id, {
+        entity_id: id, entity_type: fam, presentation_family: fam === "work_issue" ? "work" : "information",
+        title: `${fam} #${i}`, status: pick(["draft","acted","review","in_progress"]),
+        subject_tags: [pick(SUBJECTS)], date: `2026-0${1 + (i % 8)}-01`,
+        page_count: fam === "document" ? 6 + Math.floor(rnd() * 50) : null,
+      });
+      kids.push(id);
+    }
+    cards.set("project:demo", { entity_id: "project:demo", entity_type: "project", presentation_family: "project", title: "Résidence Les Tilleuls", subject_tags: [] });
+    children.set("project:demo", kids);
+    ["information:0","information:1","information:2"].forEach((id, j) => {
+      const c = cards.get(id); if (c) { c.series_id = "surf"; c.subject_tags = ["surfaces"]; c.status = j < 2 ? "superseded" : "acted"; c.title = `surfaces v${j + 1}`; }
+    });
+    // A few demo corroboration links so the HEB overlay has something to draw.
+    const infoIds = [...cards.keys()].filter(k => k.startsWith("information:")).slice(0, 8);
+    infoIds.forEach((id, i) => { if (i) cards.get(id).corroboration_refs = [infoIds[i - 1]]; });
+
+    const tokens = window.PantheonMapTokens.create({ tagRegistry, statusRegistry });
+    const view = window.PantheonMapView.create(document.getElementById("map"), { cards, children }, {
+      layout: "cluster", groupBy: "subject", tokens, meta: true,
+    });
+
+    document.getElementById("layoutSeg").addEventListener("click", e => {
+      const b = e.target.closest("button"); if (!b) return;
+      document.querySelectorAll("#layoutSeg button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+      view.setGroupBy(b.dataset.layout === "radial" || b.dataset.layout === "chain" ? "family" : "subject");
+      view.setLayout(b.dataset.layout);
+    });
+    document.getElementById("meta").addEventListener("change", e => view.setMeta(e.target.checked));
+    document.getElementById("support").addEventListener("change", e => view.setSupport(e.target.checked));
+    document.getElementById("scrub").addEventListener("input", e => view.setTime(`2026-0${e.target.value}-28`));
+  </script>
+</body>
+</html>

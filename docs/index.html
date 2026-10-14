@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Pantheon Next — Vous utilisez déjà l’IA. Qui répond de ce qu’elle écrit ?</title>
+  <meta name="description" content="Pour les professionnels qui répondent de ce qu’ils envoient. Quand le contexte manque, Pantheon cherche, demande ou signale l’incertitude plutôt que de la transformer silencieusement en certitude.">
+  <link rel="canonical" href="https://ifanjuang.github.io/Pantheon/">
+  <link rel="alternate" hreflang="fr" href="https://ifanjuang.github.io/Pantheon/">
+  <link rel="alternate" hreflang="en" href="https://ifanjuang.github.io/Pantheon/index-en.html">
+  <link rel="alternate" hreflang="x-default" href="https://ifanjuang.github.io/Pantheon/">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon.svg">
+  <link rel="apple-touch-icon" href="assets/brand/apple-touch-icon.png">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ifanjuang.github.io/Pantheon/">
+  <meta property="og:title" content="Pantheon Next — Vous utilisez déjà l’IA. Qui répond de ce qu’elle écrit ?">
+  <meta property="og:description" content="Pour un usage professionnel, une réponse plausible ne suffit pas. Pantheon rend visibles le contexte, les appuis, les incertitudes et les limites de la réponse.">
+  <meta property="og:image" content="https://ifanjuang.github.io/Pantheon/assets/pantheon-council.jpg">
+  <meta property="og:locale" content="fr_FR">
+  <meta property="og:locale:alternate" content="en_US">
+  <link rel="stylesheet" href="assets/landing-docs-core.css">
+  <link rel="stylesheet" href="assets/landing-docs-components.css">
+  <link rel="stylesheet" href="assets/landing-docs-responsive.css">
+  <link rel="stylesheet" href="assets/landing-language-switch.css">
+  <link rel="stylesheet" href="assets/landing-docs-diagrams.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="#top" aria-label="Retour au début">
+    <img src="assets/brand/pantheon-next-wordmark-white.svg" alt="Pantheon Next">
+  </a>
+  <div class="header-actions">
+    <nav aria-label="Navigation principale">
+      <a href="#cas">Le problème</a>
+      <a href="#pantheon">Pantheon</a>
+      <a href="comprendre.html">Comprendre l’IA</a>
+      <a href="manifeste.html">Manifeste</a>
+      <a href="#commencer">Commencer</a>
+    </nav>
+    <div class="language-switch" aria-label="Choix de la langue">
+      <a href="index.html" lang="fr" hreflang="fr" aria-label="Afficher la version française" aria-current="page">FR</a>
+      <a href="index-en.html" lang="en" hreflang="en" aria-label="View the English version">EN</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero-grid">
+      <div>
+        <p class="eyebrow">Architectes · avocats · ingénieurs · consultants</p>
+        <h1 id="hero-title">Vous utilisez déjà l’IA.</h1>
+        <p class="hero-accent">Qui répond de ce qu’elle écrit ?</p>
+      </div>
+      <div class="hero-copy">
+        <p>Un mail au client rédigé en trente secondes. Un CCTP résumé pendant que vous êtes au téléphone. Une note relue entre deux rendez-vous. Vous n’êtes pas un utilisateur intensif : vous l’ouvrez quand elle vous fait gagner une heure.</p>
+        <p><strong>Et à chaque fois, c’est votre nom en bas de la page.</strong> La réponse est fluide, polie, plausible. Personne ne vous dit sur quoi elle s’est appuyée, ce qu’elle a supposé pour combler les trous, ni ce qu’elle vient de vous faire accepter.</p>
+        <p>Un meilleur modèle ne l’aurait pas su non plus. Une meilleure question non plus. <strong>Le problème n’est pas ce que l’IA sait faire : c’est ce qu’elle a reçu.</strong></p>
+        <div class="actions">
+          <a class="button primary" href="#cas">Voir un cas concret</a>
+          <a class="button" href="#enjeux">Ce que ça permet</a>
+          <a class="button" href="#commencer">Où en est le projet</a>
+        </div>
+      </div>
+    </div>
+    <div class="hero-thesis" aria-label="Trois distinctions qui structurent la page">
+      <span>Une réponse fluide n’est pas une réponse sûre.</span>
+      <span>Rédiger n’est pas envoyer.</span>
+      <span>Retrouver une source n’est pas la prouver.</span>
+    </div>
+  </section>
+
+  <section class="section" id="cas">
+    <div class="section-heading wide">
+      <p class="eyebrow">Un cas · mardi, 18 h 40</p>
+      <h2>« Tu peux me répondre à ce mail ? »</h2>
+      <p>Mme. C demande si le point de ventilation est levé, pour pouvoir lancer la réception. Vous collez le fil dans votre assistant, avec la dernière notice technique du dossier LIA21 que vous aviez sous la main. Trente secondes plus tard : un message clair, courtois, professionnel. Il dit oui. Vous l’envoyez.</p>
+      <p><strong>Quatre choses viennent de se passer. Aucune n’apparaît dans le message.</strong></p>
+    </div>
+
+    <div class="principles">
+      <article><span>01</span><h3>La pièce déclarait, elle n’attestait pas.</h3><p>La notice à l’indice C annonce la conformité. Elle ne porte aucun contrôle : c’est une déclaration, pas un constat.</p></article>
+      <article><span>02</span><h3>Une pièce manquait.</h3><p>Le compte rendu de chantier du 6 août laissait le point ouvert. L’assistant ne l’a pas vu — et ne pouvait pas savoir qu’il existait.</p></article>
+      <article><span>03</span><h3>Le message engage.</h3><p>Il ne répond pas : il autorise à lancer la réception. Rédiger et envoyer sont devenus le même geste, sans point d’arrêt.</p></article>
+      <article><span>04</span><h3>Rien ne le signalait.</h3><p>Ni doute, ni réserve, ni « je n’ai pas cette pièce ». Le ton était exactement le même que pour une réponse juste.</p></article>
+    </div>
+    <p class="audience"><strong>Vous n’avez rien fait de travers.</strong> Vous avez transmis ce que vous aviez sous la main — c’est l’usage normal, et c’est même ce qui fait gagner du temps. Le problème n’est pas dans votre geste : il est dans ce que l’assistant a reçu, et dans ce qu’il en a déduit tout seul.</p>
+  </section>
+
+  <section class="section" id="ampleur">
+    <div class="section-heading wide">
+      <p class="eyebrow">Et ce n’est pas que vous</p>
+      <h2>Le même dossier reçoit déjà de l’IA par plusieurs portes à la fois.</h2>
+      <p>Vous l’utilisez pour un mail. Votre collaboratrice l’utilise pour une note. Votre logiciel métier l’a intégrée sans vous demander votre avis. Et le maître d’ouvrage, le bureau d’études ou l’entreprise vous transmettent des contenus déjà passés par une IA, sans que ce soit dit.</p>
+      <p>Chaque usage est raisonnable pris isolément. Ils arrivent pourtant tous dans le même dossier, sous la même responsabilité — la vôtre. La question n’est pas d’imposer la même IA à tout le monde : <strong>c’est de savoir ce que le dossier a reçu, et d’où cela vient.</strong></p>
+    </div>
+
+    <figure class="diagram diagram--vertical" aria-labelledby="agency-ai-title">
+      <div class="diagram-head"><div><p class="diagram-eyebrow">Schéma 01 · usages distribués</p><h3 class="diagram-title" id="agency-ai-title">L’IA dans l’agence.</h3></div><p class="diagram-note">Chacun garde son outil. Ce qui doit rester commun, c’est le dossier : ce qui y entre, d’où cela vient, et ce qui y fait foi.</p></div>
+      <div class="diagram-body vertical" tabindex="0" aria-label="Schéma vertical : plusieurs usages d’IA rejoignent le même dossier professionnel">
+        <svg viewBox="0 0 400 606" role="img" aria-label="Quatre usages d’IA distincts rejoignent le travail commun de l’agence, tenu par le cadre Pantheon">
+          <text x="10" y="24" class="d-eyebrow">DES USAGES DÉJÀ EN PLACE</text>
+          <g transform="translate(10,40)"><rect width="380" height="58" rx="10" fill="var(--panel)" stroke="var(--line)"/><text x="18" y="26" class="d-title">Vous</text><text x="18" y="46" class="d-muted">ChatGPT · un mail, une note</text></g>
+          <g transform="translate(10,106)"><rect width="380" height="58" rx="10" fill="var(--panel)" stroke="var(--line)"/><text x="18" y="26" class="d-title">Votre collaboratrice</text><text x="18" y="46" class="d-muted">Claude · rendu, synthèse</text></g>
+          <g transform="translate(10,172)"><rect width="380" height="58" rx="10" fill="var(--panel)" stroke="var(--line)"/><text x="18" y="26" class="d-title">Vos logiciels</text><text x="18" y="46" class="d-muted">IA intégrée · bureautique</text></g>
+          <g transform="translate(10,238)"><rect width="380" height="58" rx="10" fill="var(--panel)" stroke="var(--line)"/><text x="18" y="26" class="d-title">Partenaires</text><text x="18" y="46" class="d-muted">MOA · BET · entreprises</text></g>
+          <path d="M200 300 L200 330" stroke="var(--muted)" stroke-width="1.6" fill="none"/><polygon points="200,334 194,322 206,322" fill="var(--muted)"/>
+          <rect x="4" y="344" width="392" height="200" rx="16" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-dasharray="8 8"/>
+          <text x="20" y="370" class="d-eyebrow">PANTHEON · CADRE COMMUN</text>
+          <g transform="translate(22,382)"><rect width="356" height="146" rx="12" fill="var(--panel-2)" stroke="var(--ink)" stroke-width="1.3"/><text x="178" y="30" text-anchor="middle" class="d-title">Travail de l’agence</text><rect x="20" y="46" width="150" height="46" rx="8" fill="var(--panel)" stroke="var(--line)"/><text x="95" y="75" text-anchor="middle" class="d-sub">LIA21</text><rect x="186" y="46" width="150" height="46" rx="8" fill="var(--panel)" stroke="var(--line)"/><text x="261" y="75" text-anchor="middle" class="d-sub">SOL14</text><text x="178" y="122" text-anchor="middle" class="d-muted">contexte · méthodes · décisions</text></g>
+          <text x="200" y="572" text-anchor="middle" class="d-muted">Les usages restent individuels.</text><text x="200" y="594" text-anchor="middle" class="d-muted">Le dossier, lui, vous engage.</text>
+        </svg>
+      </div>
+    </figure>
+  </section>
+
+  <section class="section" id="bribes">
+    <div class="section-heading wide">
+      <p class="eyebrow">Ce qui se passe vraiment</p>
+      <h2>Une IA ne devine pas. Elle complète à partir des bribes qu’on lui donne.</h2>
+      <p>Un modèle ne va pas chercher ce qui lui manque, et surtout : il ne sait pas qu’il lui manque quelque chose. Il reçoit un extrait sans indice, un mail sorti de son fil, un plan non daté — et il comble les trous avec ce qui est le plus vraisemblable. C’est exactement ce qui s’est passé à 18 h 40.</p>
+      <p>Le résultat est fluide, cohérent, présentable. C’est précisément ce qui le rend dangereux : <strong>rien dans la forme ne signale que la reconstitution du dossier était fausse.</strong></p>
+      <p>Ce n’est pas un défaut de modèle, c’est un défaut d’entrée. La qualité d’une réponse dépend d’abord de la manière dont on a organisé ce qu’on lui transmet.</p>
+    </div>
+
+    <figure class="diagram diagram--vertical" aria-labelledby="bribes-title">
+      <div class="diagram-head"><div><p class="diagram-eyebrow">Schéma 02 · deux entrées, deux images</p><h3 class="diagram-title" id="bribes-title">La même IA, deux dossiers.</h3></div><p class="diagram-note">Le modèle est identique dans les deux cas. Ce qui change, c’est l’organisation de ce qu’il a reçu — et donc l’image du projet qu’il reconstitue.</p></div>
+      <div class="diagram-body vertical" tabindex="0" aria-label="Schéma vertical comparant une entrée en bribes, qui produit une image reconstituée, et un dossier structuré, qui produit une image fidèle">
+        <svg viewBox="0 0 400 800" role="img" aria-label="Des bribes produisent une image plausible mais fausse ; un dossier structuré produit une image fidèle qui signale ce qui manque">
+          <text x="10" y="24" class="d-eyebrow" style="fill:var(--red);">ENTRÉE A · DES BRIBES</text>
+          <g transform="translate(10,36)"><rect width="380" height="132" rx="12" fill="var(--panel)" stroke="var(--red)" stroke-width="1.4"/><text x="20" y="34" class="d-sub">un extrait de notice, sans indice</text><text x="20" y="66" class="d-sub">un mail sorti de son fil</text><text x="20" y="98" class="d-sub">un plan non daté</text><text x="20" y="118" class="d-muted">et un souvenir de réunion</text></g>
+          <path d="M200 168 L200 186" stroke="var(--muted)" stroke-width="1.6" fill="none"/><polygon points="200,190 194,178 206,178" fill="var(--muted)"/>
+          <g transform="translate(10,194)"><rect width="380" height="62" rx="10" fill="var(--panel-3)" stroke="var(--line)"/><text x="20" y="26" class="d-title">Le modèle comble les trous</text><text x="20" y="48" class="d-muted">il ne sait pas qu’il manque une pièce</text></g>
+          <path d="M200 256 L200 278" stroke="var(--red)" stroke-width="1.6" fill="none"/><polygon points="200,282 194,270 206,270" fill="var(--red)"/>
+          <g transform="translate(10,286)"><rect width="380" height="96" rx="12" fill="var(--panel-2)" stroke="var(--red)" stroke-width="1.6"/><text x="20" y="30" class="d-title">Une image reconstituée</text><text x="20" y="54" class="d-sub">fluide, assurée, fausse par endroits</text><text x="20" y="78" class="d-muted">la bonne réponse à un projet approximatif</text></g>
+          <line x1="10" y1="414" x2="390" y2="414" stroke="var(--line)" stroke-width="1"/>
+          <text x="10" y="450" class="d-eyebrow" style="fill:var(--green);">ENTRÉE B · UN DOSSIER ORGANISÉ</text>
+          <g transform="translate(10,462)"><rect width="380" height="132" rx="12" fill="var(--panel)" stroke="var(--green)" stroke-width="1.4"/><text x="20" y="34" class="d-sub">une pièce datée, à l’indice en vigueur</text><text x="20" y="66" class="d-sub">une décision reliée à sa source</text><text x="20" y="98" class="d-sub">une portée déclarée : ce projet</text><text x="20" y="118" class="d-muted">et ce qui manque, signalé comme tel</text></g>
+          <path d="M200 594 L200 612" stroke="var(--muted)" stroke-width="1.6" fill="none"/><polygon points="200,616 194,604 206,604" fill="var(--muted)"/>
+          <g transform="translate(10,620)"><rect width="380" height="62" rx="10" fill="var(--panel-3)" stroke="var(--line)"/><text x="20" y="26" class="d-title">Le modèle s’appuie</text><text x="20" y="48" class="d-muted">il travaille, il n’invente pas le dossier</text></g>
+          <path d="M200 682 L200 704" stroke="var(--green)" stroke-width="1.6" fill="none"/><polygon points="200,708 194,696 206,696" fill="var(--green)"/>
+          <g transform="translate(10,712)"><rect width="380" height="80" rx="12" fill="var(--panel-2)" stroke="var(--green)" stroke-width="1.6"/><text x="20" y="30" class="d-title">Une image fidèle</text><text x="20" y="54" class="d-sub">ce qui est su, ce qui manque</text><text x="20" y="72" class="d-muted">et ce qui reste ouvert</text></g>
+        </svg>
+      </div>
+      <div class="diagram-legend"><span class="leg" style="--dot:var(--red);">reconstitution silencieuse</span><span class="leg" style="--dot:var(--green);">appui explicite</span></div>
+    </figure>
+
+    <div class="principles">
+      <article><span>Elle comble</span><h3>Un manque ne ressemble pas à un manque.</h3><p>Il est remplacé par l’hypothèse la plus vraisemblable, sans avertissement, au milieu d’un paragraphe juste par ailleurs.</p></article>
+      <article><span>Elle ne date pas</span><h3>La version périmée pèse autant que la dernière.</h3><p>Sans indice ni date attachés à la pièce, un document remplacé depuis six mois reste une source parfaitement crédible.</p></article>
+      <article><span>Elle mélange</span><h3>Une règle d’un autre projet devient une règle du vôtre.</h3><p>Rien ne sépare spontanément ce qui appartient à ce dossier, à un autre dossier, à l’agence ou à une conversation d’hier.</p></article>
+      <article><span>Elle convainc</span><h3>La forme est toujours bonne.</h3><p>Le ton professionnel est constant, que le fond soit établi, partiel ou inventé. C’est le lecteur qui doit faire la différence.</p></article>
+    </div>
+    <p class="audience"><strong>Dans un métier où l’on répond de sa signature, une réponse brillante mais fausse n’est pas un simple bug.</strong> Elle engage une responsabilité, elle est recopiée dans la note suivante, et elle devient la version que tout le monde cite. La vitesse est déjà acquise : c’est le contrôle qui manque.</p>
+  </section>
+
+  <section class="section pantheon-section" id="pantheon">
+    <div class="section-heading wide">
+      <p class="eyebrow">Un cadre professionnel</p>
+      <h2>Pour un usage professionnel de l’IA, une réponse plausible ne suffit pas.</h2>
+      <p>Il faut un cadre capable de comprendre dans quel contexte la question est posée et de reconnaître ce qui lui manque. Lorsqu’une information importante est absente, le système ne la remplace pas silencieusement par une supposition : il cherche à la retrouver dans le périmètre autorisé, demande la précision nécessaire ou signale explicitement l’incertitude.</p>
+      <p>La réponse peut alors être <strong>circonstanciée, annotée et bornée</strong> : elle distingue ce qui est établi, ce qui est déduit, ce qui reste hypothétique et le périmètre dans lequel elle peut être utilisée. <strong>C’est ce cadre que Pantheon apporte à l’usage professionnel de l’IA.</strong></p>
+    </div>
+    <div class="principles">
+      <article><span>Porte 1 · entrée</span><h3>Sur quelles informations peut-on s’appuyer ?</h3><p>Une source retrouvée est un candidat, pas une preuve. Elle garde son origine, sa date, son indice, son statut et sa portée — ou son absence reste visible.</p></article>
+      <article><span>Porte 2 · contexte</span><h3>Que manque-t-il pour répondre correctement ?</h3><p>Le cadre cherche d’abord dans le périmètre autorisé. Si une information déterminante reste absente ou ambiguë, il la signale et demande la précision nécessaire au lieu de la transformer silencieusement en fait.</p></article>
+      <article><span>Porte 3 · sortie</span><h3>Que sait-on réellement dire ?</h3><p>La sortie garde un statut et ses appuis : établi, déduit, à vérifier, candidat. Elle indique sur quoi elle repose, dans quel périmètre elle vaut et ce qui reste ouvert.</p></article>
+      <article><span>Porte 4 · mémoire</span><h3>Que peut-il rester après coup ?</h3><p>Ce qui a été validé reste avec sa portée et sa source. Le reste peut servir sur le moment sans devenir automatiquement une référence durable.</p></article>
+    </div>
+    <p class="audience"><strong>Le même mardi, 18 h 40.</strong> La demande est reconnue pour ce qu’elle est : un engagement vers l’extérieur. La notice arrive avec son indice et son statut — elle déclare, elle n’atteste pas. Le compte rendu du 6 août laisse encore le point ouvert. Le PV de contrôle nécessaire pour conclure n’est pas disponible : au lieu de produire un « oui » assuré, le système conserve ce manque dans la réponse et demande la pièce ou la précision nécessaire. Vous pouvez alors répondre avec une réserve explicite, attendre la pièce ou poursuivre la vérification.<br><br><strong>Ce qui manque reste visible. Ce qui est affirmé reste relié à ses appuis et à son périmètre.</strong></p>
+    <div class="non-equivalences"><span>retrouvé ≠ vrai</span><span>déduit ≠ établi</span><span>réponse ≠ autorisation</span></div>
+    <p class="audience"><strong>Pour qui.</strong> Pour les professionnels qui répondent de ce qu’ils envoient : architectes, avocats, médecins, experts-comptables, ingénieurs, consultants. Des métiers où une réponse brillante mais fausse n’est pas un simple bug. Aucune compétence technique n’est présupposée : vous écrivez depuis votre canal habituel, et vous gardez la main sur les sources, les statuts et les signatures.</p>
+  </section>
+
+  <section class="section pantheon-section" id="continuite-semantique">
+    <div class="section-heading wide">
+      <p class="eyebrow">Continuité sémantique du projet</p>
+      <h2>Un même projet existe dans plusieurs représentations à la fois.</h2>
+      <p>Un plan, un modèle IFC ou Revit, un CCTP, une photo et un compte rendu peuvent parler du même objet sans raconter exactement la même chose. Pantheon cherche à les relier autour d’identités stables et de relations explicites, sans écraser leurs différences dans une valeur unique.</p>
+      <p><strong>La globalité vient de la possibilité de superposer les fragments, pas de les fusionner en une vérité automatique.</strong> Hermès peut alors recevoir, pour une question donnée, un voisinage borné du projet et composer les conséquences pertinentes tout en gardant visibles les sources, contradictions, exigences potentielles et informations manquantes.</p>
+    </div>
+    <div class="principles">
+      <article><span>Identité</span><h3>Plusieurs sources, le même objet.</h3><p>Une cloison du plan, son occurrence IFC, une prescription CCTP et une observation chantier peuvent être rattachées à la même identité gouvernée lorsqu’une correspondance est suffisamment établie.</p></article>
+      <article><span>Divergence</span><h3>Les désaccords restent visibles.</h3><p>Un plan peut indiquer 100 mm et le modèle 120 mm. Pantheon conserve les deux claims avec leur provenance ; il ne choisit pas silencieusement une vérité.</p></article>
+      <article><span>Contexte</span><h3>La question n’ouvre pas tout le projet.</h3><p>Le contexte actif reste borné aux identités et sources admises pour la tâche. Une relation connue n’autorise pas à elle seule une traversée globale du projet.</p></article>
+      <article><span>Compréhension</span><h3>Hermès compose, Pantheon ne pré-écrit pas le raisonnement.</h3><p>Le modèle peut relier espace, ouverture, réseau, document et Knowledge pour proposer des conséquences. Cette interprétation reste distincte des claims gouvernés et de la décision professionnelle.</p></article>
+    </div>
+    <div class="non-equivalences"><span>sources alignées ≠ vérité fusionnée</span><span>match proposé ≠ identité gouvernée</span><span>compréhension Hermès ≠ vérité projet</span></div>
+    <p class="audience"><strong>État actuel.</strong> Le dépôt qualifie déjà la composition bornée de ces contextes entre plusieurs owners. La détection automatique de contradiction porte aujourd’hui sur les seules valeurs scalaires : les contradictions géométriques et relationnelles sont conservées et affichées, mais non détectées — une liste de conflits vide signifie donc qu’aucune valeur scalaire ne diverge, pas que rien ne diverge. Les admissions synthétiques A/B et d’ambiguïté, ainsi que le readback cognitif, sont préparés côté dépôt ; l’exécution sur une cible Hermes réelle reste ouverte dans <a href="https://github.com/ifanjuang/Pantheon-Next/issues/986">P2 #986</a>. Si cette campagne minimale est saine, la prochaine preuve est le vertical métier <a href="https://github.com/ifanjuang/Pantheon-Next/issues/827">#827 — CCTP, DPGF/DQE et devis entreprise</a>. Aucun ContextGraph, Lens Engine ou moteur métier supplémentaire n’est présupposé.</p>
+  </section>
+
+  <section class="section pantheon-section" id="enjeux">
+    <div class="section-heading wide">
+      <p class="eyebrow">Ce que ça permet</p>
+      <h2>Trois capacités difficiles à tenir sans cadre commun.</h2>
+      <p>Le sujet n’est pas d’aller plus vite : vous y êtes déjà. C’est de pouvoir vous appuyer sur ce qui sort — et de savoir, sans tout relire, quand vous le pouvez.</p>
+    </div>
+    <div class="lineage">
+      <article><span>Aujourd’hui · votre attention</span><h3>Ne pas tout relire.</h3><p>Si chaque sortie doit être revérifiée par la seule personne qui engage sa signature, le gain de temps s’évapore. Ou bien on cesse de vérifier — et c’est pire.</p><p class="here"><strong>Principe :</strong> la conséquence est qualifiée avant ce qui peut engager. Ce qui reste sans effet peut circuler ; ce qui engage doit rencontrer la pièce, la décision ou l’autorisation appropriée. Les chemins exécutables correspondants sont encore qualifiés par étapes côté dépôt.</p></article>
+      <article><span>Demain · l’action</span><h3>Laisser l’IA agir sans lui laisser la main.</h3><p>Les assistants ne se contentent plus de répondre : ils envoient, déposent, écrivent dans vos outils. Le jour où cela touche l’extérieur, « répondre n’est pas agir » cesse d’être une position et devient un garde-fou concret.</p><p class="here"><strong>Principe :</strong> préparer un effet et l’autoriser restent deux actes distincts. Les chemins conséquents passent par une décision humaine puis une vérification exacte avant exécution ; leur adoption opérationnelle reste distincte de leur qualification dans le dépôt.</p></article>
+      <article><span>Dans cinq ans · votre actif</span><h3>Posséder ce que l’agence apprend.</h3><p>Ce qui s’accumule aujourd’hui dans des fils de conversation n’est ni citable, ni transmissible, ni portable. Ça meurt avec l’abonnement, et ça part avec la personne.</p><p class="here"><strong>Principe :</strong> le registre gouverné appartient au projet, pas au moteur qui a produit une réponse. Une personne ou un modèle peut changer sans transformer automatiquement mémoire, résultat runtime ou projection en référence durable.</p></article>
+    </div>
+    <p class="audience"><strong>Et le jour où on vous le demandera.</strong> Un maître d’ouvrage, un assureur, un confrère, un expert : la question « comment l’IA est-elle intervenue sur ce dossier ? » va devenir ordinaire. La réponse défendable n’est pas « avec prudence ». C’est un chemin de décision qu’on peut montrer : quelles pièces, à quelle date, sous quel statut, approuvées par qui.</p>
+  </section>
+
+  <section class="section" id="travail">
+    <div class="section-heading wide">
+      <p class="eyebrow">L’objection</p>
+      <h2>« Vous êtes en train de m’ajouter du travail. »</h2>
+      <p>C’est la première réaction, et elle est fondée. Les quatre portes supposent que les pièces portent leur origine, leur date, leur indice et leur portée. Si tout cela repose sur vous, le cadre coûte plus cher qu’il ne rapporte — et personne ne le tiendra trois semaines.</p>
+      <p>La règle est donc simple : <strong>qualifier au moment utile, une fois, plutôt que ressaisir partout.</strong> Voici comment le travail devrait se répartir.</p>
+    </div>
+    <div class="principles">
+      <article><span>Automatisable</span><h3>Ce que le cadre peut relever sans ressaisie.</h3><p>Origine d’un fichier, date, version, fil ou projet associé, lorsque ces métadonnées existent déjà. Elles sont reprises et rendues visibles plutôt que retapées.</p></article>
+      <article><span>Proposé</span><h3>Ce qu’il peut proposer, à confirmer.</h3><p>Le statut d’une pièce, sa portée, le fait qu’une réponse engage l’extérieur. Un geste pour confirmer, un geste pour corriger — au moment où l’information sert.</p></article>
+      <article><span>Humain</span><h3>Ce qui reste votre geste.</h3><p>Décider qu’une information fait référence, approuver ce qui engage, signer. Ces décisions deviennent simplement visibles, datées et relisibles.</p></article>
+      <article><span>À éviter</span><h3>Ce que le cadre ne devrait pas exiger.</h3><p>Reclasser tout l’historique, migrer tous les fichiers, tenir un référentiel à la main ou changer d’outil avant de pouvoir commencer.</p></article>
+    </div>
+    <p class="audience"><strong>Sur la cible AFFAIRES actuelle, cette règle est devenue concrète.</strong> Les fichiers métier restent sur le NAS et sont montés directement sous Linux : le chemin sélectionné ne maintient plus de miroir durable d’<code>AFFAIRES</code> sur le disque Linux et ne dépend plus d’Obsidian, LiveSync ou CouchDB. Un seul daemon Workspace maintient un index technique reconstructible et produit les opérations Hindsight. Les cartouches Markdown cachées <code>.nom.ext.md</code> décrivent les sources sans les remplacer ; une relation de révision n’est enregistrée que lorsqu’elle est explicitement établie, jamais déduite du nom, de l’indice ou de la date.</p>
+    <p class="audience"><strong>Le partage exact entre ces quatre colonnes reste à éprouver sur des dossiers réels.</strong> L’enjeu des premiers pilotes est précisément de trouver la ligne où la qualification devient un réflexe et non une corvée. Si cette ligne n’existe pas, il faudra le constater.</p>
+  </section>
+
+  <section class="section" id="architecture">
+    <div class="section-heading wide"><p class="eyebrow">Architecture · en une minute</p><h2>Quatre ressources, un cadre, une décision : mémoire ou registre.</h2><p>Derrière une réponse, il y a toujours quatre choses : un modèle, une manière de faire, des connaissances et parfois des outils connectés. Pantheon les nomme, les situe et garde la trace de celles qui ont réellement servi.</p><p>Ensuite, une seule question compte : <strong>ce qui vient d’être produit reste-t-il du contexte ou de la mémoire de travail, ou devient-il une référence gouvernée sur laquelle l’agence pourra s’appuyer ?</strong></p></div>
+    <div class="principles">
+      <article><span>IA · modèles</span><h3>La capacité de langage.</h3><p>ChatGPT, Claude, Gemini, un modèle local ou l’IA intégrée à un logiciel métier. Ils rédigent, comparent, raisonnent — et restent interchangeables. La mémoire runtime reste hors de Pantheon.</p></article>
+      <article><span>Skills</span><h3>Des manières de faire bornées.</h3><p>Rédiger un compte rendu, comparer deux notices, préparer une consultation. Un Skill décrit comment réaliser correctement le travail avec les pièces admises et comment restituer le résultat ; il ne décide ni du périmètre ni de l’autorisation d’agir. Disponible ne veut pas dire autorisé.</p></article>
+      <article><span>Connaissances · web</span><h3>Ce sur quoi la réponse s’appuie.</h3><p>Documents du projet, connaissances de l’agence, et le web lorsque la question l’exige. Chaque élément garde son origine, sa date et sa portée : trouvé n’est pas vérifié.</p></article>
+      <article><span>Connexions</span><h3>Les outils que l’IA peut atteindre.</h3><p>Messagerie, stockage, logiciels métiers, services externes. Lire est une chose ; écrire, envoyer ou engager l’agence en est une autre, et demande une autorisation explicite.</p></article>
+    </div>
+
+    <figure class="diagram diagram--vertical" aria-labelledby="architecture-title">
+      <div class="diagram-head"><div><p class="diagram-eyebrow">Schéma 03 · vue d’ensemble</p><h3 class="diagram-title" id="architecture-title">Des ressources à la mémoire et au registre.</h3></div><p class="diagram-note">Une seule vue pour situer Pantheon : le contexte actif, le point de passage où la décision revient au professionnel, et la frontière entre mémoire runtime / retrieval et Registre Probatoire.</p></div>
+      <div class="diagram-body vertical" tabindex="0" aria-label="Schéma vertical : les ressources mobilisées, le cadre Pantheon, la décision du professionnel, puis la mémoire de travail et le Registre Probatoire">
+        <svg viewBox="0 0 400 1040" role="img" aria-label="Modèles, skills, connaissances et connexions entrent dans le cadre Pantheon ; le professionnel décide ; la mémoire de travail aide au rappel et le Registre Probatoire retient seulement après qualification">
+          <text x="10" y="24" class="d-eyebrow">CE QUE L’IA MOBILISE</text>
+          <g transform="translate(10,36)"><rect width="380" height="56" rx="10" fill="var(--panel)" stroke="var(--line)"/><text x="18" y="24" class="d-title">Modèles / IA</text><text x="18" y="44" class="d-muted">ChatGPT · Claude · Gemini · local</text></g>
+          <g transform="translate(10,100)"><rect width="380" height="56" rx="10" fill="var(--panel)" stroke="var(--line)"/><text x="18" y="24" class="d-title">Skills</text><text x="18" y="44" class="d-muted">des manières de faire bornées</text></g>
+          <g transform="translate(10,164)"><rect width="380" height="56" rx="10" fill="var(--panel)" stroke="var(--line)"/><text x="18" y="24" class="d-title">Connaissances</text><text x="18" y="44" class="d-muted">projet · agence · web</text></g>
+          <g transform="translate(10,228)"><rect width="380" height="56" rx="10" fill="var(--panel)" stroke="var(--line)"/><text x="18" y="24" class="d-title">Connexions</text><text x="18" y="44" class="d-muted">logiciels · messagerie · outils</text></g>
+          <path d="M200 284 L200 310" stroke="var(--muted)" stroke-width="1.6" fill="none"/><polygon points="200,314 194,302 206,302" fill="var(--muted)"/>
+          <rect x="4" y="320" width="392" height="266" rx="16" fill="var(--panel-2)" stroke="var(--accent)" stroke-width="1.6"/><text x="22" y="348" class="d-eyebrow">PANTHEON · CADRE COMMUN</text>
+          <g transform="translate(22,360)"><rect width="356" height="86" rx="10" fill="var(--panel)" stroke="var(--line)"/><text x="18" y="28" class="d-title">Contexte actif</text><text x="18" y="52" class="d-sub">ce qui est réellement transmis</text><text x="18" y="72" class="d-muted">origine · date · portée · statut</text></g>
+          <g transform="translate(22,456)"><rect width="356" height="56" rx="10" fill="var(--panel)" stroke="var(--line)"/><text x="18" y="24" class="d-title">Rôles · Espaces · Rites</text><text x="18" y="44" class="d-muted">quelle attention, quelle méthode</text></g>
+          <g transform="translate(22,522)"><rect width="356" height="52" rx="10" fill="var(--panel)" stroke="var(--amber)" stroke-width="1.5"/><text x="18" y="22" class="d-eyebrow" style="fill:var(--amber);">POINT DE PASSAGE</text><text x="18" y="42" class="d-sub">ce qui engage passe ici</text></g>
+          <path d="M200 586 L200 612" stroke="var(--amber)" stroke-width="1.8" fill="none"/><polygon points="200,616 194,604 206,604" fill="var(--amber)"/>
+          <g transform="translate(40,620)"><rect width="320" height="64" rx="12" fill="var(--panel)" stroke="var(--amber)" stroke-width="1.7"/><text x="160" y="26" text-anchor="middle" class="d-eyebrow" style="fill:var(--amber);">PROFESSIONNEL</text><text x="160" y="50" text-anchor="middle" class="d-title">comprend · arbitre · décide</text></g>
+          <path d="M200 684 L200 710" stroke="var(--muted)" stroke-width="1.6" fill="none"/><polygon points="200,714 194,702 206,702" fill="var(--muted)"/>
+          <g transform="translate(10,718)"><rect width="380" height="80" rx="12" fill="var(--panel-3)" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="6 6"/><text x="18" y="24" class="d-eyebrow" style="fill:var(--muted);">MÉMOIRE DE TRAVAIL · HERMÈS / HINDSIGHT</text><text x="18" y="50" class="d-title">Rappelle et propose</text><text x="18" y="70" class="d-muted">runtime · retrieval dérivé — ne fait pas foi</text></g>
+          <path d="M200 798 L200 820" stroke="var(--amber)" stroke-width="1.8" fill="none"/><polygon points="200,824 194,812 206,812" fill="var(--amber)"/>
+          <g transform="translate(10,828)"><rect width="380" height="56" rx="10" fill="var(--panel)" stroke="var(--amber)" stroke-width="1.5" stroke-dasharray="5 5"/><text x="190" y="24" text-anchor="middle" class="d-eyebrow" style="fill:var(--amber);">REVUE HUMAINE</text><text x="190" y="44" text-anchor="middle" class="d-muted">candidat → retenu · jamais automatique</text></g>
+          <path d="M200 884 L200 906" stroke="var(--green)" stroke-width="1.8" fill="none"/><polygon points="200,910 194,898 206,898" fill="var(--green)"/>
+          <g transform="translate(10,914)"><rect width="380" height="86" rx="12" fill="var(--panel)" stroke="var(--green)" stroke-width="1.6"/><text x="18" y="24" class="d-eyebrow" style="fill:var(--green);">REGISTRE PROBATOIRE · PANTHEON</text><text x="18" y="50" class="d-title">Ce qui peut faire référence</text><text x="18" y="72" class="d-muted">source · Evidence · portée · revue</text></g>
+          <text x="200" y="1028" text-anchor="middle" class="d-muted">La mémoire aide. Le registre peut faire référence après qualification.</text>
+        </svg>
+      </div>
+      <div class="diagram-legend"><span class="leg" style="--dot:var(--accent);">cadre Pantheon</span><span class="leg" style="--dot:var(--amber);">décision humaine</span><span class="leg" style="--dot:var(--green);">registre citable</span><span class="leg" style="--dot:var(--muted);">mémoire runtime / retrieval · sans autorité</span></div>
+    </figure>
+  </section>
+
+  <section class="section pantheon-section" id="memoires">
+    <div class="section-heading wide"><p class="eyebrow">Mémoire et registre</p><h2>Se souvenir n’est pas faire référence.</h2><p>C’est la distinction la plus utile de Pantheon, et la plus facile à vérifier dans un dossier réel. Une équipe la pratique déjà sans la nommer : un souvenir de réunion et une décision documentée ne jouent pas le même rôle, même quand ils racontent la même chose.</p></div>
+    <div class="memory-duo">
+      <article class="memory-card"><small>Mémoire de travail · Hermès / retrieval dérivé</small><h3>Elle se souvient, elle propose.</h3><p>Le fil de conversation, l’état runtime, les habitudes de travail et, lorsqu’il est sélectionné, le rappel dérivé par Hindsight. Cette mémoire peut être persistante techniquement sans devenir un état gouverné Pantheon.</p><ul><li>Utile, rapide, remplaçable</li><li>Peut être native à Hermès ou fournie par un composant externe</li><li><strong>Ne fait pas foi</strong> : rien de ce qu’elle retient ne justifie à lui seul une décision</li></ul></article>
+      <article class="memory-card register"><small>Registre Probatoire · côté Pantheon</small><h3>Le registre retient ce qui peut être cité.</h3><p>Une information n’y entre pas parce qu’elle est utile ou souvent répétée : elle y entre parce qu’elle a été proposée comme candidate, qualifiée, puis retenue selon le niveau de revue requis.</p><ul><li>Source, date et pièce à l’appui</li><li>Portée déclarée : projet, agence, domaine</li><li>Niveau de certitude, révision et retrait possibles</li></ul></article>
+    </div>
+    <p class="memory-gate">Entre les deux, une porte de qualification : <strong>le souvenir ne devient pas une référence par accumulation, répétition ou assurance du modèle.</strong></p>
+    <div class="non-equivalences"><span>se souvenir ≠ faire foi</span><span>trouvé sur le web ≠ vérifié</span><span>connecté ≠ autorisé</span></div>
+    <p class="audience"><strong>Exemple général.</strong> « L’assistant se souvient que vous préférez des synthèses courtes » relève de la mémoire de travail. « Une décision a été validée à une date donnée, avec une pièce de référence et une portée explicite » peut devenir candidate au registre. La première facilite le travail ; la seconde doit pouvoir être justifiée et relue.</p>
+  </section>
+
+  <section class="section" id="grammaire">
+    <div class="section-heading wide">
+      <p class="eyebrow">Écologie cognitive · Rôles · Lieux · Rites</p>
+      <h2>Pas un cerveau central : une écologie de l’attention.</h2>
+      <p>Pantheon ne cherche pas à faire penser un agent unique à la place du professionnel. Il sépare des formes de jugement et d’attention capables de coexister, de se contredire et de se corriger sans qu’une seule voix absorbe tout le dossier.</p>
+      <p>Pour rester simple, la lecture commence par trois questions : <strong>qui regarde quoi, dans quel contexte, et selon quelle méthode ?</strong> Sous ces trois lectures, les objets gardent leur identité, leur histoire et leur provenance ; les règles bornent ce qu’on peut en déduire ou en faire.</p>
+    </div>
+    <div class="lineage">
+      <article><span>Rôles</span><h3>Qui regarde quoi ?</h3><p>Une même situation peut demander de structurer la mission, vérifier les sources, repérer un risque, contrôler une version ou préparer une transmission.</p><p class="here"><strong>Ici :</strong> ces responsabilités restent séparées pour éviter qu’une seule réponse lisse masque leurs désaccords.</p></article>
+      <article><span>Rites</span><h3>Comment vérifier quand ça se complique ?</h3><p>Comparer des sources qui divergent. Mettre une réponse trop convaincante à l’épreuve. Élargir les options avant de choisir. Repartir d’un contexte propre.</p><p class="here"><strong>Ici :</strong> ces gestes deviennent des méthodes bornées, ouvertes seulement lorsqu’elles apportent quelque chose.</p></article>
+      <article><span>Lieux et périmètres</span><h3>Dans quel contexte l’information peut-elle servir ?</h3><p>Une information de projet n’est pas automatiquement une règle générale ; une note interne n’est pas une décision ; un souvenir temporaire n’est pas une référence durable.</p><p class="here"><strong>Ici :</strong> la portée reste visible, et la réutilisation hors de son contexte doit être justifiée.</p></article>
+    </div>
+
+    <p class="audience"><strong>Pourquoi parler d’écologie ?</strong> Parce qu’il ne s’agit pas de multiplier les agents mais d’organiser un milieu : plusieurs points de vue peuvent rester distincts, une contradiction peut rester ouverte, une nouvelle observation peut corriger ce que l’on croyait savoir, et aucune de ces circulations ne transforme automatiquement une information en vérité ou en autorisation. Les objets — source, document, claim, Evidence, décision — gardent leur propre état et leur propre histoire. Les contrats, règles et invariants gardent leurs propriétaires. Hermès exécute ce qui a été admis ; le professionnel décide de ce qui engage.</p>
+
+    <figure class="diagram diagram--vertical" aria-labelledby="grammar-title">
+      <div class="diagram-head"><div><p class="diagram-eyebrow">Schéma 04 · grammaire Pantheon</p><h3 class="diagram-title" id="grammar-title">Trois dimensions d’une même écologie.</h3></div><p class="diagram-note">Ces trois lectures organisent l’attention. Elles ne transforment pas chaque demande en cérémonie et n’acquièrent aucune autorité sur les objets qu’elles exposent : seuls les regards utiles sont mobilisés.</p></div>
+      <div class="diagram-body vertical" tabindex="0" aria-label="Schéma vertical : une situation professionnelle lue par les Rôles, les Espaces et les Rites, puis tranchée par le professionnel">
+        <svg viewBox="0 0 400 620" role="img" aria-label="Une situation professionnelle, trois lectures — rôles, espaces, rites — puis la décision du professionnel">
+          <g transform="translate(10,26)"><rect width="380" height="80" rx="14" fill="var(--panel-2)" stroke="var(--ink)" stroke-width="1.4"/><text x="190" y="30" text-anchor="middle" class="d-eyebrow">SITUATION PROFESSIONNELLE</text><text x="190" y="58" text-anchor="middle" class="d-title">une question dans un contexte réel</text></g>
+          <path d="M200 106 L200 130" stroke="var(--muted)" stroke-width="1.6" fill="none"/><polygon points="200,134 194,122 206,122" fill="var(--muted)"/>
+          <g transform="translate(10,140)"><rect width="380" height="86" rx="12" fill="var(--panel)" stroke="var(--accent)" stroke-width="1.5"/><text x="20" y="26" class="d-eyebrow">RÔLES</text><text x="20" y="52" class="d-title">Qui doit porter attention ?</text><text x="20" y="72" class="d-muted">sources · limites · qualité · continuité</text></g>
+          <g transform="translate(10,240)"><rect width="380" height="86" rx="12" fill="var(--panel)" stroke="#56c7d6" stroke-width="1.5"/><text x="20" y="26" class="d-eyebrow" style="fill:#56c7d6;">ESPACES</text><text x="20" y="52" class="d-title">Dans quel périmètre ?</text><text x="20" y="72" class="d-muted">session · dossier · projet · organisation</text></g>
+          <g transform="translate(10,340)"><rect width="380" height="86" rx="12" fill="var(--panel)" stroke="#ad8cff" stroke-width="1.5"/><text x="20" y="26" class="d-eyebrow" style="fill:#ad8cff;">RITES</text><text x="20" y="52" class="d-title">Selon quelle méthode ?</text><text x="20" y="72" class="d-muted">comparer · critiquer · diverger · refonder</text></g>
+          <path d="M200 426 L200 456" stroke="var(--amber)" stroke-width="1.8" fill="none"/><polygon points="200,460 194,448 206,448" fill="var(--amber)"/>
+          <g transform="translate(30,464)"><rect width="340" height="76" rx="13" fill="var(--panel)" stroke="var(--amber)" stroke-width="1.7"/><text x="170" y="30" text-anchor="middle" class="d-eyebrow" style="fill:var(--amber);">PROFESSIONNEL</text><text x="170" y="56" text-anchor="middle" class="d-title">comprend · arbitre · décide</text></g>
+          <text x="200" y="580" text-anchor="middle" class="d-muted">Pantheon structure la lecture.</text><text x="200" y="602" text-anchor="middle" class="d-muted">La décision reste professionnelle.</text>
+        </svg>
+      </div>
+    </figure>
+
+    <div class="roles-grid" aria-label="Les huit rôles de gouvernance, par fonction">
+      <div><strong>Comprendre la mission</strong><span>Athena — structure la question et les étapes utiles</span></div>
+      <div><strong>Vérifier les sources</strong><span>Argos — contrôle origine, provenance et appui probatoire</span></div>
+      <div><strong>Repérer les limites</strong><span>Themis — fait apparaître risque, contradiction et besoin d’approbation</span></div>
+      <div><strong>Vérifier la qualité</strong><span>Apollo — contrôle clarté, complétude et préparation à la livraison</span></div>
+      <div><strong>Préparer la fabrication</strong><span>Héphaïstos — qualifie ce qui doit être construit ou modifié</span></div>
+      <div><strong>Préparer la transmission</strong><span>Iris — adapte ce qui doit être présenté ou envoyé</span></div>
+      <div><strong>Choisir la suite</strong><span>Zeus — arbitre statut et procédure quand plusieurs chemins restent ouverts</span></div>
+      <div><strong>Retrouver l’historique utile</strong><span>Mnémosyne — sait où chercher, contrôle la chronologie et les relations de révision explicites, signale les ambiguïtés et propose ce qui mérite d’être conservé</span></div>
+    </div>
+
+    <p class="audience"><strong>Pourquoi des noms grecs ?</strong> La fonction vient avant le nom. Les noms servent simplement de repères courts pour huit responsabilités de jugement distinctes. Ils ne désignent pas huit agents qui discutent en permanence : un rôle peut rester en veille tant que son regard n’est pas utile. Mnémosyne, par exemple, devient importante lorsqu’il faut retrouver un état antérieur, distinguer plusieurs versions ou décider où proposer la conservation d’une information ; Argos reste responsable de la valeur des sources. Pour aller plus loin sur les modèles, le RAG, la mémoire, les rôles, les rites et les lieux, l’Atlas pédagogique détaille le système progressivement.</p>
+    <div class="actions"><a class="button" href="comprendre.html">Ouvrir « Comprendre l’IA moderne »</a></div>
+    <figure class="diagram diagram--vertical" aria-labelledby="diagram-organisation-title"><div class="diagram-head"><div><p class="diagram-eyebrow">Organisation · qui fait quoi</p><h3 class="diagram-title" id="diagram-organisation-title">Seul ce que la situation exige est mobilisé.</h3></div><p class="diagram-note">Hermès exécute ; une posture de travail cadre l’effort ; un rite ne convoque des points de vue que si la situation le justifie ; Zeus statue sur la procédure ; vous décidez. Une question simple ne mobilise ni rite ni dieu.</p></div><div class="diagram-body vertical" tabindex="0" aria-label="Organisation de Pantheon, présentée verticalement"><img src="assets/diagrams/pantheon-organisation-fr.svg" alt="Organisation de Pantheon : votre demande, exécution par Hermès, postures de travail (Ulysse, Nestor, Dédale, Cassandre), rites de relecture, points de vue de jugement (Athéna, Argos, Thémis, Apollon, Héphaïstos, Iris, Mnémosyne), statut par Zeus, puis votre décision ; les lieux bornent le parcours."></div></figure>
+  </section>
+
+  <section class="section" id="contexte">
+    <div class="section-heading wide"><p class="eyebrow">Contexte visible</p><h2>Voir le contexte qu’on donne à l’IA, et pas seulement le lui donner.</h2><p>Une réponse dépend des informations effectivement mobilisées. Pantheon rend donc lisible ce qui compose le contexte actif : le dossier, les documents, les connaissances, les décisions antérieures et, lorsqu’ils sont pertinents, les outils mobilisés.</p><p>Le professionnel voit ce qui est proposé, ce qui est retenu, d’où cela vient, à quel périmètre cela appartient et quelle version est utilisée.</p></div>
+    <figure class="diagram diagram--vertical" aria-labelledby="context-title">
+      <div class="diagram-head"><div><p class="diagram-eyebrow">Schéma 05 · contexte actif</p><h3 class="diagram-title" id="context-title">Ce que l’IA est réellement en train d’utiliser.</h3></div><p class="diagram-note">Le contexte actif est une sélection lisible et modifiable : un élément suggéré peut être ajouté, retiré ou remplacé avant de s’y fier.</p></div>
+      <div class="diagram-body vertical" tabindex="0" aria-label="Schéma vertical : les informations disponibles, la sélection qui compose le contexte actif, puis l’IA qui la reçoit">
+        <svg viewBox="0 0 400 840" role="img" aria-label="Des informations disponibles, un contexte actif sélectionné et daté, puis l’IA ou Hermès qui le reçoit">
+          <text x="10" y="24" class="d-eyebrow">INFORMATIONS DISPONIBLES</text>
+          <g transform="translate(10,36)"><rect width="380" height="46" rx="9" fill="var(--panel)" stroke="var(--line)"/><text x="18" y="20" class="d-sub">Dossier actif</text><text x="18" y="38" class="d-muted">projet · périmètre courant</text></g>
+          <g transform="translate(10,90)"><rect width="380" height="46" rx="9" fill="var(--panel)" stroke="var(--line)"/><text x="18" y="20" class="d-sub">Documents du dossier</text><text x="18" y="38" class="d-muted">pièces · notes · comptes rendus · échanges</text></g>
+          <g transform="translate(10,144)"><rect width="380" height="46" rx="9" fill="var(--panel)" stroke="var(--line)"/><text x="18" y="20" class="d-sub">Connaissances du projet</text><text x="18" y="38" class="d-muted">choix · hypothèses · historique</text></g>
+          <g transform="translate(10,198)"><rect width="380" height="46" rx="9" fill="var(--panel)" stroke="var(--line)"/><text x="18" y="20" class="d-sub">Connaissances partagées</text><text x="18" y="38" class="d-muted">méthodes · références · retours</text></g>
+          <g transform="translate(10,252)"><rect width="380" height="46" rx="9" fill="var(--panel)" stroke="var(--line)"/><text x="18" y="20" class="d-sub">Décisions</text><text x="18" y="38" class="d-muted">arbitrages déjà enregistrés</text></g>
+          <path d="M200 298 L200 324" stroke="var(--muted)" stroke-width="1.6" fill="none"/><polygon points="200,328 194,316 206,316" fill="var(--muted)"/>
+          <rect x="4" y="334" width="392" height="300" rx="16" fill="var(--panel-2)" stroke="var(--accent)" stroke-width="1.6"/><text x="22" y="362" class="d-eyebrow">CONTEXTE ACTIF · CETTE DEMANDE</text>
+          <g transform="translate(20,376)"><rect width="360" height="56" rx="9" fill="var(--panel)" stroke="var(--green)"/><text x="16" y="24" class="d-sub">✓ Document de référence · version 3</text><text x="16" y="44" class="d-muted">source · date · portée déclarée</text></g>
+          <g transform="translate(20,442)"><rect width="360" height="56" rx="9" fill="var(--panel)" stroke="var(--green)"/><text x="16" y="24" class="d-sub">✓ Note de revue · version 2</text><text x="16" y="44" class="d-muted">source · chronologie · dossier</text></g>
+          <g transform="translate(20,508)"><rect width="360" height="56" rx="9" fill="var(--panel)" stroke="var(--green)"/><text x="16" y="24" class="d-sub">✓ Décision validée</text><text x="16" y="44" class="d-muted">décision · portée : ce contexte</text></g>
+          <g transform="translate(20,574)"><rect width="360" height="56" rx="9" fill="var(--panel)" stroke="var(--amber)" stroke-dasharray="5 5"/><text x="16" y="24" class="d-sub">+ Guide interne</text><text x="16" y="44" class="d-muted">suggéré · non sélectionné</text></g>
+          <path d="M200 634 L200 660" stroke="#ad8cff" stroke-width="1.8" fill="none"/><polygon points="200,664 194,652 206,652" fill="#ad8cff"/>
+          <g transform="translate(10,668)"><rect width="380" height="80" rx="14" fill="var(--panel)" stroke="#ad8cff" stroke-width="1.6"/><text x="190" y="26" text-anchor="middle" class="d-eyebrow" style="fill:#ad8cff;">IA / EXÉCUTEUR</text><text x="190" y="50" text-anchor="middle" class="d-title">reçoit la sélection</text><text x="190" y="70" text-anchor="middle" class="d-muted">pas tout le fond documentaire</text></g>
+          <text x="200" y="784" text-anchor="middle" class="d-muted">origine · type · périmètre · version</text><text x="200" y="806" text-anchor="middle" class="d-muted">statut · raison de la sélection</text>
+        </svg>
+      </div>
+    </figure>
+    <p class="audience"><strong>Toutes les informations n’ont pas la même durée.</strong> Une conversation peut rester temporaire ; un élément appartient durablement à un projet ; une connaissance peut devenir réutilisable plus largement. Pantheon garde ces passages situés, traçables et révisables.</p>
+  </section>
+
+  <section class="section trust-section" id="continuite">
+    <div class="section-heading wide"><p class="eyebrow">Rites · méthode explicite</p><h2>Certaines situations méritent davantage qu’une réponse rapide.</h2><p>Deux sources se contredisent, une réponse paraît trop convaincante, une hypothèse ancienne continue d’être réutilisée ou le contexte est devenu trop chargé : ce sont des situations générales. Un Rite fournit une méthode de revue bornée à ce type de tension.</p><p><strong>Un Rite s’ouvre seulement lorsqu’il apporte quelque chose, puis se referme explicitement.</strong> Il structure la méthode ; il ne remplace pas la décision humaine.</p></div>
+
+    <figure class="diagram diagram--vertical" aria-labelledby="rite-title">
+      <div class="diagram-head"><div><p class="diagram-eyebrow">Schéma 06 · un Rite en situation</p><h3 class="diagram-title" id="rite-title">Comparer avant de conclure.</h3></div><p class="diagram-note">Exemple générique : deux documents récents ne donnent pas le même statut à une information.</p></div>
+      <div class="diagram-body vertical" tabindex="0" aria-label="Schéma vertical : deux sources divergentes, plusieurs regards utiles, le rite de concordance des sources, puis la décision humaine">
+        <svg viewBox="0 0 400 760" role="img" aria-label="Deux sources divergentes, les rôles Argos, Mnémosyne et Themis, le rite de concordance des sources, puis la décision humaine">
+          <g transform="translate(10,26)"><rect width="380" height="80" rx="12" fill="var(--panel)" stroke="var(--green)" stroke-width="1.4"/><text x="20" y="26" class="d-eyebrow" style="fill:var(--green);">DOCUMENT A · RELATION DÉCLARÉE</text><text x="20" y="52" class="d-title">« Statut : approuvé »</text><text x="20" y="70" class="d-muted">déclare remplacer une occurrence antérieure</text></g>
+          <g transform="translate(10,118)"><rect width="380" height="80" rx="12" fill="var(--panel)" stroke="var(--amber)" stroke-width="1.4"/><text x="20" y="26" class="d-eyebrow" style="fill:var(--amber);">DOCUMENT B · NOTE DE REVUE</text><text x="20" y="52" class="d-title">« Validation encore en attente »</text><text x="20" y="70" class="d-muted">état antérieur toujours ouvert</text></g>
+          <text x="200" y="228" text-anchor="middle" class="d-title">Écart détecté</text><path d="M200 238 L200 258" stroke="var(--muted)" stroke-width="1.6" fill="none"/><polygon points="200,262 194,250 206,250" fill="var(--muted)"/>
+          <g transform="translate(10,268)"><rect width="380" height="56" rx="10" fill="var(--panel)" stroke="var(--accent)"/><text x="18" y="24" class="d-eyebrow">ARGOS · SOURCES ET PROVENANCE</text><text x="18" y="44" class="d-muted">que soutient réellement chaque pièce ?</text></g>
+          <g transform="translate(10,336)"><rect width="380" height="56" rx="10" fill="var(--panel)" stroke="#56c7d6"/><text x="18" y="24" class="d-eyebrow" style="fill:#56c7d6;">MNÉMOSYNE · VERSIONS ET CONTINUITÉ</text><text x="18" y="44" class="d-muted">quelle relation de révision est établie ?</text></g>
+          <g transform="translate(10,404)"><rect width="380" height="56" rx="10" fill="var(--panel)" stroke="#ad8cff"/><text x="18" y="24" class="d-eyebrow" style="fill:#ad8cff;">THEMIS · CONSÉQUENCE ET RISQUE</text><text x="18" y="44" class="d-muted">l’écart peut-il être traité comme résolu ?</text></g>
+          <path d="M200 460 L200 486" stroke="#ad8cff" stroke-width="1.6" fill="none"/><polygon points="200,490 194,478 206,478" fill="#ad8cff"/>
+          <g transform="translate(10,494)"><rect width="380" height="106" rx="14" fill="var(--panel-2)" stroke="#ad8cff" stroke-width="1.7"/><text x="190" y="28" text-anchor="middle" class="d-eyebrow" style="fill:#ad8cff;">RITE · CONCORDANCE DES SOURCES</text><text x="190" y="56" text-anchor="middle" class="d-title">comparer · préserver l’écart</text><text x="190" y="82" text-anchor="middle" class="d-sub">manquant : la pièce qui clôt l’écart</text></g>
+          <path d="M200 600 L200 626" stroke="var(--amber)" stroke-width="1.8" fill="none"/><polygon points="200,630 194,618 206,618" fill="var(--amber)"/>
+          <g transform="translate(10,634)"><rect width="380" height="86" rx="13" fill="var(--panel)" stroke="var(--amber)" stroke-width="1.7"/><text x="190" y="28" text-anchor="middle" class="d-eyebrow" style="fill:var(--amber);">DÉCISION HUMAINE</text><text x="190" y="54" text-anchor="middle" class="d-title">ne pas conclure encore</text><text x="190" y="74" text-anchor="middle" class="d-muted">demander la pièce manquante</text></g>
+        </svg>
+      </div>
+    </figure>
+
+    <div class="principles">
+      <article><span>Concordance</span><h3>Comparer les sources.</h3><p>Quand plusieurs documents ne soutiennent pas encore la même conclusion.</p></article>
+      <article><span>Autocritique</span><h3>Mettre une proposition à l’épreuve.</h3><p>Quand une réponse paraît convaincante au point qu’il devient utile de la relire comme si elle venait d’un tiers.</p></article>
+      <article><span>Divergence</span><h3>Élargir avant de converger.</h3><p>Quand le problème mérite plusieurs pistes avant qu’un choix ne réduise trop tôt le champ des possibles.</p></article>
+      <article><span>Refondation</span><h3>Repartir d’un contexte propre.</h3><p>Quand une session a accumulé trop d’hypothèses, d’instructions ou de sujets pour rester fiable.</p></article>
+    </div>
+  </section>
+
+  <section class="section manifesto-bridge" id="conception" aria-labelledby="conception-title">
+    <div class="section-heading wide"><p class="eyebrow">Conception</p><h2 id="conception-title">Concevoir ne consiste pas seulement à optimiser.</h2><p>L’IA peut analyser un programme, explorer des implantations, comparer des variantes, simuler, calculer, rechercher des références ou proposer des formes. Elle élargit considérablement le champ des possibles.</p><p>Mais un projet met aussi en relation un lieu, des usages, des ressources, un budget, une technique, un existant, un territoire et des personnes. Ces dimensions peuvent entrer en tension : c’est là que s’exerce le jugement architectural.</p></div>
+    <div class="manifesto-triptych" aria-label="Écologie, éthique et esthétique dans la conception"><article class="manifesto-beat"><span>Écologie</span><h3>Comprendre un milieu.</h3><p>Climat, sol, ressources, existant, matière, usages et durée dépassent la seule performance chiffrée.</p></article><article class="manifesto-beat"><span>Éthique</span><h3>Interroger ce qu’il est souhaitable de faire.</h3><p>Une solution possible n’est pas nécessairement juste pour le maître d’ouvrage, les usagers, le territoire ou ceux qui la construiront.</p></article><article class="manifesto-beat"><span>Esthétique</span><h3>Donner une qualité sensible au projet.</h3><p>Lumière, proportion, matière, relation au paysage, émotion et culture architecturale ne se réduisent pas à un score.</p></article></div>
+    <p class="audience">Une intuition peut apparaître avant de pouvoir être entièrement expliquée. Un calcul peut la remettre en question. Une proposition générée par une IA peut ouvrir une piste inattendue. Ces éléments peuvent dialoguer sans être confondus.<br><br><strong>Tout ce qui compte dans un projet n’est pas nécessairement calculable. Et tout ce qui est calculable ne doit pas nécessairement décider du projet.</strong><br><br>Pantheon préserve le contexte et les distinctions qui permettent à l’architecte de garder son attention, sa culture, son intuition et son jugement lorsque l’IA participe à la conception.</p>
+  </section>
+
+  <section class="section" id="usages">
+    <div class="section-heading wide"><p class="eyebrow">Gardez vos outils</p><h2>Un cadre commun n’exige pas un outil unique.</h2><p>Vos assistants IA, modèles locaux et logiciels métiers restent spécialisés et remplaçables. Chacun garde son rôle. Pantheon fournit le cadre commun qui qualifie le contexte, la provenance, les statuts et les décisions autour du dossier, sans devenir propriétaire des fichiers ni des outils.</p></div>
+    <div class="flow" aria-label="Rôles des outils autour de Pantheon"><article><span>01</span><h3>Assistants IA</h3><p>Rechercher, analyser, rédiger, comparer ou réfléchir dans un contexte donné.</p></article><article><span>02</span><h3>Logiciels métiers</h3><p>Concevoir, calculer, produire, visualiser ou documenter avec leurs propres capacités d’IA.</p></article><article><span>03</span><h3>Hermès</h3><p>Agent d’exécution externe et optionnel pouvant mobiliser des modèles et des outils pour une tâche bornée.</p></article><article><span>04</span><h3>Cockpit</h3><p>Surface où le professionnel consulte le projet, son contexte, ses états de travail et les décisions qui demandent son attention.</p></article></div>
+    <p class="audience"><strong>Sous le capot.</strong> La couche de gouvernance ne rédige rien et n’envoie rien : elle répond en données. Pour une demande donnée, elle classe la conséquence, indique la vérification exigée, fixe le plafond d’approbation et nomme les portes à franchir. Une action vers l’extérieur est refusée par défaut, avec le chemin explicite pour la légitimer. Ce même service borné est consultable par un serveur MCP en lecture seule et par une API HTTP interne authentifiée pour le preflight déterministe. Ces transports consultent, valident et vérifient ; ils n’exécutent pas l’action, n’envoient rien et n’approuvent rien.</p>
+    <p class="audience"><strong>Dans la pratique.</strong> Les modèles produisent, Hermès peut exécuter une tâche bornée et le Cockpit rend visibles le contexte, les statuts et les points à examiner. Pantheon maintient ces responsabilités séparées afin qu’un outil qui sait agir ne puisse pas, par le même geste, décider seul de ce qui est vrai, autorisé ou durable. Le professionnel reste responsable de ce qui engage.</p>
+    <figure class="diagram diagram--vertical" aria-labelledby="diagram-system-title"><div class="diagram-head"><div><p class="diagram-eyebrow">Architecture technique · pour aller plus loin</p><h3 class="diagram-title" id="diagram-system-title">Des responsabilités distinctes, des composants remplaçables.</h3></div><p class="diagram-note">Le schéma technique reste secondaire : il montre la séparation entre sources et retrieval, politique, exécution, services candidats et décision humaine.</p></div><div class="diagram-body vertical" tabindex="0" aria-label="Carte du système Pantheon, présentée verticalement"><img src="assets/diagrams/pantheon-system-map-fr.svg" alt="Carte du système Pantheon : surfaces de travail, NAS AFFAIRES, producteur Workspace, Hindsight dérivé, politique Pantheon, exécution Hermes, services candidats et décision humaine."></div></figure>
+  </section>
+
+  <section class="transparency" id="fonctionnement" aria-labelledby="responsibility-title"><div><p class="eyebrow">Responsabilité</p><h2 id="responsibility-title">Pantheon fournit le cadre. L’agence définit les règles applicables.</h2><p>Pantheon n’est ni un modèle d’intelligence artificielle, ni un règlement professionnel, ni une autorité réglementaire. Il ne garantit pas à lui seul la conformité d’un projet. Les règles, références, méthodes, limites et responsabilités applicables restent définies et maintenues par les professionnels concernés.</p></div><a class="button" href="manifeste.html">Lire le manifeste</a></section>
+
+  <section class="section" id="commencer">
+    <div class="section-heading wide"><p class="eyebrow">Où en est le projet</p><h2>Ce qui existe aujourd’hui, et ce qui reste à qualifier.</h2><p>Pantheon administre les statuts. Il serait malvenu qu’il mente sur le sien. Voici l’état réel, sans confondre code présent, cible sélectionnée et adoption en agence.</p></div>
+    <div class="principles">
+      <article><span>Établi</span><h3>La doctrine, les contrats et les frontières.</h3><p>Les concepts, schémas, distinctions d’autorité et vérifications du dépôt sont publics, versionnés et testés. Ce socle dit notamment que donnée retrouvée n’est pas vérité, mémoire n’est pas Evidence, projection n’est pas persistance et succès d’exécution n’est pas autorisation.</p></article>
+      <article><span>Exécutable candidat</span><h3>La politique, l’implémentation et le Cockpit.</h3><p>Le service de politique en lecture seule et les surfaces sous <code>implementation/</code> sont exécutables et testés comme candidats. Le Cockpit projette les états, le contexte et les décisions ; leur présence dans le dépôt ne vaut ni activation, ni adoption, ni validation professionnelle.</p></article>
+      <article><span>Cible de déploiement</span><h3>AFFAIRES directement du NAS vers Linux.</h3><p>Le chemin sélectionné conserve le NAS comme stockage durable unique des fichiers métier. Linux monte <code>AFFAIRES</code>, le Workspace l’indexe sans miroir local durable et un producteur borné alimente Hindsight. Les cartouches restent des descriptions liées aux sources, pas une seconde autorité documentaire.</p></article>
+      <article><span>À qualifier</span><h3>L’exploitation réelle et la preuve métier.</h3><p>La réconciliation mémoire à la demande via un profil Hermès dédié reste une lecture transitoire : elle ne modifie ni Hindsight, ni le NAS, ni un owner gouverné. La qualification Hindsight/AFFAIRES et l’épreuve sur le premier vertical professionnel restent ouvertes avant toute prétention de produit adopté.</p></article>
+    </div>
+    <p class="audience"><strong>Ce qui a changé.</strong> Il existe désormais un chemin Ubuntu borné, une topologie NAS directe, un index Workspace reconstructible, un producteur Hindsight et une réconciliation mémoire candidate. Il n’est donc plus exact de dire que rien n’est installable.<br><br><strong>Ce qui n’a pas changé.</strong> Une cible déployable n’est pas une installation adoptée, et une exécution verte n’est pas une preuve professionnelle. Les travaux de qualification restent suivis dans <a href="https://github.com/ifanjuang/Pantheon-Next/issues/659">#659</a>, <a href="https://github.com/ifanjuang/Pantheon-Next/issues/660">#660</a> et le premier vertical métier dans <a href="https://github.com/ifanjuang/Pantheon-Next/issues/827">#827</a>.</p>
+    <div class="actions"><a class="button primary" href="https://github.com/ifanjuang/Pantheon/issues/new">Proposer un dossier pilote</a><a class="button" href="governance/STATUS.md">Voir le statut détaillé</a><a class="button" href="manifeste.html">Lire le manifeste</a></div>
+    <p class="trust-caption">Les échanges passent par GitHub pour l’instant : c’est aussi là que le projet se discute, se critique et se corrige, à la vue de tous.</p>
+  </section>
+
+  <section class="links-section">
+    <div><p class="eyebrow">Approfondir</p><h2>Une surface pour chaque niveau de lecture.</h2></div>
+    <div class="link-grid">
+      <a href="comprendre.html"><strong>Comprendre l’IA moderne</strong><span>Modèles, contexte, RAG, mémoire, exécution, rôles, rites et lieux — du plus simple au plus technique.</span></a>
+      <a href="manifeste.html"><strong>Manifeste</strong><span>La transformation du travail et la vision de l’intelligence professionnelle.</span></a>
+      <a href="governance/README.md"><strong>Gouvernance</strong><span>La doctrine, les concepts et les documents actifs.</span></a>
+      <a href="governance/STATUS.md"><strong>Statut réel</strong><span>Ce qui existe, ce qui reste partiel et ce qui est encore candidat.</span></a>
+      <a href="assets/pantheon-control/index.html"><strong>Cockpit</strong><span>Projection statique de la surface de décision.</span></a>
+    </div>
+  </section>
+</main>
+
+<footer><p>L’IA peut augmenter les capacités de chacun. Pantheon donne un cadre pour organiser le contexte, la méthode et les décisions sans uniformiser les personnes ni transférer la responsabilité professionnelle.</p><a href="https://github.com/ifanjuang/Pantheon">Pantheon Next sur GitHub</a></footer>
+</body>
+</html>

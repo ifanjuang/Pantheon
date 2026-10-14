@@ -1,0 +1,25 @@
+api_version: pantheon.next/v0alpha1
+kind: Capability
+metadata:
+  id: architecture_diagram_projection
+  title: Projection visuelle architecturale
+  status: candidate
+spec:
+  outcome: Produire des diagrammes lisibles à partir d'un état ou de candidats structurés sans créer de nouveaux faits projet.
+  required_roles:
+    - diagram_projection
+  optional_roles: []
+  acceptance:
+    - input_references_preserved
+    - diagram_is_marked_as_projection
+    - no_new_project_fact_created
+    - no_source_mutation
+  candidate_resources:
+    preferred:
+      - diagram_design
+    alternatives: []
+  boundaries:
+    - diagram_is_not_evidence
+    - diagram_node_is_not_stable_object
+    - rendered_relation_is_not_relation_claim
+    - visual_simplification_is_not_source_observation

@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "kind": "status",
+  "values": [
+    {"slug":"draft","title":"Brouillon","icon_key":"Pencil2Icon","color":"slate"},
+    {"slug":"in_progress","title":"En rédaction","icon_key":"UpdateIcon","color":"blue"},
+    {"slug":"acted","title":"Acté","icon_key":"CheckCircledIcon","color":"green"},
+    {"slug":"review","title":"À examiner","icon_key":"EyeOpenIcon","color":"amber"},
+    {"slug":"ready","title":"Prêt","icon_key":"CheckIcon","color":"green"},
+    {"slug":"reviewed","title":"Revu","icon_key":"CheckCircledIcon","color":"green"},
+    {"slug":"active","title":"Actif","icon_key":"DotFilledIcon","color":"green"},
+    {"slug":"done","title":"Clôturé","icon_key":"CheckCircledIcon","color":"slate"},
+    {"slug":"waiting","title":"En attente","icon_key":"ClockIcon","color":"amber"},
+    {"slug":"conflict","title":"Conflit","icon_key":"ExclamationTriangleIcon","color":"red"},
+    {"slug":"failed","title":"Échec","icon_key":"CrossCircledIcon","color":"red"}
+  ]
+}

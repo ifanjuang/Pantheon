@@ -1,0 +1,62 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Architecture Proof Register Document Family
+description: >-
+  Stable professional document object across indices. A family groups versions
+  but is not proof by itself and does not persist one universal current version.
+type: object
+additionalProperties: false
+required: [document_family_id, scope_id, document_type, canonical_title, status]
+properties:
+  document_family_id: { $ref: "#/$defs/uuid" }
+  human_ref: { type: string, minLength: 1, maxLength: 160 }
+  scope_id: { $ref: "#/$defs/uuid" }
+  scope_type:
+    type: string
+    enum: [project, phase, lot, agency_library, global_reference, external_project_subset]
+  scope_notes: { type: string }
+  document_type: { type: string, minLength: 1 }
+  business_object_type: { type: string }
+  lot_id: { $ref: "#/$defs/uuid" }
+  lot_label: { type: string }
+  phase_origin:
+    type: string
+    enum: [DIAG, APS, APD, PRO, DCE, ACT, EXE, VISA, DET, OPC, AOR, DOE, GPA, AGENCY_LIBRARY, GLOBAL_REFERENCE]
+  canonical_title: { type: string, minLength: 1 }
+  status:
+    type: string
+    enum: [candidate, active, superseded, obsolete, rejected]
+  created_at: { type: string, format: date }
+  metadata:
+    type: object
+    additionalProperties: false
+    properties:
+      source_system: { type: string }
+      notes: { type: string }
+      external_refs:
+        type: array
+        items: { type: string }
+        default: []
+  governance_refs:
+    type: array
+    items: { type: string }
+    default:
+      - docs/domain-packs/architecture/PROOF_REGISTER.md
+      - docs/domain-packs/architecture/PROOF_REGISTER_IMPLEMENTATION_SPEC.md
+      - docs/domain-packs/architecture/INDEX_EFFECT_MATRIX.md
+      - docs/domain-packs/architecture/AGENCY_COLLABORATION_AND_VERSION_INTAKE_CONVERGENCE.md
+      - schemas/shared_axes.schema.yaml
+$defs:
+  uuid:
+    type: string
+    format: uuid
+x-currentness:
+  persisted_universal_current_version: false
+  projection_contract: schemas/architecture-proof-register/document_currentness_projection.schema.yaml
+x-boundary:
+  runtime_execution: false
+  provider_routing: false
+  scheduler: false
+  queue_system: false
+  memory_promotion: false
+  automatic_canonization: false
+  approval_engine: false

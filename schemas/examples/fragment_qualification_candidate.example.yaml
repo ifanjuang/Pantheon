@@ -1,0 +1,45 @@
+candidate_id: fragment-qualification.document-tilleul-avp-d.001
+document_ref: document.tilleul-avp-d
+structure_ref: compilation.tilleul-avp-d
+producer:
+  capability: architecture-project-understanding
+  implementation: hermes-native-vision
+  model_ref: runtime-selected
+  skill_version: "0.1.0"
+status: needs_review
+qualifications:
+  - fragment_ref: unit-32d5c6c1
+    representation_kind: floor_plan
+    discipline: architecture
+    project_state: existing
+    coverage_refs:
+      - level.rdc
+    certainty: E3
+    rationale: >-
+      Le titre visible indique un plan du rez-de-chaussée existant ; la légende
+      et le graphisme sont cohérents, mais le cartouche complet n'est pas inclus
+      dans le fragment.
+  - fragment_ref: unit-81946aac
+    representation_kind: floor_plan
+    discipline: architecture
+    project_state: to_demolish
+    coverage_refs:
+      - level.rdc
+    supporting_fragment_refs:
+      - unit-32d5c6c1
+    certainty: E2
+    rationale: >-
+      Les éléments en pointillés et les annotations de dépose suggèrent un état
+      démolition. Une confirmation par le cartouche de la page reste nécessaire.
+    question: Cette vue correspond-elle bien au plan de démolition du RDC ?
+open_questions:
+  - Confirmer le statut démolition de la seconde vue.
+limitations:
+  - La qualification repose sur les fragments fournis, sans accès à une vérité projet canonique.
+created_at: "2026-08-04T17:30:00Z"
+authority:
+  mutates_document_structure: false
+  is_project_fact: false
+  is_evidence: false
+  is_apu_write: false
+  is_professional_validation: false

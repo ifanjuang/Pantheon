@@ -1,0 +1,336 @@
+{
+  "registry_id": "pantheon.system_ownership",
+  "revision": 4,
+  "status": "candidate_support_registry",
+  "authority_note": "This registry separates semantic, implementation, state-transition, persistence, runtime and projection ownership for architecture convergence. Owner identities name responsibilities, not repositories or filesystem zones. It does not promote a candidate, authorize execution, admit Evidence, approve a binding or replace the master authority index.",
+  "owners": {
+    "Pantheon governance": {
+      "role": "semantic_governance",
+      "owns": [
+        "doctrine",
+        "governed concepts",
+        "schemas",
+        "statuses",
+        "Evidence semantics",
+        "scope",
+        "approvals",
+        "Capability Slots"
+      ]
+    },
+    "Pantheon implementation": {
+      "role": "governed_implementation",
+      "owns": [
+        "PostgreSQL persistence",
+        "APIs",
+        "governed state transitions",
+        "executable projections",
+        "bounded adapters",
+        "integration seams"
+      ]
+    },
+    "Hermes/external runtime": {
+      "role": "runtime",
+      "owns": [
+        "execution",
+        "tools",
+        "provider routing",
+        "runtime-local state"
+      ]
+    },
+    "Pantheon Cockpit": {
+      "role": "governed_projection",
+      "owns": [
+        "governed Cards",
+        "navigation projections",
+        "status projections",
+        "Evidence-gap projections",
+        "review surfaces",
+        "decision surfaces"
+      ]
+    }
+  },
+  "boundary_rules": [
+    "installed != approved",
+    "healthy != safe",
+    "runtime_success != Evidence",
+    "retrieved != truth",
+    "binding_selected != dependency_adopted",
+    "activated != task_authorized",
+    "UI status != authorization",
+    "projection != persistence",
+    "folder != governed identity",
+    "repository co-location != authority transfer"
+  ],
+  "concepts": [
+    {
+      "id": "project_claim",
+      "label": "ProjectClaim",
+      "semantic_owner": "Pantheon governance",
+      "implementation_owner": "Pantheon implementation",
+      "transition_owner": "Pantheon implementation",
+      "persistence_owner": "Pantheon implementation",
+      "projection_owner": "Pantheon Cockpit",
+      "patterns": [
+        "\\bproject[_ -]?claim\\b"
+      ],
+      "max_identity_implementations": 4
+    },
+    {
+      "id": "information",
+      "label": "Information lifecycle",
+      "semantic_owner": "Pantheon governance",
+      "implementation_owner": "Pantheon implementation",
+      "transition_owner": "Pantheon implementation",
+      "persistence_owner": "Pantheon implementation",
+      "projection_owner": "Pantheon Cockpit",
+      "patterns": [
+        "\\binformation[_ -]?(?:card|version|lifecycle)\\b",
+        "\\bacted[_ -]?information\\b"
+      ],
+      "max_identity_implementations": 6
+    },
+    {
+      "id": "change_candidate",
+      "label": "ChangeCandidate",
+      "semantic_owner": "Pantheon governance",
+      "implementation_owner": "Pantheon implementation",
+      "transition_owner": "Pantheon implementation",
+      "persistence_owner": "Pantheon implementation",
+      "projection_owner": "Pantheon Cockpit",
+      "patterns": [
+        "\\bchange[_ -]?candidate\\b"
+      ],
+      "max_identity_implementations": 5
+    },
+    {
+      "id": "evidence",
+      "label": "Evidence",
+      "semantic_owner": "Pantheon governance",
+      "implementation_owner": "Pantheon implementation",
+      "transition_owner": "Pantheon implementation",
+      "persistence_owner": "Pantheon implementation",
+      "projection_owner": "Pantheon Cockpit",
+      "patterns": [
+        "\\bevidence(?:[_ -]?(?:pack|candidate|admission))?\\b"
+      ],
+      "max_identity_implementations": 6
+    },
+    {
+      "id": "claim",
+      "label": "Claim",
+      "semantic_owner": "Pantheon governance",
+      "implementation_owner": "Pantheon implementation",
+      "transition_owner": "Pantheon implementation",
+      "persistence_owner": "Pantheon implementation",
+      "projection_owner": "Pantheon Cockpit",
+      "patterns": [
+        "\\bclaim[_ -]?(?:status|lifecycle|provenance)\\b"
+      ],
+      "max_identity_implementations": 5
+    },
+    {
+      "id": "decision",
+      "label": "Governed decision",
+      "semantic_owner": "Pantheon governance",
+      "implementation_owner": "Pantheon implementation",
+      "transition_owner": "Pantheon implementation",
+      "persistence_owner": "Pantheon implementation",
+      "projection_owner": "Pantheon Cockpit",
+      "patterns": [
+        "\\bdecision[_ -]?(?:record|request|expectation|validation|disposition)\\b",
+        "\\buser[_ -]?decision[_ -]?gate\\b"
+      ],
+      "max_identity_implementations": 10
+    },
+    {
+      "id": "governed_identity",
+      "label": "Governed identity",
+      "semantic_owner": "Pantheon governance",
+      "implementation_owner": "Pantheon implementation",
+      "transition_owner": "Pantheon implementation",
+      "persistence_owner": "Pantheon implementation",
+      "projection_owner": "Pantheon Cockpit",
+      "patterns": [
+        "\\bgoverned[_ -]?identity\\b",
+        "\\bidentity[_ -]?(?:binding|admission|resolution)\\b",
+        "\\bstable[_ -]?object\\b"
+      ],
+      "max_identity_implementations": 10
+    },
+    {
+      "id": "knowledge",
+      "label": "Knowledge lifecycle",
+      "semantic_owner": "Pantheon governance",
+      "implementation_owner": "Pantheon implementation",
+      "transition_owner": "Pantheon implementation",
+      "persistence_owner": "Pantheon implementation",
+      "projection_owner": "Pantheon Cockpit",
+      "patterns": [
+        "\\bknowledge[_ -]?(?:candidate|entry|lifecycle|status)\\b",
+        "\\bregistre[_ -]?probatoire\\b"
+      ],
+      "max_identity_implementations": 6
+    },
+    {
+      "id": "context_pack",
+      "label": "Context Pack",
+      "semantic_owner": "Pantheon governance",
+      "implementation_owner": "Pantheon implementation",
+      "patterns": [
+        "\\bcontext[_ -]?pack\\b"
+      ],
+      "max_identity_implementations": 6
+    },
+    {
+      "id": "task_contract",
+      "label": "Task Contract",
+      "semantic_owner": "Pantheon governance",
+      "implementation_owner": "Pantheon implementation",
+      "patterns": [
+        "\\btask[_ -]?contract\\b"
+      ],
+      "max_identity_implementations": 6
+    },
+    {
+      "id": "execution_admission",
+      "label": "Execution Admission",
+      "semantic_owner": "Pantheon governance",
+      "implementation_owner": "Pantheon implementation",
+      "transition_owner": "Pantheon implementation",
+      "persistence_owner": "Pantheon implementation",
+      "projection_owner": "Pantheon Cockpit",
+      "patterns": [
+        "\\bexecution[_ -]?admission\\b",
+        "\\badmission[_ -]?state\\b"
+      ],
+      "max_identity_implementations": 7
+    },
+    {
+      "id": "capability_slot",
+      "label": "Capability Slot",
+      "semantic_owner": "Pantheon governance",
+      "implementation_owner": "Pantheon implementation",
+      "transition_owner": "Pantheon implementation",
+      "persistence_owner": "Pantheon implementation",
+      "projection_owner": "Pantheon Cockpit",
+      "patterns": [
+        "\\bcapability[_ -]?slot\\b"
+      ],
+      "max_identity_implementations": 5
+    },
+    {
+      "id": "governed_resource",
+      "label": "Governed Resource",
+      "semantic_owner": "Pantheon governance",
+      "implementation_owner": "Pantheon implementation",
+      "transition_owner": "Pantheon implementation",
+      "persistence_owner": "Pantheon implementation",
+      "projection_owner": "Pantheon Cockpit",
+      "patterns": [
+        "\\bgoverned[_ -]?resource\\b"
+      ],
+      "max_identity_implementations": 5
+    },
+    {
+      "id": "observation",
+      "label": "Runtime Observation",
+      "semantic_owner": "Pantheon governance",
+      "implementation_owner": "Pantheon implementation",
+      "transition_owner": "Pantheon implementation",
+      "persistence_owner": "Pantheon implementation",
+      "projection_owner": "Pantheon Cockpit",
+      "patterns": [
+        "\\bruntime[_ -]?observation\\b",
+        "\\bobservation[_ -]?(?:status|source|dimension)\\b"
+      ],
+      "max_identity_implementations": 8
+    },
+    {
+      "id": "document_source",
+      "label": "Document Source",
+      "semantic_owner": "Pantheon governance",
+      "implementation_owner": "Pantheon implementation",
+      "transition_owner": "Pantheon implementation",
+      "persistence_owner": "Pantheon implementation",
+      "projection_owner": "Pantheon Cockpit",
+      "patterns": [
+        "\\bdocument[_ -]?source(?:[_ -]?(?:binding|management))?\\b",
+        "\\bsource[_ -]?capture\\b"
+      ],
+      "max_identity_implementations": 8
+    },
+    {
+      "id": "document_compilation",
+      "label": "Structured Document Compilation",
+      "semantic_owner": "Pantheon governance",
+      "implementation_owner": "Pantheon implementation",
+      "transition_owner": "Pantheon implementation",
+      "persistence_owner": "Pantheon implementation",
+      "projection_owner": "Pantheon Cockpit",
+      "patterns": [
+        "\\bstructured[_ -]?(?:document[_ -]?)?compilation\\b",
+        "\\bextraction[_ -]?unit\\b"
+      ],
+      "max_identity_implementations": 8
+    },
+    {
+      "id": "source_aligned_verification",
+      "label": "Source-aligned verification",
+      "semantic_owner": "Pantheon governance",
+      "implementation_owner": "Pantheon implementation",
+      "transition_owner": "Pantheon implementation",
+      "persistence_owner": "Pantheon implementation",
+      "projection_owner": "Pantheon Cockpit",
+      "patterns": [
+        "\\bsource[_ -]?aligned[_ -]?verification\\b",
+        "\\bverification[_ -]?report\\b"
+      ],
+      "max_identity_implementations": 5
+    },
+    {
+      "id": "cockpit_projection",
+      "label": "Cockpit projection",
+      "semantic_owner": "Pantheon governance",
+      "implementation_owner": "Pantheon implementation",
+      "projection_owner": "Pantheon Cockpit",
+      "patterns": [
+        "\\bcockpit[_ -]?(?:projection|snapshot|card)\\b"
+      ],
+      "max_identity_implementations": 8
+    },
+    {
+      "id": "postgres_persistence",
+      "label": "PostgreSQL persistence",
+      "semantic_owner": "Pantheon governance",
+      "implementation_owner": "Pantheon implementation",
+      "persistence_owner": "Pantheon implementation",
+      "patterns": [
+        "\\bpostgres(?:ql)?[_ -]?(?:persistence|repository|store)\\b",
+        "\\bpgvector\\b"
+      ],
+      "max_identity_implementations": 8
+    },
+    {
+      "id": "adapter_binding",
+      "label": "Adapter and binding implementation",
+      "semantic_owner": "Pantheon governance",
+      "implementation_owner": "Pantheon implementation",
+      "patterns": [
+        "\\b(?:adapter|binding)[_ -]?(?:implementation|client|gateway)\\b"
+      ],
+      "max_identity_implementations": 10
+    },
+    {
+      "id": "hermes_execution",
+      "label": "Hermes execution",
+      "semantic_owner": "Pantheon governance",
+      "implementation_owner": "Hermes/external runtime",
+      "runtime_owner": "Hermes/external runtime",
+      "patterns": [
+        "\\bhermes[_ -]?(?:execution|run|runtime|tool)\\b",
+        "\\bprovider[_ -]?routing\\b"
+      ],
+      "max_identity_implementations": 3
+    }
+  ]
+}

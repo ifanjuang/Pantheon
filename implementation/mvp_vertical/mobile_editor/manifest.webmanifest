@@ -1,0 +1,13 @@
+{
+  "name": "Pantheon Knowledge",
+  "short_name": "Knowledge",
+  "description": "Éditeur Markdown Knowledge, mobile et hors ligne.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eef1ec",
+  "theme_color": "#17231d",
+  "icons": [
+    {"src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
+  ]
+}

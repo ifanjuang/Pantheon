@@ -1,0 +1,351 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+STATE_ROOT="${PANTHEON_STATE_ROOT:-/srv/pantheon}"
+HERMES_ROOT="$STATE_ROOT/hermes"
+PROFILE="${HERMES_RECONCILIATION_PROFILE:-reconciliation}"
+HERMES_USER="${HERMES_USER:-pantheon-hermes}"
+HERMES_HOME="${HERMES_HOME:-/home/$HERMES_USER}"
+HERMES_BIN="${HERMES_BIN:-$HERMES_HOME/.local/bin/hermes}"
+HERMES_ENV_FILE="${HERMES_ENV_FILE:-/etc/pantheon-hermes-native.env}"
+API_KEY="${HERMES_RECONCILIATION_API_KEY:-}"
+RUNTIME_URL=""
+APPLY=0
+
+log() { printf '[pantheon-hermes-reconciliation] %s\n' "$*"; }
+die() { printf '[pantheon-hermes-reconciliation] ERROR: %s\n' "$*" >&2; exit 1; }
+
+usage() {
+  cat <<'EOF'
+Usage:
+  deployment/ubuntu/configure-hermes-reconciliation-profile --check [--runtime-url URL]
+  HERMES_RECONCILIATION_API_KEY=<secret> \
+    sudo -E deployment/ubuntu/configure-hermes-reconciliation-profile --apply [--runtime-url URL]
+
+Creates or verifies the dedicated Hermes profile used only for transient
+Workspace/Hindsight memory reconciliation.
+
+The profile is deliberately not started, routed, multiplexed, or wired into
+Cockpit by this command. Runtime activation stays a separate operator action.
+
+--check            Read-only verification. This is the default.
+--apply            Create/configure the dedicated profile. Requires
+                   HERMES_RECONCILIATION_API_KEY when the profile has no key.
+--runtime-url URL  Optionally verify the live profile API surface, e.g.
+                   http://127.0.0.1:8642/p/reconciliation or a separately
+                   supervised profile base URL. Requires the same API key.
+EOF
+}
+
+while (($#)); do
+  case "$1" in
+    --check) APPLY=0 ;;
+    --apply) APPLY=1 ;;
+    --runtime-url)
+      shift
+      (($#)) || die "--runtime-url requires a value"
+      RUNTIME_URL="$1"
+      ;;
+    -h|--help) usage; exit 0 ;;
+    *) die "unknown argument: $1" ;;
+  esac
+  shift
+done
+
+command -v python3 >/dev/null || die "python3 is required"
+id "$HERMES_USER" >/dev/null 2>&1 || die "native Hermes user is missing: $HERMES_USER"
+[[ -x "$HERMES_BIN" ]] || die "native Hermes CLI is missing: $HERMES_BIN"
+systemctl is-active --quiet pantheon-hermes-native.service \
+  || die "native Hermes gateway is not active"
+
+hermes() {
+  runuser -u "$HERMES_USER" -- env \
+    HOME="$HERMES_HOME" HERMES_HOME="$HERMES_ROOT" \
+    PATH="$HERMES_HOME/.local/bin:/usr/local/bin:/usr/bin:/bin" \
+    "$HERMES_BIN" "$@"
+}
+
+profile_exists() {
+  [[ -d "$HERMES_ROOT/profiles/$PROFILE" ]]
+}
+
+profile_config_path() {
+  hermes -p "$PROFILE" config path 2>/dev/null | tail -n 1
+}
+
+profile_root() {
+  dirname "$(profile_config_path)"
+}
+
+read_env_value() {
+  local file="$1" key="$2" format="$3"
+  python3 - "$file" "$key" "$format" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+path, wanted, format_name = sys.argv[1:]
+try:
+    lines = Path(path).read_text(encoding="utf-8").splitlines()
+except (OSError, UnicodeError):
+    raise SystemExit(2)
+
+found = False
+value = ""
+for line in lines:
+    stripped = line.lstrip()
+    if not stripped or stripped.startswith(("#", ";")):
+        continue
+    if format_name == "dotenv" and stripped.startswith("export "):
+        stripped = stripped[7:].lstrip()
+    match = re.match(r"([A-Za-z_][A-Za-z0-9_]*)\s*=(.*)$", stripped)
+    if not match or match.group(1) != wanted:
+        continue
+
+    candidate = match.group(2).strip()
+    if candidate[:1] in ("'", '"'):
+        quote = candidate[0]
+        end = candidate.find(quote, 1)
+        if end < 0 or candidate[end + 1:].strip():
+            raise SystemExit(2)
+        candidate = candidate[1:end]
+        # Keys are generated as URL-safe strings. Reject escape syntax rather
+        # than risk comparing its source spelling with its interpreted value.
+        if "\\" in candidate:
+            raise SystemExit(2)
+    else:
+        if "\\" in candidate:
+            raise SystemExit(2)
+        if format_name == "dotenv":
+            candidate = re.sub(r"\s+#.*$", "", candidate).strip()
+        else:
+            candidate = candidate.strip()
+    value = candidate
+    found = True
+
+if not found:
+    raise SystemExit(1)
+sys.stdout.write(value)
+PY
+}
+
+get_optional_json() {
+  local key="$1" output status
+  set +e
+  output="$(hermes -p "$PROFILE" config get "$key" --json 2>&1)"
+  status=$?
+  set -e
+  if ((status == 0)); then
+    printf '%s' "$output"
+  elif [[ "$output" == *"Config key not set: $key"* ]]; then
+    printf 'null'
+  else
+    printf '%s\n' "$output" >&2
+    return "$status"
+  fi
+}
+
+profile_has_api_key() {
+  local root
+  root="$(profile_root)"
+  [[ -r "$root/.env" ]] || return 1
+  local profile_key
+  profile_key="$(read_env_value "$root/.env" API_SERVER_KEY dotenv)" || return 1
+  [[ -n "$profile_key" ]]
+}
+
+profile_key_is_distinct_from_default() {
+  local root profile_key default_key read_status
+  root="$(profile_root)"
+  [[ -r "$HERMES_ENV_FILE" ]] || return 1
+  profile_key="$(read_env_value "$root/.env" API_SERVER_KEY dotenv)" || return 1
+  if default_key="$(read_env_value "$HERMES_ENV_FILE" API_SERVER_KEY systemd)"; then
+    :
+  else
+    read_status=$?
+    ((read_status == 1)) || return 1
+    default_key=""
+  fi
+  [[ -n "$profile_key" ]] || return 1
+  [[ -z "$default_key" || "$profile_key" != "$default_key" ]] || return 42
+}
+
+check_builtin_memory_empty() {
+  local root path
+  root="$(profile_root)"
+  for path in memories/MEMORY.md memories/USER.md MEMORY.md USER.md; do
+    if [[ -s "$root/$path" ]]; then
+      die "dedicated profile carries built-in memory content: $path"
+    fi
+  done
+}
+
+check_profile_config() {
+  local root toolsets plugins mcp context_engine provider tool_search
+  root="$(profile_root)"
+
+  [[ -f "$root/.no-bundled-skills" ]] \
+    || die "profile is not marked --no-skills"
+
+  toolsets="$(get_optional_json platform_toolsets.api_server)"
+  [[ "$toolsets" == '["no_mcp"]' ]] \
+    || die "platform_toolsets.api_server must be exactly [\"no_mcp\"]"
+
+  plugins="$(get_optional_json plugins.enabled)"
+  [[ "$plugins" == '[]' ]] \
+    || die "plugins.enabled must be explicitly empty"
+
+  mcp="$(get_optional_json mcp_servers)"
+  [[ "$mcp" == '{}' ]] \
+    || die "mcp_servers must be explicitly empty"
+
+  context_engine="$(get_optional_json context.engine)"
+  [[ "$context_engine" == '"compressor"' ]] \
+    || die "context.engine must be compressor"
+
+  provider="$(get_optional_json memory.provider)"
+  [[ "$provider" == '""' || "$provider" == "null" ]] \
+    || die "external memory provider must be disabled"
+
+  tool_search="$(get_optional_json tools.tool_search.enabled)"
+  [[ "$tool_search" == "false" ]] \
+    || die "tools.tool_search.enabled must be false"
+
+  check_builtin_memory_empty
+  profile_has_api_key || die "profile-specific API_SERVER_KEY is missing"
+  set +e
+  profile_key_is_distinct_from_default
+  key_status=$?
+  set -e
+  if ((key_status == 42)); then
+    die "reconciliation API key must differ from the default Hermes API key"
+  elif ((key_status != 0)); then
+    die "cannot verify reconciliation API key"
+  fi
+
+  log "profile configuration is bounded and memory-empty"
+}
+
+apply_profile_config() {
+  local default_key read_status
+  if ! profile_exists; then
+    log "creating dedicated profile: $PROFILE"
+    hermes profile create "$PROFILE" --no-skills --no-alias >/dev/null
+  fi
+
+  if ! profile_has_api_key; then
+    [[ -n "$API_KEY" ]] \
+      || die "set HERMES_RECONCILIATION_API_KEY before --apply"
+  fi
+
+  hermes -p "$PROFILE" config set memory.provider "" >/dev/null
+  hermes -p "$PROFILE" config set platform_toolsets.api_server '["no_mcp"]' >/dev/null
+  hermes -p "$PROFILE" config set --force plugins.enabled '[]' >/dev/null
+  hermes -p "$PROFILE" config set --force mcp_servers '{}' >/dev/null
+  hermes -p "$PROFILE" config set context.engine compressor >/dev/null
+  hermes -p "$PROFILE" config set tools.tool_search.enabled false >/dev/null
+
+  if [[ -n "$API_KEY" ]]; then
+    [[ -r "$HERMES_ENV_FILE" ]] || die "native Hermes environment file is unreadable"
+    if default_key="$(read_env_value "$HERMES_ENV_FILE" API_SERVER_KEY systemd)"; then
+      :
+    else
+      read_status=$?
+      ((read_status == 1)) || die "cannot parse native Hermes environment file"
+      default_key=""
+    fi
+    if [[ -n "$default_key" && "$API_KEY" == "$default_key" ]]; then
+      die "reconciliation API key must differ from the default Hermes API key"
+    fi
+    hermes -p "$PROFILE" config set API_SERVER_KEY "$API_KEY" >/dev/null
+  fi
+
+  check_profile_config
+  log "profile configured; no gateway was started and no routing was changed"
+}
+
+qualify_runtime() {
+  [[ -n "$RUNTIME_URL" ]] || {
+    log "runtime route not observed (no --runtime-url supplied)"
+    return 0
+  }
+  [[ -n "$API_KEY" ]] \
+    || die "--runtime-url requires HERMES_RECONCILIATION_API_KEY for authenticated observation"
+
+  HERMES_RECONCILIATION_CHECK_URL="$RUNTIME_URL" \
+  HERMES_RECONCILIATION_CHECK_KEY="$API_KEY" \
+  python3 - <<'PY'
+import json
+import os
+import sys
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
+
+base = os.environ["HERMES_RECONCILIATION_CHECK_URL"].rstrip("/")
+key = os.environ["HERMES_RECONCILIATION_CHECK_KEY"]
+
+def get(path):
+    request = Request(
+        base + path,
+        headers={
+            "Authorization": f"Bearer {key}",
+            "Accept": "application/json",
+            "User-Agent": "pantheon-reconciliation-qualification/1",
+        },
+    )
+    try:
+        with urlopen(request, timeout=10) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except HTTPError as exc:
+        detail = exc.read(2048).decode("utf-8", errors="replace")
+        raise SystemExit(f"runtime HTTP {exc.code}: {detail}") from exc
+    except (OSError, URLError, UnicodeError, json.JSONDecodeError) as exc:
+        raise SystemExit(f"runtime observation failed: {exc}") from exc
+
+toolsets = get("/v1/toolsets")
+if (
+    not isinstance(toolsets, dict)
+    or toolsets.get("object") != "list"
+    or toolsets.get("platform") != "api_server"
+    or not isinstance(toolsets.get("data"), list)
+    or not toolsets["data"]
+):
+    raise SystemExit("unexpected /v1/toolsets response")
+rows = toolsets["data"]
+if any(not isinstance(row, dict) or not isinstance(row.get("enabled"), bool) for row in rows):
+    raise SystemExit("malformed /v1/toolsets row")
+enabled = [
+    str(row.get("name") or "unknown")
+    for row in rows
+    if row["enabled"]
+]
+if enabled:
+    raise SystemExit("reconciliation profile exposes enabled toolsets: " + ", ".join(map(str, enabled)))
+
+caps = get("/v1/capabilities")
+if not isinstance(caps, dict):
+    raise SystemExit("unexpected /v1/capabilities response")
+features = caps.get("features") or {}
+endpoints = caps.get("endpoints") or {}
+if features.get("responses_api") is not True:
+    raise SystemExit("Hermes Responses API is not advertised")
+session_delete = endpoints.get("session_delete") or {}
+if session_delete.get("method") != "DELETE" or session_delete.get("path") != "/api/sessions/{session_id}":
+    raise SystemExit("Hermes session deletion endpoint is not advertised as expected")
+
+print("runtime no-tool surface qualified; Responses API + session deletion advertised")
+PY
+
+  log "runtime observation passed"
+}
+
+if ((APPLY == 1)); then
+  apply_profile_config
+else
+  profile_exists || die "dedicated profile is missing: $PROFILE"
+  check_profile_config
+fi
+
+qualify_runtime
+
+log "configured != activated; runtime observed != task authorized; reconciliation output != Evidence"

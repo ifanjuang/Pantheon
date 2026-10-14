@@ -1,0 +1,118 @@
+name: Hindsight Obsidian O2 Sync
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/implementation-hindsight-obsidian-o2-sync.yml"
+      - "implementation/qualification/external-pins.json"
+      - "implementation/tools/export_external_qualification_pins.py"
+      - "implementation/tools/run_hindsight_obsidian_o2.sh"
+      - "implementation/tools/run_hindsight_obsidian_workspace_routing_o2.sh"
+      - "implementation/tests/test_hindsight_obsidian_o2_contract.py"
+      - "implementation/tests/test_hindsight_obsidian_workspace_routing_o2_contract.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: implementation
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e ".[test]"
+      - run: pytest -q tests/test_hindsight_obsidian_o2_contract.py tests/test_hindsight_obsidian_workspace_routing_o2_contract.py
+
+  live-sync:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      HINDSIGHT_API_URL: http://127.0.0.1:8888
+      HINDSIGHT_BANK_ID: pantheon-o2-synthetic
+    steps:
+      - name: Checkout current monorepo candidate
+        uses: actions/checkout@v4
+        with:
+          path: monorepo
+      - name: Load canonical Hindsight qualification pins
+        shell: bash
+        run: python3 monorepo/implementation/tools/export_external_qualification_pins.py --github-env "$GITHUB_ENV" hindsight hindsight-obsidian-sync
+      - name: Checkout exact official Obsidian integration
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.HINDSIGHT_OBSIDIAN_REPOSITORY }}
+          ref: ${{ env.HINDSIGHT_OBSIDIAN_REF }}
+          path: hindsight-obsidian
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: hindsight-obsidian/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify official integration package
+        working-directory: hindsight-obsidian
+        run: |
+          test "$(git rev-parse HEAD)" = "$HINDSIGHT_OBSIDIAN_REF"
+          node -e "const p=require('./package.json'); if(p.version!==process.env.HINDSIGHT_OBSIDIAN_VERSION||p.bin['hindsight-obsidian-sync']!=='dist/cli.js') process.exit(1)"
+          npm ci
+          npm run lint
+          npm test
+          npm run build
+          test -f dist/cli.js
+      - name: Start ephemeral Hindsight
+        shell: bash
+        run: |
+          docker pull "${HINDSIGHT_IMAGE}:${HINDSIGHT_VERSION}"
+          docker run -d --rm \
+            --name pantheon-o2-hindsight \
+            -p 8888:8888 \
+            -e HINDSIGHT_API_WORKER_ID=pantheon-o2-hindsight \
+            -e HINDSIGHT_API_RETAIN_EXTRACTION_MODE=chunks \
+            -e HINDSIGHT_API_ENABLE_AUTO_CONSOLIDATION=false \
+            -e HINDSIGHT_API_ENABLE_OBSERVATIONS=false \
+            -e HINDSIGHT_API_LLM_PROVIDER=openai \
+            -e HINDSIGHT_API_LLM_API_KEY=unused-o2-lab-key \
+            "${HINDSIGHT_IMAGE}:${HINDSIGHT_VERSION}"
+          for _ in $(seq 1 180); do
+            curl -fsS http://127.0.0.1:8888/health >/dev/null && exit 0
+            sleep 1
+          done
+          docker logs pantheon-o2-hindsight
+          exit 1
+      - name: Execute O2 real sync and project-scope lab
+        working-directory: monorepo/implementation
+        run: bash tools/run_hindsight_obsidian_o2.sh
+      - name: Execute O2 workspace routing lab
+        working-directory: monorepo/implementation
+        run: bash tools/run_hindsight_obsidian_workspace_routing_o2.sh
+      - name: Capture upstream identities and logs
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p "${RUNNER_TEMP}/hindsight-obsidian-o2/artifacts"
+          printf '%s\n' "$HINDSIGHT_OBSIDIAN_REF" > "${RUNNER_TEMP}/hindsight-obsidian-o2/artifacts/obsidian-sync-commit.txt"
+          docker image inspect "${HINDSIGHT_IMAGE}:${HINDSIGHT_VERSION}" \
+            --format '{{json .RepoDigests}}' \
+            > "${RUNNER_TEMP}/hindsight-obsidian-o2/artifacts/hindsight-image-repodigests.json" || true
+          docker logs pantheon-o2-hindsight \
+            > "${RUNNER_TEMP}/hindsight-obsidian-o2/artifacts/hindsight.log" 2>&1 || true
+      - name: Stop ephemeral Hindsight
+        if: always()
+        run: docker stop pantheon-o2-hindsight || true
+      - name: Upload bounded observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hindsight-obsidian-o2-${{ github.run_id }}
+          path: ${{ runner.temp }}/hindsight-obsidian-o2/artifacts/
+          if-no-files-found: error
+          retention-days: 14

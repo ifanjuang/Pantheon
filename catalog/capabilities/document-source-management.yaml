@@ -1,0 +1,30 @@
+api_version: pantheon.next/v0alpha1
+kind: Capability
+metadata:
+  id: document_source_management
+  title: Gestion des sources documentaires
+  status: candidate
+spec:
+  outcome: Capturer, préserver, versionner, retrouver et exposer des sources documentaires professionnelles sans confondre stockage, Knowledge, Evidence ou classification métier.
+  required_roles:
+    - source_capture
+    - document_persistence
+  optional_roles:
+    - document_versioning
+    - document_full_text_search
+    - document_metadata_management
+    - basic_ocr
+    - email_document_ingestion
+  acceptance:
+    - exact_source_version_reference_preserved
+    - original_source_retrievable_when_permitted
+    - canonical_business_classification_remains_external
+    - runtime_status_separated_from_governance_status
+  candidate_resources:
+    preferred: []
+    alternatives: []
+  boundaries:
+    - source_storage_is_not_knowledge
+    - document_metadata_is_not_business_authority
+    - runtime_success_is_not_evidence
+    - resource_health_is_not_safety

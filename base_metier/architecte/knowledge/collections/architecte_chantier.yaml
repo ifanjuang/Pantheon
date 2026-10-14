@@ -1,0 +1,24 @@
+id: architecte_chantier
+label: Chantier / DET
+description: Suivi de chantier, réunions, OS, visas, OPC, sous-traitance, documents d'exécution et synthèse.
+include:
+  themes:
+    - chantier_intervenants_marches
+    - chantier_preparation_synthese
+    - chantier_sous_traitance_execution
+  phases:
+    - ACT
+    - DET
+    - VISA
+exclude:
+  content_types:
+    - model_letter
+priority:
+  validated: 1.0
+  reviewed: 0.85
+  extracted: 0.55
+  draft: 0.35
+retrieval:
+  default_top_k: 6
+  rerank: true
+visibility: internal

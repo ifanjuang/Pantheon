@@ -1,0 +1,107 @@
+name: Hermes Runtime Lab Acceptance
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/implementation-hermes-runtime-lab-acceptance.yml"
+      - "implementation/qualification/external-pins.json"
+      - "implementation/tools/export_external_qualification_pins.py"
+      - "implementation/hermes/distribution/pantheon-standard.lock.yaml"
+      - "implementation/mvp_vertical/hermes_distribution.py"
+      - "implementation/mvp_vertical/hermes_runs_observer.py"
+      - "implementation/mvp_vertical/hermes_run_binding.py"
+      - "implementation/mvp_vertical/hermes_execution_trace.py"
+      - "implementation/mvp_vertical/hermes_runtime_return.py"
+      - "implementation/mvp_vertical/work_issues.py"
+      - "implementation/tools/hermes_runtime_lab_fixture.py"
+      - "implementation/tools/run_hermes_runtime_lab_acceptance.py"
+      - "implementation/tools/run_hermes_runtime_lab_acceptance.sh"
+      - "implementation/tools/validate_hermes_execution_trace_e_acceptance.py"
+      - "implementation/tests/test_hermes_runtime_lab_acceptance_contract.py"
+      - "implementation/tests/fixtures/hermes_plugins/pantheon-effect-sentinel/**"
+      - "implementation/tests/test_hermes_execution_trace_binding.py"
+      - "implementation/tests/test_hermes_execution_trace_e_acceptance.py"
+      - "implementation/tests/test_hermes_runs_observer.py"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hermes-runtime-lab-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ephemeral-lab:
+    name: install, execute and rollback
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      PANTHEON_DISTRIBUTION_AUTHORITY_REF: 1afbcdb25209fa6e411dc3792ddeb56447685ebf
+      PROFILE: pantheon-governed
+      PROFILE_KEY: hermes-profile-lab-key
+      FIXTURE_URL: http://127.0.0.1:9010
+      HERMES_API_BASE: http://127.0.0.1:8642/p/pantheon-governed
+      HERMES_API_KEY: hermes-profile-lab-key
+      PANTHEON_HERMES_API_BASE: http://127.0.0.1:9010
+      PANTHEON_HERMES_API_KEY: pantheon-lab-key
+      PANTHEON_HERMES_ACTOR: hermes-runtime-lab-binding
+      PANTHEON_RUN_PRETOOL_SENTINEL: "1"
+
+    steps:
+      - name: Checkout current monorepo candidate
+        uses: actions/checkout@v4
+        with:
+          path: monorepo
+
+      - name: Load canonical Hermes qualification pin
+        shell: bash
+        run: python3 monorepo/implementation/tools/export_external_qualification_pins.py --github-env "$GITHUB_ENV" hermes-agent
+
+      - name: Checkout pinned Hermes distribution authority
+        uses: actions/checkout@v4
+        with:
+          repository: ifanjuang/Pantheon
+          ref: ${{ env.PANTHEON_DISTRIBUTION_AUTHORITY_REF }}
+          path: distribution-authority
+          sparse-checkout: |
+            templates/hermes/distribution/distribution-lock.schema.yaml
+          sparse-checkout-cone-mode: false
+
+      - name: Checkout exact qualified Hermes source
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.HERMES_REPOSITORY }}
+          ref: ${{ env.HERMES_REF }}
+          path: hermes-upstream
+          fetch-depth: 1
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Execute bounded laboratory acceptance
+        working-directory: monorepo/implementation
+        shell: bash
+        run: bash tools/run_hermes_runtime_lab_acceptance.sh
+
+      - name: Verify execution trace Phase E acceptance
+        working-directory: monorepo/implementation
+        shell: bash
+        run: |
+          python3 tools/validate_hermes_execution_trace_e_acceptance.py \
+            --artifacts "$RUNNER_TEMP/hermes-runtime-lab/artifacts" \
+            --runtime-return-source mvp_vertical/hermes_runtime_return.py \
+            --work-issues-source mvp_vertical/work_issues.py \
+            --output "$RUNNER_TEMP/hermes-runtime-lab/artifacts/execution-trace-phase-e.json"
+          cat "$RUNNER_TEMP/hermes-runtime-lab/artifacts/execution-trace-phase-e.json" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload laboratory observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hermes-runtime-ephemeral-lab-${{ github.run_id }}
+          path: ${{ runner.temp }}/hermes-runtime-lab/artifacts/
+          if-no-files-found: error
+          retention-days: 14

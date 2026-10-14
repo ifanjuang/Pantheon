@@ -1,0 +1,203 @@
+fixture_status: synthetic_candidate
+qualification:
+  issue: 859
+  tranche: M2
+  purpose: >-
+    Qualify the smallest document-local information carrier across heterogeneous
+    architecture sources without adopting a production document.yaml schema or
+    creating a second Project Anatomy graph.
+  production_manifest_schema: not_adopted
+  anatomy_bridge: reference_only_candidate
+  semantic_promotion_path: canonical_observation_bundle
+boundaries:
+  information_is_document_local: true
+  refs_are_navigation_context_only: true
+  anatomy_ref_is_not_relation_claim: true
+  source_native_id_is_not_stable_object_identity: true
+  document_ref_is_not_storage_path: true
+  external_ref_is_not_evidence: true
+  comment_is_not_decision: true
+  status_is_not_professional_approval: true
+  preview_is_reconstructible_not_persisted: true
+corpus:
+  - document_key: plan_a203_c
+    document_kind: plan
+    format: pdf
+    represented_version: C
+    scope:
+      building: BAT-A
+      level: RDC
+      discipline: architecture
+      coverage: partial
+    information:
+      - info_id: I-W17-DETAIL
+        text: Détail de baie W17 côté cuisine.
+        anchor:
+          locator_kind: page_bbox
+          page: 2
+          bbox: [0.18, 0.31, 0.47, 0.58]
+          detail_ref: D12
+          grid_ref: C-D/4-5
+        refs:
+          - scheme: anatomy
+            ref: candidate:window-17
+            resolution: proposed
+          - scheme: ifc
+            ref: 2MF28NhmDBiRVyFakgdbCT
+            resolution: source_native
+
+  - document_key: plan_a203_d
+    document_kind: plan
+    format: pdf
+    represented_version: D
+    scope:
+      building: BAT-A
+      level: RDC
+      discipline: architecture
+      coverage: partial
+    information:
+      - info_id: I-W17-DETAIL
+        text: Détail de baie W17 côté cuisine.
+        comment: Le détail a changé de page et de position depuis l'indice C.
+        status: to_check
+        anchor:
+          locator_kind: page_bbox
+          page: 3
+          bbox: [0.54, 0.20, 0.82, 0.49]
+          detail_ref: D12
+          annotation_ref: NUAGR2
+        refs:
+          - scheme: anatomy
+            ref: candidate:window-17
+            resolution: proposed
+          - scheme: ifc
+            ref: 2MF28NhmDBiRVyFakgdbCT
+            resolution: source_native
+
+  - document_key: plan_structure_s102_b
+    document_kind: plan
+    format: pdf
+    represented_version: B
+    scope:
+      building: BAT-A
+      level: RDC
+      discipline: structure
+      coverage: partial
+    information:
+      - info_id: I-STRUCT-LOCAL-001
+        text: Poutre au droit de la baie, localisation par axes seulement.
+        anchor:
+          locator_kind: grid_ref
+          grid_ref: C-D/4-5
+      - info_id: I-STRUCT-GENERAL-002
+        comment: Observation générale de coordination structure sans localisation plus précise dans la source.
+
+  - document_key: model_ifc_2026_08
+    document_kind: model
+    format: ifc
+    represented_version: 2026-08
+    scope:
+      building: BAT-A
+      discipline: architecture
+      coverage: partial
+    information:
+      - info_id: I-IFC-W17
+        text: Représentation IFC native de la baie candidate.
+        anchor:
+          locator_kind: native_element_id
+          native_id: 2MF28NhmDBiRVyFakgdbCT
+        refs:
+          - scheme: anatomy
+            ref: candidate:window-17
+            resolution: proposed
+
+  - document_key: cctp_lot_menuiseries_c
+    document_kind: specification
+    format: pdf
+    represented_version: C
+    scope:
+      discipline: architecture
+      lot: menuiseries_exterieures
+      phase: DCE
+      coverage: partial
+    information:
+      - info_id: I-CCTP-BAVETTE-001
+        text: Bavette zinc épaisseur 15/10e.
+        comment: À comparer au détail D12 avant conclusion métier.
+        anchor:
+          locator_kind: page_section
+          page: 37
+          section: 5.3.2
+        refs:
+          - scheme: document
+            document_ref: fixture:plan-a203
+            version_ref: fixture:plan-a203-d
+            locator:
+              page: 3
+              detail_ref: D12
+          - scheme: anatomy
+            ref: candidate:window-17
+            resolution: proposed
+          - scheme: web
+            uri: https://example.invalid/manufacturer/bavette-zinc
+
+  - document_key: dpgf_lot_menuiseries_c
+    document_kind: price_schedule
+    format: xlsx
+    represented_version: C
+    scope:
+      lot: menuiseries_exterieures
+      phase: DCE
+      coverage: partial
+    information:
+      - info_id: I-DPGF-W17-001
+        text: Fourniture et pose de la baie W17.
+        anchor:
+          locator_kind: sheet_range
+          sheet: DPGF
+          range: B42:H42
+        refs:
+          - scheme: anatomy
+            ref: candidate:window-17
+            resolution: proposed
+          - scheme: document
+            document_ref: fixture:cctp-menuiseries
+            version_ref: fixture:cctp-menuiseries-c
+            locator:
+              page: 37
+              section: 5.3.2
+
+  - document_key: email_bet_2026_08_21
+    document_kind: correspondence
+    format: eml
+    represented_version: message-2026-08-21T14:32:00+02:00
+    scope:
+      discipline: architecture
+      coverage: partial
+    information:
+      - info_id: I-MAIL-W17-001
+        text: Déplacer la bavette conformément au détail D12 du plan A203 indice D.
+        comment: Référence explicite au plan, mais la demande reste une information source et non une décision.
+        status: to_check
+        anchor:
+          locator_kind: message_fragment
+          message_id: fixture:mail-bet-2026-08-21
+          fragment: paragraph-3
+        refs:
+          - scheme: document
+            document_ref: fixture:plan-a203
+            version_ref: fixture:plan-a203-d
+            locator:
+              page: 3
+              detail_ref: D12
+          - scheme: anatomy
+            ref: candidate:window-17
+            resolution: proposed
+      - info_id: I-MAIL-AMBIGUOUS-002
+        text: Modifier la fenêtre côté nord.
+        comment: Plusieurs fenêtres correspondent; ne pas inventer de cible.
+        status: to_check
+        anchor:
+          locator_kind: message_fragment
+          message_id: fixture:mail-bet-2026-08-21
+          fragment: paragraph-5

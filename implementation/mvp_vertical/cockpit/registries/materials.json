@@ -1,0 +1,22 @@
+{
+  "schema_id": "cockpit.materials",
+  "revision": 1,
+  "assignment": {
+    "strategy": "stable-entity-hash",
+    "fallback_key": "projection-index"
+  },
+  "materials": [
+    {"id":"aurora-mint","stops":["#ff5ca8","#8d5cff","#307cff","#28d7d0","#8cf0b4"]},
+    {"id":"coral-indigo","stops":["#ff9b54","#ff5e7d","#d94cff","#5746d9","#233c8f"]},
+    {"id":"lagoon-prism","stops":["#2fd5e5","#35e6b0","#b8ef66","#ffd85a","#ff7c5f"]},
+    {"id":"violet-cyan","stops":["#ff62ce","#a75cff","#5e65ff","#39b9ff","#43e6d1"]},
+    {"id":"ember-plum","stops":["#ffd15c","#ff8b4a","#ff4f6d","#b83e91","#443084"]},
+    {"id":"forest-sky","stops":["#80efb0","#34d6a4","#29b6d1","#3e7ee8","#7d63e8"]},
+    {"id":"rose-ocean","stops":["#ff8fb7","#ff5f9f","#b75cff","#5274ee","#35c7de"]},
+    {"id":"sun-marine","stops":["#ffe06a","#ffb34f","#ff6d67","#a94ad8","#376fd5"]},
+    {"id":"mint-orchid","stops":["#97f2bd","#45dfc8","#4ab3ec","#8969ee","#dc68d5"]},
+    {"id":"prism","stops":["#ff667d","#ffad52","#f4df59","#69dc8c","#3fd3df","#507cf0","#b45ce5"]},
+    {"id":"apricot-lilac","stops":["#ffc477","#ff8d82","#ee69af","#bd75e8","#7688ee"]},
+    {"id":"ice-flower","stops":["#c4f4ff","#65dce9","#53a9ef","#8f7be9","#e177c7"]}
+  ]
+}

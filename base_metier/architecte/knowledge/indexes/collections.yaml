@@ -1,0 +1,24 @@
+collections:
+  - id: architecte_core
+    file: base_metier/architecte/knowledge/collections/architecte_core.yaml
+    label: Référentiel complet architecte
+
+  - id: architecte_contrat
+    file: base_metier/architecte/knowledge/collections/architecte_contrat.yaml
+    label: Contrat / mission
+
+  - id: architecte_chantier
+    file: base_metier/architecte/knowledge/collections/architecte_chantier.yaml
+    label: Chantier / DET
+
+  - id: architecte_reception
+    file: base_metier/architecte/knowledge/collections/architecte_reception.yaml
+    label: Réception / GPA
+
+  - id: architecte_assurance
+    file: base_metier/architecte/knowledge/collections/architecte_assurance.yaml
+    label: Assurance / responsabilité
+
+  - id: architecte_contentieux
+    file: base_metier/architecte/knowledge/collections/architecte_contentieux.yaml
+    label: Contentieux / preuves

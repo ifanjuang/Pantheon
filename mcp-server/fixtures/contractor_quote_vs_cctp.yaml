@@ -1,0 +1,26 @@
+fixture_id: contractor_quote_vs_cctp
+status: fictive_development_fixture
+case_type: normal
+request:
+  intent: "Compare a contractor quote against the CCTP and identify gaps before any position is taken."
+  external_effect: false
+  writes_state: false
+  scope:
+    scope_type: dossier
+    scope_id: fixture-quote-cctp
+  sources_expected:
+    - CCTP extract
+    - contractor quote
+    - DPGF line item
+  claims_to_support:
+    - "quoted scope matches or diverges from CCTP scope"
+    - "price or quantity gap is a candidate finding only"
+expected_outputs:
+  classification:
+    consequence_level: K3
+    evidence_required: true
+  scope_report: "dossier scope echoed"
+  approval_level: C2
+  evidence_pack_skeleton: true
+  result_candidate_format: true
+  refusal_out_of_limits: "no client or contractor transmission from the policy server"

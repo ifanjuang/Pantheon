@@ -1,0 +1,4 @@
+interface:
+  display_name: "agency Project Context"
+  short_description: "Résout et encadre le contexte projet agency"
+  default_prompt: "Use $project-context to resolve the relevant agency project context and preserve its source and policy boundaries."

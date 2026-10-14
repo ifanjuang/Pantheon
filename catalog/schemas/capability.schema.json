@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pantheon-next.local/catalog/schemas/capability.schema.json",
+  "title": "Pantheon Capability candidate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["api_version", "kind", "metadata", "spec"],
+  "properties": {
+    "api_version": {"const": "pantheon.next/v0alpha1"},
+    "kind": {"const": "Capability"},
+    "metadata": {"$ref": "#/$defs/metadata"},
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome", "required_roles", "acceptance", "candidate_resources", "boundaries"],
+      "properties": {
+        "outcome": {"type": "string", "minLength": 1},
+        "required_roles": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/id"}},
+        "optional_roles": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/id"}},
+        "acceptance": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/id"}},
+        "candidate_resources": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["preferred", "alternatives"],
+          "properties": {
+            "preferred": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/id"}},
+            "alternatives": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/id"}}
+          }
+        },
+        "boundaries": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/id"}}
+      }
+    }
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "status"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "title": {"type": "string", "minLength": 1},
+        "status": {"enum": ["candidate", "retained", "to_review", "watchlist", "blocked", "deprecated"]}
+      }
+    }
+  }
+}

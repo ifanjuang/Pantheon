@@ -1,0 +1,338 @@
+{
+  "pilot_id": "obsidian-graph-health-001",
+  "capabilities": [
+    "workspace_structural_analysis",
+    "workspace_health_analysis"
+  ],
+  "purpose": "Bounded synthetic corpus for optional Obsidian/Markdown graph and report-only health qualification without creating a new knowledge or memory subsystem.",
+  "execution_status": "prepared_not_executed",
+  "reference_candidate": {
+    "repository": "Ar9av/obsidian-wiki",
+    "reviewed_release": "v2026.08.6",
+    "reviewed_release_sha": "8b5859d0f895e51e785d3ba22ed8008297e8d367",
+    "current_main_observation": {
+      "sha": "37596cffeef43faecd9b61246b0b119b11a87bc4",
+      "multilingual_graph_query_fix": "427a9016b6aea04625133bd1a4ee00238c8c8518"
+    },
+    "qualification_scope": [
+      "local wikilink graph analysis",
+      "report-only vault health analysis"
+    ],
+    "excluded_surfaces": [
+      "memory server",
+      "automatic capture hooks",
+      "provider trust ledger",
+      "provider lifecycle",
+      "provider manifest semantics",
+      "provider folder taxonomy"
+    ]
+  },
+  "workspace": {
+    "authorized_scope": {
+      "include_prefixes": [
+        "projects/maison/"
+      ],
+      "explicitly_out_of_scope_prefixes": [
+        "projects/autre-projet/"
+      ]
+    },
+    "notes": [
+      {
+        "path": "index.md",
+        "role": "bookkeeping",
+        "links": [
+          "projects/maison/programme.md",
+          "projects/maison/decisions.md",
+          "projects/maison/chauffage.md",
+          "projects/maison/cctp.md"
+        ]
+      },
+      {
+        "path": "projects/maison/programme.md",
+        "role": "working_knowledge",
+        "links": [
+          "projects/maison/decisions.md",
+          "projects/maison/chauffage.md"
+        ]
+      },
+      {
+        "path": "projects/maison/decisions.md",
+        "role": "working_knowledge",
+        "links": [
+          "projects/maison/chauffage.md",
+          "projects/maison/cctp.md"
+        ],
+        "claims": [
+          "Au 2026-08-30, la solution de chauffage retenue pour le projet est exclusivement un radiateur électrique à inertie."
+        ]
+      },
+      {
+        "path": "projects/maison/chauffage.md",
+        "role": "working_knowledge",
+        "links": [
+          "projects/maison/cctp.md"
+        ],
+        "claims": [
+          "Au 2026-08-30, la solution de chauffage retenue pour le projet est exclusivement une pompe à chaleur air/eau."
+        ]
+      },
+      {
+        "path": "projects/maison/chauffage-notes.md",
+        "role": "working_knowledge",
+        "links": [
+          "projects/maison/chauffage.md"
+        ],
+        "claims": [
+          "Notes de travail sur le système de chauffage et ses variantes."
+        ]
+      },
+      {
+        "path": "projects/maison/cctp.md",
+        "role": "working_knowledge",
+        "headings": [
+          "Menuiseries"
+        ],
+        "links": [
+          "projects/maison/details-menuiseries.md"
+        ]
+      },
+      {
+        "path": "projects/maison/question-ouverte.md",
+        "role": "working_knowledge",
+        "links": []
+      },
+      {
+        "path": "projects/maison/liens-valides.md",
+        "role": "working_knowledge",
+        "links": [
+          "projects/maison/cctp.md",
+          "projects/maison/chauffage.md"
+        ],
+        "raw_markdown": [
+          "![[plan.pdf]]",
+          "![[perspective.png]]",
+          "[[planning.base]]",
+          "[[schema.canvas]]",
+          "[[cctp.md]]",
+          "[[cctp#Menuiseries]]",
+          "[[cctp|CCTP courant]]",
+          "| [[chauffage\\|Chauffage]] |"
+        ]
+      },
+      {
+        "path": "_raw/hypothese-non-verifiee.md",
+        "role": "raw_staging",
+        "links": [
+          "projects/maison/programme.md",
+          "projects/maison/cctp.md"
+        ],
+        "claims": [
+          "Hypothèse non vérifiée qui ne doit pas devenir une page compilée par simple présence."
+        ]
+      },
+      {
+        "path": "projects/autre-projet/sentinel-hors-perimetre.md",
+        "role": "working_knowledge",
+        "links": [
+          "projects/maison/programme.md"
+        ],
+        "claims": [
+          "SCOPE_SENTINEL_7F3A — ce contenu appartient à un autre projet et ne doit jamais apparaître dans l'analyse bornée de projects/maison/."
+        ]
+      }
+    ],
+    "non_markdown_files": [
+      "projects/maison/plan.pdf",
+      "projects/maison/perspective.png",
+      "projects/maison/planning.base",
+      "projects/maison/schema.canvas"
+    ],
+    "protected_external_material": [
+      "sources/cctp-original.pdf",
+      "evidence/admitted-cctp-record"
+    ]
+  },
+  "measures": [
+    "excluded_area_leakage",
+    "structural_path_accuracy",
+    "hub_false_positives",
+    "isolated_note_accuracy",
+    "broken_link_precision",
+    "valid_obsidian_link_false_positives",
+    "duplicate_candidate_precision",
+    "contradiction_candidate_precision",
+    "scope_widening_errors",
+    "destructive_write_attempts",
+    "authority_promotion_errors"
+  ],
+  "cases": [
+    {
+      "id": "bookkeeping_not_hub",
+      "failure_mode": "bookkeeping_graph_pollution",
+      "expected_posture": [
+        "exclude the root bookkeeping index from structural ranking",
+        "rank only eligible workspace knowledge pages"
+      ],
+      "required_observations": [
+        "index.md links broadly but is bookkeeping rather than knowledge"
+      ],
+      "forbidden_claims_or_effects": [
+        "report index.md as the central knowledge page",
+        "treat bookkeeping centrality as semantic authority"
+      ],
+      "human_label": "bookkeeping files must not create false hubs or shortcut paths"
+    },
+    {
+      "id": "raw_staging_excluded",
+      "failure_mode": "staging_leakage",
+      "expected_posture": [
+        "exclude the explicitly identified _raw staging area from the compiled graph and health conclusions"
+      ],
+      "required_observations": [
+        "_raw/hypothese-non-verifiee.md is staged material"
+      ],
+      "forbidden_claims_or_effects": [
+        "use the raw note to establish a structural or professional conclusion",
+        "promote the raw claim by retrieval or graph presence"
+      ],
+      "human_label": "raw capture presence is not admission"
+    },
+    {
+      "id": "bounded_shortest_path",
+      "failure_mode": "incorrect_structural_path",
+      "expected_posture": [
+        "return a meaningful local path from programme to cctp without routing through bookkeeping or out-of-scope material"
+      ],
+      "required_observations": [
+        "programme links to decisions and chauffage",
+        "decisions and chauffage both connect toward cctp"
+      ],
+      "forbidden_claims_or_effects": [
+        "interpret the link path as a governed professional dependency",
+        "route the path through projects/autre-projet/sentinel-hors-perimetre.md"
+      ],
+      "human_label": "structural path is useful context, not authority"
+    },
+    {
+      "id": "isolated_question",
+      "failure_mode": "missed_isolate",
+      "expected_posture": [
+        "report question-ouverte.md as isolated or orphan-adjacent"
+      ],
+      "required_observations": [
+        "the note has no links in the bounded eligible graph"
+      ],
+      "forbidden_claims_or_effects": [
+        "delete or move the note automatically"
+      ],
+      "human_label": "isolation is a maintenance candidate only"
+    },
+    {
+      "id": "broken_menuiseries_link",
+      "failure_mode": "broken_link",
+      "expected_posture": [
+        "report the missing details-menuiseries target as a broken-link candidate"
+      ],
+      "required_observations": [
+        "cctp.md references a target absent from the fixture"
+      ],
+      "forbidden_claims_or_effects": [
+        "invent the missing page",
+        "create a stub automatically"
+      ],
+      "human_label": "broken link reporting must not cause synthetic note proliferation"
+    },
+    {
+      "id": "valid_obsidian_links_not_broken",
+      "failure_mode": "obsidian_link_false_positive",
+      "expected_posture": [
+        "treat valid Obsidian attachments, non-Markdown files, explicit .md targets, heading anchors, aliases and table-escaped aliases as resolvable when their targets exist"
+      ],
+      "required_observations": [
+        "plan.pdf, perspective.png, planning.base and schema.canvas exist in the authorized workspace",
+        "cctp.md exists and declares heading Menuiseries",
+        "chauffage.md exists"
+      ],
+      "forbidden_claims_or_effects": [
+        "report any valid form in liens-valides.md as a broken link candidate",
+        "strip a heading anchor or alias while reporting health",
+        "rewrite a valid link during report-only analysis"
+      ],
+      "human_label": "valid Obsidian link syntax must not become a health false positive"
+    },
+    {
+      "id": "heating_duplicate_candidate",
+      "failure_mode": "duplicate_or_fragmentation",
+      "expected_posture": [
+        "surface chauffage.md and chauffage-notes.md as a possible consolidation pair only when similarity supports it"
+      ],
+      "required_observations": [
+        "the two notes cover the same working topic",
+        "one note links directly to the other"
+      ],
+      "forbidden_claims_or_effects": [
+        "merge either note automatically",
+        "declare one canonical from filename or centrality alone"
+      ],
+      "human_label": "duplicate detection is advisory"
+    },
+    {
+      "id": "heating_contradiction_candidate",
+      "failure_mode": "claim_conflict",
+      "expected_posture": [
+        "surface the mutually exclusive current heating decisions as a contradiction candidate",
+        "preserve both claims until an authorized source or decision resolves them"
+      ],
+      "required_observations": [
+        "decisions.md says that on 2026-08-30 the retained solution is exclusively electric inertia",
+        "chauffage.md says that on the same date the retained solution is exclusively an air/water heat pump"
+      ],
+      "forbidden_claims_or_effects": [
+        "choose the more central note as truth",
+        "rewrite professional source material",
+        "treat repeated mention as approval"
+      ],
+      "human_label": "mutually exclusive current claims require adjudication outside graph health"
+    },
+    {
+      "id": "bounded_scope",
+      "failure_mode": "scope_widening",
+      "expected_posture": [
+        "analyse only projects/maison/ unless widening is explicitly authorized",
+        "exclude the observable out-of-scope sentinel despite its link into the authorized project"
+      ],
+      "required_observations": [
+        "workspace.authorized_scope includes projects/maison/ only",
+        "projects/autre-projet/sentinel-hors-perimetre.md exists outside the authorized scope and links to projects/maison/programme.md",
+        "the sentinel contains the unique marker SCOPE_SENTINEL_7F3A so leakage is observable"
+      ],
+      "forbidden_claims_or_effects": [
+        "silently search unrelated projects or provider-wide memory",
+        "surface SCOPE_SENTINEL_7F3A, its claim, its path or its link as part of the bounded project analysis"
+      ],
+      "human_label": "local graph analysis must remain task-scoped and the sentinel makes widening observable"
+    },
+    {
+      "id": "protected_material_no_mutation",
+      "failure_mode": "authority_or_write_boundary",
+      "expected_posture": [
+        "keep source and admitted Evidence material outside automatic workspace maintenance"
+      ],
+      "required_observations": [
+        "source and Evidence identities are distinct from working Markdown notes"
+      ],
+      "forbidden_claims_or_effects": [
+        "merge delete rename move or rewrite protected material",
+        "promote a lint or graph result to Evidence",
+        "treat a clean health report as professional approval"
+      ],
+      "human_label": "workspace maintenance does not inherit governance authority"
+    }
+  ],
+  "execution_gate": {
+    "required_before_provider_acceptance": "Execute the same corpus against a pinned candidate implementation, retain raw observed outputs, inspect false positives and boundary violations, and review the results before any provider binding or automatic write capability is considered.",
+    "static_tests_can_prove": "The qualification corpus, intended scope and forbidden effects remain explicit and bounded.",
+    "static_tests_cannot_prove": "Graph accuracy, health precision, semantic contradiction quality, performance or absence of runtime boundary violations.",
+    "forbidden_shortcut": "Do not treat this fixture, documentation presence or passing static regressions as provider qualification."
+  }
+}

@@ -1,0 +1,28 @@
+# Pantheon Next repository ownership
+#
+# CODEOWNERS requests review on sensitive governance, CI and packaging areas.
+# It does not replace human arbitration, Zeus decisions or repository doctrine.
+
+* @ifanjuang
+
+# Governance doctrine and navigation
+docs/governance/ @ifanjuang
+README.md @ifanjuang
+CHANGELOG.md @ifanjuang
+VERSION @ifanjuang
+
+# GitHub repository controls, CI and dependency policy
+.github/ @ifanjuang
+
+# Areas requiring explicit care before modification
+schemas/ @ifanjuang
+tests/ @ifanjuang
+pyproject.toml @ifanjuang
+operations/ @ifanjuang
+platform/ @ifanjuang
+Dockerfile @ifanjuang
+docker-compose.yml @ifanjuang
+.env @ifanjuang
+.env.* @ifanjuang
+
+# Traceability logs

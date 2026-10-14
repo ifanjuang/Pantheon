@@ -1,0 +1,162 @@
+{
+  "pilot_id": "zoom-map-visual-focus-001",
+  "capability": "optional_visual_focus_client",
+  "purpose": "Qualify the smallest source-reviewed Obsidian zoom-map surface that can carry several human-selected image regions into the existing Hermes visual-focus skill without creating a Pantheon sidecar schema, annotation authority or second vision runtime.",
+  "execution_status": "source_reviewed_mapping_fixture_runtime_smoke_pending",
+  "reference_candidate": {
+    "repository": "Jareika/zoom-map",
+    "reviewed_release": "2.2.8",
+    "reviewed_commit": "f6daa072c484dff1235a070da48d703de51cf143",
+    "license": "MIT",
+    "reviewed_source_blobs": {
+      "README.md": "0236e225c6658600c77e6da2f18b15ed40794ed4",
+      "src/markerStore.ts": "82ec77f13dc5ef853e21971d09cb2ea5a5561ce2",
+      "src/map.ts": "870faaa176dda4fd586ffb66c9d5ac91d8569969"
+    }
+  },
+  "existing_owner_alignment": {
+    "hermes_skill": "templates/hermes/skills/visual-focus/SKILL.md",
+    "native_runtime_surface": "vision_analyze.region",
+    "obsidian_workspace_qualification": "Pantheon-Next#714",
+    "document_sidecar_boundary": "Pantheon-Next#859",
+    "document_routing_decision": "Pantheon-Next#865",
+    "rules": [
+      "zoom-map sidecar != Pantheon document.yaml",
+      "zoom-map UX sidecar != document routing persistence",
+      "plugin drawing id != governed identity",
+      "human focus != professional conclusion",
+      "annotation != Evidence",
+      "projection != persistence authority"
+    ]
+  },
+  "source_observations": {
+    "storage": {
+      "status": "observed_in_source",
+      "default": "<image>.markers.json",
+      "note": "The upstream README documents JSON sidecar storage beside the image, with optional inline-note storage. This pilot uses JSON only."
+    },
+    "geometry": {
+      "status": "observed_in_source",
+      "drawing_kinds": [
+        "rect",
+        "circle",
+        "polygon",
+        "polyline"
+      ],
+      "marker_world_coordinates": "normalized 0..1 relative to image width/height",
+      "v0_mapping_scope": [
+        "rect"
+      ],
+      "v0_reason": "Rectangle drawing coordinates are directly reusable as a normalized bounding box and map exactly to Hermes region semantics. Other drawing kinds remain deferred until an Obsidian runtime smoke confirms the desired conversion policy."
+    }
+  },
+  "fixture": {
+    "image_path": "tests/fixtures/zoom_map_visual_focus/source.svg",
+    "sidecar_path": "tests/fixtures/zoom_map_visual_focus/source.svg.markers.json",
+    "image_sha256": "1a21684972f4ba1a1d7a50051f82e34a1891648817c40f5b290e6f6268b09b99",
+    "image_width_px": 1000,
+    "image_height_px": 800,
+    "focus_layer_name": "Hermes Focus",
+    "expected_regions": [
+      {
+        "drawing_id": "focus_a",
+        "label": "A - facade joint",
+        "normalized_bbox": [
+          0.1,
+          0.15,
+          0.35,
+          0.4
+        ],
+        "pixel_bbox": [
+          100,
+          120,
+          350,
+          320
+        ]
+      },
+      {
+        "drawing_id": "focus_b",
+        "label": "B - opening detail",
+        "normalized_bbox": [
+          0.55,
+          0.22,
+          0.8,
+          0.46
+        ],
+        "pixel_bbox": [
+          550,
+          176,
+          800,
+          368
+        ]
+      },
+      {
+        "drawing_id": "focus_c",
+        "label": "C - lower detail",
+        "normalized_bbox": [
+          0.52,
+          0.55,
+          0.82,
+          0.78
+        ],
+        "pixel_bbox": [
+          520,
+          440,
+          820,
+          624
+        ]
+      }
+    ]
+  },
+  "candidate_profile": {
+    "name": "sidecar_read_only_rect_to_visual_focus",
+    "input": "exact source image plus adjacent zoom-map markers JSON",
+    "selection_rule": "read visible rect drawings only from the explicitly selected Hermes Focus draw layer",
+    "mapping_rule": "multiply normalized x coordinates by exact source width and normalized y coordinates by exact source height; order min/max and clamp to source bounds before invoking vision_analyze.region",
+    "write_behavior": "none in this qualification",
+    "sidecar_posture": "external plugin UX state only; not a Pantheon production sidecar, document routing persistence, currentness owner, Evidence store, Project Anatomy store or governed identity carrier",
+    "deferred": [
+      "circle-to-region conversion",
+      "polygon-to-region conversion",
+      "polyline handling",
+      "point-marker padding policy",
+      "mask or segmentation",
+      "automatic plugin-to-Hermes command/button",
+      "production sidecar admission"
+    ]
+  },
+  "cases": [
+    {
+      "id": "three_human_rectangles_map_to_native_regions",
+      "expected": "The three visible rect drawings in Hermes Focus map deterministically to three original-image pixel bboxes suitable for vision_analyze.region.",
+      "runtime_smoke_required": false
+    },
+    {
+      "id": "other_layer_is_not_implicitly_selected",
+      "expected": "A visible reference rectangle on another draw layer is not included merely because it exists in the same sidecar.",
+      "runtime_smoke_required": false
+    },
+    {
+      "id": "exact_source_digest_precedes_focus_reuse",
+      "expected": "The fixture image digest matches the recorded source before any saved region is reused; a replacement image must not silently inherit old focus coordinates.",
+      "runtime_smoke_required": false
+    },
+    {
+      "id": "obsidian_emits_equivalent_sidecar",
+      "expected": "zoom-map 2.2.8 in an isolated Obsidian vault can create and persist equivalent rectangle selections without mutating the source image.",
+      "runtime_smoke_required": true
+    },
+    {
+      "id": "hermes_consumes_selected_regions",
+      "expected": "An authorized Hermes runtime can consume the exact synthetic source plus selected pixel regions through visual-focus / vision_analyze.region while preserving whole-image context and without promoting output to Evidence.",
+      "runtime_smoke_required": true
+    }
+  ],
+  "execution_gate": {
+    "source_review_can_prove": "The reviewed zoom-map release has adjacent JSON storage, structured drawing layers and rectangle geometry compatible with a deterministic normalized-to-pixel mapping fixture.",
+    "source_review_cannot_prove": "That the target Obsidian installation emits the exact expected sidecar after interactive use, that configuration drift cannot alter behavior, or that the deployed Hermes profile is installed and task-authorized to analyze the source.",
+    "required_runtime_smoke": "Install zoom-map 2.2.8 in an isolated Obsidian test vault, open the synthetic SVG, create three rectangles on a Hermes Focus layer, compare the emitted JSON and source hash with this fixture, then run one authorized Hermes visual-focus analysis over at least two selected regions.",
+    "register_placement": "Do not add zoom-map to the external-tool placement register as a qualified candidate until the runtime smoke is observed and reviewed.",
+    "forbidden_shortcut": "Do not treat source review, sidecar existence, plugin installation, successful crop analysis or a drawing label as Evidence, governed identity, professional validation or production sidecar admission."
+  }
+}

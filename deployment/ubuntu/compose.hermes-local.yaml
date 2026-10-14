@@ -1,0 +1,55 @@
+# Local Ollama binding for Linux hosts.
+# Hermes uses host networking to reach Ollama on 127.0.0.1 while its own
+# HTTP surfaces remain bound to the explicitly selected node address.
+services:
+  hermes:
+    network_mode: host
+    ports: !reset []
+    extra_hosts: !reset []
+    environment:
+      API_SERVER_HOST: ${NODE_BIND_ADDRESS}
+      HERMES_DASHBOARD_HOST: ${NODE_BIND_ADDRESS}
+
+  hindsight:
+    network_mode: host
+    # pg0/PostgreSQL vector-index creation may request about 512 MiB of POSIX
+    # shared memory. Docker's 64 MiB default makes new banks fail with ENOSPC.
+    shm_size: 1gb
+    stop_grace_period: 40s
+    ports: !reset []
+    extra_hosts: !reset []
+    environment:
+      HINDSIGHT_API_HOST: ${NODE_BIND_ADDRESS}
+      # Hindsight Control Plane (Next.js) loops on 127.0.0.1 due to
+      # locale middleware URL normalization; bind to all interfaces.
+      HINDSIGHT_CP_HOSTNAME: 0.0.0.0
+      HINDSIGHT_API_LLM_PROVIDER: ollama
+      HINDSIGHT_API_LLM_BASE_URL: http://127.0.0.1:11434/v1
+      HINDSIGHT_API_LLM_MODEL: qwen3.5:9b
+      # Cloud-oriented defaults overload a single local Ollama model. Keep one
+      # consolidation lane and one shared ingestion lane, with one generation
+      # at a time against the Linux-hosted 9B model.
+      HINDSIGHT_API_WORKER_MAX_SLOTS: "2"
+      HINDSIGHT_API_WORKER_CONSOLIDATION_RESERVED_SLOTS: "1"
+      HINDSIGHT_API_LLM_MAX_CONCURRENT: "1"
+      HINDSIGHT_API_RETAIN_LLM_MAX_CONCURRENT: "1"
+      HINDSIGHT_API_CONSOLIDATION_LLM_MAX_CONCURRENT: "1"
+      HINDSIGHT_API_MENTAL_MODEL_REFRESH_LLM_MAX_CONCURRENT: "1"
+      HINDSIGHT_API_RETAIN_MISSION: >-
+        Pantheon document chronology v1. Retain all significant facts as usual. For professional documents, always also
+        extract explicit document chronology stated in the source: the document date,
+        revision/index/version token, revision-history or revision-table entries with their
+        stated dates/statuses, and any explicit supersedes/replaces/annule-et-remplace
+        relationship. Preserve the exact stated revision tokens and dates. If the source
+        contains conflicting chronology markers, retain the conflicting statements with
+        their context instead of choosing one. Never infer document chronology from the
+        filename, upload time, filesystem mtime, metadata, or ingestion time.
+        When a source explicitly cites, responds to, supplements, supersedes, replaces,
+        or annuls another document, retain the relationship as a separate fact with the
+        exact cited title, identifier, date, and page or section when stated. Keep the
+        source document date distinct from dates stated for cited documents. If the target
+        cannot be resolved exactly, preserve an unresolved reference instead of guessing.
+      HINDSIGHT_API_FILE_PARSER: markitdown
+      HINDSIGHT_API_FILE_DELETE_AFTER_RETAIN: "true"
+      HINDSIGHT_API_FILE_PARSER_MARKITDOWN_OCR_ENABLED: "false"
+      HINDSIGHT_API_STORE_DOCUMENT_TEXT: "true"

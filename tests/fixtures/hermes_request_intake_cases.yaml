@@ -1,0 +1,125 @@
+cases:
+  - id: harmless_rewrite
+    request: "Corrige les fautes et améliore la formulation de ce texte."
+    expected:
+      requested_transformation: wording
+      conditions: []
+      forbidden_conditions: [source_required, legal_or_professional_risk, external_effect]
+      coordination: none
+
+  - id: generic_explanation
+    request: "Explique-moi simplement pourquoi le ciel est bleu."
+    expected:
+      conditions: [factual_claim]
+      forbidden_conditions: [legal_or_professional_risk, external_effect, memory_recall_requested]
+      coordination: none
+
+  - id: current_product_comparison
+    request: "Compare trois GPU actuels et recommande le plus adapté au rendu 3D."
+    expected:
+      conditions: [factual_claim, external_reference, source_required, source_freshness_risk]
+      forbidden_conditions: [external_effect, memory_promotion]
+      coordination:
+        independent: true
+        synthesize: true
+
+  - id: software_diagnosis
+    request: "Trouve pourquoi ce programme plante et corrige-le jusqu'à ce que les tests passent."
+    expected:
+      conditions: [complex_task, multi_step_workflow, artifact_fabrication]
+      forbidden_conditions: [external_transmission, memory_promotion]
+      coordination:
+        repeat_until: [tests_pass]
+      completion_requirements: [tests_pass]
+
+  - id: contradictory_documents
+    request: "Analyse ces cinq documents contradictoires et dis-moi ce qu'on peut réellement conclure."
+    expected:
+      conditions: [factual_claim, source_required, evidence_gap]
+      forbidden_conditions: [external_effect, memory_promotion]
+      conflict_detected: true
+      coordination:
+        independent: true
+        synthesize: true
+
+  - id: creative_logo_options
+    request: "Fais trois propositions de logo différentes puis recommande la plus lisible."
+    expected:
+      conditions: [artifact_fabrication, delivery_quality_required]
+      forbidden_conditions: [source_required, legal_or_professional_risk, external_effect]
+      coordination:
+        independent: true
+        synthesize: true
+      completion_requirements: [three_distinct_options_produced]
+
+  - id: cctp_review
+    request: "Vérifie ce CCTP avant que je l'envoie au client et signale les incohérences importantes."
+    expected:
+      conditions: [source_required, factual_claim, legal_or_professional_risk, client_delivery]
+      forbidden_conditions: [memory_promotion]
+      coordination:
+        requires: true
+      completion_requirements: [inconsistencies_identified]
+
+  - id: disputed_invoice_reply
+    request: "Prépare une réponse courte au client concernant cette facture contestée, sans l'envoyer."
+    expected:
+      conditions: [source_required, legal_or_professional_risk, recipient_specific_format, delivery_quality_required]
+      forbidden_conditions: [external_transmission, memory_promotion]
+      coordination:
+        requires: true
+      completion_requirements: [response_candidate_ready]
+
+  - id: prior_decision_recall
+    request: "Retrouve ce qu'on avait décidé la dernière fois sur ce projet et résume-le."
+    expected:
+      conditions: [memory_recall_requested, prior_decision_reuse, project_history_reuse]
+      forbidden_conditions: [external_effect, external_transmission]
+      coordination: none
+
+  - id: send_client_message
+    request: "Envoie ce message au client."
+    expected:
+      conditions: [external_transmission, client_delivery, external_effect]
+      forbidden_conditions: [source_required, memory_promotion]
+      coordination: none
+
+  - id: conditional_future_action
+    request: "Si le résultat du contrôle est négatif, prépare une demande de reprise; sinon classe le point comme résolu."
+    expected:
+      conditions: [multi_step_workflow]
+      forbidden_conditions: [memory_promotion]
+      coordination:
+        branch_on: [control_result]
+
+  - id: format_contract_text_without_review
+    request: "Mets ce texte de contrat en forme sans changer un seul mot."
+    expected:
+      requested_transformation: formatting
+      conditions: []
+      forbidden_conditions: [source_required, legal_or_professional_risk, external_effect]
+      coordination: none
+
+  - id: verify_contract_claim
+    request: "Confirme à partir du contrat signé si cette prestation est incluse au marché."
+    expected:
+      conditions: [factual_claim, source_required, legal_or_professional_risk]
+      forbidden_conditions: [external_effect, external_transmission]
+      coordination:
+        requires: true
+      completion_requirements: [requested_fact_resolved]
+
+  - id: remember_as_canonical
+    request: "Garde cette décision comme référence officielle pour les prochaines fois."
+    expected:
+      conditions: [memory_candidate, memory_promotion, approval_required]
+      forbidden_conditions: [external_transmission]
+      coordination: none
+
+  - id: public_release_note
+    request: "Rédige puis publie la note de version sur le site public."
+    expected:
+      conditions: [narrative_or_editorial_work, public_output, external_transmission, external_effect]
+      forbidden_conditions: [memory_promotion]
+      coordination:
+        requires: true

@@ -1,0 +1,120 @@
+# Fictional Task Contract example.
+# Educational support only.
+# This is not a schema, not runtime configuration and not a Hermes dispatch file.
+
+identity:
+  contract_id: tc-example-single-primary-reasoning-context-001
+  status: fictional_example
+  created_for: evidence_topology_gate_demo
+  doctrine_refs:
+    - docs/governance/EVIDENCE_TOPOLOGY.md
+    - docs/governance/TASK_CONTRACTS.md
+    - docs/governance/EVIDENCE_PACK.md
+    - docs/governance/HERMES_INTEGRATION.md
+
+intent:
+  summary: Review a fictitious enterprise change ticket by connecting Jira comments, Java source, XML process configuration and a design note.
+  professional_risk: medium
+  reason_for_governance: The likely failure mode is scope confusion from partial source views.
+
+scope:
+  included:
+    - fictitious Jira ticket OPS-1842
+    - selected Jira comments explicitly attached to the task
+    - Java files listed in the Context Pack
+    - XML process-flow files listed in the Context Pack
+    - one Confluence design note excerpt
+  excluded:
+    - similarly named Jira tickets
+    - unrelated initiatives
+    - production credentials
+    - live deployment actions
+    - repository mutation
+  scope_warning: Do not generalize findings to adjacent tickets with similar names.
+
+reasoning_topology:
+  selected: single_primary_reasoning_context
+  reason: cross_source_reasoning_required
+  handoff_policy: no_summary_only_handoff
+  evidence_policy: source_linked_evidence_items_required
+  why_not_multi_agent: The decisive inference requires following one proof chain across Jira, Java and XML configuration.
+  allowed_execution_support:
+    - scoped retrieval
+    - source reading
+    - citation extraction
+    - evidence item preparation
+  forbidden_execution_support:
+    - specialist worker final conclusions
+    - supervisor synthesis from summaries only
+    - broad ticket search without scope approval
+
+roles:
+  requested_viewpoints:
+    - ATHENA: structure the proof chain and identify required source order
+    - ARGOS: verify source locators and provenance
+    - THEMIS: identify scope, risk and approval boundaries
+    - APOLLO: review clarity and delivery-readiness of the final technical note
+  role_boundary: Pantheon Roles review status and tensions. They are not runtime workers.
+
+constraints:
+  - Use the smallest sufficient context.
+  - Preserve exact source references for every decisive claim.
+  - Mark unsupported claims as assumptions.
+  - Do not infer ticket intention from similarly named tickets.
+  - Do not mutate repository files.
+  - Do not create Register Candidates unless explicitly requested after evidence review.
+
+expected_evidence:
+  evidence_items_required:
+    - Jira comment that identifies the intended behavior change
+    - Java class or method that controls the behavior
+    - XML condition or process-flow gate linked to the code path
+    - design note excerpt confirming or contradicting intended scope
+  required_fields_per_evidence_item:
+    - claim
+    - source_type
+    - source_ref
+    - scope_of_support
+    - limitations
+    - open_questions
+    - confidence
+
+allowed_outputs:
+  - technical_note_candidate
+  - evidence_pack_candidate
+  - contradiction_ledger_candidate
+  - capability_gap
+  - user_decision_gate_request
+
+forbidden_outputs:
+  - final_technical_decision_without_review
+  - repository_patch
+  - deployment_action
+  - memory_promotion
+  - summary_only_handoff
+
+approvals:
+  expected_level: C2
+  reason: Candidate technical note with possible implementation consequences.
+  human_review_required_before:
+    - delivery_to_engineering_team
+    - repository_patch_request
+    - memory_candidate_review
+
+memory_rules:
+  default: no_memory_output
+  allowed: memory_candidate_only_if_user_requests_after_review
+  forbidden:
+    - canonical_memory
+    - runtime_state_memory
+    - ticket_intention_memory_from_unverified_summary
+
+open_questions:
+  - Does the XML process-flow condition actually gate the behavior described in the Jira comment?
+  - Is the design note current or superseded?
+  - Are similarly named tickets excluded with enough confidence?
+
+final_status:
+  task_contract_status: example_only
+  execution_status: not_executed
+  approval_status: not_requested

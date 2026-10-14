@@ -1,0 +1,34 @@
+version: "3.9"
+
+services:
+  pantheon-policy-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.policy-api
+    container_name: pantheon-policy-api
+    image: pantheon-policy-api:local
+    environment:
+      PANTHEON_REPO_PATH: /repo
+      PANTHEON_POLICY_API_KEY: ${PANTHEON_POLICY_API_KEY:-}
+      PANTHEON_POLICY_HOST: 0.0.0.0
+      PANTHEON_POLICY_PORT: 8000
+      PANTHEON_POLICY_MAX_BODY_BYTES: 262144
+      PANTHEON_POLICY_ENABLE_DOCS: "0"
+      PANTHEON_POLICY_ACCESS_LOG: "0"
+    volumes:
+      - ./:/repo:ro
+    networks:
+      - ai-net
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+networks:
+  ai-net:
+    external: true
+    name: ai-net

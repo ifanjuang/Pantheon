@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/release.env"
+MCP_VERSION="${RELEASE_HINDSIGHT_PROJECT_MCP_VERSION:?release.env missing router MCP version}"
+SOURCE_ROOT="$REPO_ROOT/implementation/hermes/hindsight_project_router"
+APP_ROOT="/opt/pantheon-node/hindsight-project-router"
+STATE_ROOT="/srv/pantheon/hindsight-project-router"
+TOKEN_FILE="$STATE_ROOT/token"
+UNIT_FILE="/etc/systemd/system/pantheon-hindsight-project-router.service"
+UV="/opt/pantheon-node/uv/bin/uv"
+SERVICE_USER="pantheon-hindsight-router"
+HINDSIGHT_URL="${HINDSIGHT_PROJECT_URL:-http://127.0.0.1:8888}"
+HINDSIGHT_BANK_ID="${HINDSIGHT_PROJECT_BANK_ID:-AGENCY_PROJECTS}"
+HINDSIGHT_SOURCE_KIND="${HINDSIGHT_PROJECT_SOURCE_KIND:-project-sync}"
+APPLY=0
+ENABLE=0
+
+log() { printf '[hindsight-project-router] %s\n' "$*"; }
+die() { printf '[hindsight-project-router] ERROR: %s\n' "$*" >&2; exit 1; }
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  deployment/ubuntu/configure-hindsight-project-router-local --check
+  sudo deployment/ubuntu/configure-hindsight-project-router-local --apply [--enable]
+
+Installs an authenticated loopback MCP service that exposes only project-scoped
+Project-platform recall. It always applies source:project-sync, one scope:project:* tag and
+tags_match=all_strict, and fails closed if Hindsight returns an unscoped result.
+It never exposes bank-wide recall or a Hindsight write operation.
+USAGE
+}
+
+while (($#)); do
+  case "$1" in
+    --check) APPLY=0 ;;
+    --apply) APPLY=1 ;;
+    --enable) ENABLE=1 ;;
+    -h|--help) usage; exit 0 ;;
+    *) die "unknown argument: $1" ;;
+  esac
+  shift
+done
+
+[[ -f "$SOURCE_ROOT/hindsight_project_recall.py" ]] || die "project recall core is missing"
+[[ -f "$SOURCE_ROOT/hindsight_project_mcp.py" ]] || die "project MCP service is missing"
+
+if ((APPLY == 0)); then
+  [[ "$ENABLE" == 0 ]] || die "--enable requires --apply"
+  [[ -x "$APP_ROOT/.venv/bin/python" ]] && log "isolated runtime present" \
+    || log "isolated runtime absent"
+  [[ -f "$TOKEN_FILE" ]] && log "bearer token present (not displayed)" \
+    || log "bearer token absent"
+  if systemctl is-active --quiet pantheon-hindsight-project-router.service; then
+    log "loopback service active"
+  else
+    log "loopback service inactive"
+  fi
+  log "bank=$HINDSIGHT_BANK_ID source=$HINDSIGHT_SOURCE_KIND url=$HINDSIGHT_URL"
+  log "check only; no state changed"
+  exit 0
+fi
+
+[[ ${EUID:-$(id -u)} -eq 0 ]] || die "--apply requires root"
+[[ -x "$UV" ]] || die "managed uv is missing: $UV"
+id -u "$SERVICE_USER" >/dev/null 2>&1 \
+  || useradd --system --home-dir "$APP_ROOT" --shell /usr/sbin/nologin "$SERVICE_USER"
+
+install -d -o "$SERVICE_USER" -g "$SERVICE_USER" -m 0755 "$APP_ROOT"
+install -d -o "$SERVICE_USER" -g "$SERVICE_USER" -m 0750 "$STATE_ROOT"
+install -m 0644 "$SOURCE_ROOT/hindsight_project_recall.py" "$APP_ROOT/hindsight_project_recall.py"
+install -m 0644 "$SOURCE_ROOT/hindsight_project_mcp.py" "$APP_ROOT/hindsight_project_mcp.py"
+if [[ ! -x "$APP_ROOT/.venv/bin/python" ]]; then
+  "$UV" venv --python /usr/bin/python3 "$APP_ROOT/.venv"
+fi
+"$UV" pip install --python "$APP_ROOT/.venv/bin/python" "mcp==$MCP_VERSION"
+chown -R "$SERVICE_USER:$SERVICE_USER" "$APP_ROOT"
+chmod -R a+rX "$APP_ROOT"
+
+if [[ ! -e "$TOKEN_FILE" ]]; then
+  umask 077
+  openssl rand -hex 32 > "$TOKEN_FILE"
+fi
+chown "$SERVICE_USER:$SERVICE_USER" "$TOKEN_FILE"
+chmod 0600 "$TOKEN_FILE"
+
+cat > "$UNIT_FILE" <<EOF_UNIT
+[Unit]
+Description=Project-scoped Hindsight MCP router for Hermes
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=$SERVICE_USER
+Group=$SERVICE_USER
+WorkingDirectory=$APP_ROOT
+Environment=HINDSIGHT_PROJECT_URL=$HINDSIGHT_URL
+Environment=HINDSIGHT_PROJECT_BANK_ID=$HINDSIGHT_BANK_ID
+Environment=HINDSIGHT_PROJECT_SOURCE_KIND=$HINDSIGHT_SOURCE_KIND
+Environment=HINDSIGHT_PROJECT_TOKEN_FILE=$TOKEN_FILE
+ExecStart=$APP_ROOT/.venv/bin/python $APP_ROOT/hindsight_project_mcp.py --http
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadOnlyPaths=$TOKEN_FILE
+
+[Install]
+WantedBy=multi-user.target
+EOF_UNIT
+chmod 0644 "$UNIT_FILE"
+systemctl daemon-reload
+if ((ENABLE == 1)); then
+  systemctl enable pantheon-hindsight-project-router.service
+  if systemctl is-active --quiet pantheon-hindsight-project-router.service; then
+    systemctl restart pantheon-hindsight-project-router.service
+  else
+    systemctl start pantheon-hindsight-project-router.service
+  fi
+  log "enabled authenticated MCP on 127.0.0.1:8022"
+else
+  log "staged but not activated; rerun with --apply --enable after review"
+fi
+log "Hermes binding remains a separate explicit --with-vault-adapter --bind-local-mcp step"

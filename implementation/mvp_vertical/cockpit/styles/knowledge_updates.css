@@ -1,0 +1,41 @@
+@layer layout {
+  .knowledge-update-flow,
+  .knowledge-update-preview {
+    display: grid;
+    gap: var(--space-5);
+  }
+
+  .knowledge-markdown-editor {
+    min-height: 22rem;
+    resize: vertical;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: .86rem;
+    line-height: 1.55;
+  }
+
+  .knowledge-diff {
+    max-height: 24rem;
+    margin: 0;
+    overflow: auto;
+    border: 1px solid rgb(21 22 24 / 12%);
+    border-radius: 1rem;
+    padding: var(--space-4);
+    background: #191b20;
+    color: #f5f2e9;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: .76rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .consequential-action {
+    background: #6f2029;
+  }
+}
+
+@layer accessibility {
+  .knowledge-diff:focus-visible {
+    outline-color: #f5f2e9;
+  }
+}

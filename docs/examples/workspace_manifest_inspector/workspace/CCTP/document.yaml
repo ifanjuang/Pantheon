@@ -1,0 +1,27 @@
+fixture_status: synthetic_candidate
+qualification:
+  status: mapped_existing_governed_document
+identity:
+  document_family_id: 55555555-5555-4555-8555-555555555555
+display:
+  full_name: Cahier des clauses techniques particulières — Fixture DCE
+artifact_origin: authored
+representation:
+  markdown:
+    file: CCTP.md
+    role: canonical_working_candidate
+    digest_sha256: d3549fcb4a375797c2f040780be2f1d9f4eb5070d1d07d32e00ab083da109d1b
+represented_version:
+  document_version_id: 66666666-6666-4666-8666-666666666666
+  index_label: C
+derived_summary:
+  text: CCTP synthétique de consultation contenant un exemple de prescription de ventilation.
+  based_on_digest: d3549fcb4a375797c2f040780be2f1d9f4eb5070d1d07d32e00ab083da109d1b
+  generation_status: synthetic_unreviewed
+validation_basis:
+  repository: ifanjuang/Pantheon
+  baseline_ref: 8c15eff5c767c76410db9e0f3a2e388f85ed1aac
+  schema_blobs:
+    document_family.schema.yaml: fe51b09ad224f0cc00189381c8eb165b6999e9a6
+    indexed_document_version.schema.yaml: 878e249a1d7c61009c7874abd5856490ea75813a
+    document_currentness_projection.schema.yaml: 88c55c97d0a7dc3eb4a0a608cfc652a5288090fc

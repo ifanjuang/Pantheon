@@ -1,0 +1,23 @@
+version_event_id: 33333333-3333-4333-8333-333333333333
+human_ref: ML-D2-signed-event
+document_version_id: 22222222-2222-4222-8222-222222222222
+document_version_label: D2 signed DPGF
+scope_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa
+scope_type: project
+event_type: signed
+previous_status: issued
+new_status: signed
+previous_effect_class: issued_for_contract
+new_effect_class: signed_contractual_version
+previous_authority_status: not_authoritative
+new_authority_status: contractual_authority
+reason: Fictional event recording the signed market baseline for the Maison Lierre plus-value review.
+evidence_refs:
+  - evidence_id: 44444444-4444-4444-8444-444444444444
+    evidence_type: signed_pdf
+    evidence_label: D2 signed DPGF
+    source_version_id: 22222222-2222-4222-8222-222222222222
+actor_ref: fictional_agency
+occurred_at: "2026-04-18"
+metadata:
+  source_system: fictional_maison_lierre

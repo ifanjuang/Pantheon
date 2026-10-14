@@ -1,0 +1,79 @@
+# Candidate Hermes-side binding blueprint for Pantheon Policy HTTP.
+#
+# Status: candidate configuration — not installed, not enabled, not proof of
+# connectivity or enforcement. Adapt this shape to the actual Hermes adapter;
+# do not copy it into production without review.
+
+pantheon_policy_http:
+  contract: pantheon.policy.v1
+  base_url: "http://pantheon-policy-api:8000"
+  api_key_env: PANTHEON_POLICY_API_KEY
+  timeout_seconds: 5
+
+  routes:
+    liveness: "/livez"
+    readiness: "/readyz"
+    metadata: "/meta"
+    classify_request: "/policy/requests:classify"
+    evaluate_preflight: "/policy/preflights:evaluate"
+    check_external_action: "/policy/external-actions:check"
+    qualify_capability_status: "/observations/capabilities:qualify"
+
+  enforcement:
+    # The adapter, not Pantheon, decides when the runtime must call the PDP.
+    non_consequential_unavailable: visible_degraded_mode
+    consequential_unavailable: fail_closed
+    block_when_disposition:
+      - blocked_invalid_request
+      - blocked_pending_scope
+      - blocked_pending_task_contract
+      - blocked_pending_evidence
+      - blocked_pending_human_decision
+    candidate_work_dispositions:
+      - eligible_for_candidate_work
+      - eligible_with_gate_signals_unverified
+    always_block_effects_when_false:
+      - external_effect_allowed
+      - canonical_effect_allowed
+
+  trace_propagation:
+    retain_fields:
+      - contract
+      - operation
+      - input_sha256
+      - repository.version
+      - repository.commit
+      - policy_disposition
+      - classification.consequence_level
+      - classification.required_verification
+      - classification.required_approval_ceiling
+      - missing_requirements
+    output_references:
+      - RESULT_CANDIDATE
+      - EVIDENCE_PACK_CANDIDATE
+      - Runtime Trace Reference
+
+  compatibility:
+    # Temporary only. New configuration should use base_url + stable routes.
+    legacy_approval_classify_url: >-
+      http://pantheon-policy-api:8000/domain/approval/classify
+    legacy_context_url: null
+    legacy_snapshot_url: null
+
+  boundaries:
+    pantheon_governs: true
+    hermes_executes_and_enforces: true
+    openwebui_exposes: true
+    human_decides_consequential_effects: true
+    api_executes: false
+    api_approves: false
+    api_persists_human_decisions: false
+    api_promotes_memory: false
+
+  non_equivalences:
+    - connected != enforced
+    - policy_response != execution
+    - classification != authorization
+    - gate_reference != validated_decision
+    - runtime_success != evidence
+    - healthy != safe

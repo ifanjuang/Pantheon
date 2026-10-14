@@ -1,0 +1,170 @@
+{
+  "schema_id": "pantheon.pair_unsloth_runtime_qualification_q1",
+  "revision": 2,
+  "status": "candidate",
+  "live_executed": false,
+  "objective": "Qualify PAIR as an external local-inference routing candidate and Unsloth as a separate Hermes-compatible local inference/training candidate without changing Pantheon runtime authority, deployment, activation, or task authorization.",
+  "target_pins": {
+    "pair": "personal-ai-router",
+    "unsloth": "unsloth",
+    "hermes": "hermes-agent"
+  },
+  "runbook": {
+    "path": "docs/governance/PAIR_UNSLOTH_RUNTIME_Q1_RUNBOOK.md",
+    "linux_pair_surface": "nvpair_tui_isolated_home",
+    "windows_pair_surface": "desktop_jobs_observation",
+    "unsloth_install_surface": "pinned_source_isolated_venv_and_home",
+    "hermes_unsloth_surface": "fresh_temporary_profile_in_existing_runtime",
+    "secrets_persisted_in_artifacts": false,
+    "production_compose_mutation_allowed": false
+  },
+  "lab_inputs": {
+    "pair_model": "qwen3.5:4b",
+    "unsloth_model": "unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL",
+    "unsloth_context_tokens": 16384,
+    "unsloth_api_port": 18888,
+    "unsloth_bind_scope": "docker_bridge_gateway_scoped",
+    "hermes_temporary_profile": "pantheon-q1-unsloth"
+  },
+  "observation_record_fields": [
+    "check_id",
+    "stage_id",
+    "host",
+    "command_or_action",
+    "expected_observation",
+    "actual_observation",
+    "status",
+    "artifact_ref",
+    "started_at",
+    "ended_at",
+    "notes"
+  ],
+  "current_seams_under_test": {
+    "ubuntu_ollama_lifecycle_owner": "pantheon-node bootstrap candidate",
+    "ubuntu_ollama_default_port": 11434,
+    "hermes_packaging": "docker_compose_candidate",
+    "pair_client_ingress_posture": "plaintext_loopback_only_or_cluster_mtls",
+    "pair_supported_engines": [
+      "ollama",
+      "lmstudio"
+    ],
+    "unsloth_role": "separate_openai_compatible_provider_candidate"
+  },
+  "stages": [
+    {
+      "stage_id": "q1a_pair_linux_isolated",
+      "host_role": "always_on_linux_gpu_node",
+      "purpose": "Observe PAIR with an isolated PAIR-owned Ollama test instance before touching the Pantheon Ubuntu deployment candidate.",
+      "required_checks": [
+        "exact_pair_artifact_identity",
+        "pair_service_start_stop",
+        "ollama_engine_ownership_mode",
+        "proxy_port_11434_behavior",
+        "backend_relocation_if_pair_managed",
+        "single_model_inference",
+        "jobs_observation",
+        "pair_uninstall_keeps_model_weights",
+        "pantheon_ollama_store_unchanged_after_rollback"
+      ],
+      "result": "not_run"
+    },
+    {
+      "stage_id": "q1b_pair_linux_windows_cluster",
+      "host_role": "always_on_linux_plus_always_on_windows_gpu_nodes",
+      "purpose": "Observe request-level routing across two heterogeneous always-on nodes with the same test model available on both.",
+      "required_checks": [
+        "explicit_pairing",
+        "discovery_vs_direct_ip_pairing_distinguished",
+        "same_model_independent_copy_on_both_nodes",
+        "concurrent_request_distribution",
+        "node_power_off_or_service_stop_excludes_node",
+        "remaining_node_continues_serving",
+        "returning_node_becomes_eligible_again",
+        "no_cross_machine_vram_pooling_claim",
+        "served_node_is_observable"
+      ],
+      "result": "not_run"
+    },
+    {
+      "stage_id": "q1c_hermes_container_to_pair",
+      "host_role": "pantheon_candidate_hermes_container_on_linux_pair_node",
+      "purpose": "Execute the current Hermes container networking path against the local PAIR proxy and determine whether PAIR's loopback-only plaintext ingress accepts or refuses it.",
+      "required_checks": [
+        "current_compose_path_used_without_network_workaround",
+        "request_reaches_pair_proxy",
+        "http_status_and_pair_error_recorded",
+        "caller_network_identity_recorded",
+        "no_403_assumed_before_execution",
+        "no_relay_or_host_network_change_in_q1",
+        "compose_hash_unchanged"
+      ],
+      "result": "not_run"
+    },
+    {
+      "stage_id": "q1d_unsloth_as_existing_hermes_custom_provider",
+      "host_role": "isolated_local_unsloth_endpoint_plus_existing_hermes_candidate",
+      "purpose": "Observe Unsloth through the existing Hermes custom OpenAI-compatible provider seam using a fresh temporary profile, while capturing the effective runtime dependency closure and avoiding mutation of pantheon-governed.",
+      "required_checks": [
+        "exact_unsloth_artifact_identity",
+        "unsloth_runtime_and_cache_isolated",
+        "runtime_dependency_closure_captured",
+        "docker_bridge_scoped_bind",
+        "openai_compatible_endpoint_health",
+        "existing_hermes_custom_provider_configuration",
+        "fresh_temporary_hermes_profile",
+        "no_unsloth_start_hermes_path",
+        "streaming",
+        "structured_tool_call",
+        "tool_call_round_trip",
+        "context_behavior",
+        "provider_error_behavior",
+        "no_silent_provider_fallback",
+        "pantheon_governed_profile_not_mutated",
+        "temporary_profile_and_server_rollback"
+      ],
+      "result": "not_run"
+    },
+    {
+      "stage_id": "q1e_classification",
+      "host_role": "review_only",
+      "purpose": "Classify PAIR and Unsloth independently as accepted, rejected, or unresolved candidates from recorded observations.",
+      "required_checks": [
+        "all_required_checks_have_observation_rows",
+        "pair_classified_independently",
+        "unsloth_classified_independently",
+        "port_ownership_conflict_resolved_or_left_open",
+        "container_loopback_result_resolved_or_left_open",
+        "no_release_env_change",
+        "no_install_node_change",
+        "no_runtime_activation",
+        "no_task_authorization",
+        "no_evidence_admission"
+      ],
+      "result": "not_run"
+    }
+  ],
+  "authority": {
+    "deployment_selected": false,
+    "installed": false,
+    "runtime_qualified": false,
+    "runtime_activated": false,
+    "task_authorized": false,
+    "evidence_admitted": false,
+    "new_scheduler_authority": false,
+    "new_router_authority": false,
+    "new_runtime_owner": false
+  },
+  "non_equivalences": [
+    "upstream_observed != qualification_pin_selected",
+    "qualification_pin_selected != runtime_observed",
+    "runtime_observed != runtime_qualified",
+    "runtime_qualified != runtime_activated",
+    "runtime_success != task_authorization",
+    "runtime_success != Evidence",
+    "PAIR routing != Pantheon authorization",
+    "PAIR model availability != model approval",
+    "Unsloth provider configured != provider authorized",
+    "Unsloth output != Evidence",
+    "container connectivity != runtime qualification"
+  ]
+}

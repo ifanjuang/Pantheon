@@ -1,0 +1,50 @@
+# Fictional example for validation only. A valid skill passport is not an admitted or task-authorized capability.
+passport_id: example.portable-skill.read
+status: candidate
+implementation_provenance:
+  source_kind: repository
+  source_ref: https://example.invalid/inspect-project-sources
+  repository_ref: https://example.invalid/inspect-project-sources.git
+  commit_ref: 0123456789abcdef0123456789abcdef01234567
+  content_digest: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  component_kind: skill
+  component_ref: SKILL.md
+  observed_at: "2026-08-09T18:20:00Z"
+capability:
+  primitive: skill
+  name: inspect_project_sources
+  description_hash: "1111111111111111111111111111111111111111111111111111111111111111"
+operation:
+  reads_private_data: "true"
+  writes_external_state: "false"
+  can_execute_code: "false"
+  can_send_to_external_party: "false"
+  can_change_register: "false"
+  can_promote_memory: "false"
+  can_commit_professional_position: low
+governance:
+  activation_state: detected
+  task_authorization: unauthorized
+  risk_level: low
+  approval_required: C1
+  evidence_required:
+    - source citation
+  user_decision_gate_required: true
+interface:
+  required_envelope: task_contract_in__candidate_out__evidence_pack_out
+  allowed_inputs:
+    - source_ref
+  allowed_outputs:
+    - source_review_candidate
+  forbidden_outputs:
+    - approval
+    - external_message
+result_handling:
+  default_output_status: candidate
+  evidence_pack_required: true
+  raw_result_never_final: true
+  permitted_register_output: none
+governance_refs:
+  - docs/governance/UNIFORM_CAPABILITY_GOVERNANCE.md
+  - docs/governance/CAPABILITY_REGISTRY.md
+  - docs/governance/SKILL_LIFECYCLE.md

@@ -1,0 +1,48 @@
+{
+  "outcome": "partial",
+  "summary": "Hermes returned a partial candidate; only authoritative correlation and binding-observed submission facts are available.",
+  "trace_refs": [
+    "hermes://runs/run-partial-1"
+  ],
+  "result_refs": [],
+  "evidence_candidate_refs": [],
+  "execution_trace_summary": {
+    "schema_version": "hermes-execution-trace-summary-v1",
+    "correlation": {
+      "admission_id": "admission-partial-1",
+      "launch_reservation_id": "launch-reservation-partial-1",
+      "snapshot_id": "launch-snapshot-partial-1",
+      "snapshot_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "run_id": "run-partial-1"
+    },
+    "runtime": {
+      "implementation": "hermes-agent",
+      "version": "0.20.0",
+      "profile": "pantheon-governed"
+    },
+    "execution": {
+      "started_at": "2026-08-07T00:10:00Z",
+      "ended_at": "2026-08-07T00:10:20Z",
+      "terminal_status": "partial",
+      "retry_count": 0
+    },
+    "trace_refs": [
+      "hermes://runs/run-partial-1"
+    ],
+    "provenance": {
+      "pantheon_observed": [
+        "correlation.admission_id",
+        "correlation.launch_reservation_id",
+        "correlation.snapshot_id",
+        "correlation.snapshot_digest",
+        "correlation.run_id"
+      ],
+      "binding_observed": [
+        "execution.started_at",
+        "execution.ended_at",
+        "execution.retry_count"
+      ],
+      "runtime_reported": []
+    }
+  }
+}

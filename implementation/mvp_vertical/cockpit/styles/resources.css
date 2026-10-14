@@ -1,0 +1,110 @@
+@layer components {
+  .format-chip {
+    display: inline-flex;
+    min-height: 1.55rem;
+    align-items: center;
+    border: 1px solid rgb(21 22 24 / 16%);
+    border-radius: 999px;
+    padding: .2rem .45rem;
+    background: rgb(255 255 255 / 48%);
+    color: var(--ink-650);
+    font-size: .58rem;
+    font-weight: 950;
+    letter-spacing: .08em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .responsibility-icon {
+    position: relative;
+  }
+
+  .indicator-count {
+    position: absolute;
+    top: -.3rem;
+    right: -.35rem;
+    display: grid;
+    min-width: 1rem;
+    height: 1rem;
+    place-items: center;
+    border: 1px solid rgb(21 22 24 / 22%);
+    border-radius: 999px;
+    padding-inline: .2rem;
+    background: var(--white);
+    color: var(--ink-950);
+    font-size: .52rem;
+    font-weight: 950;
+    line-height: 1;
+  }
+
+  .manifest-preview {
+    display: grid;
+    gap: .85rem;
+  }
+
+  .manifest-site-list {
+    display: grid;
+    gap: .65rem;
+  }
+
+  .manifest-site-row {
+    display: grid;
+    gap: .55rem;
+    border: 1px solid rgb(21 22 24 / 12%);
+    border-radius: 1rem;
+    padding: .75rem;
+    background: rgb(255 255 255 / 40%);
+  }
+
+  .manifest-site-select {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    font-weight: 800;
+  }
+
+  .manifest-prefix-label,
+  .manifest-depth-label {
+    display: grid;
+    gap: .35rem;
+    color: var(--ink-650);
+    font-size: .72rem;
+    font-weight: 800;
+  }
+
+  .manifest-prefix-label input,
+  .manifest-depth-label select {
+    width: 100%;
+    border: 1px solid rgb(21 22 24 / 18%);
+    border-radius: .75rem;
+    padding: .65rem .7rem;
+    background: rgb(255 255 255 / 72%);
+    color: var(--ink-950);
+    font: inherit;
+  }
+
+  .manifest-output {
+    min-height: 1.25rem;
+    border-left: 3px solid rgb(21 22 24 / 16%);
+    padding-left: .8rem;
+    color: var(--ink-650);
+    font-size: .78rem;
+  }
+
+  .manifest-output h4 {
+    margin: 0 0 .35rem;
+    color: var(--ink-950);
+    font-size: .88rem;
+  }
+
+  .manifest-output p,
+  .manifest-output ul {
+    margin: .25rem 0;
+  }
+
+  .manifest-output ul {
+    display: grid;
+    gap: .3rem;
+    padding-left: 1.1rem;
+  }
+}

@@ -1,0 +1,35 @@
+api_version: pantheon.next/v0alpha1
+kind: CapabilityCompatibilityObservation
+metadata:
+  id: capability_compatibility_document_analysis_docling_release_a
+  status: observed
+subject:
+  binding_id: capability_binding_document_analysis_docling
+  implementation_anchor:
+    kind: content_digest
+    value: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+observation:
+  source_kind: other
+  source_observation_ref: fixture.i8.document_analysis.docling.release_a
+  observed_at: "2026-08-09T18:43:00Z"
+  compatibility_status: compatible
+  safety_status: not_evaluated
+  health_status: observed
+  freshness_status: fresh
+  environment:
+    runtime: docling
+    profile: synthetic_i8_fixture
+    platform: internal
+    version: null
+  source_qualification_ref: null
+  findings:
+    - Synthetic I8 conformance fixture only; the placeholder digest is not a field-observed Docling release.
+    - Compatibility fixture carries no safety, activation, adoption, task-authority or Evidence effect.
+supersedes: null
+governance:
+  probe_performed_by_pantheon: false
+  authorization_effect: none
+  activation_effect: none
+  evidence_effect: none
+  professional_approval_effect: none
+  release_replacement_inherits_observation: false

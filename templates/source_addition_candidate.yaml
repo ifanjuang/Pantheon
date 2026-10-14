@@ -1,0 +1,74 @@
+# Source Addition Candidate Template
+# Status: template — non-executable.
+# Repo state: documented non-implemented.
+# Authority: support scaffold only.
+# This template records a proposed addition to the governed source registry.
+# It is not a source database, search tool, validator, evidence engine, approval engine or memory engine.
+
+source_addition_candidate:
+  addition_id: ""
+  status: "candidate" # candidate | to_verify | accepted | refused | blocked | obsolete
+  proposed_at: ""
+  proposed_by: "" # user | pantheon | hestia | argos | themis | zeus | adapter | unknown
+
+  proposed_source:
+    label: ""
+    reference: "" # url, repository path, database ref, local ref or human-readable pointer
+    description: ""
+    proposed_family: "unknown" # project_source | external_official_source | professional_method_source | agency_method_source | technical_competence_source | stable_knowledge_source | volatile_source | memory_or_recall_source | database | unknown
+    proposed_scope: "unknown" # global | country | region | commune | agency | case | project | subject | unknown
+    proposed_access: "unknown" # website | api | local_file | notion | repository | database | memory | manual | unknown
+
+  intended_use:
+    reason: ""
+    intended_uses: [] # context | source_candidate | evidence_candidate | method_guidance | technical_execution | memory_review
+    forbidden_uses: []
+    related_source_need_refs: []
+    related_case_or_project_refs: []
+
+  authority_and_freshness:
+    authority_claimed: "unknown" # official | professional_reference | agency_reference | technical_doc | user_supplied | candidate | unknown
+    scope_of_applicability_claimed: ""
+    freshness_policy_proposed: "unknown" # invariant | versioned | verify_each_use | verify_on_project_date | verify_on_change | stale_after_duration | obsolete | unknown
+    source_date_or_version: ""
+    risk_if_wrong: "unknown" # low | medium | high | critical | unknown
+
+  reviews_required:
+    argos_review_required: true
+    themis_review_required: true
+    zeus_arbitration_required: true
+    human_decision_required: false
+
+  review_notes:
+    provenance_questions: []
+    authority_questions: []
+    freshness_questions: []
+    scope_questions: []
+    risk_questions: []
+    duplicate_or_conflict_signals: []
+
+  decision:
+    accepted: []
+    refused: []
+    to_verify: []
+    to_arbitrate: []
+    zeus_status: "to_arbitrate" # accepted | refused | to_verify | to_arbitrate | blocked | non_applicable
+
+  if_accepted:
+    create_registry_entry: true
+    registry_entry_ref: ""
+    allowed_uses: []
+    forbidden_uses:
+      - "final_truth_by_itself"
+      - "approval"
+      - "memory_promotion_without_gate"
+      - "external_action_without_gate"
+
+  boundary:
+    proposal_only: true
+    registry_effect: false
+    evidence_effect: false
+    canonical_effect: false
+    external_action: false
+    memory_promotion: false
+    statement: "A proposed source must be reviewed before it becomes a governed source route."

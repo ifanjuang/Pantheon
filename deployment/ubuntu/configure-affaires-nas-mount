@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+SOURCE=""
+TARGET=""
+PREFIX_PATH=""
+CREDENTIALS_FILE="/etc/pantheon-node/affaires-nas.credentials"
+SERVICE_USER="pantheon-docling"
+ENABLE=0
+APPLY=0
+
+log() { printf '[affaires-nas-mount] %s\n' "$*"; }
+die() { printf '[affaires-nas-mount] ERROR: %s\n' "$*" >&2; exit 1; }
+
+usage() {
+  cat <<'EOF'
+Usage:
+  configure-affaires-nas-mount --check --target PATH
+  sudo configure-affaires-nas-mount --apply --source //HOST/SHARE \
+    --prefix-path RELATIVE/PATH --target PATH [options]
+
+Options:
+  --credentials-file PATH  Root-owned mode-0600 mount.cifs credentials file
+  --service-user USER      Account that must read/traverse the mount
+  --enable                 Enable and start the generated systemd mount unit
+
+The credentials file is supplied by the operator and remains outside Git.
+No hostname, share, project name or folder name is built into this script.
+EOF
+}
+
+while (($#)); do
+  case "$1" in
+    --check) APPLY=0; shift ;;
+    --apply) APPLY=1; shift ;;
+    --source) SOURCE="${2:?missing SMB source}"; shift 2 ;;
+    --prefix-path) PREFIX_PATH="${2:?missing relative prefix path}"; shift 2 ;;
+    --target) TARGET="${2:?missing target}"; shift 2 ;;
+    --credentials-file) CREDENTIALS_FILE="${2:?missing credentials file}"; shift 2 ;;
+    --service-user) SERVICE_USER="${2:?missing service user}"; shift 2 ;;
+    --enable) ENABLE=1; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) die "unknown argument: $1" ;;
+  esac
+done
+
+[[ -n "$TARGET" && "$TARGET" = /* ]] || die "--target must be an absolute path"
+[[ "$TARGET" != *[[:space:],]* ]] || die "target contains an unsupported character"
+
+if ((APPLY == 0)); then
+  if findmnt -rn --target "$TARGET" --output FSTYPE >/dev/null 2>&1; then
+    fstype="$(findmnt -rn --target "$TARGET" --output FSTYPE | tail -n 1)"
+    [[ "$fstype" == cifs ]] || die "target is mounted with unexpected filesystem: $fstype"
+    log "CIFS mount present"
+    runuser -u "$SERVICE_USER" -- test -r "$TARGET" \
+      && runuser -u "$SERVICE_USER" -- test -x "$TARGET" \
+      || die "service user cannot read and traverse target"
+    log "service access ready; check only"
+  else
+    die "target is not mounted"
+  fi
+  exit 0
+fi
+
+((EUID == 0)) || die "--apply requires root"
+command -v mount.cifs >/dev/null || die "mount.cifs is required (install cifs-utils)"
+command -v systemd-escape >/dev/null || die "systemd-escape is required"
+[[ "$SOURCE" == //*/* && "$SOURCE" != *[[:space:],]* ]] \
+  || die "--source must be //HOST/SHARE without whitespace or commas"
+[[ -n "$PREFIX_PATH" && "$PREFIX_PATH" != /* && "$PREFIX_PATH" != *'..'* ]] \
+  || die "--prefix-path must be a bounded relative path"
+[[ "$PREFIX_PATH" != *[[:space:],]* ]] \
+  || die "prefix path contains an unsupported character"
+[[ "$CREDENTIALS_FILE" = /* && "$CREDENTIALS_FILE" != *[[:space:],]* ]] \
+  || die "credentials file must be an absolute path without whitespace or commas"
+[[ -f "$CREDENTIALS_FILE" && ! -L "$CREDENTIALS_FILE" ]] \
+  || die "credentials file is missing or redirected"
+[[ "$(stat -c '%u:%a' "$CREDENTIALS_FILE")" == "0:600" ]] \
+  || die "credentials file must be owned by root with mode 0600"
+id "$SERVICE_USER" >/dev/null 2>&1 || die "unknown service user"
+
+install -d -m 0750 "$TARGET"
+service_uid="$(id -u "$SERVICE_USER")"
+service_gid="$(id -g "$SERVICE_USER")"
+unit_name="$(systemd-escape --path --suffix=mount "$TARGET")"
+unit_file="/etc/systemd/system/$unit_name"
+unit_tmp="$(mktemp)"
+trap 'rm -f "$unit_tmp"' EXIT
+
+{
+  printf '%s\n' '[Unit]' 'Description=Pantheon AFFAIRES NAS mount' \
+    'After=network-online.target' 'Wants=network-online.target' '' '[Mount]'
+  printf 'What=%s\nWhere=%s\nType=cifs\n' "$SOURCE" "$TARGET"
+  printf 'Options=credentials=%s,prefixpath=%s,uid=%s,gid=%s,file_mode=0640,dir_mode=0750,vers=3.1.1,rw,nosuid,nodev,noexec,_netdev\n' \
+    "$CREDENTIALS_FILE" "$PREFIX_PATH" "$service_uid" "$service_gid"
+  printf '%s\n' 'TimeoutSec=30' '' '[Install]' 'WantedBy=multi-user.target'
+} > "$unit_tmp"
+install -o root -g root -m 0644 "$unit_tmp" "$unit_file"
+systemctl daemon-reload
+
+if ((ENABLE)); then
+  systemctl enable --now "$unit_name"
+  log "system CIFS mount enabled"
+else
+  log "mount unit installed but not enabled"
+fi
+log "credentials retained outside Git"

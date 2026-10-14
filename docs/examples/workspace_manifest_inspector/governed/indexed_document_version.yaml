@@ -1,0 +1,28 @@
+document_version_id: 66666666-6666-4666-8666-666666666666
+human_ref: WMIF-CCTP-C
+scope_id: 77777777-7777-4777-8777-777777777777
+scope_type: project
+document_family_id: 55555555-5555-4555-8555-555555555555
+document_family_label: Cahier des clauses techniques particulières — Fixture DCE
+issuer_document_reference: CCTP-WMIF
+index_label: C
+version_label: C
+phase_code: DCE
+effect_class: issued_for_consultation
+source_authority_level: project_working_document
+version_status: issued
+authority_status: consultation_authority
+authority_notes: Synthetic consultation-only fixture; not a real professional authorization.
+issued_by: Synthetic agency fixture
+issued_at: "2026-08-22"
+hash_sha256: d3549fcb4a375797c2f040780be2f1d9f4eb5070d1d07d32e00ab083da109d1b
+source_file_ref: workspace/CCTP/CCTP.md
+allowed_use:
+  - internal_review
+  - consultation
+forbidden_use:
+  - contractual_action
+  - execution_use
+  - memory_promotion
+metadata:
+  source_system: synthetic_workspace_manifest_inspector

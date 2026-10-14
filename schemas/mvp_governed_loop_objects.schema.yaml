@@ -1,0 +1,478 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Next MVP Governed Loop Objects
+description: Candidate schema bundle for the five central MVP governed task loop objects. Declarative only; no runtime, approval engine or memory promotion.
+type: object
+required:
+  - object_type
+  - object_id
+  - status
+properties:
+  object_type:
+    type: string
+    enum:
+      - task_contract
+      - result_candidate
+      - evidence_pack_candidate
+      - decision_record
+      - register_candidate
+  object_id:
+    type: string
+    pattern: "^[a-z0-9._-]+$"
+  status:
+    type: string
+    minLength: 3
+  governance_refs:
+    type: array
+    items:
+      type: string
+    default:
+      - docs/governance/MVP_GOVERNED_TASK_LOOP.md
+      - docs/governance/USER_DECISION_GATE.md
+oneOf:
+  - $ref: "#/$defs/task_contract"
+  - $ref: "#/$defs/result_candidate"
+  - $ref: "#/$defs/evidence_pack_candidate"
+  - $ref: "#/$defs/decision_record"
+  - $ref: "#/$defs/register_candidate"
+$defs:
+  string_list:
+    type: array
+    items:
+      type: string
+  decision_value:
+    type: string
+    enum:
+      - approve
+      - refuse
+      - request_revision
+      - request_more_evidence
+  governed_id:
+    type: string
+    pattern: "^[a-z0-9][a-z0-9._-]*$"
+  sha256_string:
+    type: string
+    pattern: "^sha256:[a-f0-9]{64}$"
+  source_ref:
+    type: object
+    required:
+      - source_ref
+    properties:
+      source_ref:
+        type: string
+      title:
+        type: string
+      traceable:
+        type: boolean
+    additionalProperties: true
+  sha256_digest:
+    type: object
+    required:
+      - algorithm
+      - value
+    properties:
+      algorithm:
+        const: sha256
+      value:
+        type: string
+        pattern: "^[a-f0-9]{64}$"
+    additionalProperties: false
+  authenticated_principal:
+    type: object
+    required:
+      - user_id
+      - identity_provider
+    properties:
+      user_id:
+        type: string
+        minLength: 1
+      display_name:
+        type: string
+        minLength: 1
+      identity_provider:
+        type: string
+        minLength: 1
+    additionalProperties: false
+  commitment_flag:
+    type: object
+    required:
+      - phrase
+      - risk
+    properties:
+      phrase:
+        type: string
+        minLength: 1
+      risk:
+        type: string
+        minLength: 1
+    additionalProperties: false
+  grounding_review:
+    type: object
+    required:
+      - citation_count
+      - retrieved_chunk_count
+      - uncited_claim_flags
+      - note
+    properties:
+      citation_count:
+        type: integer
+        minimum: 0
+      retrieved_chunk_count:
+        type: integer
+        minimum: 0
+      uncited_claim_flags:
+        type: array
+        items:
+          type: string
+      note:
+        type: string
+        minLength: 1
+    additionalProperties: false
+  retention_authorization:
+    type: object
+    required:
+      - authorized
+      - authorized_by
+      - identity_assurance
+      - recorded_at
+      - decision_id
+    properties:
+      authorized:
+        const: true
+      authorized_by:
+        type: string
+        minLength: 1
+      identity_assurance:
+        type: string
+        enum:
+          - declared
+          - authenticated
+      authenticated_principal:
+        $ref: "#/$defs/authenticated_principal"
+      recorded_at:
+        type: string
+        format: date-time
+      decision_id:
+        type: string
+        minLength: 1
+    allOf:
+      - if:
+          properties:
+            identity_assurance:
+              const: authenticated
+          required:
+            - identity_assurance
+        then:
+          required:
+            - authenticated_principal
+      - if:
+          properties:
+            identity_assurance:
+              const: declared
+          required:
+            - identity_assurance
+        then:
+          not:
+            required:
+              - authenticated_principal
+    additionalProperties: false
+  task_contract:
+    type: object
+    required:
+      - object_type
+      - object_id
+      - status
+      - requested_by
+      - approval_ceiling
+      - scope
+      - expected_outputs
+    properties:
+      object_type:
+        const: task_contract
+      object_id:
+        type: string
+        pattern: "^[a-z0-9._-]+$"
+      contract_id:
+        type: string
+      status:
+        type: string
+      requested_by:
+        type: string
+      exposure_surface:
+        type: string
+      consequence_class:
+        type: string
+      approval_ceiling:
+        type: string
+      intent:
+        type: object
+        additionalProperties: true
+      scope:
+        type: object
+        required:
+          - declared_sources
+        properties:
+          declared_sources:
+            type: array
+            items:
+              $ref: "#/$defs/source_ref"
+          forbidden_sources:
+            $ref: "#/$defs/string_list"
+        additionalProperties: true
+      expected_outputs:
+        $ref: "#/$defs/string_list"
+      retrieval_boundary:
+        type: object
+        additionalProperties: true
+      governance_refs:
+        $ref: "#/$defs/string_list"
+    additionalProperties: true
+  result_candidate:
+    type: object
+    required:
+      - object_type
+      - object_id
+      - status
+      - request_ref
+      - request_scope_digest
+      - body
+      - external_action_authorized
+    properties:
+      object_type:
+        const: result_candidate
+      object_id:
+        type: string
+        pattern: "^[a-z0-9._-]+$"
+      result_candidate_id:
+        type: string
+      status:
+        type: string
+      request_ref:
+        $ref: "#/$defs/governed_id"
+      request_scope_digest:
+        $ref: "#/$defs/sha256_string"
+      revision_of:
+        type: string
+      produced_by:
+        type: string
+      body:
+        type: string
+        minLength: 1
+      commitment_flags:
+        type: array
+        items:
+          $ref: "#/$defs/commitment_flag"
+      grounding_review:
+        $ref: "#/$defs/grounding_review"
+      limits:
+        $ref: "#/$defs/string_list"
+      external_action_authorized:
+        type: boolean
+      governance_refs:
+        $ref: "#/$defs/string_list"
+    additionalProperties: true
+  evidence_pack_candidate:
+    type: object
+    required:
+      - object_type
+      - object_id
+      - status
+      - request_ref
+      - request_scope_digest
+      - applies_to
+      - evidence_items
+      - possible_decisions
+    properties:
+      object_type:
+        const: evidence_pack_candidate
+      object_id:
+        type: string
+        pattern: "^[a-z0-9._-]+$"
+      evidence_pack_id:
+        type: string
+      status:
+        type: string
+      request_ref:
+        $ref: "#/$defs/governed_id"
+      request_scope_digest:
+        $ref: "#/$defs/sha256_string"
+      applies_to:
+        type: string
+      evidence_items:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          required:
+            - claim
+            - source_ref
+            - support_status
+          properties:
+            claim:
+              type: string
+            source_ref:
+              type: string
+            retrieval_trace:
+              type: string
+            support_status:
+              type: string
+          additionalProperties: true
+      risks:
+        type: array
+        items:
+          type: object
+          additionalProperties: true
+      possible_decisions:
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items:
+          $ref: "#/$defs/decision_value"
+      governance_refs:
+        $ref: "#/$defs/string_list"
+    additionalProperties: true
+  decision_record:
+    type: object
+    required:
+      - object_type
+      - object_id
+      - decision_id
+      - status
+      - applies_to
+      - decision
+      - decided_by
+      - identity_assurance
+      - recorded_at
+      - candidate_digest
+      - decision_surface
+      - consequences
+    properties:
+      object_type:
+        const: decision_record
+      object_id:
+        type: string
+        pattern: "^[a-z0-9._-]+$"
+      decision_id:
+        type: string
+        minLength: 1
+      status:
+        type: string
+      applies_to:
+        type: string
+      related_evidence_pack:
+        type: string
+      decision:
+        $ref: "#/$defs/decision_value"
+      decided_by:
+        type: string
+        minLength: 1
+      identity_assurance:
+        type: string
+        enum:
+          - declared
+          - authenticated
+      authenticated_principal:
+        $ref: "#/$defs/authenticated_principal"
+      recorded_at:
+        type: string
+        format: date-time
+      supersedes_decision_id:
+        type: string
+        minLength: 1
+      candidate_digest:
+        $ref: "#/$defs/sha256_digest"
+      evidence_pack_digest:
+        $ref: "#/$defs/sha256_digest"
+      decision_surface:
+        type: string
+      rationale:
+        type: string
+      consequences:
+        type: object
+        additionalProperties: true
+      governance_refs:
+        $ref: "#/$defs/string_list"
+    allOf:
+      - if:
+          properties:
+            identity_assurance:
+              const: authenticated
+          required:
+            - identity_assurance
+        then:
+          required:
+            - authenticated_principal
+      - if:
+          properties:
+            identity_assurance:
+              const: declared
+          required:
+            - identity_assurance
+        then:
+          not:
+            required:
+              - authenticated_principal
+      - if:
+          required:
+            - related_evidence_pack
+        then:
+          required:
+            - evidence_pack_digest
+    additionalProperties: true
+  register_candidate:
+    type: object
+    required:
+      - object_type
+      - object_id
+      - status
+      - created_because_of
+      - statement
+      - scope
+      - retention_authorization
+      - not_memory_until_admitted
+    properties:
+      object_type:
+        const: register_candidate
+      object_id:
+        type: string
+        pattern: "^[a-z0-9._-]+$"
+      candidate_id:
+        type: string
+      status:
+        type: string
+      created_because_of:
+        type: string
+      statement:
+        type: string
+      scope:
+        type: string
+      basis:
+        $ref: "#/$defs/string_list"
+      retention_authorization:
+        $ref: "#/$defs/retention_authorization"
+      not_memory_until_admitted:
+        type: boolean
+        const: true
+      forbidden_reuse:
+        $ref: "#/$defs/string_list"
+      governance_refs:
+        $ref: "#/$defs/string_list"
+    additionalProperties: true
+additionalProperties: true
+x-decision-vocabulary:
+  version: 1
+  source: "#/$defs/decision_value/enum"
+  semantics:
+    approve: Candidate accepted for the declared review scope only; no external action, retention or memory admission follows automatically.
+    refuse: Candidate rejected; no downstream consequence is authorized.
+    request_revision: A revised candidate is required; the reviewed candidate remains unapproved.
+    request_more_evidence: Review pauses until additional evidence or a revised Evidence Pack Candidate is supplied.
+x-boundary:
+  runtime_execution: false
+  autonomous_loop: false
+  provider_routing: false
+  scheduler: false
+  queue_system: false
+  message_bus: false
+  automatic_dispatch: false
+  memory_promotion: false
+  automatic_approval: false

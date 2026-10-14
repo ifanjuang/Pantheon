@@ -1,0 +1,201 @@
+# MVP vertical fixture — non-normative example
+# Fictional dossier. Documentation only. No runtime, schema, DB migration, approval engine or memory engine.
+---
+object_type: task_contract
+object_id: mvp.vertical.fixture.tc_001
+status: ready_for_governed_processing
+surface: openwebui_capture
+requested_by: practitioner
+scenario: architecture_devis_reprise
+consequence_class: K3
+approval_ceiling: draft_only
+intent:
+  action: draft_reply_candidate
+  must_not:
+    - approve_quote
+    - accept_scope
+    - send_external_message
+    - promote_memory
+scope:
+  declared_sources:
+    - source_ref: src.client_email.001
+      title: Client message asking for position on recovery quote
+    - source_ref: src.quote.041
+      title: Recovery quote Q-2026-041, lot 06
+    - source_ref: src.cctp.lot06
+      title: CCTP excerpt, lot 06
+  forbidden_sources:
+    - outside_project_corpus
+    - unstated_email_threads
+expected_outputs:
+  - result_candidate
+  - evidence_pack_candidate
+  - decision_options
+retrieval_boundary:
+  pgvector: retrieval_only
+  indexed_is_evidence: false
+  retrieved_is_truth: false
+---
+object_type: source_manifest
+object_id: mvp.vertical.fixture.sources_001
+status: candidate_sources
+sources:
+  - source_ref: src.client_email.001
+    kind: fictional_email_excerpt
+    traceable: true
+  - source_ref: src.quote.041
+    kind: fictional_quote_excerpt
+    traceable: true
+  - source_ref: src.cctp.lot06
+    kind: fictional_contract_excerpt
+    traceable: true
+source_rule:
+  untraceable_passage: capability_gap
+  source_outside_scope: refusal
+---
+object_type: retrieval_trace
+object_id: mvp.vertical.fixture.retrieval_001
+status: scoped_retrieval_candidate
+query: draft reply about recovery quote lot 06 without committing beyond evidence
+retrieval_order:
+  - source_ref: src.client_email.001
+    claim_hint: client asks whether the recovery quote can be accepted
+  - source_ref: src.quote.041
+    claim_hint: quote proposes reprise of lot 06 for a defined amount
+  - source_ref: src.cctp.lot06
+    claim_hint: contract perimeter is narrower than the proposed recovery wording
+boundary_check:
+  scoped_before_ranked: true
+  all_sources_in_declared_scope: true
+  retrieved_is_truth: false
+---
+object_type: result_candidate
+object_id: mvp.vertical.fixture.result_001
+status: draft_to_review
+produced_by: hermes_candidate
+body: >-
+  Nous acceptons la reprise du lot 06 selon votre devis Q-2026-041.
+  Merci de prévoir l'intervention dans les meilleurs délais.
+commitment_flags:
+  - phrase: Nous acceptons la reprise du lot 06
+    risk: external commitment if sent as-is
+  - phrase: selon votre devis Q-2026-041
+    risk: scope acceptance if sent as-is
+  - phrase: prévoir l'intervention dans les meilleurs délais
+    risk: schedule instruction if sent as-is
+limits:
+  - candidate was produced from scoped fictional sources only
+  - no human approval has been granted
+external_action_authorized: false
+---
+object_type: evidence_pack_candidate
+object_id: mvp.vertical.fixture.evidence_001
+status: reviewable_with_risk
+applies_to: mvp.vertical.fixture.result_001
+evidence_items:
+  - claim: client asks for position on recovery quote
+    source_ref: src.client_email.001
+    support_status: sourced_not_verified
+  - claim: quote Q-2026-041 proposes recovery for lot 06
+    source_ref: src.quote.041
+    support_status: sourced_not_verified
+  - claim: CCTP perimeter may not match broad acceptance wording
+    source_ref: src.cctp.lot06
+    support_status: contradiction_preserved
+risks:
+  - id: risk.commitment
+    status: open
+    description: candidate accepts quote and scope without human authorization
+  - id: risk.external_action
+    status: blocked
+    description: sending would be a separate consequential decision
+possible_decisions:
+  - approve
+  - refuse
+  - request_revision
+  - request_more_evidence
+---
+object_type: decision_record
+object_id: mvp.vertical.fixture.decision_001
+decision_id: mvp.vertical.fixture.decision_001
+status: recorded
+applies_to: mvp.vertical.fixture.result_001
+related_evidence_pack: mvp.vertical.fixture.evidence_001
+decision: request_revision
+decided_by: human_practitioner
+identity_assurance: declared
+recorded_at: "2026-07-13T03:00:00Z"
+candidate_digest:
+  algorithm: sha256
+  value: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+evidence_pack_digest:
+  algorithm: sha256
+  value: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+decision_surface: openwebui_gate
+rationale: candidate creates acceptance and schedule commitments beyond the evidence pack
+consequences:
+  revision_required: true
+  external_action: none
+  memory_admission: not_granted
+---
+object_type: result_candidate
+object_id: mvp.vertical.fixture.result_002
+status: revised_draft_to_review
+revision_of: mvp.vertical.fixture.result_001
+produced_by: hermes_candidate
+body: >-
+  Nous avons bien noté votre proposition de reprise du lot 06 selon le devis Q-2026-041.
+  Avant toute validation, pouvez-vous confirmer le périmètre exact de cette reprise,
+  ses incidences éventuelles sur le planning et les limites par rapport au CCTP ?
+commitment_flags: []
+limits:
+  - asks for confirmation before commitment
+  - remains a draft only
+external_action_authorized: false
+---
+object_type: decision_record
+object_id: mvp.vertical.fixture.decision_002
+decision_id: mvp.vertical.fixture.decision_002
+status: recorded
+applies_to: mvp.vertical.fixture.result_002
+related_evidence_pack: mvp.vertical.fixture.evidence_001
+decision: approve
+decided_by: human_practitioner
+identity_assurance: declared
+recorded_at: "2026-07-13T03:05:00Z"
+candidate_digest:
+  algorithm: sha256
+  value: cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+evidence_pack_digest:
+  algorithm: sha256
+  value: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+decision_surface: openwebui_gate
+rationale: revised wording removes acceptance language and preserves uncertainty
+consequences:
+  candidate_status: accepted_for_declared_review_scope
+  external_action: not_authorized
+  send_authorization: not_granted
+  retention_authorization: granted_separately
+  register_candidate_creation: allowed
+  memory_admission: not_granted
+---
+object_type: register_candidate
+object_id: mvp.vertical.fixture.register_candidate_001
+status: pending_register_admission
+created_because_of: mvp.vertical.fixture.decision_002
+statement: revised reply pattern avoided commitment language for quote Q-2026-041, lot 06
+scope: fictional_dossier_only
+retention_authorization:
+  authorized: true
+  authorized_by: human_practitioner
+  identity_assurance: declared
+  recorded_at: "2026-07-13T03:06:00Z"
+  decision_id: mvp.vertical.fixture.decision_002
+basis:
+  - mvp.vertical.fixture.evidence_001
+  - mvp.vertical.fixture.decision_002
+not_memory_until_admitted: true
+forbidden_reuse:
+  - agency_wide_rule
+  - automatic_future_acceptance
+  - external_send_authorization

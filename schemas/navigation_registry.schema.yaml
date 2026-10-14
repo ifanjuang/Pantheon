@@ -1,0 +1,96 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: https://pantheon.local/schemas/navigation_registry.schema.yaml
+title: Pantheon Navigation Registry Projection Config
+description: >-
+  Validation-only contract for the bounded Cockpit root navigation configuration.
+  It declares stable root identities, ordering and abstract child sources without
+  owning endpoints, business objects, authorization or child assembly.
+type: object
+additionalProperties: false
+required:
+  - schema_id
+  - revision
+  - root_collection
+properties:
+  schema_id:
+    type: string
+    const: cockpit.navigation.registry
+  revision:
+    type: integer
+    minimum: 1
+  governance_refs:
+    type: array
+    items:
+      type: string
+    uniqueItems: true
+    default:
+      - registries/README.md
+      - docs/governance/CARD_STACK_MODEL.md
+      - docs/governance/CARD_PROJECTION_DEFINITION_MODEL.md
+  root_collection:
+    type: object
+    additionalProperties: false
+    required:
+      - id
+      - items
+    properties:
+      id:
+        $ref: '#/$defs/stable_slug'
+      items:
+        type: array
+        minItems: 1
+        items:
+          $ref: '#/$defs/root_item'
+  x-boundary:
+    type: object
+    additionalProperties: false
+    default:
+      endpoint_routing: false
+      child_assembly: false
+      runtime_execution: false
+      task_authorization: false
+      approval: false
+      evidence_qualification: false
+    properties:
+      endpoint_routing:
+        const: false
+      child_assembly:
+        const: false
+      runtime_execution:
+        const: false
+      task_authorization:
+        const: false
+      approval:
+        const: false
+      evidence_qualification:
+        const: false
+$defs:
+  stable_slug:
+    type: string
+    pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'
+  stable_source:
+    type: string
+    pattern: '^[a-z][a-z0-9_]*$'
+  root_item:
+    type: object
+    additionalProperties: false
+    required:
+      - id
+      - sources
+    properties:
+      id:
+        type: string
+        pattern: '^space:[a-z0-9]+(?:-[a-z0-9]+)*$'
+      sources:
+        type: array
+        minItems: 1
+        items:
+          $ref: '#/$defs/stable_source'
+        uniqueItems: true
+x-boundary:
+  endpoint_routing: false
+  child_assembly: false
+  runtime_execution: false
+  task_authorization: false
+  approval: false
+  evidence_qualification: false

@@ -1,0 +1,4 @@
+interface:
+  display_name: "agency Vault Search"
+  short_description: "Recherche sourcée dans l'organisation agency"
+  default_prompt: "Use $vault-search to resolve the useful agency context and answer from the exact admitted sources."

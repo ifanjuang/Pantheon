@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pantheon-next.local/catalog/schemas/execution-result-candidate.schema.json",
+  "title": "Pantheon Execution Result Candidate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["api_version", "kind", "metadata", "spec", "governance"],
+  "properties": {
+    "api_version": {"const": "pantheon.next/v0alpha1"},
+    "kind": {"const": "ExecutionResultCandidate"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "created_at", "status", "handoff_candidate_id"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^execution_result_candidate_[a-z0-9_-]+$"},
+        "created_at": {"type": "string", "format": "date-time"},
+        "status": {"enum": ["reported_success", "reported_failure", "reported_partial"]},
+        "handoff_candidate_id": {"type": "string", "pattern": "^handoff_candidate_[a-z0-9_-]+$"}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provisioner", "started_at", "finished_at", "exit_status", "observed_changes", "receipts", "warnings"],
+      "properties": {
+        "provisioner": {"type": "string", "minLength": 1},
+        "started_at": {"type": "string", "format": "date-time"},
+        "finished_at": {"type": "string", "format": "date-time"},
+        "exit_status": {"type": "integer"},
+        "observed_changes": {"type": "array", "items": {"type": "string"}},
+        "receipts": {"type": "array", "items": {"type": "string"}},
+        "warnings": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runtime_success_is_evidence", "installation_verified", "activation_authorized", "human_review_required"],
+      "properties": {
+        "runtime_success_is_evidence": {"const": false},
+        "installation_verified": {"const": false},
+        "activation_authorized": {"const": false},
+        "human_review_required": {"const": true}
+      }
+    }
+  }
+}

@@ -1,0 +1,139 @@
+{
+  "fixture_version": 1,
+  "fixture_id": "F01",
+  "title": "Maison neuve normande — RE2020 / PLU / permis / BET",
+  "synthetic": true,
+  "purpose": "Stress-test Project, source-backed ProjectClaim, Information lifecycle, Contacts, Work and Decision without introducing new architecture.",
+  "project": {
+    "project_id": "fixture-project-f01",
+    "code": "F01-MAISON",
+    "display_name": "Maison des Hêtres",
+    "phase": "APD",
+    "status": "En cours",
+    "location": "Normandie",
+    "attributes": {
+      "architectural_style": "Maison contemporaine intégrée à un site boisé",
+      "programme_summary": "Maison familiale sur trois niveaux avec garage, bureau et espaces extérieurs.",
+      "agency_notes": "Conserver une lecture simple du Project ; les valeurs conséquentes sont projetées depuis des claims."
+    }
+  },
+  "project_claims": [
+    {"claim_type": "surface_projet", "value": 312.11, "unit": "m²", "status": "source_backed", "backing_information_key": "surfaces-apd-a01"},
+    {"claim_type": "surface_terrain", "value": 2712, "unit": "m²", "status": "source_backed", "backing_information_key": "cadastre-a01"},
+    {"claim_type": "plu_zone", "value": "UDb", "status": "source_backed", "backing_information_key": "plu-a01"},
+    {"claim_type": "budget", "value": 800000, "unit": "EUR", "status": "asserted", "backing_information_key": null},
+    {"claim_type": "parcelle", "value": "AB 142", "status": "source_backed", "backing_information_key": "cadastre-a01"},
+    {"claim_type": "permit_number", "value": "PC 00000 26 C0001", "status": "source_backed", "backing_information_key": "pc-recepisse-a01"}
+  ],
+  "information": [
+    {
+      "key": "plu-a01",
+      "title": "PLUi — dispositions zone UDb",
+      "category": "Réglementaire",
+      "source_type": "document",
+      "source_ref": "fixture://f01/plui-zone-udb.pdf",
+      "source_version": "2026-01",
+      "index_label": "A01",
+      "summary": "Règles applicables à la parcelle de la fixture.",
+      "details": "Les valeurs extraites restent des informations sourcées ; leur application au projet nécessite le contexte du dossier.",
+      "status": "acted",
+      "limits": ["obligatoire"],
+      "type_tags": ["document", "plu"],
+      "subject_tags": ["urbanisme", "maison-individuelle"]
+    },
+    {
+      "key": "surfaces-apd-a01",
+      "title": "Tableau de surfaces APD",
+      "category": "Conception",
+      "source_type": "file",
+      "source_ref": "fixture://f01/tableau-surfaces-apd-a01.pdf",
+      "source_version": "A01",
+      "index_label": "A01",
+      "summary": "Surface projet synthétique issue des plans APD.",
+      "details": "Surface projet : 312,11 m². La fixture ne prétend pas définir une surface réglementaire universelle.",
+      "status": "acted",
+      "limits": ["consultatif"],
+      "type_tags": ["plan", "etude"],
+      "subject_tags": ["surfaces", "apd"]
+    },
+    {
+      "key": "cadastre-a01",
+      "title": "Plan cadastral et parcelle",
+      "category": "Administratif",
+      "source_type": "document",
+      "source_ref": "fixture://f01/cadastre.pdf",
+      "index_label": "A01",
+      "summary": "Parcelle synthétique AB 142, terrain 2 712 m².",
+      "details": "Document synthétique utilisé uniquement pour tester la provenance des claims.",
+      "status": "acted",
+      "limits": ["consultatif"],
+      "type_tags": ["document"],
+      "subject_tags": ["cadastre", "foncier"]
+    },
+    {
+      "key": "pc-recepisse-a01",
+      "title": "Récépissé de dépôt du permis",
+      "category": "Administratif",
+      "source_type": "document",
+      "source_ref": "fixture://f01/recepisse-pc.pdf",
+      "index_label": "A01",
+      "summary": "Dépôt synthétique du permis de construire.",
+      "details": "Numéro PC 00000 26 C0001.",
+      "status": "acted",
+      "limits": ["obligatoire"],
+      "type_tags": ["document", "permis"],
+      "subject_tags": ["urbanisme"]
+    },
+    {
+      "key": "g2-a01",
+      "title": "Étude géotechnique G2 AVP",
+      "category": "Étude",
+      "source_type": "file",
+      "source_ref": "fixture://f01/g2-avp.pdf",
+      "index_label": "A01",
+      "summary": "Hypothèses géotechniques initiales.",
+      "details": "Les prescriptions doivent être croisées avec le projet structure ; retrieved != truth.",
+      "status": "acted",
+      "limits": ["obligatoire"],
+      "type_tags": ["etude"],
+      "subject_tags": ["geotechnique", "structure"]
+    },
+    {
+      "key": "estimatif-a01",
+      "title": "Estimatif travaux — objectif 800 k€",
+      "category": "Économie",
+      "source_type": "draft",
+      "source_note": "Hypothèse de travail : viser 800 000 € avec certains postes différés ou en option.",
+      "index_label": "A01",
+      "summary": "Enveloppe de travail non encore contractualisée.",
+      "details": "Le budget Project peut rester asserted tant qu'aucune Information actée ne le porte comme valeur source-backed.",
+      "status": "in_progress",
+      "limits": ["hypothese"],
+      "type_tags": ["estimatif"],
+      "subject_tags": ["budget", "dce"]
+    }
+  ],
+  "contacts": {
+    "groups": {
+      "maitrise_ouvrage": 2,
+      "maitrise_oeuvre": 1,
+      "bureaux_etudes": 3,
+      "entreprises_travaux": 0
+    },
+    "note": "Les personnes sont synthétiques ; la fixture vérifie surtout le regroupement dans une seule carte Contacts."
+  },
+  "work": [
+    {"title": "Consolider APD avant DCE", "objective": "Croiser surfaces, structure, thermique et budget.", "requires_human_decision": false},
+    {"title": "Arbitrer les options pour tenir l'enveloppe", "objective": "Préparer un avant/après et les conséquences des postes différés.", "requires_human_decision": true}
+  ],
+  "decisions": [
+    {"title": "Valider l'arbitrage budget / prestations", "trigger": "work", "human_required": true}
+  ],
+  "expected_observations": [
+    "Project reste lisible avec les claims projetés.",
+    "Budget asserted ne devient pas source_backed sans backing Information.",
+    "Zone PLU et surface projet gardent une provenance ouvrable.",
+    "Information en rédaction ne remplace pas une Information ACTÉE par simple présence.",
+    "Aucune nouvelle entité métier n'est nécessaire pour représenter ce dossier."
+  ]
+}

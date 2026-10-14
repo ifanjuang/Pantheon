@@ -1,0 +1,22 @@
+requirement_id: REQ-COUNT-T2
+human_ref: "8 logements T2 attendus dans le bâtiment"
+source:
+  source_type: program
+  source_ref: PRG-001
+requirement_kind: count
+target:
+  selector:
+    object_family: group
+    classification_scheme: housing_typology
+    classification_value: T2
+constraint:
+  operator: count_exact
+  expected_value:
+    value_type: number
+    value: 8
+    unit: count
+scope_type: project
+scope_id: PRJ-001
+source_authority: approved_client_decision
+proof_status: accepted_as_support
+notes: "Requirement stays prescriptive; observed group counts are separate claims/results."

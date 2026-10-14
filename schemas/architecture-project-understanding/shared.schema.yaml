@@ -1,0 +1,217 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Architecture Project Understanding Shared Definitions
+description: >-
+  Shared validation vocabulary for the sole active Project Anatomy baseline:
+  stable object, source representation, attribute claim and relation claim, with
+  their supporting contracts. Structure only; executes nothing and grants no
+  authority.
+type: object
+additionalProperties: false
+properties:
+  schema_status:
+    $ref: "#/$defs/schema_status"
+  governance_refs:
+    type: array
+    items:
+      type: string
+    default:
+      - docs/domain-packs/architecture/PROJECT_ANATOMY_MODEL.md
+      - docs/domain-packs/architecture/PROJECT_ANATOMY_BASELINE_DECISION.md
+      - docs/domain-packs/architecture/PROOF_REGISTER.md
+      - docs/governance/GLOSSARY.md
+      - schemas/shared_axes.schema.yaml
+      - schemas/architecture-proof-register/shared.schema.yaml
+$defs:
+  schema_status:
+    type: string
+    enum: [candidate, active, deprecated, superseded]
+  uuid:
+    type: string
+    format: uuid
+  human_ref:
+    type: string
+    minLength: 1
+    maxLength: 160
+  date:
+    type: string
+    format: date
+  date_time:
+    type: string
+    format: date-time
+
+  # --- Aligned with proof-register ---
+  proof_status:
+    type: string
+    enum: [candidate, source_missing, source_incomplete, source_complete_for_task, source_superseded, contradictory_evidence, authority_too_low, requires_more_evidence, accepted_as_support, rejected, obsolete, superseded]
+  source_authority_level:
+    type: string
+    enum: [law_or_regulation, operation_contract, signed_market_document, approved_phase_decision, signed_or_contradictory_site_evidence, approved_client_decision, contractor_signed_response, approved_technical_report, agency_standard, project_working_document, derived_text, semantic_search_result, model_interpretation_candidate]
+  phase_code:
+    type: string
+    enum: [DIAG, APS, APD, PRO, DCE, ACT, EXE, VISA, DET, OPC, AOR, DOE, GPA, AGENCY_LIBRARY, GLOBAL_REFERENCE]
+  scope_type:
+    type: string
+    enum: [project, phase, lot, agency_library, global_reference, external_project_subset]
+  # --- Canonical project-understanding vocabulary ---
+  object_family:
+    type: string
+    description: >-
+      Broad source-independent semantic family. Exact Revit categories, IFC classes,
+      métier classes and lot classifications belong in claims, not this enum.
+    enum: [spatial, element, assembly, material, system, datum, group, type_definition]
+
+  apu_entity_type:
+    type: string
+    enum: [stable_object, source_representation, requirement, program]
+
+  apu_entity_ref:
+    type: object
+    additionalProperties: false
+    required: [entity_type, entity_id]
+    properties:
+      entity_type:
+        $ref: "#/$defs/apu_entity_type"
+      entity_id:
+        type: string
+        minLength: 1
+
+  apu_claim_ref:
+    type: object
+    additionalProperties: false
+    required: [claim_type, claim_id]
+    properties:
+      claim_type:
+        type: string
+        enum: [attribute_claim, relation_claim]
+      claim_id:
+        type: string
+        minLength: 1
+
+  assertion_mode:
+    type: string
+    enum: [observed, proposed, derived, human_asserted, as_built]
+
+  claim_value_type:
+    type: string
+    enum: [number, boolean, text, range, reference, controlled_label, structured]
+
+  claim_value:
+    type: object
+    additionalProperties: false
+    required: [value_type, value]
+    properties:
+      value_type:
+        $ref: "#/$defs/claim_value_type"
+      value:
+        description: >-
+          JSON number already includes integer values under Draft 2020-12; keeping
+          a separate integer alternative would make integer instances match two
+          oneOf branches and therefore fail validation.
+        oneOf:
+          - { type: number }
+          - { type: string }
+          - { type: boolean }
+          - { type: object }
+          - { type: array }
+      unit:
+        type: string
+        minLength: 1
+      scheme:
+        type: string
+        minLength: 1
+      basis:
+        type: string
+        minLength: 1
+
+  source_kind:
+    type: string
+    enum: [revit, ifc, drawing, drawing_takeoff, image, photo, manual, scan, point_cloud, other]
+
+  source_identifier:
+    type: object
+    additionalProperties: false
+    required: [scheme, value]
+    properties:
+      scheme:
+        type: string
+        minLength: 1
+        pattern: "^[a-z][a-z0-9_.-]*$"
+      value:
+        type: string
+        minLength: 1
+
+  relation_type:
+    type: string
+    minLength: 3
+    pattern: "^[a-z][a-z0-9_.-]*$"
+
+  # --- Existing certainty / source-processing vocabulary retained ---
+  certainty:
+    type: string
+    description: "E0-E4 governance certainty axis (shared_axes); banded from a computed score."
+    enum: [E0, E1, E2, E3, E4]
+  match_axis:
+    type: string
+    enum: [cross_index, cross_source, cross_level]
+  coordinate_frame:
+    type: string
+    enum: [PIXEL, PAGE, MODEL_LOCAL, PROJECT, GEO_NGF]
+  calibration_witness_kind:
+    type: string
+    enum: [dimensioned_cote, title_block_scale, graphic_scale_bar, known_door_width, known_element, grid_spacing, georeference]
+  calibration_agreement:
+    type: string
+    enum: [convergent, divergent, single_witness, unknown]
+  responsibility_party:
+    type: string
+    enum: [architect, bet_structure, bet_fluids, bet_thermal, bet_acoustic, economist, control_office, contractor, client, other]
+
+  # --- Localized proof references ---
+  locator:
+    type: object
+    additionalProperties: false
+    required: [type, value]
+    properties:
+      type:
+        type: string
+        enum: [page_bbox, element_id, grid_ref, ifc_guid, drawing_sheet, file, other]
+      value:
+        type: string
+        minLength: 1
+      page:
+        type: integer
+        minimum: 1
+      bbox:
+        type: array
+        description: "[x0, y0, x1, y1] in the locator's native frame."
+        items:
+          type: number
+        minItems: 4
+        maxItems: 4
+      note:
+        type: string
+        minLength: 1
+  evidence_ref:
+    type: object
+    additionalProperties: false
+    required: [evidence_id]
+    properties:
+      evidence_id:
+        $ref: "#/$defs/uuid"
+      evidence_type:
+        type: string
+      evidence_label:
+        type: string
+      source_artifact_id:
+        type: string
+      locator:
+        $ref: "#/$defs/locator"
+x-boundary:
+  runtime_execution: false
+  autonomous_loop: false
+  provider_routing: false
+  scheduler: false
+  queue_system: false
+  memory_promotion: false
+  automatic_canonization: false
+  approval_engine: false

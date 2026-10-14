@@ -1,0 +1,16 @@
+# Fictional example for validation only.
+answer_id: example.answer-status
+created_at: "2026-06-12T10:00:00Z"
+verification_level: V3
+consequence_level: K3
+certainty_support: E2
+required_approval: C2
+evidence_refs:
+  - example.evidence-pack
+register_refs: []
+status: evidence_verified
+notes: Fictional answer status; the human still decides.
+governance_refs:
+  - docs/governance/GLOSSARY.md
+  - docs/governance/ANSWER_VERIFICATION_GATE.md
+  - docs/governance/EVIDENCE_PACK.md

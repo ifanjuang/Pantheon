@@ -1,0 +1,52 @@
+@layer motion {
+  @keyframes gradient-drift {
+    0%, 100% { transform: translate3d(-1%, -1%, 0) scale(1); }
+    50% { transform: translate3d(2%, 1%, 0) scale(1.025); }
+  }
+
+  @keyframes event-sheen {
+    0% { transform: translateX(-150%) rotate(16deg); opacity: 0; }
+    18% { opacity: .72; }
+    65%, 100% { transform: translateX(270%) rotate(16deg); opacity: 0; }
+  }
+
+  @keyframes attention-breathe {
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--status-review) 0%, transparent); }
+    50% { box-shadow: 0 0 0 .28rem color-mix(in srgb, var(--status-review) 14%, transparent); }
+  }
+
+  .p-card {
+    transition: transform 160ms var(--ease-out), box-shadow 220ms var(--ease-out), opacity 180ms ease;
+  }
+
+  .p-card::after { animation: gradient-drift 14s ease-in-out infinite; }
+
+  .p-card:has(.card-button:hover),
+  .p-card:has(.card-button:focus-visible) {
+    transform: translateY(-.28rem);
+    box-shadow: var(--shadow-focus);
+  }
+
+  .p-card:has(.card-button:active) { transform: translateY(-.1rem) scale(.985); }
+
+  .p-card[data-event="created"]::before,
+  .p-card[data-event="updated"]::before {
+    background-image:
+      linear-gradient(105deg, transparent 35%, var(--event-glow) 50%, transparent 65%),
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.08'/%3E%3C/svg%3E");
+    background-size: 38% 180%, auto;
+    background-repeat: no-repeat, repeat;
+    animation: event-sheen 900ms var(--ease-out) 180ms 1 both;
+  }
+
+  .p-card[data-attention="human"] .responsibility-icon[data-attention="true"] {
+    animation: attention-breathe 2.8s ease-in-out infinite;
+  }
+
+  .detail-dialog[open] { animation: dialog-enter 260ms var(--ease-out); }
+
+  @keyframes dialog-enter {
+    from { opacity: 0; transform: translateY(1rem) scale(.985); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+}

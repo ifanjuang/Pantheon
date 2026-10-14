@@ -1,0 +1,70 @@
+.topbar .brand {
+  position: absolute;
+  left: 50%;
+  z-index: 3;
+  transform: translateX(-50%);
+}
+
+.header-actions {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+}
+
+.header-actions nav {
+  margin-right: auto;
+}
+
+.language-switch {
+  display: inline-flex;
+  align-items: stretch;
+  flex: 0 0 auto;
+  margin-left: auto;
+  border: 1px solid var(--line);
+  background: var(--panel-3);
+}
+
+.language-switch a {
+  min-width: 38px;
+  padding: 7px 9px;
+  color: var(--muted);
+  font: 750 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .08em;
+  text-align: center;
+}
+
+.language-switch a + a {
+  border-left: 1px solid var(--line);
+}
+
+.language-switch a:hover {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+.language-switch a[aria-current="page"] {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.language-switch a[aria-current="page"]:hover {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+@media (max-width: 1040px) {
+  .header-actions { gap: 12px; }
+}
+
+@media (max-width: 760px) {
+  .header-actions { gap: 8px; }
+  .language-switch a {
+    min-width: 34px;
+    padding: 7px 8px;
+  }
+}

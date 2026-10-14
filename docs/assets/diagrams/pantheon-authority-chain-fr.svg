@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 430" role="img" aria-labelledby="title desc">
+  <title id="title">Chaîne d’autorité d’une information dans Pantheon</title>
+  <desc id="desc">Une source originale peut produire une observation puis un candidat. Pantheon applique la politique et les règles d’admission, l’humain tranche lorsque la conséquence l’exige, un propriétaire de persistance applicable conserve l’état admis, puis Pantheon Cockpit en projette une vue gouvernée. Persister ou projeter ne transfère pas l’autorité de gouvernance.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#858e9c"/></marker>
+    <marker id="aa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#f0b95b"/></marker>
+    <style>
+      text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;fill:#f5f7fa}
+      .k{font-size:10px;font-weight:800;letter-spacing:.12em;fill:#858e9c}
+      .t{font-size:16px;font-weight:700}
+      .b{font-size:11px;fill:#c4cad3}
+      .m{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;letter-spacing:.08em;fill:#858e9c}
+      .n{fill:#101216;stroke:#303641;stroke-width:1.5}
+      .source{fill:#201a11;stroke:#f0b95b}
+      .runtime{fill:#171326;stroke:#ad8cff}
+      .gate{fill:#14233b;stroke:#8db7ff}
+      .state{fill:#10231d;stroke:#56d6a0}
+      .projection{fill:#0f1920;stroke:#56c7d6}
+      .human{fill:#201a11;stroke:#f0b95b;stroke-dasharray:6 4}
+      .e{fill:none;stroke:#858e9c;stroke-width:1.6;marker-end:url(#a)}
+      .eh{fill:none;stroke:#f0b95b;stroke-width:1.6;stroke-dasharray:6 4;marker-end:url(#aa)}
+    </style>
+  </defs>
+
+  <rect x="1" y="1" width="1198" height="428" rx="22" fill="#0d1015" stroke="#262b33" stroke-width="2"/>
+
+  <rect x="500" y="30" width="210" height="72" rx="13" class="n gate"/>
+  <text x="520" y="55" class="k" style="fill:#8db7ff">PANTHEON NEXT</text>
+  <text x="520" y="78" class="t">Politique et admission</text>
+  <text x="520" y="94" class="b">statut · scope · Evidence · approbation</text>
+
+  <rect x="760" y="30" width="260" height="72" rx="13" class="n human"/>
+  <text x="780" y="55" class="k" style="fill:#f0b95b">HUMAIN · SI NÉCESSAIRE</text>
+  <text x="780" y="78" class="t">Décision conséquente</text>
+  <text x="780" y="94" class="b">valider · refuser · demander correction</text>
+
+  <rect x="28" y="158" width="160" height="116" rx="15" class="n source"/>
+  <text x="48" y="184" class="k" style="fill:#f0b95b">01 · SOURCE</text>
+  <text x="48" y="213" class="t">Originale</text>
+  <text x="48" y="238" class="b">PDF · note · photo</text>
+  <text x="48" y="256" class="b">audio · mail · BIM</text>
+
+  <rect x="224" y="158" width="160" height="116" rx="15" class="n runtime"/>
+  <text x="244" y="184" class="k" style="fill:#c1a9ff">02 · OBSERVATION</text>
+  <text x="244" y="213" class="t">Extraite</text>
+  <text x="244" y="238" class="b">Hermes · outil · extraction</text>
+  <text x="244" y="256" class="b">observation ≠ vérité</text>
+
+  <rect x="420" y="158" width="160" height="116" rx="15" class="n runtime"/>
+  <text x="440" y="184" class="k" style="fill:#c1a9ff">03 · CANDIDAT</text>
+  <text x="440" y="213" class="t">Proposé</text>
+  <text x="440" y="238" class="b">rapprochement · tâche</text>
+  <text x="440" y="256" class="b">information · document</text>
+
+  <rect x="616" y="158" width="160" height="116" rx="15" class="n gate"/>
+  <text x="636" y="184" class="k" style="fill:#8db7ff">04 · CONTRÔLE</text>
+  <text x="636" y="213" class="t">Admission</text>
+  <text x="636" y="238" class="b">PDP · règles Pantheon</text>
+  <text x="636" y="256" class="b">transition explicite</text>
+
+  <rect x="812" y="158" width="160" height="116" rx="15" class="n state"/>
+  <text x="832" y="184" class="k" style="fill:#56d6a0">05 · ÉTAT</text>
+  <text x="832" y="213" class="t">Persisté</text>
+  <text x="832" y="238" class="b">propriétaire applicable</text>
+  <text x="832" y="256" class="b">persistance ≠ autorité</text>
+
+  <rect x="1008" y="158" width="164" height="116" rx="15" class="n projection"/>
+  <text x="1028" y="184" class="k" style="fill:#56c7d6">06 · PROJECTION</text>
+  <text x="1028" y="213" class="t">Calculée</text>
+  <text x="1028" y="238" class="b">Pantheon Cockpit</text>
+  <text x="1028" y="256" class="b">vue ≠ autorité</text>
+
+  <g class="e">
+    <path d="M188 216H214"/>
+    <path d="M384 216H410"/>
+    <path d="M580 216H606"/>
+    <path d="M776 216H802"/>
+    <path d="M972 216H998"/>
+    <path d="M605 102V128H696V148"/>
+  </g>
+  <path d="M890 102V126H748V148" class="eh"/>
+
+  <line x1="48" y1="340" x2="1152" y2="340" stroke="#f0b95b" stroke-width="1.5" stroke-dasharray="5 5"/>
+  <circle cx="48" cy="340" r="4" fill="#f0b95b"/>
+  <circle cx="1152" cy="340" r="4" fill="#f0b95b"/>
+  <text x="600" y="328" text-anchor="middle" class="m" style="fill:#f0b95b">PROVENANCE CONTINUE · SOURCE · DATE · PRODUCTEUR · INCERTITUDE · DÉCISION</text>
+  <text x="600" y="380" text-anchor="middle" class="t">Aucune promotion silencieuse.</text>
+  <text x="600" y="405" text-anchor="middle" class="m">RETRIEVED ≠ TRUTH · STORED ≠ VALIDATED · PROJECTED ≠ PERSISTED</text>
+</svg>

@@ -1,0 +1,27 @@
+representation_id: REP-RVT-40291
+project_ref: PRJ-001
+source_artifact_ref: REVIT-MODEL-001
+source_version_ref: RVT-SNAPSHOT-2026-08-07T152000Z
+source_kind: revit
+identifiers:
+  - scheme: revit.unique_id
+    value: "4b8c7f2a-...-00009d63"
+  - scheme: revit.element_id
+    value: "40291"
+locators:
+  - type: element_id
+    value: "40291"
+observed_at: "2026-08-07T15:20:00+02:00"
+binding_ref: revit-host-agency-poste01
+adapter_version: "0.1.0"
+freshness_token: "sha256:4d1dd0f8"
+content_digest: "sha256:590910f2"
+coordinate_frame: MODEL_LOCAL
+context:
+  document_ref: revit-document://project-tilleul/model-a
+  view_ref: revit-view://floorplan-rdc
+  phase_ref: revit-phase://new-construction
+  level_ref: revit-level://rdc
+proof_status: source_complete_for_task
+limitations:
+  - "Host geometry not expanded in this observation."

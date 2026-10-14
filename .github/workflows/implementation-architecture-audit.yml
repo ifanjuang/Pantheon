@@ -1,0 +1,133 @@
+name: Pantheon Architecture Audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PANTHEON_AUDIT_AUTHORITY_REF: c335f5784cec005c1cf93e52b0b22ad4afce3442
+    steps:
+      - name: Checkout current monorepo candidate
+        uses: actions/checkout@v4
+        with:
+          path: monorepo
+
+      - name: Checkout bounded pinned audit authority snapshot
+        uses: actions/checkout@v4
+        with:
+          repository: ifanjuang/Pantheon
+          ref: ${{ env.PANTHEON_AUDIT_AUTHORITY_REF }}
+          path: audit-authority
+          sparse-checkout: |
+            docs/governance/authority/PANTHEON_SYSTEM_OWNERSHIP_REGISTRY.json
+            templates/hermes/distribution/distribution-lock.schema.yaml
+          sparse-checkout-cone-mode: false
+
+      - name: Install audit validation dependencies
+        run: python -m pip install "PyYAML>=6" "jsonschema>=4"
+
+      - name: Generate zone-based convergence reports
+        run: |
+          mkdir -p audit-output
+          python monorepo/implementation/tools/audit_pantheon_architecture.py \
+            --zone "governance-core=governance=Pantheon governance=$PWD/monorepo" \
+            --zone "implementation=implementation=Pantheon implementation=$PWD/monorepo/implementation" \
+            --authority-registry "$PWD/audit-authority/docs/governance/authority/PANTHEON_SYSTEM_OWNERSHIP_REGISTRY.json" \
+            --output audit-output/PANTHEON_ARCHITECTURE_INVENTORY.md
+          python monorepo/implementation/tools/audit_pantheon_architecture.py \
+            --zone "governance-core=governance=Pantheon governance=$PWD/monorepo" \
+            --zone "implementation=implementation=Pantheon implementation=$PWD/monorepo/implementation" \
+            --authority-registry "$PWD/audit-authority/docs/governance/authority/PANTHEON_SYSTEM_OWNERSHIP_REGISTRY.json" \
+            --format json \
+            --output audit-output/PANTHEON_ARCHITECTURE_INVENTORY.json
+          python monorepo/implementation/tools/audit_module_usage.py \
+            --zone "implementation=implementation=Pantheon implementation=$PWD/monorepo/implementation" \
+            --json-output audit-output/PANTHEON_MODULE_USAGE.json \
+            --markdown-output audit-output/PANTHEON_MODULE_USAGE.md \
+            --required-call-paths monorepo/implementation/qualification/required-call-paths.json
+
+      - name: Validate Hermes distribution composition from monorepo source
+        run: |
+          python monorepo/implementation/tools/check_hermes_distribution_lock.py \
+            --manifest monorepo/implementation/hermes/distribution/pantheon-standard.lock.yaml \
+            --schema audit-authority/templates/hermes/distribution/distribution-lock.schema.yaml \
+            --monorepo-root "$PWD/monorepo" \
+            --output audit-output/PANTHEON_HERMES_DISTRIBUTION.json
+
+      - name: Enforce permanent monorepo-zone convergence closure
+        run: |
+          python monorepo/implementation/tools/check_architecture_convergence_closure.py \
+            --architecture-inventory audit-output/PANTHEON_ARCHITECTURE_INVENTORY.json \
+            --module-usage audit-output/PANTHEON_MODULE_USAGE.json \
+            --expected-zone governance-core \
+            --expected-zone implementation \
+            --expected-module-zone implementation
+
+      - name: Report candidate authority drift without changing the merge gate
+        id: authority-drift
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p audit-output/candidate-authority
+          STATUS=clean
+          {
+            printf 'audit_authority_ref=%s\n' "$PANTHEON_AUDIT_AUTHORITY_REF"
+            for REL in \
+              docs/governance/authority/PANTHEON_SYSTEM_OWNERSHIP_REGISTRY.json \
+              templates/hermes/distribution/distribution-lock.schema.yaml
+            do
+              PINNED="audit-authority/$REL"
+              CANDIDATE="monorepo/$REL"
+              PINNED_SHA=$(sha256sum "$PINNED" | awk '{print $1}')
+              CANDIDATE_SHA=$(sha256sum "$CANDIDATE" | awk '{print $1}')
+              printf '%s pinned=%s candidate=%s\n' "$REL" "$PINNED_SHA" "$CANDIDATE_SHA"
+              if [ "$PINNED_SHA" != "$CANDIDATE_SHA" ]; then
+                STATUS=drift
+              fi
+            done
+            printf 'status=%s\n' "$STATUS"
+          } > audit-output/candidate-authority/DRIFT_STATUS.txt
+          printf 'status=%s\n' "$STATUS" >> "$GITHUB_OUTPUT"
+
+      - name: Publish job summary
+        if: always()
+        run: |
+          if [ -f audit-output/PANTHEON_ARCHITECTURE_INVENTORY.md ]; then
+            cat audit-output/PANTHEON_ARCHITECTURE_INVENTORY.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+          printf '\n---\n\n' >> "$GITHUB_STEP_SUMMARY"
+          if [ -f audit-output/PANTHEON_MODULE_USAGE.md ]; then
+            cat audit-output/PANTHEON_MODULE_USAGE.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f audit-output/PANTHEON_HERMES_DISTRIBUTION.json ]; then
+            printf '\n---\n\n## Hermes distribution composition\n\n```json\n' >> "$GITHUB_STEP_SUMMARY"
+            cat audit-output/PANTHEON_HERMES_DISTRIBUTION.json >> "$GITHUB_STEP_SUMMARY"
+            printf '```\n' >> "$GITHUB_STEP_SUMMARY"
+          fi
+          printf '\n---\n\n## Candidate authority drift — report only\n\n' >> "$GITHUB_STEP_SUMMARY"
+          printf 'Merge-gating authority snapshot: `%s`  \n' "$PANTHEON_AUDIT_AUTHORITY_REF" >> "$GITHUB_STEP_SUMMARY"
+          printf 'Candidate comparison status: `%s`  \n\n' "${{ steps.authority-drift.outputs.status }}" >> "$GITHUB_STEP_SUMMARY"
+          printf 'A changed candidate authority file does not rewrite the rule used by this run; updating the pinned authority snapshot remains a separate reviewed change.\n' >> "$GITHUB_STEP_SUMMARY"
+          if [ -f audit-output/candidate-authority/DRIFT_STATUS.txt ]; then
+            printf '\n```text\n' >> "$GITHUB_STEP_SUMMARY"
+            cat audit-output/candidate-authority/DRIFT_STATUS.txt >> "$GITHUB_STEP_SUMMARY"
+            printf '```\n' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload architecture inventory
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pantheon-architecture-inventory
+          path: audit-output/
+          if-no-files-found: error
+          retention-days: 14

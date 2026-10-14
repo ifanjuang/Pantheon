@@ -1,0 +1,41 @@
+{
+  "fixture_version": 1,
+  "fixture_id": "F07",
+  "title": "BIM / Revit / documents techniques / indices",
+  "synthetic": true,
+  "purpose": "Stress-test source-version semantics and document-derived Information without making Revit or exported files authoritative by themselves.",
+  "project": {
+    "project_id": "fixture-project-f07",
+    "code": "F07-BIM",
+    "display_name": "Maison du Vallon",
+    "phase": "PRO",
+    "status": "Production",
+    "location": "Normandie",
+    "attributes": {
+      "programme_summary": "Projet produit sous Revit avec exports PDF, nomenclatures et détails techniques.",
+      "agency_notes": "L'indice Information change quand la source change, pas à chaque reformulation du contenu."
+    }
+  },
+  "project_claims": [
+    {"claim_type":"surface_projet","value":228.75,"unit":"m²","status":"source_backed","backing_information_key":"surfaces-a02"}
+  ],
+  "information": [
+    {"key":"plans-a01","series":"plans-pro","title":"Plans PRO","category":"BIM","source_type":"file","source_ref":"fixture://f07/plans-pro-a01.pdf","source_version":"A01","index_label":"A01","summary":"Premier export PDF des plans PRO.","details":"Source documentaire issue d'un modèle Revit externe.","status":"superseded","limits":["consultatif"],"type_tags":["plan"],"subject_tags":["revit","pro"]},
+    {"key":"plans-a02","series":"plans-pro","title":"Plans PRO","category":"BIM","source_type":"file","source_ref":"fixture://f07/plans-pro-a02.pdf","source_version":"A02","index_label":"A02","summary":"Nouvel export après modification du modèle source.","details":"Le nouvel indice correspond au changement de source exportée.","status":"acted","limits":["contractuel"],"type_tags":["plan"],"subject_tags":["revit","pro"]},
+    {"key":"surfaces-a02","series":"surfaces","title":"Nomenclature de surfaces","category":"BIM","source_type":"file","source_ref":"fixture://f07/nomenclature-surfaces-a02.pdf","source_version":"A02","index_label":"A02","summary":"Surface projet synthétique 228,75 m².","details":"Export de nomenclature utilisé comme provenance du claim surface_projet.","status":"acted","limits":["consultatif"],"type_tags":["nomenclature"],"subject_tags":["surfaces","revit"]},
+    {"key":"detail-bardage-a01","series":"detail-bardage","title":"Détail bardage bois","category":"Technique","source_type":"file","source_ref":"fixture://f07/detail-bardage-a01.pdf","source_version":"A01","index_label":"A01","summary":"Détail constructif synthétique.","details":"Ventilation de lame d'air et tasseautage à vérifier selon le contexte du projet.","status":"acted","limits":["consultatif"],"type_tags":["detail"],"subject_tags":["bardage-bois","enveloppe"]},
+    {"key":"note-detail-working","series":"detail-bardage","title":"Détail bardage bois","category":"Technique","source_type":"draft","source_note":"Développer la note de mise en œuvre sans changer la source A01.","source_version":"A01","index_label":"A01","summary":"Réécriture en cours sur la même source.","details":"Ce travail doit conserver le même indice tant que le fichier source ne change pas.","status":"in_progress","limits":["hypothese"],"type_tags":["note"],"subject_tags":["bardage-bois","enveloppe"]}
+  ],
+  "contacts": {"groups":{"maitrise_oeuvre":2,"bureaux_etudes":2},"note":"Contacts synthétiques."},
+  "work": [
+    {"id":"work-coherence-bim","title":"Vérifier la cohérence plans / surfaces / détails","objective":"Comparer les exports sans faire du fichier Revit une autorité Pantheon.","status":"in_progress","requested_effect":"draft"}
+  ],
+  "decisions": [
+    {"title":"Valider l'émission des plans PRO A02","trigger":"manual-review","human_required":true}
+  ],
+  "expected_observations": [
+    "Le changement de source A01 vers A02 justifie un nouvel indice.",
+    "Une reformulation de résumé/détails sur la même source garde le même indice.",
+    "Revit reste un outil externe ; l'export devient une source référencée, pas une autorité automatique."
+  ]
+}

@@ -1,0 +1,33 @@
+# Example verification preset for a module. Declarative governance: it binds the
+# read-only verification family to the module (which verifications apply and the
+# thresholds the evidence should meet). It runs nothing and decides nothing.
+module_id: hermes
+title: Hermes Agent verification preset
+verifications:
+  install:
+    applies: true
+    expected_checks:
+      - health
+      - ready
+  observability:
+    applies: true
+    expected_signals:
+      - logs
+      - metrics
+    freshness_max_age_s: 60
+    errors_threshold: 5
+  backup:
+    applies: true
+    freshness_max_age_s: 86400
+    require_restore: true
+  exposure:
+    applies: true
+    max_reach: vpn
+    require_auth: true
+    require_scope: true
+  update:
+    applies: true
+    channel: stable
+governance_refs:
+  - docs/governance/PANTHEON_MCP_POLICY_SERVER_DEVELOPMENT.md
+  - docs/governance/PANTHEON_CONTROL_BOUNDARY.md

@@ -1,0 +1,30 @@
+api_version: pantheon.next/v0alpha1
+kind: Capability
+metadata:
+  id: architecture_ifc_observation
+  title: Observation IFC architecturale
+  status: candidate
+spec:
+  outcome: Produire des observations IFC structurées et traçables sans transformer la source en vérité projet.
+  required_roles:
+    - ifc_observation
+  optional_roles:
+    - ifc_query
+    - ifc_diff
+    - ids_validation
+  acceptance:
+    - source_digest_preserved
+    - source_version_preserved
+    - declared_scope_preserved
+    - observed_coverage_exposed
+    - source_native_ids_preserved
+    - absence_inference_guarded
+  candidate_resources:
+    preferred:
+      - ifc_lite
+    alternatives: []
+  boundaries:
+    - source_observation_is_not_project_fact
+    - ifc_global_id_is_not_stable_object_id
+    - ids_result_is_not_professional_approval
+    - quantity_is_not_contractually_accepted_quantity

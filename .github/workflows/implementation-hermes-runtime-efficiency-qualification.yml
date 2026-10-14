@@ -1,0 +1,41 @@
+name: Hermes Runtime Efficiency Qualification
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/implementation-hermes-runtime-efficiency-qualification.yml"
+      - "implementation/labs/hermes_runtime_efficiency/**"
+      - "implementation/tests/test_hermes_runtime_efficiency_lab.py"
+      - "implementation/tests/test_hermes_runtime_efficiency_native_baseline.py"
+      - "implementation/tests/test_hermes_kv_cache_qualification.py"
+      - "implementation/tests/test_clm_shadow_rank.py"
+      - "implementation/tests/test_clm_quantized_compare.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compare-recorded-observations:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Pantheon qualification harness
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install implementation test dependencies
+        run: python -m pip install -e "./implementation[test]"
+
+      - name: Run Hermes runtime-efficiency lab tests
+        working-directory: implementation
+        run: >-
+          pytest -q
+          tests/test_hermes_runtime_efficiency_lab.py
+          tests/test_hermes_runtime_efficiency_native_baseline.py
+          tests/test_hermes_kv_cache_qualification.py
+          tests/test_clm_shadow_rank.py
+          tests/test_clm_quantized_compare.py

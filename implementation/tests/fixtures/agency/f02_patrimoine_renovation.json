@@ -1,0 +1,45 @@
+{
+  "fixture_version": 1,
+  "fixture_id": "F02",
+  "title": "Rénovation lourde / patrimoine / structure / humidité",
+  "synthetic": true,
+  "purpose": "Stress-test ambiguous documentary context, ACTÉ versus working assumptions, and source-backed technical values on an existing building.",
+  "project": {
+    "project_id": "fixture-project-f02",
+    "code": "F02-PATRIMOINE",
+    "display_name": "Maison du Verger",
+    "phase": "APD",
+    "status": "En étude",
+    "location": "Normandie",
+    "attributes": {
+      "architectural_style": "Maison ancienne en maçonnerie et pans de bois avec extension contemporaine.",
+      "programme_summary": "Réhabilitation, reprise structurelle locale, amélioration thermique et extension bois.",
+      "agency_notes": "Conserver les incertitudes explicites ; ne pas transformer une hypothèse de diagnostic en fait acquis."
+    }
+  },
+  "project_claims": [
+    {"claim_type":"surface_existante","value":176.2,"unit":"m²","status":"source_backed","backing_information_key":"releve-a01"},
+    {"claim_type":"surface_projet","value":214.8,"unit":"m²","status":"asserted","backing_information_key":null}
+  ],
+  "information": [
+    {"key":"diagnostic-a01","series":"diagnostic-structure","title":"Diagnostic structure initial","category":"Diagnostic","source_type":"file","source_ref":"fixture://f02/diagnostic-structure-a01.pdf","index_label":"A01","summary":"État initial et zones à investiguer.","details":"Certains bois présentent des altérations visuelles ; une investigation complémentaire est nécessaire avant conclusion.","status":"acted","limits":["consultatif"],"type_tags":["diagnostic"],"subject_tags":["structure","bois","patrimoine"]},
+    {"key":"diagnostic-a02-working","series":"diagnostic-structure","title":"Diagnostic structure après ouverture","category":"Diagnostic","source_type":"draft","source_note":"Nouvelle analyse après ouverture ponctuelle des doublages et visite complémentaire.","index_label":"A02","summary":"Hypothèses de reprise en cours.","details":"Le travail doit conserver A01 comme référence ACTÉE et distinguer les nouvelles observations des hypothèses de réparation.","status":"in_progress","limits":["hypothese"],"type_tags":["diagnostic"],"subject_tags":["structure","bois","patrimoine"]},
+    {"key":"releve-a01","series":"releve","title":"Relevé de l'existant","category":"Conception","source_type":"file","source_ref":"fixture://f02/releve-existant-a01.pdf","index_label":"A01","summary":"Surface existante synthétique 176,20 m².","details":"Source du claim surface_existante.","status":"acted","limits":["consultatif"],"type_tags":["plan"],"subject_tags":["existant","surfaces"]},
+    {"key":"humidite-a01","series":"humidite","title":"Note humidité et ventilation","category":"Technique","source_type":"document","source_ref":"fixture://f02/note-humidite.pdf","index_label":"A01","summary":"Analyse des causes possibles d'humidité.","details":"Différencier condensation, remontées, infiltration et défaut de ventilation avant prescription.","status":"acted","limits":["consultatif"],"type_tags":["etude"],"subject_tags":["humidite","ventilation"]},
+    {"key":"extension-a01","series":"extension","title":"Principe d'extension ossature bois","category":"Conception","source_type":"file","source_ref":"fixture://f02/extension-apd-a01.pdf","index_label":"A01","summary":"Principe architectural et structurel de l'extension.","details":"Interfaces avec l'existant à valider avec le BET structure.","status":"acted","limits":["consultatif"],"type_tags":["plan"],"subject_tags":["ossature-bois","extension","structure"]}
+  ],
+  "contacts": {"groups":{"maitrise_ouvrage":2,"maitrise_oeuvre":1,"bureaux_etudes":2,"entreprises_travaux":2},"note":"Intervenants synthétiques."},
+  "work": [
+    {"id":"work-reprise-structure","title":"Définir le principe de reprise structurelle","objective":"Croiser diagnostic A01, observations A02 et avis BET sans écraser les incertitudes.","status":"in_progress","requested_effect":"draft"},
+    {"id":"work-arbitrage-conservation","title":"Arbitrer conservation / remplacement","objective":"Présenter les conséquences techniques, patrimoniales et budgétaires.","status":"review","requested_effect":"canonical_effect"}
+  ],
+  "decisions": [
+    {"title":"Valider le principe conservation / remplacement","trigger":"work-arbitrage-conservation","human_required":true}
+  ],
+  "expected_observations": [
+    "A01 ACTÉ et A02 working doivent rester simultanément visibles au contexte Hermes.",
+    "Une hypothèse de diagnostic reste qualifiée comme hypothèse.",
+    "La surface projet asserted ne prétend pas être source-backed tant qu'un nouveau plan acté ne la porte.",
+    "Le modèle existant suffit sans nouvelle entité Patrimoine ou Diagnostic."
+  ]
+}

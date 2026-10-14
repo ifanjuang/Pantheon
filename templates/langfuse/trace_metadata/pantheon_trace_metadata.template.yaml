@@ -1,0 +1,43 @@
+# Non-executable Langfuse trace metadata template.
+# This is not a Langfuse deployment or prompt registry config.
+
+template_id: pantheon_trace_metadata
+owner_layer: langfuse
+status: candidate_template_only
+purpose: >
+  Describe trace metadata useful for reviewing external execution without replacing Evidence Packs.
+
+recommended_metadata:
+  - pantheon_run_id
+  - task_contract_id
+  - context_pack_id
+  - executor_class
+  - executor_profile
+  - executor_skill_candidate
+  - output_status
+  - approval_ceiling
+  - evidence_pack_candidate_id
+  - memory_rule
+  - user_decision_gate_state
+  - capability_gap_state
+
+forbidden_metadata:
+  - provider_secret
+  - hidden_chain_of_thought
+  - raw_private_scratchpad
+  - unredacted_sensitive_source
+  - autonomous_approval_flag
+  - canonical_memory_flag_without_pantheon_approval
+
+allowed_status_values:
+  - requested
+  - blocked
+  - executed_external_runtime
+  - returned_candidate
+  - returned_with_risk
+  - human_decision_required
+
+notes:
+  - Langfuse observes execution.
+  - Langfuse traces are not Evidence Packs.
+  - Trace metadata may support audit review but cannot replace governed evidence.

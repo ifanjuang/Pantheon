@@ -1,0 +1,170 @@
+# Truncation acknowledgments for .github/scripts/check_no_net_truncation.py
+#
+# One repo-relative path per line. A path listed here is exempt from the
+# net-truncation tripwire: it declares that a large net deletion of that long
+# governance doc is deliberate (a real split or removal), not an accidental
+# partial-read-written-back truncation.
+#
+# Adding a path here is itself a reviewable signal — keep it minimal and remove
+# entries once the deliberate shrink has merged.
+#
+# Deliberate split: Current authority map rows moved to docs/governance/authority/
+# sub-indexes per AUTHORITY_INDEX_DECOMPOSITION_PLAN.md (PR D/E).
+docs/governance/AUTHORITY_INDEX.md
+
+# Deliberate consolidation: ROADMAP.md is reduced from an inventory-style
+# document to current outcomes, blockers, exit criteria and next decisions.
+# Detailed ownership and status remain in STATUS.md, WHAT_RUNS.md,
+# AUTHORITY_INDEX.md and MODULES.md.
+docs/governance/ROADMAP.md
+
+# Deliberate reduction: installation composition material was removed after the
+# human selected one common baseline. The catalog now owns only independent
+# module records; the shared required component set lives in
+# COMMON_INSTALLATION_BASELINE.md.
+docs/governance/INSTALL_MODULE_CATALOG.md
+
+# Deliberate doctrine replacement: the original Notion-owner/read-only proposal
+# was replaced after the human selected PostgreSQL as the native Agency Data
+# system of record, with Notion retained as an optional selectively editable
+# collaborative projection. The generic ownership rule now lives in
+# AGENCY_DATA_SYSTEM_OF_RECORD.md.
+docs/governance/NOTION_AGENCY_DATA_BINDING.md
+
+# Deliberate convergence: KNOWLEDGE_NAVIGATION_UX.md was reduced after its
+# parallel knowledge_folder backend concept was absorbed by Category /
+# CategoryAssignment. Source, production and progress lifecycle duplication now
+# points to the existing owner documents; the retained file owns UX only.
+docs/governance/KNOWLEDGE_NAVIGATION_UX.md
+
+# Deliberate convergence: COCKPIT_CAPABILITY_MANAGEMENT.md now owns only the
+# Cockpit projection/action boundary. Capability identity, binding, activation,
+# compatibility and task/run legitimacy remain with their existing canonical
+# owners instead of being repeated here.
+docs/governance/COCKPIT_CAPABILITY_MANAGEMENT.md
+
+# Deliberate convergence: COMPETENCE_MODEL.md now owns only the composition
+# boundary between a governed reusable ability, professional content/support
+# material and replaceable execution means. Vocabulary, capability activation,
+# task authorization, Evidence, cards and persistence remain with existing owners.
+docs/governance/COMPETENCE_MODEL.md
+
+# Deliberate convergence: PANTHEON_COCKPIT_STRUCTURED_AGENCY_INTERFACE.md now
+# owns product composition only. Detailed lifecycle, capability, Agency Data,
+# Document and object schemas remain with their existing owners; root topology
+# is aligned to the executable Navigation Registry instead of an aspirational list.
+docs/governance/PANTHEON_COCKPIT_STRUCTURED_AGENCY_INTERFACE.md
+
+# Deliberate convergence: CARD_STACK_MODEL.md now owns only generic Card / Scene /
+# Deck / Constellation projection grammar. Product root topology, object-specific
+# lifecycles and implementation ownership remain with their existing owners.
+docs/governance/CARD_STACK_MODEL.md
+
+# Deliberate selected-stack convergence: historic OpenWebUI/Paperless product
+# ownership and repeated three-party topology are removed from central doctrine.
+# Hermes clients own runtime interaction, Pantheon Cockpit owns governed
+# projections, Obsidian owns the human Markdown workspace, and generic source /
+# document owners retain professional provenance.
+docs/governance/CORE_CONCEPTS_MAP.md
+docs/governance/ARCHITECTURE.md
+docs/governance/README.md
+docs/governance/TARGET_ARCHITECTURE.md
+docs/governance/ECOSYSTEM_MAP.md
+docs/governance/WHAT_RUNS.md
+docs/governance/MODULES.md
+docs/governance/COMMON_INSTALLATION_BASELINE.md
+docs/governance/OPENWEBUI_INTEGRATION.md
+
+# Deliberate MCP convergence: the minimal profile now owns only the implemented
+# read-only Pantheon policy/validation boundary. Historical OpenWebUI integration,
+# duplicated candidate tool inventories and speculative arbitration sections are
+# removed; Hermes clients, Hermes Agent and Pantheon Cockpit retain their existing
+# responsibilities and generic exposure verification remains client-agnostic.
+docs/governance/MCP_PANTHEON_MINIMAL_PROFILE.md
+
+# Deliberate protected-path convergence: Paperless and the dedicated document
+# runtime observer are removed after consumer audit. Generic source intake,
+# local/NAS source identity, Docling, PDP and runtime_observation remain with
+# their existing owners; the private Pantheon-Next archive preserves product provenance.
+docs/governance/PAPERLESS_NGX_DOCUMENT_RUNTIME.md
+docs/governance/HERMES_PAPERLESS_DOCUMENT_INTAKE_BINDING.md
+docs/governance/DOCUMENT_RUNTIME_STATUS_PROJECTION.md
+docs/governance/DOCUMENT_RUNTIME_LIVE_OBSERVATIONS.md
+docs/governance/DOCUMENT_RUNTIME_SYNTHETIC_ACCEPTANCE.md
+
+# Deliberate OCR convergence: the OCR pipeline is reduced to provider-agnostic
+# derivation, provenance, validation and workspace qualification rules. The
+# superseded Paperless-specific placement section is removed.
+docs/governance/DOCUMENT_OCR_DERIVATION_PIPELINE.md
+
+# Deliberate provider-agnostic convergence: runtime memory, workspace and
+# retrieval product choices were removed from Pantheon ownership. The proven
+# Obsidian + LiveSync + Hindsight path remains preserved as a qualified,
+# recommended optional reference implementation; Hermes native facilities remain
+# a valid zero-extra-provider path, and generic governance owners keep authority.
+docs/governance/MEMORY.md
+docs/governance/HERMES_CAPABILITY_BINDINGS.md
+docs/governance/OBSIDIAN_HINDSIGHT_WORKSPACE_MODEL.md
+
+# Deliberate RAG convergence: the ingestion document now owns only provider-
+# agnostic source/scope/provenance invariants and current demonstrated profiles;
+# the evidence-boundary document owns the post-retrieval interpretation. Product-
+# specific UI/RAG stack assumptions were removed without deleting qualified paths.
+docs/governance/RAG_INGESTION_PIPELINE.md
+docs/governance/RAG_INGESTION_AND_EVIDENCE_BOUNDARIES.md
+
+# Deliberate role-activation convergence: duplicated domain/skill examples and
+# historical OpenWebUI-specific activation/display semantics were removed. The
+# document now owns only role/domain/skill participation and eligibility rules;
+# canonical Role, capability, Task Contract, Evidence, Register, Hermes and
+# Cockpit/Card responsibilities remain with their existing owners.
+docs/governance/ROLE_ACTIVATION.md
+
+# Deliberate Evidence Topology consolidation: the prior file concatenated active
+# doctrine with bridge/checklist/roadmap/reconciliation/schema-candidate and
+# historical changelog addenda. Current schemas already own the machine fields;
+# the retained document now owns only current topology selection/proof-chain
+# semantics and points to existing Task Contract/Evidence/Hermes/Cockpit owners.
+docs/governance/EVIDENCE_TOPOLOGY.md
+
+# Deliberate layered-record convergence: repeated storage/technology examples
+# were reduced while preserving the seven-layer raw/derived/governed/retrieval/
+# provenance/Evidence/decision model. Concrete clients/providers are bindings;
+# generic source, Evidence, persistence and projection owners retain authority.
+docs/governance/RAW_DERIVED_GOVERNED_RECORDS.md
+
+# Deliberate document-lifecycle convergence: the prior document mixed lifecycle
+# governance, speculative runtime/Skill design, provider lists and delivery
+# roadmap. The retained owner now composes current source/document/Knowledge/
+# retrieval/Evidence owners and keeps only lifecycle distinctions, gates and
+# responsibility boundaries; machine shapes remain in existing schemas.
+docs/governance/DOCUMENT_LIFECYCLE_GOVERNANCE.md
+
+# Deliberate AI-learning-note convergence: the five reviewed repository sources
+# and their useful prompt/retrieval/tool/eval/safety/deployment lessons remain,
+# while OpenWebUI-specific placement, duplicate runtime/client responsibility and
+# speculative client-specific distillation text are removed. Existing Cockpit,
+# Hermes, Evidence and Knowledge owners retain their respective responsibilities.
+docs/governance/AI_LEARNING_REPOS_DISTILLATION.md
+
+# Deliberate Hermes integration convergence: the prior active file concatenated
+# the stable Pantheon/Hermes boundary with stale release reviews and absorbed
+# Kanban, simulation and Page-Agent candidate notes. HERMES_INTEGRATION.md now
+# owns only the stable PDP/PEP, Task Contract, Evidence, memory, client/Cockpit,
+# tool/effect and currentness boundaries. Release-specific review remains with
+# HERMES_RUNTIME_SURFACE_REVIEW.md and candidate history remains in the private Pantheon-Next archive.
+docs/governance/HERMES_INTEGRATION.md
+
+# Deliberate external-tools policy convergence: the prior file combined the
+# tool-agnostic T0-T5 policy/threat-review method with large absorbed catalogues
+# of frameworks, methods and repositories. The retained owner keeps effect risk,
+# least capability, Evidence, host-control, untrusted-content, prompt-injection,
+# permission/exposure, PDP/PEP and rollback rules. Product comparisons remain
+# with watchlist/distillation/reference-review/placement owners and Git history.
+docs/governance/EXTERNAL_TOOLS_POLICY.md
+
+# Deliberate skill-watchlist convergence: the former active-support document
+# repeated the general watch policy while also carrying long source reviews.
+# WATCHLIST.md remains the policy/status/routing owner; SKILL_WATCHLIST.md is now
+# only a compact non-authoritative reference view over skill-ecosystem signals.
+docs/governance/SKILL_WATCHLIST.md

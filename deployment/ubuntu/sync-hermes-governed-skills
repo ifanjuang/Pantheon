@@ -1,0 +1,134 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+STATE_ROOT="${STATE_ROOT:-/srv/pantheon}"
+APP_ROOT="${APP_ROOT:-/opt/pantheon-node}"
+PROFILE="pantheon-governed"
+HOST_SKILLS_ROOT="$STATE_ROOT/hermes-governed-skills"
+HERMES_USER="${HERMES_USER:-pantheon-hermes}"
+HERMES_HOME="${HERMES_HOME:-/home/$HERMES_USER}"
+HERMES_BIN="${HERMES_BIN:-$HERMES_HOME/.local/bin/hermes}"
+
+die() { printf '[pantheon-skills] ERROR: %s\n' "$*" >&2; exit 1; }
+warn() { printf '[pantheon-skills] WARNING: %s\n' "$*" >&2; }
+log() { printf '[pantheon-skills] %s\n' "$*"; }
+
+[[ $# -eq 1 ]] || die "usage: sync-hermes-governed-skills <reviewed-pantheon-checkout>"
+CHECKOUT="$(readlink -f "$1")"
+[[ -d "$CHECKOUT/.git" ]] || die "reviewed Pantheon checkout is missing: $CHECKOUT"
+RELEASE_LOCK="$CHECKOUT/deployment/ubuntu/release.env"
+[[ -f "$RELEASE_LOCK" ]] || die "target checkout reviewed deployment lock is missing: $RELEASE_LOCK"
+# shellcheck disable=SC1090
+source "$RELEASE_LOCK"
+SKILLS="${RELEASE_HERMES_GOVERNED_SKILLS:?target release.env missing RELEASE_HERMES_GOVERNED_SKILLS}"
+id "$HERMES_USER" >/dev/null 2>&1 || die "native Hermes service user is missing: $HERMES_USER"
+[[ -x "$HERMES_BIN" ]] || die "native Hermes CLI is missing: $HERMES_BIN"
+systemctl is-active --quiet pantheon-hermes-native.service \
+  || die "native Hermes gateway is not active"
+run_hermes() {
+  runuser -u "$HERMES_USER" -- env \
+    HOME="$HERMES_HOME" HERMES_HOME="$STATE_ROOT/hermes" \
+    PATH="$HERMES_HOME/.local/bin:/usr/local/bin:/usr/bin:/bin" \
+    "$HERMES_BIN" "$@"
+}
+
+profile_dir="$STATE_ROOT/hermes/profiles/$PROFILE"
+merged=""
+original_dirs=""
+if [[ -d "$profile_dir" ]]; then
+  # Read and validate the existing binding before touching the managed
+  # projection. A CLI/configuration error must never look like an empty list:
+  # that could silently unbind installation-specific skill directories.
+  raw="$(run_hermes -p "$PROFILE" config get skills.external_dirs --json)" \
+    || die "cannot read existing Hermes skills.external_dirs; refusing to change the managed projection"
+  original_dirs="$(printf '%s' "$raw" | jq -ce '
+    def as_array:
+      if type == "array" then .
+      elif type == "string" then (try fromjson catch error("skills.external_dirs contains invalid JSON"))
+      else error("skills.external_dirs is not an array") end;
+    as_array
+    | if type != "array" then error("skills.external_dirs is not an array") else . end
+    | if all(.[]; type == "string") then . else error("skills.external_dirs contains a non-string entry") end
+  ')" || die "cannot parse existing Hermes skills.external_dirs; refusing to change the managed projection"
+  merged="$(printf '%s' "$original_dirs" | jq -ce --arg path "$HOST_SKILLS_ROOT" \
+    'if index($path) then . else . + [$path] end')"
+fi
+
+stage=""
+old="$HOST_SKILLS_ROOT.previous.$$"
+swap_started=0
+profile_config_touched=0
+profile_restore_failed=0
+restart_attempted=0
+[[ ! -e "$old" ]] || die "a prior governed-skills checkpoint already exists: $old"
+
+cleanup() {
+  local status=$?
+  trap - EXIT
+  if ((status != 0)); then
+    if ((profile_config_touched)); then
+      run_hermes -p "$PROFILE" config set skills.external_dirs "$original_dirs" >/dev/null \
+        || { warn "could not restore the original Hermes skills.external_dirs value"; profile_restore_failed=1; }
+    fi
+    if ((swap_started)); then
+      if [[ -e "$old" ]]; then
+        rm -rf "$HOST_SKILLS_ROOT"
+        mv "$old" "$HOST_SKILLS_ROOT" || warn "could not restore the previous governed-skills projection: $old"
+      elif ((profile_restore_failed == 0)); then
+        rm -rf "$HOST_SKILLS_ROOT"
+      else
+        warn "leaving the new skill projection in place because profile rollback failed"
+      fi
+    fi
+    if ((restart_attempted)); then
+      systemctl restart pantheon-hermes-native.service \
+        || warn "could not restart Hermes after restoring the previous skill projection"
+    fi
+  else
+    rm -rf "$old"
+  fi
+  [[ -z "$stage" ]] || rm -rf "$stage"
+  exit "$status"
+}
+
+stage="$(mktemp -d "$STATE_ROOT/.hermes-governed-skills.XXXXXX")"
+trap cleanup EXIT
+
+for skill in $SKILLS; do
+  [[ "$skill" =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]] || die "invalid governed skill name: $skill"
+  src="$CHECKOUT/templates/hermes/skills/$skill"
+  [[ -f "$src/SKILL.md" ]] || die "governed skill source is missing SKILL.md: $src"
+  if find "$src" -type l -print -quit | grep -q .; then
+    die "governed skill source contains a symlink: $skill"
+  fi
+  install -d -m 0755 "$stage/$skill"
+  rsync -a --delete "$src/" "$stage/$skill/"
+done
+
+# The runtime copy is a deployment projection of reviewed repository content.
+# Keep it read-only to Hermes; it is not a writable skill-authoring location.
+find "$stage" -type d -exec chmod 0555 {} +
+find "$stage" -type f -exec chmod 0444 {} +
+
+swap_started=1
+if [[ -e "$HOST_SKILLS_ROOT" ]]; then mv "$HOST_SKILLS_ROOT" "$old"; fi
+mv "$stage" "$HOST_SKILLS_ROOT"
+
+if [[ -d "$profile_dir" ]]; then
+  profile_config_touched=1
+  run_hermes -p "$PROFILE" config set skills.external_dirs "$merged" >/dev/null
+  observed="$(run_hermes -p "$PROFILE" config get skills.external_dirs --json)"
+  printf '%s' "$observed" | jq -e --arg path "$HOST_SKILLS_ROOT" '
+    if type == "array" then index($path) != null
+    elif type == "string" then (try (fromjson | index($path) != null) catch false)
+    else false end
+  ' >/dev/null || die "Hermes did not retain the governed external skill directory"
+  log "bound curated external skills to profile $PROFILE"
+  restart_attempted=1
+  systemctl restart pantheon-hermes-native.service
+else
+  warn "profile $PROFILE is absent; skills are staged but not bound to a profile"
+fi
+
+log "staged governed Hermes skills from target checkout: $SKILLS"
+log "available skill != skill used; skill used != task authorization; projection != persistence"

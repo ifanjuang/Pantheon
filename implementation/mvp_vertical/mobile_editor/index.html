@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#17231d">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+  <title>Pantheon Knowledge</title>
+</head>
+<body>
+  <header>
+    <div><small>PANTHEON</small><h1>Knowledge</h1></div>
+    <output id="network" aria-live="polite">hors ligne</output>
+  </header>
+  <main>
+    <section class="connect card">
+      <label>Projet <input id="project" autocomplete="off" placeholder="project-maison-a"></label>
+      <label>Clé d’édition <input id="token" type="password" autocomplete="off" placeholder="conservée pour cette session"></label>
+      <label>Identité humaine <input id="actor" autocomplete="username" placeholder="prenom.nom"></label>
+      <button id="load">Ouvrir</button>
+      <p class="muted">Les brouillons, Knowledge en cache et demandes Hermes hors ligne sont conservés localement, sans chiffrement applicatif, sur cet appareil.</p>
+      <button id="clear-local" type="button">Effacer les données locales</button>
+    </section>
+    <section class="workspace">
+      <nav class="card">
+        <h2>Sujets</h2>
+        <div id="items"><p class="muted">Aucun sujet chargé.</p></div>
+      </nav>
+      <article class="card editor">
+        <div class="meta">
+          <div><h2 id="title">Sélectionnez un sujet</h2><p id="status" class="muted"></p></div>
+          <button id="save" disabled>Prévisualiser</button>
+        </div>
+        <div class="actions" aria-label="Actions sur la sélection">
+          <button data-action="rewrite" disabled>Reformuler</button>
+          <button data-action="expand" disabled>Détailler</button>
+          <button data-action="simplify" disabled>Simplifier</button>
+          <button data-action="verify" disabled>Vérifier</button>
+          <button data-action="move_to_lot" disabled>Changer de lot</button>
+          <button id="variant-ab" type="button" disabled>Variantes A/B</button>
+        </div>
+        <textarea id="markdown" spellcheck="true" disabled placeholder="Markdown Knowledge"></textarea>
+        <p id="message" role="status" class="muted"></p>
+        <section class="proposal-review" aria-labelledby="proposal-review-title">
+          <div class="proposal-review-head">
+            <div>
+              <small>PROPOSITIONS HERMÈS</small>
+              <h2 id="proposal-review-title">Revue de la sélection</h2>
+            </div>
+            <button id="refresh-reviews" type="button" disabled>Actualiser</button>
+          </div>
+          <p class="muted">Un retour d’exécution, sa projection et la sélection d’une variante ne modifient pas la Knowledge. L’application reste une décision humaine séparée.</p>
+          <div id="edit-reviews" aria-live="polite"><p class="muted">Aucune proposition chargée.</p></div>
+        </section>
+      </article>
+    </section>
+  </main>
+
+  <dialog id="update-dialog" aria-labelledby="update-title">
+    <form method="dialog" class="confirm-card">
+      <header class="confirm-header">
+        <div><small>UPDATE KNOWLEDGE</small><h2 id="update-title">Confirmer la révision</h2></div>
+        <button value="close" aria-label="Fermer">×</button>
+      </header>
+      <p id="update-identity" class="muted"></p>
+      <pre id="update-diff" tabindex="0"></pre>
+      <label id="confirmation-label">Confirmation
+        <input id="confirmation" autocomplete="off">
+      </label>
+      <button id="apply-update" type="button" disabled>Appliquer cet UPDATE exact</button>
+      <p id="update-message" role="status" class="muted"></p>
+    </form>
+  </dialog>
+
+  <script src="app.js" defer></script>
+  <script src="variant_review.js" defer></script>
+</body>
+</html>

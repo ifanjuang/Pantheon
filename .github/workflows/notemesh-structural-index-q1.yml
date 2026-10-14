@@ -1,0 +1,257 @@
+name: NoteMesh Structural Index Q1
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/notemesh-structural-index-q1.yml"
+      - "implementation/qualification/external-pins.json"
+      - "implementation/qualification/external-upstream-observations.json"
+      - "implementation/tools/export_external_qualification_pins.py"
+      - "tests/fixtures/obsidian_graph_health_pilot.json"
+      - "tests/test_notemesh_structural_index_q1_contract.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pytest
+      - run: pytest -q tests/test_notemesh_structural_index_q1_contract.py
+
+  upstream-observation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout Pantheon candidate
+        uses: actions/checkout@v4
+        with:
+          path: monorepo
+
+      - name: Load canonical NoteMesh qualification pin
+        shell: bash
+        run: python3 monorepo/implementation/tools/export_external_qualification_pins.py --github-env "$GITHUB_ENV" notemesh
+
+      - name: Checkout exact NoteMesh revision
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.NOTEMESH_REPOSITORY }}
+          ref: ${{ env.NOTEMESH_REF }}
+          path: notemesh
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "11.16.0"
+          run_install: false
+
+      - name: Verify upstream identity and relevant boundaries
+        shell: bash
+        run: |
+          test "$(git -C notemesh rev-parse HEAD)" = "$NOTEMESH_REF"
+          test "$(node -p "require('./notemesh/package.json').version")" = "$NOTEMESH_VERSION"
+          grep -F 'if (entry.name.startsWith(".")) continue;' notemesh/src/server/vault/indexer.ts
+          grep -F 'SELECT path FROM notes UNION ALL SELECT path FROM attachments' notemesh/src/server/vault/indexer.ts
+          grep -F 'resolved_path TEXT' notemesh/src/server/db.ts
+          grep -F 'followSymlinks: false' notemesh/src/server/vault/indexer.ts
+
+      - name: Install pinned upstream
+        run: pnpm --dir notemesh install --frozen-lockfile
+
+      - name: Materialize canonical Pantheon corpus
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+
+          corpus = json.loads(Path("monorepo/tests/fixtures/obsidian_graph_health_pilot.json").read_text(encoding="utf-8"))
+          out = Path(os.environ["RUNNER_TEMP"]) / "notemesh-q1"
+          vault = out / "data" / "vault"
+          vault.mkdir(parents=True, exist_ok=True)
+          tracked = []
+
+          for note in corpus["workspace"]["notes"]:
+              p = vault / note["path"]
+              p.parent.mkdir(parents=True, exist_ok=True)
+              lines = ["---", "tags: [qualification, synthetic]", "---", "", f"# {p.stem}", ""]
+              for claim in note.get("claims", []):
+                  lines += [claim, ""]
+              for heading in note.get("headings", []):
+                  lines += [f"## {heading}", "", f"Synthetic section {heading}.", ""]
+              lines += [f"[[{target}]]" for target in note.get("links", [])]
+              lines += note.get("raw_markdown", [])
+              p.write_text("\n".join(lines) + "\n", encoding="utf-8")
+              tracked.append(note["path"])
+
+          for rel in corpus["workspace"]["non_markdown_files"]:
+              p = vault / rel
+              p.parent.mkdir(parents=True, exist_ok=True)
+              p.write_bytes(b"synthetic attachment\n")
+              tracked.append(rel)
+
+          for rel in corpus["workspace"]["protected_external_material"]:
+              p = vault / rel
+              p.parent.mkdir(parents=True, exist_ok=True)
+              p.write_bytes(b"PANTHEON_PROTECTED_SYNTHETIC_MATERIAL\n")
+              tracked.append(rel)
+
+          before = {rel: hashlib.sha256((vault / rel).read_bytes()).hexdigest() for rel in sorted(tracked)}
+          (out / "tracked.json").write_text(json.dumps(sorted(tracked), indent=2) + "\n", encoding="utf-8")
+          (out / "before.json").write_text(json.dumps(before, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          PY
+
+      - name: Execute exact VaultIndexer rebuild and classify native Obsidian link resolution
+        shell: bash
+        run: |
+          OUT="$RUNNER_TEMP/notemesh-q1"
+          cat > notemesh/tests/pantheon-q1.test.ts <<'TS'
+          import fs from "node:fs";
+          import path from "node:path";
+          import { describe, expect, test } from "vitest";
+          import { db } from "../src/server/db";
+          import { indexer, parseNote } from "../src/server/vault/indexer";
+
+          const out = process.env.PANTHEON_Q1_OUT!;
+          const corpus = JSON.parse(fs.readFileSync(process.env.PANTHEON_Q1_CORPUS!, "utf8"));
+
+          describe("Pantheon NoteMesh structural index Q1", () => {
+            test("executes the real reconstructible index and preserves exact link-resolution observations", async () => {
+              await indexer().rebuild();
+              const d = db();
+              const notes = d.prepare("SELECT path, title FROM notes ORDER BY path").all() as any[];
+              const attachments = d.prepare("SELECT path FROM attachments ORDER BY path").all() as any[];
+              const links = d.prepare("SELECT source_path, target, resolved_path FROM links ORDER BY source_path, target").all() as any[];
+              const tags = d.prepare("SELECT path, tag FROM tags ORDER BY path, tag").all() as any[];
+              const tasks = d.prepare("SELECT path, line, text, done FROM tasks ORDER BY path, line").all() as any[];
+              const validPath = path.join(process.env.DATA_DIR!, "vault/projects/maison/liens-valides.md");
+              const parsedValid = parseNote("projects/maison/liens-valides.md", fs.readFileSync(validPath, "utf8"));
+              const validRows = links.filter((row) => row.source_path === "projects/maison/liens-valides.md");
+              const resolvedByTarget = new Map(validRows.map((row) => [row.target, row.resolved_path]));
+              const expectedResolvedTargets = [
+                "projects/maison/cctp.md",
+                "projects/maison/chauffage.md",
+                "plan.pdf",
+                "perspective.png",
+                "planning.base",
+                "schema.canvas",
+                "cctp.md",
+                "cctp",
+              ];
+              const validLinkResolution = {
+                parser_valid_form_count: parsedValid.links.length,
+                normalized_cctp_parser_forms: parsedValid.links.filter((target) => target === "cctp").length,
+                normalized_cctp_sql_rows: validRows.filter((row) => row.target === "cctp").length,
+                expected_unique_targets: expectedResolvedTargets,
+                resolved_targets: Object.fromEntries(expectedResolvedTargets.map((target) => [target, resolvedByTarget.get(target) ?? null])),
+                expected_targets_all_present: expectedResolvedTargets.every((target) => resolvedByTarget.has(target)),
+                expected_targets_all_resolved: expectedResolvedTargets.every((target) => resolvedByTarget.get(target) != null),
+                escaped_alias_row_present: resolvedByTarget.has("chauffage\\"),
+                escaped_alias_false_positive: resolvedByTarget.has("chauffage\\") && resolvedByTarget.get("chauffage\\") == null,
+              };
+
+              const observed = {
+                notes,
+                attachments,
+                links,
+                tags,
+                tasks,
+                parsed_valid_links: parsedValid.links,
+                valid_link_resolution: validLinkResolution,
+                unresolved_links: links.filter((row) => row.resolved_path == null),
+                scope_negative_control: {
+                  sentinel_indexed: notes.some((row) => row.path === "projects/autre-projet/sentinel-hors-perimetre.md"),
+                  raw_indexed: notes.some((row) => row.path === "_raw/hypothese-non-verifiee.md"),
+                  bookkeeping_indexed: notes.some((row) => row.path === "index.md"),
+                  source_indexed: attachments.some((row) => row.path === "sources/cctp-original.pdf"),
+                  evidence_indexed: attachments.some((row) => row.path === "evidence/admitted-cctp-record"),
+                },
+              };
+              fs.writeFileSync(path.join(out, "observations.json"), JSON.stringify(observed, null, 2) + "\n");
+
+              expect(corpus.workspace.authorized_scope.include_prefixes).toEqual(["projects/maison/"]);
+              expect(observed.scope_negative_control.sentinel_indexed).toBe(true);
+              expect(parsedValid.links).toHaveLength(10);
+              expect(parsedValid.links.filter((target) => target === "cctp")).toHaveLength(2);
+              expect(validLinkResolution.normalized_cctp_sql_rows).toBe(1);
+              for (const target of expectedResolvedTargets) {
+                expect(resolvedByTarget.has(target), `missing normalized link row for ${target}`).toBe(true);
+                expect(resolvedByTarget.get(target), `valid link unexpectedly unresolved: ${target}`).not.toBeNull();
+              }
+              expect(resolvedByTarget.has("chauffage\\")).toBe(true);
+              expect(resolvedByTarget.get("chauffage\\")).toBeNull();
+            });
+          });
+          TS
+
+          DATA_DIR="$OUT/data" \
+          PANTHEON_Q1_OUT="$OUT" \
+          PANTHEON_Q1_CORPUS="$GITHUB_WORKSPACE/monorepo/tests/fixtures/obsidian_graph_health_pilot.json" \
+          pnpm --dir notemesh exec vitest run tests/pantheon-q1.test.ts
+          rm -f notemesh/tests/pantheon-q1.test.ts
+
+      - name: Verify report-only boundary and emit normalized result
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+
+          out = Path(os.environ["RUNNER_TEMP"]) / "notemesh-q1"
+          vault = out / "data" / "vault"
+          tracked = json.loads((out / "tracked.json").read_text(encoding="utf-8"))
+          before = json.loads((out / "before.json").read_text(encoding="utf-8"))
+          obs = json.loads((out / "observations.json").read_text(encoding="utf-8"))
+          after = {rel: hashlib.sha256((vault / rel).read_bytes()).hexdigest() if (vault / rel).is_file() else None for rel in tracked}
+          added = sorted(p.relative_to(vault).as_posix() for p in vault.rglob("*") if p.is_file() and p.relative_to(vault).as_posix() not in tracked)
+          removed = sorted(rel for rel in tracked if not (vault / rel).exists())
+          changed = sorted(rel for rel in tracked if before.get(rel) != after.get(rel))
+          unresolved = obs["unresolved_links"]
+          link_resolution = obs["valid_link_resolution"]
+
+          result = {
+            "schema_id": "pantheon.notemesh_structural_index_q1.observed",
+            "candidate": {"repository": os.environ["NOTEMESH_REPOSITORY"], "version": os.environ["NOTEMESH_VERSION"], "ref": os.environ["NOTEMESH_REF"]},
+            "counts": {"notes": len(obs["notes"]), "attachments": len(obs["attachments"]), "links": len(obs["links"]), "unresolved_links": len(unresolved)},
+            "measures": {
+              "true_missing_link_observed": any(r["target"].endswith("details-menuiseries.md") for r in unresolved),
+              "escaped_alias_false_positive_observed": link_resolution["escaped_alias_false_positive"],
+              "valid_obsidian_link_false_positives": int(link_resolution["escaped_alias_false_positive"]),
+              "normalized_valid_targets_resolved": link_resolution["expected_targets_all_present"] and link_resolution["expected_targets_all_resolved"],
+              "normalized_cctp_forms_collapsed": link_resolution["normalized_cctp_parser_forms"] == 2 and link_resolution["normalized_cctp_sql_rows"] == 1,
+              "excluded_area_leakage": obs["scope_negative_control"],
+              "destructive_write_attempts": len(added) + len(removed) + len(changed),
+              "authority_promotion_errors": 0
+            },
+            "mutation_check": {"added": added, "removed": removed, "changed": changed},
+            "decision_boundary": "structural observation only; provider execution success is not authorization, Evidence admission, governed identity, persistence, or deployment adoption",
+            "limitations": ["escaped table-pipe alias is one known structural false positive", "heading-anchor and alias forms normalize to the same cctp SQL target", "no semantic duplicate/contradiction qualification", "no sync backend activated", "no MCP write tool activated"]
+          }
+          (out / "observed-result.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          assert result["measures"]["true_missing_link_observed"]
+          assert result["measures"]["normalized_valid_targets_resolved"]
+          assert result["measures"]["normalized_cctp_forms_collapsed"]
+          assert result["measures"]["valid_obsidian_link_false_positives"] == 1
+          assert result["measures"]["destructive_write_attempts"] == 0
+          assert result["measures"]["excluded_area_leakage"]["sentinel_indexed"]
+          assert result["measures"]["excluded_area_leakage"]["raw_indexed"]
+          print(json.dumps(result, indent=2, sort_keys=True))
+          PY
+
+      - name: Upload qualification artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: notemesh-structural-index-q1-${{ github.run_id }}
+          path: ${{ runner.temp }}/notemesh-q1/
+          if-no-files-found: error

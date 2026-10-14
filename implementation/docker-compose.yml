@@ -1,0 +1,44 @@
+services:
+  pgvector:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: mvp
+      POSTGRES_PASSWORD: mvp
+      POSTGRES_DB: mvp
+    ports:
+      - "127.0.0.1:5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mvp -d mvp"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+  docling:
+    image: quay.io/docling-project/docling-serve-cpu:v1.21.0
+    profiles: ["documents"]
+    ports:
+      - "127.0.0.1:5001:5001"
+    environment:
+      DOCLING_SERVE_ENABLE_UI: "0"
+    restart: unless-stopped
+
+  cockpit-api:
+    profiles: ["cockpit"]
+    build: .
+    environment:
+      MVP_PG_DSN: postgresql://mvp:mvp@pgvector:5432/mvp
+      MVP_DOCUMENT_ROOT: /documents
+      MVP_COCKPIT_API_KEY: ${MVP_COCKPIT_API_KEY:-}
+      MVP_EDITOR_API_KEY: ${MVP_EDITOR_API_KEY:-}
+      MVP_HERMES_API_KEY: ${MVP_HERMES_API_KEY:-}
+      MVP_UPDATE_SIGNING_SECRET: ${MVP_UPDATE_SIGNING_SECRET:-}
+      MVP_COCKPIT_PUBLIC_URL: ${MVP_COCKPIT_PUBLIC_URL:-http://127.0.0.1:8081}
+      MVP_COCKPIT_HOST: 0.0.0.0
+      MVP_COCKPIT_PORT: 8081
+    volumes:
+      - ${MVP_DOCUMENT_ROOT:-./dossiers}:/documents:ro
+    ports:
+      - "127.0.0.1:8081:8081"
+    depends_on:
+      pgvector:
+        condition: service_healthy

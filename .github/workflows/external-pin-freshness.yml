@@ -1,0 +1,93 @@
+name: External Pin Freshness
+
+# Observation only. This workflow never bumps a pin, opens a pull request,
+# installs, activates or authorizes anything.
+#
+#   update_available != update_authorized
+#
+# Two jobs, deliberately split:
+#
+# - `contract` runs on pull requests that touch the registry, the observation
+#   record or the tool. It exercises the comparison offline, so a pull request
+#   is never made red by someone else's release.
+# - `observe` runs on a schedule. It reaches upstream and fails when a pin needs
+#   a human look — either upstream moved past the last recorded observation, or
+#   a recorded lag has no decision. A red scheduled run is the signal; it does
+#   not block any pull request.
+
+on:
+  pull_request:
+    paths:
+      - "implementation/qualification/external-pins.json"
+      - "implementation/qualification/external-upstream-observations.json"
+      - "implementation/tools/check_external_pin_freshness.py"
+      - "implementation/tests/test_external_pin_freshness.py"
+      - ".github/workflows/external-pin-freshness.yml"
+  schedule:
+    # Monday 07:00 UTC — a week is the right cadence for upstream release
+    # streams, and the report is read by a human, not consumed by a gate.
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: Freshness comparison contract
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      # implementation/tests/conftest.py imports mvp_vertical for its pgvector
+      # session guard, so any test under that directory needs the package
+      # installed — the same install implementation-ci.yml performs.
+      - name: Install the implementation package (with test extra)
+        run: python3 -m pip install --quiet -e "implementation[test]"
+
+      - name: Exercise the comparison offline
+        working-directory: implementation
+        run: pytest -q tests/test_external_pin_freshness.py
+
+      # --structure-only asks whether the records are consistent and comparable.
+      # It must not fail on an undecided lag: that is a standing state for a
+      # human to resolve, not a defect in the diff under review.
+      - name: Confirm the committed records still compare
+        working-directory: implementation
+        run: |
+          python3 tools/check_external_pin_freshness.py \
+            --offline --structure-only --format json > /dev/null
+
+  observe:
+    name: Observe upstream heads
+    runs-on: ubuntu-24.04
+    if: github.event_name != 'pull_request'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Read upstream heads and compare against the recorded observations
+        id: observe
+        working-directory: implementation
+        run: |
+          mkdir -p "$RUNNER_TEMP/freshness"
+          python3 tools/check_external_pin_freshness.py \
+            --format markdown \
+            --output "$RUNNER_TEMP/freshness/PIN_FRESHNESS.md"
+
+      - name: Publish the observation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: external-pin-freshness
+          path: ${{ runner.temp }}/freshness/PIN_FRESHNESS.md
+          if-no-files-found: warn
+
+      - name: Surface the report in the run summary
+        if: always()
+        run: cat "$RUNNER_TEMP/freshness/PIN_FRESHNESS.md" >> "$GITHUB_STEP_SUMMARY" || true

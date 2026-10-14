@@ -1,0 +1,321 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Next Capability Passport
+description: Validation schema for a capability passport. It classifies a governed capability unit before use and authorizes nothing by itself. Runtime-specific binding metadata is optional so one passport can govern MCP and non-MCP capabilities uniformly. Scoped activation belongs to CapabilityActivation and task/run legitimacy belongs to Task Contract / Execution Admission, not to the Passport.
+type: object
+required:
+  - passport_id
+  - status
+  - capability
+  - operation
+  - governance
+  - interface
+  - result_handling
+  - governance_refs
+properties:
+  passport_id:
+    type: string
+    pattern: "^[a-z0-9._-]+$"
+  status:
+    type: string
+    enum: [candidate, reviewed, suspended, rejected]
+  reviewed_at:
+    type:
+      - string
+      - "null"
+    format: date-time
+  reviewed_by:
+    type:
+      - string
+      - "null"
+  implementation_provenance:
+    description: Optional exact executable artifact/release provenance. This identifies what was reviewed or observed; it does not select a binding, install, admit, activate, authorize or qualify the artifact.
+    type: object
+    required:
+      - source_kind
+      - observed_at
+    properties:
+      source_kind:
+        type: string
+        enum: [repository, package, agent_plugin, local, mcp_server, other]
+      source_ref:
+        type: string
+        minLength: 1
+      repository_ref:
+        type: string
+        minLength: 1
+      commit_ref:
+        type: string
+        minLength: 1
+      content_digest:
+        type: string
+        pattern: "^sha256:[0-9a-f]{64}$"
+      package_name:
+        type: string
+        minLength: 1
+      package_version:
+        type: string
+        minLength: 1
+      package_digest:
+        type: string
+        pattern: "^sha256:[0-9a-f]{64}$"
+      component_id:
+        type: string
+        minLength: 1
+      component_kind:
+        type: string
+        minLength: 1
+      component_ref:
+        type: string
+        minLength: 1
+      observed_at:
+        type: string
+        format: date-time
+    anyOf:
+      - required: [commit_ref]
+      - required: [content_digest]
+      - required: [package_digest]
+    additionalProperties: false
+  mcp_server:
+    description: Optional MCP-specific binding metadata. Its presence does not make the capability authorized, and its absence does not prevent a non-MCP capability passport.
+    type: object
+    required:
+      - server_id
+      - server_name
+      - transport
+      - trust_level
+      - authorization_model
+    properties:
+      server_id:
+        type: string
+        minLength: 1
+      server_name:
+        type: string
+        minLength: 1
+      canonical_uri:
+        type: string
+      transport:
+        type: string
+        enum: [stdio, http, other]
+      protocol_revision:
+        type: string
+      source:
+        type: string
+      trust_level:
+        type: string
+        enum: [trusted, internal, external, unknown]
+      authorization_model:
+        type: string
+        enum: [none, environment, oauth, custom, unknown]
+    additionalProperties: false
+  capability:
+    type: object
+    required:
+      - primitive
+      - name
+      - description_hash
+    properties:
+      primitive:
+        type: string
+        enum: [resource, prompt, tool, skill]
+      name:
+        type: string
+        minLength: 1
+      description_snapshot:
+        type: string
+      description_hash:
+        type: string
+        minLength: 1
+      annotations_snapshot:
+        type: string
+      icons_reviewed:
+        type: string
+        enum: [yes, no, not_applicable]
+    additionalProperties: false
+  operation:
+    type: object
+    required:
+      - reads_private_data
+      - writes_external_state
+      - can_execute_code
+      - can_send_to_external_party
+      - can_change_register
+      - can_promote_memory
+      - can_commit_professional_position
+    properties:
+      reads_private_data:
+        type: string
+        enum: ["true", "false", unknown]
+      writes_external_state:
+        type: string
+        enum: ["true", "false", unknown]
+      can_execute_code:
+        type: string
+        enum: ["true", "false", unknown]
+      can_send_to_external_party:
+        type: string
+        enum: ["true", "false", unknown]
+      can_change_register:
+        type: string
+        enum: ["true", "false", unknown]
+      can_promote_memory:
+        type: string
+        enum: ["true", "false", unknown]
+      can_modify_dossier:
+        type: string
+        deprecated: true
+        description: Legacy operation flag. Prefer can_change_register.
+        enum: ["true", "false", unknown]
+      can_change_memory:
+        type: string
+        deprecated: true
+        description: Legacy operation flag. Prefer can_promote_memory.
+        enum: ["true", "false", unknown]
+      can_commit_professional_position:
+        type: string
+        enum: [none, low, medium, high, critical, unknown]
+    additionalProperties: false
+  governance:
+    type: object
+    required:
+      - risk_level
+      - approval_required
+      - evidence_required
+      - user_decision_gate_required
+    properties:
+      activation_state:
+        type: string
+        deprecated: true
+        description: Legacy descriptive capability review/detection hint only. It has no activation effect. Canonical scoped activation is represented by CapabilityActivation referencing an exact CapabilityBinding.
+        enum: [detected, candidate, reviewed, suspended, rejected]
+      task_authorization:
+        type: string
+        deprecated: true
+        description: Legacy non-authorizing compatibility field. A Capability Passport can only state unauthorized here; task authorization is established separately by Task Contract / Execution Admission.
+        enum: [unauthorized]
+      allowed_scopes:
+        type: array
+        items:
+          type: string
+      forbidden_scopes:
+        type: array
+        items:
+          type: string
+      risk_level:
+        type: string
+        enum: [low, medium, high, critical]
+      approval_required:
+        type: string
+        enum: [C0, C1, C2, C3, C4, C5]
+      memory_behavior:
+        type: string
+        enum: [none, candidate_only, never_canonical]
+      evidence_required:
+        type: array
+        items:
+          type: string
+      context_minimization_required:
+        type: boolean
+      user_decision_gate_required:
+        type: boolean
+    additionalProperties: false
+  interface:
+    type: object
+    required:
+      - required_envelope
+      - allowed_inputs
+      - allowed_outputs
+      - forbidden_outputs
+    properties:
+      allowed_inputs:
+        type: array
+        items:
+          type: string
+      allowed_outputs:
+        type: array
+        items:
+          type: string
+      forbidden_outputs:
+        type: array
+        items:
+          type: string
+      required_envelope:
+        type: string
+        enum: [task_contract_in__candidate_out__evidence_pack_out]
+    additionalProperties: false
+  result_handling:
+    type: object
+    required:
+      - default_output_status
+      - evidence_pack_required
+      - raw_result_never_final
+      - permitted_register_output
+    properties:
+      default_output_status:
+        type: string
+        enum: [draft, candidate, to_verify, blocked]
+      evidence_pack_required:
+        type: boolean
+      raw_result_never_final:
+        type: boolean
+      permitted_register_output:
+        type: string
+        enum: [none, register_candidate_only]
+      permitted_memory_output:
+        type: string
+        deprecated: true
+        description: Legacy output flag. Prefer permitted_register_output.
+        enum: [none, memory_candidate_only, register_candidate_only]
+    additionalProperties: false
+  revocation:
+    type: object
+    properties:
+      status:
+        type: string
+        enum: [active, suspended, revoked]
+      reason:
+        type: string
+      review_after:
+        type:
+          - string
+          - "null"
+        format: date
+    additionalProperties: false
+  notes:
+    type: object
+    properties:
+      accepted:
+        type: array
+        items:
+          type: string
+      refused:
+        type: array
+        items:
+          type: string
+      to_verify:
+        type: array
+        items:
+          type: string
+      to_arbitrate:
+        type: array
+        items:
+          type: string
+    additionalProperties: false
+  governance_refs:
+    type: array
+    items:
+      type: string
+    default:
+      - docs/governance/UNIFORM_CAPABILITY_GOVERNANCE.md
+      - docs/governance/CAPABILITY_REGISTRY.md
+      - mcp-server/docs/HTTP_API_CONTRACT.md
+additionalProperties: false
+x-boundary:
+  runtime_execution: false
+  runtime_activation: false
+  task_authorization: false
+  autonomous_loop: false
+  provider_routing: false
+  scheduler: false
+  queue_system: false
+  memory_promotion: false
+  automatic_canonization: false

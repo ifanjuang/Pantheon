@@ -1,0 +1,16 @@
+services:
+  cockpit-tailscale:
+    image: ${RELEASE_TAILSCALE_IMAGE:?load deployment/ubuntu/release.env}
+    container_name: pantheon-cockpit-tailscale
+    hostname: pantheon-cockpit
+    restart: unless-stopped
+    environment:
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "true"
+      TS_ACCEPT_DNS: "false"
+    volumes:
+      - pantheon-cockpit-tailscale-state:/var/lib/tailscale
+
+volumes:
+  pantheon-cockpit-tailscale-state:
+    name: pantheon-cockpit-tailscale-state

@@ -1,0 +1,59 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Project Anatomy Contradiction
+description: >-
+  Candidate review record grouping competing Project Anatomy claims about the
+  same subject and attribute. It neither duplicates claim values nor admits
+  Evidence, and it can only be resolved by a human.
+type: object
+additionalProperties: false
+required:
+  - contradiction_id
+  - subject_ref
+  - attribute_key
+  - claim_refs
+  - resolution
+properties:
+  contradiction_id: { type: string, minLength: 1 }
+  subject_ref:
+    $ref: "shared.schema.yaml#/$defs/apu_entity_ref"
+  attribute_key:
+    type: string
+    minLength: 1
+    pattern: "^[a-z][a-z0-9_.-]*$"
+  claim_refs:
+    type: array
+    minItems: 2
+    uniqueItems: true
+    items: { type: string, minLength: 1 }
+  evidence_refs:
+    type: array
+    uniqueItems: true
+    items: { $ref: "shared.schema.yaml#/$defs/evidence_ref" }
+  policy_hint:
+    type: string
+    description: Non-binding ordering proposal from the project source policy.
+  resolution:
+    type: string
+    enum: [pending_human, resolved_by_human, withdrawn]
+  resolved_claim_ref: { type: string, minLength: 1 }
+  resolved_by: { type: string, minLength: 1 }
+  notes: { type: string }
+  governance_refs:
+    type: array
+    items: { type: string }
+    default:
+      - docs/domain-packs/architecture/PROJECT_ANATOMY_MODEL.md
+      - docs/domain-packs/architecture/PROOF_REGISTER.md
+allOf:
+  - if:
+      required: [resolved_claim_ref]
+    then:
+      properties:
+        resolution: { const: resolved_by_human }
+      required: [resolved_by]
+x-boundary:
+  runtime_execution: false
+  provider_routing: false
+  memory_promotion: false
+  automatic_canonization: false
+  approval_engine: false

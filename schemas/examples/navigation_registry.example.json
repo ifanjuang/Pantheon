@@ -1,0 +1,38 @@
+{
+  "schema_id": "cockpit.navigation.registry",
+  "revision": 1,
+  "governance_refs": [
+    "registries/README.md",
+    "docs/governance/CARD_STACK_MODEL.md",
+    "docs/governance/CARD_PROJECTION_DEFINITION_MODEL.md"
+  ],
+  "root_collection": {
+    "id": "primary-spaces",
+    "items": [
+      {
+        "id": "space:pantheon",
+        "sources": ["pending_change_candidates", "work_decisions", "current_runs"]
+      },
+      {
+        "id": "space:affaires",
+        "sources": ["projects"]
+      },
+      {
+        "id": "space:connaissances",
+        "sources": ["knowledge"]
+      },
+      {
+        "id": "space:outils",
+        "sources": ["tools"]
+      }
+    ]
+  },
+  "x-boundary": {
+    "endpoint_routing": false,
+    "child_assembly": false,
+    "runtime_execution": false,
+    "task_authorization": false,
+    "approval": false,
+    "evidence_qualification": false
+  }
+}

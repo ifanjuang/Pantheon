@@ -1,0 +1,35 @@
+# Example Action Contract for the future Pantheon Revit Gate add-in.
+# Documentation only. Non-executable example. The plugin does not exist.
+# See docs/governance/PANTHEON_REVIT_GATE_DEVELOPER_DOSSIER.md (section 12).
+#
+# An Action Contract is the only thing the add-in would accept: a structured,
+# governed request, never a free intention. This file is a sample and is not
+# read by any runtime in this repository.
+
+schema_version: "0.1-draft"
+contract_id: ACT-REVIT-0001
+idempotency_key: ACT-REVIT-0001
+action_type: create_text_note
+mode: dry_run
+risk_level: N1_ANNOTATION
+approval_status: pending
+target:
+  view:
+    source: active_view
+  position:
+    mode: near_element
+    element_ref:
+      source_type: revit
+      element_id: "184233"
+payload:
+  text: "Largeur utile à vérifier avant VISA."
+  note_type: "Pantheon Review Note"
+constraints:
+  allow_create: true
+  allow_modify_geometry: false
+  allow_delete: false
+  require_transaction: true
+  require_human_approval_before_execute: true
+provenance:
+  requested_by: human
+  source_run_ref: APU-RUN-001

@@ -1,0 +1,23 @@
+# Fictional example for validation only. Not professional advice.
+candidate_id: guard.s-100.roof-finish
+created_at: "2026-05-15T09:00:00Z"
+proposed_by: human:architect
+claim: The roof finish is natural slate.
+scope:
+  scope_type: project
+  scope_id: atlas-guard-fixture
+  scope_label: Atlas guard fixture
+source: approved design note A
+evidence_link: guard.ev.roof-note-a
+certainty: E3
+risk:
+  level: medium
+  notes: Historical approved position replaced by a later reviewed project position.
+proposed_durability: project
+required_approval: C3
+status: superseded
+reviewer: human:architect
+reviewed_at: "2026-05-15T10:00:00Z"
+governance_refs:
+  - docs/governance/EVIDENCE_MEMORY_CANONICALIZATION.md
+  - docs/governance/MEMORY.md

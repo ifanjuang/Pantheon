@@ -1,0 +1,21 @@
+api_version: pantheon.next/v0alpha1
+kind: Capability
+metadata:
+  id: llm_observability
+  title: Observabilité LLM
+  status: candidate
+spec:
+  outcome: Observer les traitements LLM sans transformer les traces en preuve métier.
+  required_roles:
+    - llm_trace_observability
+  acceptance:
+    - sensitive_content_redaction_supported
+    - environment_separation_supported
+    - retention_policy_declared
+  candidate_resources:
+    preferred:
+      - langfuse
+    alternatives: []
+  boundaries:
+    - trace_is_not_evidence
+    - score_is_not_professional_validation

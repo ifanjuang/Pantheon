@@ -1,0 +1,59 @@
+# Non-executable Hermes run manifest template.
+# This is not a scheduler, queue, bridge or workflow runtime.
+
+template_id: devis_reprise_run_manifest
+owner_layer: hermes
+status: candidate_template_only
+purpose: >
+  Describe the bounded complementary-quote review, the canonical candidate skills and
+  the exact return envelope expected by Pantheon read-only validation.
+
+governed_by:
+  task_contract: docs/examples/vertical_devis_reprise/task_contract.devis-reprise.yaml
+  forged_manifest: docs/examples/vertical_devis_reprise/workflow_manifest.devis-reprise.yaml
+  pre_execution_gate: docs/examples/vertical_devis_reprise/policy_decision.gate1.yaml
+
+required_envelope: task_contract_in -> external_run_return
+
+steps:
+  - capability_id: construction-cost-review
+    skill_candidate: construction-cost-review
+    declared_scope: [the complementary quote, prior amendment]
+    forbidden_scope: [approve, pay, send]
+  - capability_id: external-commitment-guard
+    skill_candidate: external-commitment-guard
+    depends_on: [construction-cost-review]
+    forbidden_scope: [send, sign, instruct enterprise]
+
+returns:
+  contract_fixture: docs/examples/external_run_returns/architecture_devis_reprise.example.yaml
+  allowed_outcome_types: [candidate_return, capability_gap, refusal]
+  evidence_schema: schemas/evidence_pack.schema.yaml
+  verified_by: scripts/validate_devis_reprise_return.py
+  verification_posture: read_only_caller_provided_files
+
+surface_binding:
+  owner_layer: external_hermes_runtime
+  interaction_client: hermes_web_or_compatible_client
+  implementation_status: external_and_separately_observed
+  required_for_repository_validation: false
+
+post_run:
+  - static_fixture_check: .github/scripts/check_vertical_slice.py
+  - actual_return_check: scripts/validate_devis_reprise_return.py
+  - user_decision_gate: the human decides before any external effect
+
+forbidden_behaviors:
+  - schedule_next_task
+  - queue_tasks
+  - route_provider
+  - external_send
+  - signature
+  - enterprise_instruction
+  - approval_final
+  - register_admission
+
+notes:
+  - forged != authorized; completed != approved; returned != a Registre Probatoire entry.
+  - static fixture validation != actual runtime-return validation.
+  - client selected != authority transfer.

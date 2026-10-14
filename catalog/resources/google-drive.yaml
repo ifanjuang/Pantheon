@@ -1,0 +1,20 @@
+api_version: pantheon.next/v0alpha1
+kind: Resource
+metadata:
+  id: google_drive
+  title: Google Drive
+  status: candidate
+spec:
+  resource_type: external_connection
+  provides_roles:
+    - governed_document_source
+  lifecycle:
+    installable: false
+    connectable_existing_instance: true
+  interfaces:
+    - oauth_connector
+  boundaries:
+    default_mode: read_only
+    global_sync: false
+    mutation: false
+    deletion: false

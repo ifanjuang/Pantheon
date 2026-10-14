@@ -1,0 +1,59 @@
+# Expected validation report for failing_external_action.fixture.yaml
+# Documentation only. This report is not produced by a validator yet.
+report_id: mvp.fail.validation-report-001
+status: blocked
+fixture_target: docs/governance/examples/mvp_vertical_fixture/failing_external_action.fixture.yaml
+schema_ref: schemas/mvp_governed_loop_objects.schema.yaml
+created_by: documentation_example
+created_at: '2026-07-08T00:00:00Z'
+
+summary:
+  schema_status: pass
+  reference_status: pass
+  governance_status: fail
+  overall_meaning: structurally valid but governance-blocked
+  does_not_mean:
+    - approval_granted
+    - evidence_validated
+    - truth_validated
+    - external_action_authorized
+    - memory_admitted
+
+schema_validation:
+  status: pass
+  documents_checked: 4
+  expected_object_counts:
+    task_contract: 1
+    result_candidate: 1
+    evidence_pack_candidate: 1
+    decision_record: 1
+  errors: []
+  warnings:
+    - schema validation is structural only
+
+reference_validation:
+  status: pass
+  objects_indexed: 4
+  missing_refs: []
+  warnings:
+    - source_ref values are not resolved against a canonical source registry yet
+
+governance_invariants:
+  status: fail
+  invariant_failures:
+    - id: no_external_action_from_draft
+      severity: blocking
+      object_id: mvp.fail.result-001
+      field: external_action_authorized
+      observed: true
+      expected: false unless a separate external-action decision exists
+      reason: draft approval is not external action authorization
+  warnings:
+    - decision_record keeps send_authorization not_granted
+    - fixture intentionally demonstrates schema pass with governance failure
+
+next_actions:
+  - reject this fixture as governable output
+  - require revision of the result candidate
+  - keep external action blocked
+  - do not admit memory from this run

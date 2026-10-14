@@ -1,0 +1,160 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: https://pantheon.local/schemas/tag_registry.schema.yaml
+title: Pantheon Tag Registry Projection
+description: >-
+  Validation-only contract for the shared type and subject tag vocabulary consumed
+  by pantheon-mvp, Cockpit projections and bounded Hermes context.
+type: object
+additionalProperties: false
+required:
+  - schema_id
+  - revision
+  - groups
+  - tags
+properties:
+  schema_id:
+    type: string
+    const: cockpit.tag_registry
+  revision:
+    type: integer
+    minimum: 1
+  governance_refs:
+    type: array
+    items:
+      type: string
+    uniqueItems: true
+    default:
+      - registries/README.md
+      - docs/governance/CARD_STACK_MODEL.md
+      - docs/governance/HERMES_INTEGRATION.md
+      - docs/governance/TERMINOLOGY_BOUNDARIES.md
+  groups:
+    type: array
+    minItems: 1
+    items:
+      $ref: '#/$defs/group'
+  tags:
+    type: array
+    minItems: 1
+    items:
+      $ref: '#/$defs/tag'
+  x-boundary:
+    type: object
+    additionalProperties: false
+    default:
+      runtime_execution: false
+      provider_routing: false
+      task_authorization: false
+      approval: false
+      evidence_promotion: false
+      memory_promotion: false
+    properties:
+      runtime_execution:
+        const: false
+      provider_routing:
+        const: false
+      task_authorization:
+        const: false
+      approval:
+        const: false
+      evidence_promotion:
+        const: false
+      memory_promotion:
+        const: false
+$defs:
+  stable_slug:
+    type: string
+    pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'
+  group:
+    type: object
+    additionalProperties: false
+    required:
+      - id
+      - title
+      - description
+      - hermes_context_role
+    properties:
+      id:
+        $ref: '#/$defs/stable_slug'
+      title:
+        type: string
+        minLength: 1
+      description:
+        type: string
+        minLength: 1
+      max_per_card:
+        type: integer
+        minimum: 1
+      hermes_context_role:
+        type: string
+        minLength: 1
+  tag:
+    type: object
+    additionalProperties: false
+    required:
+      - slug
+      - group
+      - title
+      - description
+      - hermes_context
+      - aliases
+      - applies_to
+      - presentation
+    properties:
+      slug:
+        $ref: '#/$defs/stable_slug'
+      group:
+        $ref: '#/$defs/stable_slug'
+      title:
+        type: string
+        minLength: 1
+      description:
+        type: string
+        minLength: 1
+      hermes_context:
+        type: string
+        minLength: 1
+      aliases:
+        type: array
+        items:
+          type: string
+          minLength: 1
+        uniqueItems: true
+      applies_to:
+        type: array
+        minItems: 1
+        items:
+          type: string
+          pattern: '^[a-z][a-z0-9_]*$'
+        uniqueItems: true
+      presentation:
+        type: object
+        additionalProperties: false
+        required:
+          - icon_provider
+          - icon_key
+          - color
+        properties:
+          icon_provider:
+            type: string
+            enum:
+              - radix
+              - material-symbols
+          icon_key:
+            type: string
+            minLength: 1
+          color:
+            type: string
+            pattern: '^[a-z][a-z0-9-]*$'
+      deprecated:
+        type: boolean
+        default: false
+      successor:
+        $ref: '#/$defs/stable_slug'
+x-boundary:
+  runtime_execution: false
+  provider_routing: false
+  task_authorization: false
+  approval: false
+  evidence_promotion: false
+  memory_promotion: false

@@ -1,0 +1,41 @@
+# Non-executable Hermes handoff template.
+# This is not a Hermes runtime config.
+
+template_id: task_contract_handoff
+owner_layer: hermes
+status: candidate_template_only
+purpose: >
+  Describe the minimum governed envelope sent to Hermes for external execution.
+
+required_inputs:
+  - task_contract_id
+  - context_pack_id
+  - profile_hint
+  - skill_candidate_hint
+  - allowed_outputs
+  - forbidden_outputs
+  - approval_ceiling
+  - memory_rule
+  - expected_evidence
+  - scope
+
+allowed_executor_outputs:
+  - result_candidate
+  - evidence_pack_candidate
+  - patch_candidate
+  - memory_candidate
+  - capability_gap
+  - risk_escalation
+
+forbidden_executor_outputs:
+  - approval_final
+  - canonical_memory
+  - doctrine_mutation
+  - direct_merge
+  - external_send
+  - provider_router_change
+
+notes:
+  - Hermes executes externally under Task Contract.
+  - Returned material remains candidate.
+  - Pantheon governs status after return.

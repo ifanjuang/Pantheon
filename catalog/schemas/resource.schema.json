@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pantheon-next.local/catalog/schemas/resource.schema.json",
+  "title": "Pantheon Resource candidate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["api_version", "kind", "metadata", "spec"],
+  "properties": {
+    "api_version": {"const": "pantheon.next/v0alpha1"},
+    "kind": {"const": "Resource"},
+    "metadata": {"$ref": "#/$defs/metadata"},
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resource_type", "provides_roles", "lifecycle", "interfaces", "boundaries"],
+      "properties": {
+        "resource_type": {"enum": ["infrastructure_module", "runtime", "external_connection", "data_store", "observability_surface", "binding", "exposure", "secret_reference"]},
+        "provides_roles": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/id"}},
+        "lifecycle": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["installable", "connectable_existing_instance"],
+          "properties": {
+            "installable": {"type": "boolean"},
+            "connectable_existing_instance": {"type": "boolean"}
+          }
+        },
+        "interfaces": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/id"}},
+        "boundaries": {"type": "object", "minProperties": 1}
+      }
+    }
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "status"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "title": {"type": "string", "minLength": 1},
+        "status": {"enum": ["candidate", "retained", "to_review", "watchlist", "blocked", "deprecated"]}
+      }
+    }
+  }
+}

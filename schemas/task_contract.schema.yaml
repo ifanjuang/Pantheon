@@ -1,0 +1,248 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Next Task Contract
+description: Governance contract defining a bounded execution envelope for an external runtime without creating runtime semantics.
+type: object
+required:
+  - contract_id
+  - title
+  - intent
+  - scope
+  - owner_role
+  - role_viewpoints
+  - constraints
+  - approval_level
+  - requested_by
+  - created_at
+  - expected_evidence
+  - allowed_outputs
+  - forbidden_outputs
+  - memory_rules
+  - risk_notes
+properties:
+  contract_id:
+    type: string
+    pattern: "^[a-z0-9._-]+$"
+  title:
+    type: string
+    minLength: 3
+  intent:
+    type: string
+    minLength: 10
+  objective:
+    type: string
+    minLength: 10
+    deprecated: true
+    description: Legacy alias for intent. Prefer intent.
+  scope:
+    type: object
+    required:
+      - scope_type
+      - scope_id
+      - included
+      - excluded
+      - authority_limits
+      - expected_domain
+    properties:
+      scope_type:
+        type: string
+        enum:
+          - session
+          - task
+          - dossier
+          - project
+          - domain
+          - user
+          - organization
+          - repository
+          - governance
+          - system
+      scope_id:
+        type: string
+        minLength: 1
+      scope_label:
+        type: string
+      included:
+        type: array
+        items:
+          type: string
+      excluded:
+        type: array
+        items:
+          type: string
+      authority_limits:
+        type: array
+        items:
+          type: string
+      expected_domain:
+        type: string
+    additionalProperties: false
+  owner_role:
+    type: string
+    enum:
+      - ATHENA
+      - ARGOS
+      - THEMIS
+      - APOLLO
+      - ZEUS
+      - IRIS
+      - HEPHAISTOS
+      - MNEMOSYNE
+  role_viewpoints:
+    type: array
+    minItems: 1
+    items:
+      type: string
+      enum:
+        - ATHENA
+        - ARGOS
+        - THEMIS
+        - APOLLO
+        - ZEUS
+        - IRIS
+        - HEPHAISTOS
+        - MNEMOSYNE
+  constraints:
+    type: array
+    minItems: 1
+    items:
+      type: string
+  approval_level:
+    type: string
+    enum:
+      - C0
+      - C1
+      - C2
+      - C3
+      - C4
+      - C5
+  requested_by:
+    type: string
+  created_at:
+    type: string
+    format: date-time
+  reasoning_topology:
+    type: object
+    description: Optional governance metadata for proof-chain topology selection. This is not runtime dispatch.
+    required:
+      - selected
+      - reason
+      - handoff_policy
+      - evidence_policy
+    properties:
+      selected:
+        type: string
+        enum:
+          - single_primary_reasoning_context
+          - fanout_extract_then_single_synthesis
+          - parallel_independent_workers
+          - router
+          - sequential_handoff
+          - persistent_role_team_handoff
+          - bounded_hermes_swarm
+      reason:
+        type: string
+        minLength: 3
+      handoff_policy:
+        type: string
+        enum:
+          - no_summary_only_handoff
+          - evidence_items_only
+          - bounded_artifact_required
+          - verified_handoff_allowed
+          - no_special_handoff_policy
+      evidence_policy:
+        type: string
+        enum:
+          - source_linked_evidence_items_required
+          - handoff_artifacts_required
+          - evidence_items_and_handoff_artifacts_required
+          - standard_evidence_pack_required
+          - no_special_evidence_policy
+      synthesis_policy:
+        type: string
+      memory_policy:
+        type: string
+      approval_policy:
+        type: string
+      rejected_topologies:
+        type: array
+        items:
+          type: string
+      topology_risks:
+        type: array
+        items:
+          type: string
+      forbidden_handoffs:
+        type: array
+        items:
+          type: string
+    additionalProperties: false
+  expected_evidence:
+    type: array
+    minItems: 1
+    items:
+      type: string
+  allowed_outputs:
+    type: array
+    minItems: 1
+    items:
+      type: string
+  forbidden_outputs:
+    type: array
+    minItems: 1
+    items:
+      type: string
+  memory_rules:
+    type: object
+    required:
+      - memory_behavior
+      - promotion_allowed
+    properties:
+      memory_behavior:
+        type: string
+        enum:
+          - no_memory_output
+          - memory_candidate_allowed
+          - existing_memory_review
+          - revocation_proposal
+          - supersession_proposal
+      promotion_allowed:
+        type: boolean
+        const: false
+      notes:
+        type: string
+    additionalProperties: false
+  risk_notes:
+    type: array
+    items:
+      type: string
+  protected_areas:
+    type: array
+    items:
+      type: string
+  evidence_required:
+    type: boolean
+    default: true
+  governance_refs:
+    type: array
+    items:
+      type: string
+    default:
+      - docs/governance/TASK_CONTRACTS.md
+      - docs/governance/APPROVALS.md
+      - docs/governance/HERMES_INTEGRATION.md
+      - docs/governance/SCOPE_ISOLATION.md
+      - docs/governance/EVIDENCE_PACK.md
+      - docs/governance/EVIDENCE_TOPOLOGY.md
+additionalProperties: false
+x-boundary:
+  runtime_execution: false
+  autonomous_loop: false
+  provider_routing: false
+  scheduler: false
+  queue_system: false
+  message_bus: false
+  workflow_engine: false
+  topology_dispatch: false
+  memory_promotion: false
+  automatic_approval: false

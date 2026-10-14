@@ -1,0 +1,131 @@
+# Historical O3 regression fixture.
+#
+# The exact Hindsight 0.8.5 / hindsight-obsidian 0.2.0-era pins below are kept
+# intentionally for reproducibility of the O3 qualification. They are not the
+# current deployed/qualified baseline. Current Windows + Synology qualification
+# is recorded in the private Pantheon-Next archive (Pantheon-Next#655).
+
+name: Hindsight Obsidian Hermes O3 Shared Bank
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/hindsight-obsidian-hermes-o3-lab.yml"
+      - "tools/run_hindsight_obsidian_hermes_o3.sh"
+      - "tools/run_hindsight_hermes_o1.py"
+      - "tools/hindsight_hermes_o1_fixture.py"
+      - "tests/test_hindsight_obsidian_hermes_o3_contract.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e ".[test]"
+      - run: pytest -q tests/test_hindsight_hermes_o1_contract.py tests/test_hindsight_obsidian_hermes_o3_contract.py
+
+  live-shared-bank:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      OBSIDIAN_SYNC_COMMIT: b627aa6fa02f8516d4af402ebceca4a5beed3ec9
+      HERMES_RELEASE_COMMIT: 3c27eb6234bf91b8ceee9e9071591b31e9b148cb
+      HINDSIGHT_VERSION: "0.8.5"
+      HINDSIGHT_API_URL: http://127.0.0.1:8888
+      HINDSIGHT_BANK_ID: pantheon-o3-shared-synthetic
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v4
+        with:
+          path: pantheon-mvp
+      - name: Checkout exact official Obsidian integration
+        uses: actions/checkout@v4
+        with:
+          repository: vectorize-io/hindsight-obsidian
+          ref: ${{ env.OBSIDIAN_SYNC_COMMIT }}
+          path: hindsight-obsidian
+          fetch-depth: 1
+      - name: Checkout exact Hermes 0.20.0 source
+        uses: actions/checkout@v4
+        with:
+          repository: NousResearch/hermes-agent
+          ref: ${{ env.HERMES_RELEASE_COMMIT }}
+          path: hermes-upstream
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: hindsight-obsidian/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build exact official Obsidian CLI
+        working-directory: hindsight-obsidian
+        run: |
+          test "$(git rev-parse HEAD)" = "$OBSIDIAN_SYNC_COMMIT"
+          node -e "const p=require('./package.json'); if(p.version!=='0.2.0'||p.bin['hindsight-obsidian-sync']!=='dist/cli.js') process.exit(1)"
+          npm ci
+          npm run build
+          test -f dist/cli.js
+      - name: Start ephemeral historical Hindsight 0.8.5 fixture
+        shell: bash
+        run: |
+          docker pull "ghcr.io/vectorize-io/hindsight:${HINDSIGHT_VERSION}"
+          docker run -d --rm \
+            --name pantheon-o3-hindsight \
+            -p 8888:8888 \
+            -e HINDSIGHT_API_WORKER_ID=pantheon-o3-hindsight \
+            -e HINDSIGHT_API_RETAIN_EXTRACTION_MODE=chunks \
+            -e HINDSIGHT_API_ENABLE_AUTO_CONSOLIDATION=false \
+            -e HINDSIGHT_API_ENABLE_OBSERVATIONS=false \
+            -e HINDSIGHT_API_LLM_PROVIDER=openai \
+            -e HINDSIGHT_API_LLM_API_KEY=unused-o3-lab-key \
+            "ghcr.io/vectorize-io/hindsight:${HINDSIGHT_VERSION}"
+          for _ in $(seq 1 180); do
+            curl -fsS http://127.0.0.1:8888/health >/dev/null && exit 0
+            sleep 1
+          done
+          docker logs pantheon-o3-hindsight
+          exit 1
+      - name: Execute O3 shared-bank lab
+        working-directory: pantheon-mvp
+        run: bash tools/run_hindsight_obsidian_hermes_o3.sh
+      - name: Prove Obsidian is the only retain path
+        shell: bash
+        run: |
+          mkdir -p "${RUNNER_TEMP}/hindsight-obsidian-hermes-o3/artifacts"
+          docker logs pantheon-o3-hindsight > "${RUNNER_TEMP}/hindsight-obsidian-hermes-o3/artifacts/hindsight-retain-proof.log" 2>&1
+          RETAIN_BATCHES=$(grep -c 'Starting background batch retain for bank_id=pantheon-o3-shared-synthetic' "${RUNNER_TEMP}/hindsight-obsidian-hermes-o3/artifacts/hindsight-retain-proof.log" || true)
+          printf '%s\n' "$RETAIN_BATCHES" > "${RUNNER_TEMP}/hindsight-obsidian-hermes-o3/artifacts/observed-retain-batches.txt"
+          test "$RETAIN_BATCHES" = "3"
+      - name: Capture upstream identities and logs
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p "${RUNNER_TEMP}/hindsight-obsidian-hermes-o3/artifacts"
+          printf '%s\n' "$OBSIDIAN_SYNC_COMMIT" > "${RUNNER_TEMP}/hindsight-obsidian-hermes-o3/artifacts/obsidian-sync-commit.txt"
+          printf '%s\n' "$HERMES_RELEASE_COMMIT" > "${RUNNER_TEMP}/hindsight-obsidian-hermes-o3/artifacts/hermes-release-commit.txt"
+          docker image inspect "ghcr.io/vectorize-io/hindsight:${HINDSIGHT_VERSION}" \
+            --format '{{json .RepoDigests}}' \
+            > "${RUNNER_TEMP}/hindsight-obsidian-hermes-o3/artifacts/hindsight-image-repodigests.json" || true
+          docker logs pantheon-o3-hindsight \
+            > "${RUNNER_TEMP}/hindsight-obsidian-hermes-o3/artifacts/hindsight.log" 2>&1 || true
+      - name: Stop ephemeral Hindsight
+        if: always()
+        run: docker stop pantheon-o3-hindsight || true
+      - name: Upload bounded observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hindsight-obsidian-hermes-o3-${{ github.run_id }}
+          path: ${{ runner.temp }}/hindsight-obsidian-hermes-o3/artifacts/
+          if-no-files-found: error
+          retention-days: 14

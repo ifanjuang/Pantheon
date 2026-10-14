@@ -1,0 +1,100 @@
+# External Runtime Review Candidate Template
+# Status: template — non-executable.
+# Repo state: documented non-implemented.
+# Authority: support scaffold only.
+# This template helps fill a Runtime Review Candidate before read-only validation.
+# It is not a schema, validator, scanner, sandbox, installer, runtime, approval engine or memory engine.
+# It does not authorize use of the reviewed runtime.
+
+external_runtime_review_candidate:
+  review_id: ""
+  status: "candidate" # candidate | to_verify | accepted_for_reference | accepted_for_sandbox | accepted_for_adapter_design | accepted_for_project_scoped_use | blocked | refused
+  validation_level: "L0" # L0_document_exists | L1_required_fields_present | L2_internally_coherent | L3_gate_recommendation_possible
+  reviewed_at: ""
+  reviewed_by: ""
+
+  references:
+    doctrine:
+      - "docs/governance/EXTERNAL_TOOLS_POLICY.md"
+      - "docs/governance/RUNTIME_REVIEW_MODEL_PASSPORT_VALIDATION_PROMOTION.md"
+    reviewed_ref: ""
+    source_urls: []
+    version_or_commit: ""
+    notes: ""
+
+  system:
+    runtime_name: ""
+    system_role: "mixed_workspace" # exposure_surface | execution_runtime | observability_layer | connector_gateway | model_runtime | mixed_workspace | other | unknown
+    binding_status: "candidate" # unbound | candidate | sandbox | project_scoped | organization_scoped | refused | unknown
+    trusted_user_assumption: "unknown" # trusted_private_users | mixed_users | public_users | unknown
+    exposure_posture: "unknown" # local_only | private_network | gated_remote | public | unknown
+
+  capability_surface:
+    declared_capabilities: []
+    reads_private_material: "unknown" # true | false | unknown
+    writes_durable_material: "unknown" # true | false | unknown
+    creates_external_effect: "unknown" # true | false | unknown
+    affects_long_lived_recall: "unknown" # true | false | unknown
+    changes_runtime_posture: "unknown" # true | false | unknown
+    selects_or_serves_models: "unknown" # true | false | unknown
+    schedules_or_resumes_work: "unknown" # true | false | unknown
+    calls_external_capabilities: "unknown" # true | false | unknown
+    affects_project_artifacts: "unknown" # true | false | unknown
+    produces_professional_output: "unknown" # true | false | unknown
+
+  effect_classification:
+    data_access: "unknown" # none | public_only | supplied_non_sensitive | project_sensitive | client_private | confidential | secrets_or_credentials | unknown
+    external_effects: "unknown" # none | draft_only | candidate_state | external_write | communication | publication | deletion | configuration_change | unknown
+    memory_effects: "unknown" # none | runtime_state | recall | index | register_candidate | canonical_memory_risk | unknown
+    model_effects: "unknown" # none | local_model | external_model | provider_selection | model_serving | routing | unknown
+    scheduling_effects: "unknown" # none | reminder | recurring_task | condition_watch | background_work | unknown
+    host_control_surface: "none" # none | scoped | broad | critical | unknown
+    primary_risk: "unknown" # low | medium | high | critical | unknown
+
+  untrusted_content:
+    untrusted_content_paths: []
+    prompt_injection_posture: "unknown" # separated | partially_separated | not_separated | unknown
+    instruction_authority_preserved: "unknown" # true | false | unknown
+    minimization_required: true
+
+  permissions_and_audit:
+    permission_granularity: "unknown" # coarse | role_based | capability_scoped | task_scoped | dossier_scoped | unknown
+    sensitive_permission_exposure: "unknown" # none | possible | present | unknown
+    auditability: "unknown" # strong | partial | weak | none | unknown
+    reversibility_or_mitigation: "unknown" # clear | partial | absent | unknown
+
+  pantheon_gate:
+    pantheon_gate_required: true
+    approval_ceiling: "C3" # C0 | C1 | C2 | C3 | C4 | C5 | unknown
+    evidence_expectation: []
+    safe_default:
+      external_effect: "block"
+      canonical_effect: "block"
+      memory_promotion: "block"
+      privileged_use: "block"
+      client_data_use: "candidate_only"
+      default_output_status: "candidate"
+    gate_recommendation: "needs_human_review" # allow_read_only | allow_candidate_only | needs_approval | needs_more_evidence | needs_human_review | needs_security_review | needs_adapter_review | block
+
+  validation_notes:
+    missing_fields: []
+    contradictions: []
+    capability_gaps: []
+    assumptions: []
+    limitations: []
+
+  decision:
+    accepted: []
+    refused: []
+    to_verify: []
+    to_arbitrate: []
+    zeus_decision: "to_arbitrate" # accepted | refused | to_verify | to_arbitrate | non_applicable
+    human_decision_required: true
+
+  boundary:
+    candidate_only: true
+    canonical_effect: false
+    runtime_effect: false
+    external_action: false
+    memory_promotion: false
+    statement: "Runtime power is not governance authority. The review qualifies; it does not execute."

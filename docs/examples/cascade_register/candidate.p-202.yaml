@@ -1,0 +1,25 @@
+# Fictional example for validation only. Not professional advice.
+candidate_id: belvedere.p-202.basement-erp
+created_at: "2026-06-14T09:00:00Z"
+proposed_by: HEPHAISTOS
+claim: The client asks to fit out the basement during the project, which changes the ERP classification.
+scope:
+  scope_type: project
+  scope_id: belvedere
+  scope_label: Projet Belvedere
+source: client email 2026-06-12
+evidence_link: belvedere.ev.client-email-basement
+certainty: E2
+risk:
+  level: high
+  notes: ERP reclassification with fire-safety impact; remains a candidate until reviewed.
+proposed_durability: project
+required_approval: C4
+status: candidate
+link_ids:
+  - belvedere.link.p202-impacts-p150
+  - belvedere.link.p202-impacts-issues
+governance_refs:
+  - docs/governance/EVIDENCE_MEMORY_CANONICALIZATION.md
+  - schemas/register_link.schema.yaml
+  - schemas/impact_review.schema.yaml

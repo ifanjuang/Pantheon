@@ -1,0 +1,55 @@
+# Task Contract du dossier fictif dce_relecture — scénarios de test.
+# Inspiré d'une relecture de DCE (dossier de consultation des entreprises)
+# de maîtrise d'œuvre, entièrement anonymisé. Aucune donnée client réelle.
+# Conforme à Pantheon-Next schemas/mvp_governed_loop_objects.schema.yaml (task_contract).
+# Un contrat n'autorise rien par lui-même ; le gate décide.
+
+object_type: task_contract
+object_id: mvp.dce-relecture.tc-001
+contract_id: mvp.dce-relecture.tc-001
+status: candidate
+created_at: "2026-06-29T09:00:00Z"
+requested_by: practitioner
+exposure_surface: openwebui_capture
+
+intent:
+  summary: >
+    Préparer une synthèse candidate des points de relecture du DCE (CCAP,
+    CCTP général) restant à corriger AVANT diffusion aux entreprises. La
+    synthèse ne valide aucune clause juridique et n'autorise aucune diffusion
+    par elle-même : elle restitue les points ouverts pour décision humaine.
+
+scope:
+  dossier: dce_relecture
+  declared_sources:
+    - source_ref: dossiers/dce_relecture/sources/message_moa_2026-06-29.md
+    - source_ref: dossiers/dce_relecture/sources/note_relecture.md
+    - source_ref: dossiers/dce_relecture/sources/ccap_extrait.md
+    - source_ref: dossiers/dce_relecture/sources/cctp_general_extrait.md
+  operations:
+    - read_selected_sources
+    - retrieve_scoped_passages
+    - draft_synthesis_candidate
+    - prepare_evidence_pack_candidate
+
+forbidden_scope:
+  - external_send            # la diffusion du DCE aux entreprises est une décision humaine
+  - source_outside_declared_perimeter
+  - register_write
+  - approval_of_any_kind     # la validation d'une clause juridique n'est pas au runner
+
+expected_outputs:
+  - result_candidate
+  - evidence_pack_candidate
+
+consequence_class: K3
+approval_ceiling: C3
+
+retrieval_boundary:
+  store: pgvector
+  boundary: retrieval_only
+
+governance_refs:
+  - docs/governance/MVP_GOVERNED_TASK_LOOP.md
+  - docs/governance/TASK_CONTRACTS.md
+  - docs/governance/USER_DECISION_GATE.md

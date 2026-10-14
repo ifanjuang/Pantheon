@@ -1,0 +1,101 @@
+{
+  "layers": [],
+  "markers": [],
+  "bases": [
+    {
+      "path": "source.svg",
+      "name": "Synthetic visual focus"
+    }
+  ],
+  "activeBase": "source.svg",
+  "drawLayers": [
+    {
+      "id": "dl_focus",
+      "name": "Hermes Focus",
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "dl_reference",
+      "name": "Reference",
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "drawings": [
+    {
+      "id": "focus_a",
+      "layerId": "dl_focus",
+      "kind": "rect",
+      "visible": true,
+      "rect": {
+        "x0": 0.1,
+        "y0": 0.15,
+        "x1": 0.35,
+        "y1": 0.4
+      },
+      "style": {
+        "strokeColor": "#ff0000",
+        "strokeWidth": 2,
+        "fillColor": "#ff0000",
+        "fillOpacity": 0.15,
+        "label": "A - facade joint"
+      }
+    },
+    {
+      "id": "focus_b",
+      "layerId": "dl_focus",
+      "kind": "rect",
+      "visible": true,
+      "rect": {
+        "x0": 0.55,
+        "y0": 0.22,
+        "x1": 0.8,
+        "y1": 0.46
+      },
+      "style": {
+        "strokeColor": "#ff0000",
+        "strokeWidth": 2,
+        "fillColor": "#ff0000",
+        "fillOpacity": 0.15,
+        "label": "B - opening detail"
+      }
+    },
+    {
+      "id": "focus_c",
+      "layerId": "dl_focus",
+      "kind": "rect",
+      "visible": true,
+      "rect": {
+        "x0": 0.52,
+        "y0": 0.55,
+        "x1": 0.82,
+        "y1": 0.78
+      },
+      "style": {
+        "strokeColor": "#ff0000",
+        "strokeWidth": 2,
+        "fillColor": "#ff0000",
+        "fillOpacity": 0.15,
+        "label": "C - lower detail"
+      }
+    },
+    {
+      "id": "reference_whole",
+      "layerId": "dl_reference",
+      "kind": "rect",
+      "visible": true,
+      "rect": {
+        "x0": 0.08,
+        "y0": 0.1,
+        "x1": 0.92,
+        "y1": 0.825
+      },
+      "style": {
+        "strokeColor": "#555555",
+        "strokeWidth": 1,
+        "label": "Reference extent"
+      }
+    }
+  ]
+}

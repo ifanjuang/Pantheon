@@ -1,0 +1,26 @@
+name: Obsolete Authority Consistency
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  obsolete-authority:
+    name: Obsolete document authority consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Verify retired document classifications
+        shell: bash
+        env:
+          GOVERNANCE_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/check_obsolete_authority_consistency.py

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pantheon Next — Entrées, sorties, mémoire</title>
+<style>
+:root{--bg:#070b13;--panel:#0b111d;--fg:#f7f8fb;--muted:#9aa6ba;--blue:#8fc6ff;--blue2:#bcd8fb;--line:rgba(255,255,255,.13);--amber:#e0a64a;--gold:#fde68a;--green:#58c489;--green2:#86efac;--ink:#0a0e16}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(900px 520px at 10% -10%,rgba(59,130,246,.12),transparent 60%),linear-gradient(180deg,#0b111d,#060910 78%);color:var(--fg);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}.wrap{width:min(1080px,100%);margin:0 auto;padding:18px}a{color:#bfdbfe}.diagram{border:1px solid var(--line);border-radius:26px;background:linear-gradient(180deg,rgba(143,198,255,.045),rgba(253,230,138,.025));padding:10px;overflow:hidden}.diagram svg{display:block;width:100%;height:auto}.note{margin:12px 4px 0;color:var(--muted);font-size:13px;line-height:1.45}.note b{color:var(--fg)}@media(max-width:640px){.wrap{padding:10px}.diagram{border-radius:20px;padding:6px}.note{font-size:12.5px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="diagram"><svg id="entriesOutputsMemory" role="img" aria-label="Schéma D3.js des entrées, sorties et mémoire Pantheon Next"></svg></div>
+  <p class="note"><b>Documenté non implémenté.</b> Ce schéma D3.js visualise le chemin de gouvernance. Il ne crée aucun runtime, moteur d'approbation, mémoire automatique, connecteur ou action externe.</p>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script>
+(function(){
+  if(typeof d3==='undefined') return;
+  const svg=d3.select('#entriesOutputsMemory');
+  const c={bg:'#0b111d',ink:'#0a0e16',muted:'#9aa6ba',line:'#aebbcd',blue:'#bcd8fb',blueStroke:'#5f83b8',ctx:'#e8edf5',work:'#ffcf8f',workStroke:'#c98f3f',gold:'#fde68a',goldStroke:'#cbb23f',decision:'#e2e8f0',green:'#86efac',greenStroke:'#3fae6d',amber:'#e0a64a'};
+
+  function defs(s){
+    const d=s.append('defs');
+    [['ag',c.line],['aa',c.amber],['agg',c.greenStroke]].forEach(m=>{
+      d.append('marker').attr('id',m[0]).attr('viewBox','0 -5 10 10').attr('refX',8).attr('refY',0).attr('markerWidth',7).attr('markerHeight',7).attr('orient','auto').append('path').attr('d','M0,-5L10,0L0,5').attr('fill',m[1]);
+    });
+    const f=d.append('filter').attr('id','shadow').attr('x','-20%').attr('y','-30%').attr('width','140%').attr('height','170%');
+    f.append('feDropShadow').attr('dx',0).attr('dy',12).attr('stdDeviation',7).attr('flood-color','#000').attr('flood-opacity',.28);
+  }
+  function mk(s){
+    return {
+      box:(x,y,w,h,fill,o={})=>{const r=s.append('rect').attr('x',x).attr('y',y).attr('width',w).attr('height',h).attr('rx',o.rx??16).attr('fill',fill);if(o.stroke)r.attr('stroke',o.stroke).attr('stroke-width',o.sw||1.6);if(o.dash)r.attr('stroke-dasharray',o.dash);if(o.shadow)r.attr('filter','url(#shadow)');return r},
+      text:(x,y,t,o={})=>{const e=s.append('text').attr('x',x).attr('y',y).attr('fill',o.fill||'#e8eef5').attr('font-size',o.fs||12).text(t);if(o.a)e.attr('text-anchor',o.a);if(o.w)e.attr('font-weight',o.w);if(o.ls)e.attr('letter-spacing',o.ls);if(o.rot)e.attr('transform','rotate('+o.rot+' '+x+' '+y+')');return e},
+      line:(x1,y1,x2,y2,stroke,o={})=>{const l=s.append('line').attr('x1',x1).attr('y1',y1).attr('x2',x2).attr('y2',y2).attr('stroke',stroke).attr('stroke-width',o.sw||2);if(o.dash)l.attr('stroke-dasharray',o.dash);if(o.m)l.attr('marker-end','url(#'+o.m+')');if(o.cls)l.attr('class',o.cls);return l},
+      path:(d,stroke,o={})=>{const p=s.append('path').attr('d',d).attr('fill','none').attr('stroke',stroke).attr('stroke-width',o.sw||2);if(o.dash)p.attr('stroke-dasharray',o.dash);if(o.m)p.attr('marker-end','url(#'+o.m+')');if(o.cls)p.attr('class',o.cls);return p}
+    };
+  }
+  function card(a,x,y,w,h,fill,stroke,kicker,title,sub,o={}){
+    a.box(x,y,w,h,fill,{rx:o.rx??18,stroke:stroke,sw:o.sw||1.7,dash:o.dash,shadow:true});
+    const cx=x+w/2;
+    if(kicker) a.text(cx,y+25,kicker,{a:'middle',fill:'rgba(10,14,22,.58)',fs:o.kfs||11,w:900,ls:1.6});
+    a.text(cx,y+(kicker?55:42),title,{a:'middle',fill:o.titleFill||c.ink,fs:o.tfs||25,w:900});
+    if(sub) a.text(cx,y+h-20,sub,{a:'middle',fill:o.subFill||'rgba(10,14,22,.72)',fs:o.sfs||13});
+  }
+  function pill(a,x,y,w,t){a.box(x,y,w,48,c.blue,{rx:14,stroke:c.blueStroke,sw:1.6,shadow:true});a.text(x+w/2,y+30,t,{a:'middle',fill:'#15324f',fs:15,w:800});}
+
+  function desktop(a){
+    svg.attr('viewBox','0 0 1000 1320');
+    a.box(0,0,1000,1320,c.bg,{rx:20});
+    a.box(30,30,940,1260,'rgba(255,255,255,.015)',{rx:38,stroke:'rgba(255,255,255,.18)',sw:1.8});
+    a.text(500,92,'ENTRÉES · SORTIES · MÉMOIRE',{a:'middle',fill:c.blue,fs:34,w:900,ls:.5});
+    a.text(500,128,'la décision humaine reste hors exécution',{a:'middle',fill:c.muted,fs:18});
+    [['texte',126],['voix',318],['photo',510],['fichiers',702]].forEach(d=>pill(a,d[1],160,172,d[0]));
+    a.line(500,208,500,270,c.line,{m:'ag',sw:2.4});
+
+    a.box(210,285,580,675,'rgba(143,198,255,.025)',{rx:30,stroke:'rgba(143,198,255,.82)',sw:1.6,dash:'7 8'});
+    a.text(500,332,'PÉRIMÈTRE DE TRAVAIL IA',{a:'middle',fill:c.blue,fs:24,w:900,ls:.3});
+    a.text(500,362,'corpus · contexte · workflow · résultat candidat',{a:'middle',fill:'#c6cfde',fs:16});
+
+    card(a,280,395,440,110,c.blue,c.blueStroke,'MATIÈRE','Corpus','mémoire · web · base · templates',{tfs:30});
+    card(a,280,570,440,70,c.ctx,'#9aa6b3','', 'Contexte — strict nécessaire','',{tfs:22});
+    card(a,280,705,440,96,c.work,c.workStroke,'ATELIER','Workflow IA','',{titleFill:'#3a2a12',tfs:28});
+    card(a,280,860,440,90,c.gold,c.goldStroke,'','Résultat candidat qualifié','sources · preuves · statut',{dash:'7 6',titleFill:'#4a3f12',tfs:23});
+    a.line(500,505,500,568,c.line,{m:'ag',sw:2.4});
+    a.line(500,640,500,703,c.line,{m:'ag',sw:2.4});
+    a.line(500,801,500,858,c.line,{m:'ag',sw:2.4});
+    a.line(500,950,500,995,c.line,{m:'ag',sw:2.4});
+    a.text(525,982,'sortie du module IA',{fill:c.muted,fs:14});
+
+    card(a,210,1000,580,115,c.decision,'#9aa6b3','HUMAIN · ARBITRAGE','Décision','valider · refuser · demander reprise · transmettre',{tfs:30,sfs:14});
+    a.line(340,1115,290,1178,c.greenStroke,{m:'agg',sw:2.6});
+    a.line(660,1115,710,1178,c.greenStroke,{m:'agg',sw:2.6});
+    card(a,120,1180,330,90,c.green,c.greenStroke,'','Action externe','transmission · envoi · dépôt',{titleFill:'#11371f',tfs:24,sfs:13});
+    card(a,550,1180,330,90,c.green,c.greenStroke,'','Mémoire','seuil Cerbère · candidate → canonique',{titleFill:'#11371f',tfs:24,sfs:13});
+
+    a.path('M210,1042 H92 V450 H275',c.amber,{sw:2.5,dash:'8 8',m:'aa'});
+    a.text(82,755,'refus → reprise',{fill:c.amber,fs:21,w:800,rot:-90});
+    a.path('M715,1225 H908 V450 H725',c.greenStroke,{sw:2.5,dash:'7 8',m:'agg'});
+    a.text(925,820,'remontée au corpus',{fill:c.greenStroke,fs:20,w:800,rot:90});
+  }
+
+  function mobile(a){
+    svg.attr('viewBox','0 0 420 900');
+    a.box(0,0,420,900,c.bg,{rx:16});
+    a.box(14,14,392,872,'rgba(255,255,255,.015)',{rx:24,stroke:'rgba(255,255,255,.16)',sw:1.4});
+    a.text(210,48,'ENTRÉES · SORTIES · MÉMOIRE',{a:'middle',fill:c.blue,fs:18,w:900});
+    a.text(210,71,'la décision humaine reste hors exécution',{a:'middle',fill:c.muted,fs:10.5});
+    [['texte',32],['voix',122],['photo',212],['fichiers',302]].forEach(d=>pill(a,d[1],92,74,d[0]));
+    a.line(210,140,210,176,c.line,{m:'ag',sw:2});
+    a.box(84,184,252,430,'rgba(143,198,255,.025)',{rx:20,stroke:'rgba(143,198,255,.82)',sw:1.3,dash:'6 7'});
+    a.text(210,214,'PÉRIMÈTRE DE TRAVAIL IA',{a:'middle',fill:c.blue,fs:13,w:900});
+    a.text(210,233,'corpus · contexte · workflow · candidat',{a:'middle',fill:'#c6cfde',fs:9});
+    card(a,110,255,200,62,c.blue,c.blueStroke,'MATIÈRE','Corpus','mémoire · web · base · templates',{kfs:8,tfs:16,sfs:7.4});
+    card(a,110,352,200,42,c.ctx,'#9aa6b3','', 'Contexte — strict nécessaire','',{tfs:10.6});
+    card(a,110,430,200,52,c.work,c.workStroke,'ATELIER','Workflow IA','',{kfs:8,titleFill:'#3a2a12',tfs:14});
+    card(a,110,520,200,54,c.gold,c.goldStroke,'','Résultat candidat qualifié','sources · preuves · statut',{dash:'6 5',titleFill:'#4a3f12',tfs:11.6,sfs:7.8});
+    a.line(210,317,210,350,c.line,{m:'ag',sw:1.8});a.line(210,394,210,428,c.line,{m:'ag',sw:1.8});a.line(210,482,210,518,c.line,{m:'ag',sw:1.8});a.line(210,574,210,636,c.line,{m:'ag',sw:1.8});
+    a.text(218,620,'sortie du module IA',{fill:c.muted,fs:8});
+    card(a,65,640,290,66,c.decision,'#9aa6b3','HUMAIN · ARBITRAGE','Décision','valider · refuser · demander reprise · transmettre',{kfs:8,tfs:17,sfs:7.7});
+    a.line(132,706,118,742,c.greenStroke,{m:'agg',sw:2});a.line(288,706,302,742,c.greenStroke,{m:'agg',sw:2});
+    card(a,28,744,176,58,c.green,c.greenStroke,'','Action externe','transmission · envoi · dépôt',{titleFill:'#11371f',tfs:13,sfs:7.5});
+    card(a,216,744,176,58,c.green,c.greenStroke,'','Mémoire','seuil Cerbère · candidate → canonique',{titleFill:'#11371f',tfs:13,sfs:7.4});
+    a.path('M66,672 H35 V300 H108',c.amber,{sw:1.7,dash:'6 6',m:'aa'});a.text(28,500,'refus → reprise',{fill:c.amber,fs:9,w:800,rot:-90});
+    a.path('M304,802 H388 V300 H312',c.greenStroke,{sw:1.7,dash:'6 6',m:'agg'});a.text(398,540,'remontée au corpus',{fill:c.greenStroke,fs:9,w:800,rot:90});
+  }
+
+  function draw(){svg.selectAll('*').remove();defs(svg);const a=mk(svg);const node=svg.node();const w=(node.parentNode&&node.parentNode.getBoundingClientRect().width)||900;(w<620?mobile:desktop)(a)}
+  draw();let r;window.addEventListener('resize',()=>{clearTimeout(r);r=setTimeout(draw,120)});
+})();
+</script>
+</body>
+</html>

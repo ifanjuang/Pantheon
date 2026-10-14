@@ -1,0 +1,31 @@
+skill_id: example.contract-preflight-pattern
+title: Contract preflight pattern
+purpose: Track an external contract preflight pattern without installing it.
+owner_role: THEMIS
+lifecycle_state: pattern_candidate
+installation_state: external_reference_only
+required_approvals:
+  - C3
+risk_level: medium
+allowed_use:
+  - study contract preflight pattern
+  - distill evidence and acceptance-test discipline
+  - inform future governance preflight doctrine
+forbidden_use:
+  - install external skill automatically
+  - mutate project hooks automatically
+  - treat external lifecycle status as Pantheon validation
+  - bypass Task Contracts or approvals
+evidence_expectation:
+  - external source reviewed
+  - risks and forbidden imports documented
+external_dependencies:
+  - https://github.com/kombifyio/contracts-skill
+evidence_pack_id: null
+approval_notes: Watchlist only. Separate approval required for adoption.
+memory_implication: none
+governance_refs:
+  - docs/governance/SKILL_WATCHLIST.md
+  - docs/governance/HERMES_INTEGRATION.md
+  - docs/governance/EXTERNAL_TOOLS_POLICY.md
+  - docs/governance/EVIDENCE_PACK.md

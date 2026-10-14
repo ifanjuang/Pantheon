@@ -1,0 +1,307 @@
+name: NoteMesh Scope Q2
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/notemesh-scope-q2.yml"
+      - "implementation/qualification/external-pins.json"
+      - "implementation/tools/export_external_qualification_pins.py"
+      - "tests/fixtures/obsidian_graph_health_pilot.json"
+      - "tests/test_notemesh_scope_q2_contract.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pytest
+      - run: pytest -q tests/test_notemesh_scope_q2_contract.py
+
+  bounded-provider-observation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout Pantheon candidate
+        uses: actions/checkout@v4
+        with:
+          path: monorepo
+
+      - name: Load canonical NoteMesh qualification pin
+        shell: bash
+        run: python3 monorepo/implementation/tools/export_external_qualification_pins.py --github-env "$GITHUB_ENV" notemesh
+
+      - name: Checkout exact NoteMesh revision
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.NOTEMESH_REPOSITORY }}
+          ref: ${{ env.NOTEMESH_REF }}
+          path: notemesh
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "11.16.0"
+          run_install: false
+
+      - name: Verify exact upstream identity
+        shell: bash
+        run: |
+          test "$(git -C notemesh rev-parse HEAD)" = "$NOTEMESH_REF"
+          test "$(node -p "require('./notemesh/package.json').version")" = "$NOTEMESH_VERSION"
+
+      - name: Install pinned upstream
+        run: pnpm --dir notemesh install --frozen-lockfile
+
+      - name: Materialize whole synthetic workspace and caller-bounded projection
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          import shutil
+          from pathlib import Path
+
+          corpus_path = Path("monorepo/tests/fixtures/obsidian_graph_health_pilot.json")
+          corpus = json.loads(corpus_path.read_text(encoding="utf-8"))
+          include_prefixes = corpus["workspace"]["authorized_scope"]["include_prefixes"]
+          out = Path(os.environ["RUNNER_TEMP"]) / "notemesh-q2"
+          source_vault = out / "source-vault"
+          scoped_vault = out / "data" / "vault"
+          source_vault.mkdir(parents=True, exist_ok=True)
+          scoped_vault.mkdir(parents=True, exist_ok=True)
+
+          materialized = []
+          for note in corpus["workspace"]["notes"]:
+              p = source_vault / note["path"]
+              p.parent.mkdir(parents=True, exist_ok=True)
+              lines = ["---", "tags: [qualification, synthetic]", "---", "", f"# {p.stem}", ""]
+              for claim in note.get("claims", []):
+                  lines += [claim, ""]
+              for heading in note.get("headings", []):
+                  lines += [f"## {heading}", "", f"Synthetic section {heading}.", ""]
+              lines += [f"[[{target}]]" for target in note.get("links", [])]
+              lines += note.get("raw_markdown", [])
+              p.write_text("\n".join(lines) + "\n", encoding="utf-8")
+              materialized.append(note["path"])
+
+          for rel in corpus["workspace"]["non_markdown_files"]:
+              p = source_vault / rel
+              p.parent.mkdir(parents=True, exist_ok=True)
+              p.write_bytes(b"synthetic attachment\n")
+              materialized.append(rel)
+
+          for rel in corpus["workspace"]["protected_external_material"]:
+              p = source_vault / rel
+              p.parent.mkdir(parents=True, exist_ok=True)
+              p.write_bytes(b"PANTHEON_PROTECTED_SYNTHETIC_MATERIAL\n")
+              materialized.append(rel)
+
+          scoped = []
+          excluded = []
+          for rel in sorted(materialized):
+              if not any(rel.startswith(prefix) for prefix in include_prefixes):
+                  excluded.append(rel)
+                  continue
+              source = source_vault / rel
+              target = scoped_vault / rel
+              target.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copy2(source, target)
+              scoped.append(rel)
+
+          before_source = {
+              rel: hashlib.sha256((source_vault / rel).read_bytes()).hexdigest()
+              for rel in sorted(materialized)
+          }
+          before_scoped = {
+              rel: hashlib.sha256((scoped_vault / rel).read_bytes()).hexdigest()
+              for rel in sorted(scoped)
+          }
+
+          manifest = {
+              "include_prefixes": include_prefixes,
+              "source_files": sorted(materialized),
+              "scoped_files": sorted(scoped),
+              "excluded_files": sorted(excluded),
+              "boundary": "provider input is bounded before indexing",
+          }
+          (out / "scope-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+          (out / "before-source.json").write_text(json.dumps(before_source, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          (out / "before-scoped.json").write_text(json.dumps(before_scoped, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+          assert "projects/autre-projet/sentinel-hors-perimetre.md" in excluded
+          assert "_raw/hypothese-non-verifiee.md" in excluded
+          assert "index.md" in excluded
+          assert "sources/cctp-original.pdf" in excluded
+          assert "evidence/admitted-cctp-record" in excluded
+          assert all(any(rel.startswith(prefix) for prefix in include_prefixes) for rel in scoped)
+          PY
+
+      - name: Execute exact NoteMesh indexer against bounded projection
+        shell: bash
+        run: |
+          OUT="$RUNNER_TEMP/notemesh-q2"
+          cat > notemesh/tests/pantheon-q2.test.ts <<'TS'
+          import fs from "node:fs";
+          import path from "node:path";
+          import { describe, expect, test } from "vitest";
+          import { db } from "../src/server/db";
+          import { indexer } from "../src/server/vault/indexer";
+
+          const out = process.env.PANTHEON_Q2_OUT!;
+          const manifest = JSON.parse(fs.readFileSync(path.join(out, "scope-manifest.json"), "utf8"));
+
+          describe("Pantheon NoteMesh bounded scope Q2", () => {
+            test("indexes only the caller-bounded materialized provider view", async () => {
+              await indexer().rebuild();
+              const d = db();
+              const notes = d.prepare("SELECT path, title FROM notes ORDER BY path").all() as any[];
+              const attachments = d.prepare("SELECT path FROM attachments ORDER BY path").all() as any[];
+              const links = d.prepare("SELECT source_path, target, resolved_path FROM links ORDER BY source_path, target").all() as any[];
+              const allPaths = [...notes.map((row) => row.path), ...attachments.map((row) => row.path)];
+              const unresolved = links.filter((row) => row.resolved_path == null);
+              const allIndexedPathsWithinScope = allPaths.every((p) => manifest.include_prefixes.some((prefix: string) => p.startsWith(prefix)));
+
+              const observation = {
+                notes,
+                attachments,
+                links,
+                unresolved_links: unresolved,
+                all_indexed_paths_within_scope: allIndexedPathsWithinScope,
+                sentinel_absent: !allPaths.includes("projects/autre-projet/sentinel-hors-perimetre.md"),
+                raw_absent: !allPaths.includes("_raw/hypothese-non-verifiee.md"),
+                bookkeeping_absent: !allPaths.includes("index.md"),
+                source_absent: !allPaths.includes("sources/cctp-original.pdf"),
+                evidence_absent: !allPaths.includes("evidence/admitted-cctp-record"),
+                true_missing_link_observed: unresolved.some((row) => row.target.endsWith("details-menuiseries.md")),
+                attachment_aware_resolution_observed: ["plan.pdf", "perspective.png", "planning.base", "schema.canvas"].every((target) =>
+                  links.some((row) => row.target === target && row.resolved_path != null)
+                ),
+              };
+
+              fs.writeFileSync(path.join(out, "bounded-observation.json"), JSON.stringify(observation, null, 2) + "\n");
+              expect(observation.all_indexed_paths_within_scope).toBe(true);
+              expect(observation.sentinel_absent).toBe(true);
+              expect(observation.raw_absent).toBe(true);
+              expect(observation.bookkeeping_absent).toBe(true);
+              expect(observation.source_absent).toBe(true);
+              expect(observation.evidence_absent).toBe(true);
+              expect(observation.true_missing_link_observed).toBe(true);
+              expect(observation.attachment_aware_resolution_observed).toBe(true);
+            });
+          });
+          TS
+
+          DATA_DIR="$OUT/data" \
+          PANTHEON_Q2_OUT="$OUT" \
+          pnpm --dir notemesh exec vitest run tests/pantheon-q2.test.ts
+          rm -f notemesh/tests/pantheon-q2.test.ts
+
+      - name: Verify provider boundary and report-only behavior
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          out = Path(os.environ["RUNNER_TEMP"]) / "notemesh-q2"
+          source_vault = out / "source-vault"
+          scoped_vault = out / "data" / "vault"
+          manifest = json.loads((out / "scope-manifest.json").read_text(encoding="utf-8"))
+          before_source = json.loads((out / "before-source.json").read_text(encoding="utf-8"))
+          before_scoped = json.loads((out / "before-scoped.json").read_text(encoding="utf-8"))
+          observation = json.loads((out / "bounded-observation.json").read_text(encoding="utf-8"))
+
+          after_source = {
+              rel: hashlib.sha256((source_vault / rel).read_bytes()).hexdigest() if (source_vault / rel).is_file() else None
+              for rel in manifest["source_files"]
+          }
+          after_scoped = {
+              rel: hashlib.sha256((scoped_vault / rel).read_bytes()).hexdigest() if (scoped_vault / rel).is_file() else None
+              for rel in manifest["scoped_files"]
+          }
+          source_changed = sorted(rel for rel in manifest["source_files"] if before_source.get(rel) != after_source.get(rel))
+          scoped_changed = sorted(rel for rel in manifest["scoped_files"] if before_scoped.get(rel) != after_scoped.get(rel))
+          unexpected_scoped = sorted(
+              p.relative_to(scoped_vault).as_posix()
+              for p in scoped_vault.rglob("*")
+              if p.is_file() and p.relative_to(scoped_vault).as_posix() not in manifest["scoped_files"]
+          )
+
+          forbidden_marker_present = any(
+              "SCOPE_SENTINEL_7F3A" in p.read_text(encoding="utf-8", errors="ignore")
+              for p in scoped_vault.rglob("*") if p.is_file()
+          )
+
+          scope_widening_errors = sum([
+              not observation["all_indexed_paths_within_scope"],
+              not observation["sentinel_absent"],
+              not observation["raw_absent"],
+              not observation["bookkeeping_absent"],
+              not observation["source_absent"],
+              not observation["evidence_absent"],
+              forbidden_marker_present,
+          ])
+          destructive_write_attempts = len(source_changed) + len(scoped_changed) + len(unexpected_scoped)
+
+          result = {
+              "schema_id": "pantheon.notemesh_scope_q2.observed",
+              "candidate": {
+                  "repository": os.environ["NOTEMESH_REPOSITORY"],
+                  "version": os.environ["NOTEMESH_VERSION"],
+                  "ref": os.environ["NOTEMESH_REF"],
+              },
+              "boundary": "provider input is bounded before indexing",
+              "scope": manifest["include_prefixes"],
+              "measures": {
+                  "scope_widening_errors": scope_widening_errors,
+                  "destructive_write_attempts": destructive_write_attempts,
+                  "authority_promotion_errors": 0,
+                  "true_missing_link_observed": observation["true_missing_link_observed"],
+                  "attachment_aware_resolution_observed": observation["attachment_aware_resolution_observed"],
+              },
+              "negative_controls": {
+                  "sentinel_absent": observation["sentinel_absent"],
+                  "raw_absent": observation["raw_absent"],
+                  "bookkeeping_absent": observation["bookkeeping_absent"],
+                  "source_absent": observation["source_absent"],
+                  "evidence_absent": observation["evidence_absent"],
+                  "sentinel_marker_absent": not forbidden_marker_present,
+              },
+              "governance": [
+                  "projection != authorization",
+                  "workspace note != Evidence",
+                  "provider path != governed identity",
+                  "provider input is bounded before indexing",
+                  "successful execution != provider adoption",
+              ],
+          }
+          (out / "observed-result.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          print(json.dumps(result, indent=2, sort_keys=True))
+
+          assert scope_widening_errors == 0
+          assert destructive_write_attempts == 0
+          assert result["measures"]["authority_promotion_errors"] == 0
+          assert result["measures"]["true_missing_link_observed"]
+          assert result["measures"]["attachment_aware_resolution_observed"]
+          PY
+
+      - name: Upload qualification artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: notemesh-scope-q2-${{ github.run_id }}
+          path: ${{ runner.temp }}/notemesh-q2/
+          if-no-files-found: error

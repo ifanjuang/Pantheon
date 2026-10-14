@@ -1,0 +1,36 @@
+# MVP governed task loop — step 8: Decision Record.
+# Fictional and illustrative. The record captures a human decision; it executes no consequence.
+
+object_type: decision_record
+object_id: mvp.devis-reprise.dr-001
+decision_id: mvp.devis-reprise.dr-001
+status: recorded
+applies_to: mvp.devis-reprise.rc-001
+related_evidence_pack: mvp.devis-reprise.ep-001
+recorded_at: "2026-07-07T10:30:00Z"
+decision: request_revision
+decided_by: practitioner
+identity_assurance: authenticated
+authenticated_principal:
+  user_id: user-001
+  display_name: Practitioner
+  identity_provider: openwebui
+decision_surface: openwebui
+candidate_digest:
+  algorithm: sha256
+  value: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+evidence_pack_digest:
+  algorithm: sha256
+  value: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+rationale: >-
+  The draft resolves the quote/CCTP contradiction instead of exposing it.
+  Revise to state the discrepancy on item 4 and ask the client to confirm
+  the perimeter before any acceptance language.
+consequences:
+  result_candidate_status: revision_requested
+  external_action: none
+  retention_authorization: not_granted
+  memory_admission: not_granted
+governance_refs:
+  - docs/governance/MVP_GOVERNED_TASK_LOOP.md
+  - docs/governance/USER_DECISION_GATE.md

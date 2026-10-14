@@ -1,0 +1,77 @@
+report_id: mvp.fail.generated-validation-report-001
+status: blocked
+fixture_target: docs/governance/examples/mvp_vertical_fixture/failing_external_action.fixture.yaml
+schema_ref: schemas/mvp_governed_loop_objects.schema.yaml
+created_by: scripts/validate_mvp_fixture.py
+created_at: '2026-07-13T00:00:00Z'
+summary:
+  schema_status: pass
+  reference_status: pass
+  governance_status: fail
+  overall_meaning: structurally valid but governance-blocked
+  does_not_mean:
+    - truth_validated
+    - approval_granted
+    - memory_admitted
+    - external_action_authorized
+    - runtime_accepted
+schema_validation:
+  status: pass
+  documents_checked: 4
+  object_counts:
+    decision_record: 1
+    evidence_pack_candidate: 1
+    result_candidate: 1
+    task_contract: 1
+  errors: []
+  warnings:
+    - schema validation is structural only
+    - status strings are not enum-validated yet
+    - additionalProperties remains permissive
+reference_validation:
+  status: pass
+  objects_indexed: 4
+  missing_refs: []
+  warnings: []
+  checked_refs:
+    - from: mvp.fail.evidence-001
+      field: applies_to
+      to: mvp.fail.result-001
+      status: pass
+    - from: mvp.fail.evidence-001
+      field: evidence_items.source_ref
+      to: src.example.001
+      status: pass
+    - from: mvp.fail.decision-001
+      field: applies_to
+      to: mvp.fail.result-001
+      status: pass
+    - from: mvp.fail.decision-001
+      field: related_evidence_pack
+      to: mvp.fail.evidence-001
+      status: pass
+governance_invariants:
+  status: fail
+  invariant_failures:
+    - id: no_external_action_from_draft
+      severity: blocking
+      object_id: mvp.fail.result-001
+      field: external_action_authorized
+      observed: true
+      expected: false unless a separate external-action decision exists
+      reason: draft output cannot authorize external action
+  warnings:
+    - approve is present but external action and retention remain separately governed
+  checked_invariants:
+    - id: no_external_action_from_draft
+      status: fail
+    - id: approve_does_not_authorize_send
+      status: pass
+    - id: register_candidate_creation_is_not_memory_admission
+      status: pass
+    - id: register_candidate_must_remain_pending
+      status: pass
+    - id: human_decision_required
+      status: pass
+    - id: retrieval_is_not_evidence
+      status: pass

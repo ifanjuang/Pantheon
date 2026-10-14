@@ -1,0 +1,212 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Next Role Signal
+description: Governance schema for a declared signal, request or advisory note between Pantheon Roles.
+type: object
+required:
+  - signal_id
+  - created_at
+  - from_role
+  - to_role
+  - signal_type
+  - purpose
+  - content_summary
+  - certainty
+  - claim_status
+  - uncertainty_level
+  - requested_action
+  - status
+properties:
+  signal_id:
+    type: string
+    pattern: "^[a-z0-9._-]+$"
+  created_at:
+    type: string
+    format: date-time
+  from_role:
+    type: string
+    enum:
+      - ATHENA
+      - ARGOS
+      - THEMIS
+      - APOLLO
+      - ZEUS
+      - IRIS
+      - HEPHAISTOS
+      - MNEMOSYNE
+  to_role:
+    type: string
+    enum:
+      - ATHENA
+      - ARGOS
+      - THEMIS
+      - APOLLO
+      - ZEUS
+      - IRIS
+      - HEPHAISTOS
+      - MNEMOSYNE
+  signal_type:
+    type: string
+    enum:
+      - role_need_statement
+      - information_transmission
+      - clarification_request
+      - role_consultation
+      - risk_warning
+      - veto_signal
+      - brief_adherence_signal
+      - task_contract_revision_signal
+      - handoff_signal
+      - stop_gate_signal
+      - memory_candidate_signal
+      - skill_gap_signal
+      - asset_need_signal
+      - source_gap_signal
+      - evidence_gap_signal
+      - user_decision_gate_signal
+  purpose:
+    type: string
+    minLength: 10
+  content_summary:
+    type: string
+    minLength: 10
+  payload_ref:
+    type:
+      - string
+      - "null"
+  certainty:
+    type: string
+    description: >-
+      Probative support for the signal's claim, on the canonical E axis
+      (schemas/shared_axes.schema.yaml, GLOSSARY.md). A Role Signal must not
+      raise certainty without new evidence.
+    enum:
+      - E0
+      - E1
+      - E2
+      - E3
+      - E4
+  confidence:
+    type: string
+    description: >-
+      Legacy confidence flag superseded by the certainty axis; optional and kept
+      for compatibility with signals emitted before the axis existed. New
+      signals carry certainty.
+    enum:
+      - low
+      - partial
+      - medium
+      - high
+  claim_status:
+    type: string
+    enum:
+      - unsupported
+      - source_needed
+      - sourced_not_verified
+      - sourced_coherent
+      - sourced_but_contradicted
+      - assumption_only
+      - usable_for_draft
+      - blocked_for_delivery
+      - validated_for_scope
+      - memory_candidate
+      - canonical_memory
+      - superseded
+      - revoked
+      - obsolete
+  uncertainty_level:
+    type: string
+    enum:
+      - none
+      - low
+      - medium
+      - high
+      - blocking
+  uncertainty_reasons:
+    type: array
+    items:
+      type: string
+  assumptions:
+    type: array
+    items:
+      type: string
+  limitations:
+    type: array
+    items:
+      type: string
+  risk_level:
+    type: string
+    enum:
+      - C0
+      - C1
+      - C2
+      - C3
+      - C4
+      - C5
+  evidence_refs:
+    type: array
+    items:
+      type: string
+  requested_action:
+    type: string
+    enum:
+      - review
+      - clarify
+      - find_source
+      - check_version
+      - preserve_contradiction
+      - block_delivery
+      - escalate_approval
+      - request_user_decision
+      - revise_task_contract
+      - stop_and_report
+      - no_action
+  approval_impact:
+    type: string
+  memory_impact:
+    type: string
+    enum:
+      - none
+      - memory_candidate_possible
+      - memory_forbidden
+      - memory_review_required
+      - memory_rejection_recommended
+  external_effect:
+    type: boolean
+  related_task_contract_id:
+    type:
+      - string
+      - "null"
+  related_evidence_pack_id:
+    type:
+      - string
+      - "null"
+  status:
+    type: string
+    enum:
+      - open
+      - acknowledged
+      - under_review
+      - resolved
+      - escalated
+      - rejected
+      - archived
+  governance_refs:
+    type: array
+    items:
+      type: string
+    default:
+      - docs/governance/ROLE_SIGNALS.md
+      - docs/governance/AGENTS.md
+      - docs/governance/GOVERNANCE_COLLEGE.md
+      - docs/governance/USER_DECISION_GATE.md
+additionalProperties: false
+x-boundary:
+  runtime_execution: false
+  autonomous_loop: false
+  provider_routing: false
+  scheduler: false
+  queue_system: false
+  message_bus: false
+  automatic_dispatch: false
+  memory_promotion: false
+  hidden_agent_debate: false

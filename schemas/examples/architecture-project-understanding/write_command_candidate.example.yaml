@@ -1,0 +1,74 @@
+command_id: apu-write-command.001
+operation: add_match_to_existing_object
+project_ref: project-tilleul
+source_execution_result_ref: execution.apu-mapping.001
+source_mapping_result_ref: result.apu-mapping.001
+source_mapping_ref: mapping.fragment-room-01
+source_review_ref: review.mapping.001
+source_representation:
+  representation_id: REP-DOC-ROOM-R2
+  project_ref: project-tilleul
+  source_artifact_ref: document.avp-d
+  source_kind: other
+  identifiers:
+    - scheme: pantheon.document.fragment
+      value: compilation.avp-d.unit.0007
+    - scheme: pantheon.document.structure
+      value: compilation.avp-d
+  locators:
+    - type: other
+      value: section/rooms/chambre-r2
+      page: 4
+  observed_at: "2026-08-05T11:45:00Z"
+  binding_ref: pantheon-mvp.document-structure
+  adapter_version: "0.1.0"
+  freshness_token: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  content_digest: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  context:
+    document_ref: document.avp-d
+    page: 4
+    native_context:
+      structure_ref: compilation.avp-d
+      fragment_ref: compilation.avp-d.unit.0007
+  proof_status: candidate
+  limitations:
+    - Cette représentation décrit un fragment documentaire, pas une identité projet validée.
+identity_relation_claim:
+  relation_claim_id: REL-DOC-ROOM-R2
+  subject_ref:
+    entity_type: source_representation
+    entity_id: REP-DOC-ROOM-R2
+  relation_type: identity.represents
+  object_ref:
+    entity_type: stable_object
+    entity_id: OBJ-ROOM-R2
+  assertion_mode: proposed
+  source_authority: model_interpretation_candidate
+  proof_status: candidate
+  certainty: E3
+  source_representation_refs: [REP-DOC-ROOM-R2]
+  derivation_refs:
+    - execution.apu-mapping.001
+    - result.apu-mapping.001
+    - mapping.fragment-room-01
+    - review.mapping.001
+  notes: La revue humaine a sélectionné cette correspondance parmi les candidats proposés.
+certainty: E3
+match_axis: cross_source
+expected_owner_revision: 4
+expected_object_revision: 2
+rationale: La revue humaine a sélectionné cette correspondance parmi les candidats proposés.
+payload_digest: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+prepared_by: pantheon-mvp
+prepared_at: "2026-08-05T13:00:00Z"
+limitations:
+  - La commande doit être autorisée séparément avant toute application.
+  - L'application doit refuser une révision APU ou objet devenue obsolète.
+  - La relation appliquée reste candidate et ne valide pas professionnellement l'identité.
+authority:
+  is_fact: false
+  is_evidence: false
+  is_decision: false
+  is_memory: false
+  is_apu_write: false
+  authorizes_external_effect: false

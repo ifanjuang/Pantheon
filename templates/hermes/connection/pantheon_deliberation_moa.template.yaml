@@ -1,0 +1,32 @@
+# Candidate native Hermes Agent 0.18.2 config fragment.
+# Reviewed against upstream commit e361c5e20402375c74a65ca52810c6a380461226.
+# Merge manually into ~/.hermes/config.yaml only after provider, model, data,
+# budget and passport review. This file contains no credentials and selects no
+# default preset.
+
+moa:
+  presets:
+    pantheon-deliberation:
+      enabled: false
+      reference_models:
+        - provider: REQUIRED_REFERENCE_PROVIDER_1
+          model: REQUIRED_REFERENCE_MODEL_1
+          reasoning_effort: medium
+        - provider: REQUIRED_REFERENCE_PROVIDER_2
+          model: REQUIRED_REFERENCE_MODEL_2
+          reasoning_effort: medium
+      aggregator:
+        provider: REQUIRED_AGGREGATOR_PROVIDER
+        model: REQUIRED_AGGREGATOR_MODEL
+        reasoning_effort: high
+      reference_max_tokens: 800
+      max_tokens: 4096
+
+# Suggested isolated invocation after separate installation and activation:
+# /model pantheon-deliberation --provider moa
+# Then submit the bounded prompt in a fresh Hermes session.
+#
+# Do not set this preset as moa.default_preset by copying this fragment.
+# Native /moa uses the separately configured default preset, not this named
+# preset automatically.
+# Do not enable it before every model slot has a reviewed capability passport.

@@ -1,0 +1,235 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+# One templated producer per mounted source root. The producer daemon is
+# already generic (root, depth, index, Hindsight bank are arguments or
+# environment); this script only manages its deployment instances.
+INSTALL_ROOT="/opt/pantheon-workspace-cockpit"
+CONFIG_DIR="/etc/pantheon-workspace-producers"
+SHARED_ENV="/etc/pantheon-workspace-cockpit.env"
+UNIT_DIR="/etc/systemd/system"
+TEMPLATE="pantheon-workspace-producer@.service"
+STATE_PARENT="/var/lib/pantheon-workspace-producer"
+
+ACTION=""
+NAME=""
+LABEL=""
+ROOT=""
+BANK=""
+SOURCE_KIND=""
+MAX_DEPTH=8
+RECONCILE_SECONDS=300
+EXCLUDE=""
+SERVICE_USER=""
+STATE_DB=""
+HINDSIGHT_URL="http://127.0.0.1:8888"
+APPLY=0
+ENABLE=0
+
+log() { printf '[workspace-producer] %s\n' "$*"; }
+die() { printf '[workspace-producer] ERROR: %s\n' "$*" >&2; exit 1; }
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  deployment/ubuntu/configure-workspace-producer --list
+  deployment/ubuntu/configure-workspace-producer --set NAME --root PATH --bank BANK [options]
+  sudo deployment/ubuntu/configure-workspace-producer --set NAME ... --apply [--enable]
+  sudo deployment/ubuntu/configure-workspace-producer --remove NAME --apply
+
+Manages one pantheon-workspace-producer@NAME.service instance per mounted
+source root. Without --apply it only prints what would be written.
+
+Options for --set:
+  --root PATH             absolute, mounted source root to watch (required)
+  --bank BANK             Hindsight bank receiving this root (required)
+  --label LABEL           Workspace root name shown in the Cockpit (default: NAME)
+  --source-kind KIND      Hindsight source:KIND tag (default: NAME)
+  --max-depth N           folder depth, 1-16 (default: 8)
+  --reconcile-seconds S   full reconcile interval (default: 300)
+  --exclude A,B           extra folder names to skip
+  --user USER             service user (default: owner of --root)
+  --state-db PATH         reuse an existing index (default: /var/lib/pantheon-workspace-producer/NAME/index.sqlite3)
+  --hindsight-url URL     default: http://127.0.0.1:8888
+
+Shared secrets such as WORKSPACE_HINDSIGHT_AUTHORIZATION stay in
+/etc/pantheon-workspace-cockpit.env and are never written by this script.
+--remove disables the instance and deletes its configuration; the index is kept.
+A producer feeds derived recall only: indexing != Evidence, folder != governed identity.
+USAGE
+}
+
+while (($#)); do
+  case "$1" in
+    --list) ACTION="list" ;;
+    --set) ACTION="set"; NAME="${2:?missing NAME}"; shift ;;
+    --remove) ACTION="remove"; NAME="${2:?missing NAME}"; shift ;;
+    --root) ROOT="${2:?missing PATH}"; shift ;;
+    --bank) BANK="${2:?missing BANK}"; shift ;;
+    --label) LABEL="${2:?missing LABEL}"; shift ;;
+    --source-kind) SOURCE_KIND="${2:?missing KIND}"; shift ;;
+    --max-depth) MAX_DEPTH="${2:?missing N}"; shift ;;
+    --reconcile-seconds) RECONCILE_SECONDS="${2:?missing S}"; shift ;;
+    --exclude) EXCLUDE="${2:?missing folders}"; shift ;;
+    --user) SERVICE_USER="${2:?missing USER}"; shift ;;
+    --state-db) STATE_DB="${2:?missing PATH}"; shift ;;
+    --hindsight-url) HINDSIGHT_URL="${2:?missing URL}"; shift ;;
+    --apply) APPLY=1 ;;
+    --enable) ENABLE=1 ;;
+    -h|--help) usage; exit 0 ;;
+    *) die "unknown argument: $1" ;;
+  esac
+  shift
+done
+
+[[ -n "$ACTION" ]] || { usage; exit 2; }
+((APPLY)) || [[ "$ENABLE" == 0 ]] || die "--enable requires --apply"
+((APPLY == 0)) || [[ ${EUID:-$(id -u)} -eq 0 ]] || die "--apply must run as root (sudo)"
+
+valid_name() { [[ "$1" =~ ^[a-z0-9][a-z0-9-]{0,31}$ ]]; }
+instance() { printf 'pantheon-workspace-producer@%s.service' "$1"; }
+
+if [[ "$ACTION" == "list" ]]; then
+  shopt -s nullglob
+  configs=("$CONFIG_DIR"/*.env)
+  ((${#configs[@]})) || { log "no producer instance configured in $CONFIG_DIR"; exit 0; }
+  for config in "${configs[@]}"; do
+    name="$(basename "$config" .env)"
+    state="$(systemctl is-active "$(instance "$name")" 2>/dev/null || true)"
+    root="$(sed -n 's/^WORKSPACE_ROOT_PATH=//p' "$config" 2>/dev/null || true)"
+    bank="$(sed -n 's/^WORKSPACE_HINDSIGHT_BANK_ID=//p' "$config" 2>/dev/null || true)"
+    printf '%-20s %-10s bank=%s root=%s\n' "$name" "${state:-unknown}" "${bank:-?}" "${root:-?}"
+  done
+  exit 0
+fi
+
+valid_name "$NAME" || die "NAME must match ^[a-z0-9][a-z0-9-]{0,31}\$"
+unit="$(instance "$NAME")"
+config="$CONFIG_DIR/$NAME.env"
+dropin_dir="$UNIT_DIR/$unit.d"
+
+if [[ "$ACTION" == "remove" ]]; then
+  if ((APPLY == 0)); then
+    log "would disable $unit and delete $config and $dropin_dir (index kept)"
+    exit 0
+  fi
+  systemctl disable --now "$unit" >/dev/null 2>&1 || true
+  rm -f -- "$config"
+  rm -rf -- "$dropin_dir"
+  systemctl daemon-reload
+  log "$unit removed; its index was kept"
+  exit 0
+fi
+
+# --set
+[[ -n "$ROOT" && -n "$BANK" ]] || die "--set requires --root and --bank"
+[[ "$ROOT" == /* ]] || die "--root must be absolute"
+[[ -d "$ROOT" ]] || die "--root is not a readable directory (is the share mounted?): $ROOT"
+[[ "$BANK" =~ ^[A-Za-z0-9_.-]{1,64}$ ]] || die "--bank contains unsupported characters"
+[[ "$MAX_DEPTH" =~ ^[0-9]+$ ]] && ((MAX_DEPTH >= 1 && MAX_DEPTH <= 16)) || die "--max-depth must be 1-16"
+[[ "$RECONCILE_SECONDS" =~ ^[0-9]+$ ]] && ((RECONCILE_SECONDS >= 1)) || die "--reconcile-seconds must be a positive integer"
+LABEL="${LABEL:-$NAME}"
+[[ "$LABEL" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$ ]] || die "--label must be a simple name"
+SOURCE_KIND="${SOURCE_KIND:-$NAME}"
+[[ "$SOURCE_KIND" =~ ^[a-z0-9][a-z0-9-]{0,63}$ ]] || die "--source-kind must be lowercase letters, digits or dashes"
+[[ "$EXCLUDE" != *$'\n'* && "$EXCLUDE" != *=* ]] || die "--exclude must be a comma-separated list of folder names"
+SERVICE_USER="${SERVICE_USER:-$(stat -c %U -- "$ROOT")}"
+id -u "$SERVICE_USER" >/dev/null 2>&1 || die "service user does not exist: $SERVICE_USER"
+STATE_DB="${STATE_DB:-$STATE_PARENT/$NAME/index.sqlite3}"
+[[ "$STATE_DB" == /* ]] || die "--state-db must be absolute"
+root_real="$(realpath -m -- "$ROOT")"
+state_real="$(realpath -m -- "$STATE_DB")"
+[[ "$state_real" != "$root_real" && "$state_real" != "$root_real"/* ]] \
+  || die "--state-db must remain outside the watched root"
+mount_point="$(findmnt -n -o TARGET --target "$ROOT" 2>/dev/null || true)"
+
+env_body="$(cat <<EOF_ENV
+# Managed by deployment/ubuntu/configure-workspace-producer; no secrets here.
+WORKSPACE_ROOT_LABEL=$LABEL
+WORKSPACE_ROOT_PATH=$ROOT
+WORKSPACE_MAX_DEPTH=$MAX_DEPTH
+WORKSPACE_INDEX_DB=$STATE_DB
+WORKSPACE_RECONCILE_SECONDS=$RECONCILE_SECONDS
+WORKSPACE_WATCH_DEBOUNCE_MS=500
+WORKSPACE_HINDSIGHT_URL=$HINDSIGHT_URL
+WORKSPACE_HINDSIGHT_BANK_ID=$BANK
+WORKSPACE_HINDSIGHT_SOURCE_KIND=$SOURCE_KIND
+WORKSPACE_EXCLUDED_FOLDERS=$EXCLUDE
+EOF_ENV
+)"
+
+dropin_body="$(cat <<EOF_DROPIN
+[Unit]
+${mount_point:+RequiresMountsFor=$mount_point}
+
+[Service]
+User=$SERVICE_USER
+ReadWritePaths=$(dirname -- "$STATE_DB")
+EOF_DROPIN
+)"
+
+template_body="$(cat <<EOF_UNIT
+[Unit]
+Description=Pantheon Workspace producer (%i)
+After=network-online.target pantheon-hindsight-native.service
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=$INSTALL_ROOT
+EnvironmentFile=-$SHARED_ENV
+EnvironmentFile=$CONFIG_DIR/%i.env
+ExecStart=/usr/bin/python3 $INSTALL_ROOT/producer_daemon.py --root \${WORKSPACE_ROOT_LABEL}=\${WORKSPACE_ROOT_PATH} --max-depth \${WORKSPACE_MAX_DEPTH}
+Restart=on-failure
+RestartSec=3
+UMask=0027
+StateDirectory=pantheon-workspace-producer/%i
+StateDirectoryMode=0750
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectSystem=strict
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target
+EOF_UNIT
+)"
+
+if ((APPLY == 0)); then
+  log "plan for $unit (nothing written; rerun with --apply)"
+  printf -- '--- %s\n%s\n--- %s/10-instance.conf\n%s\n' "$config" "$env_body" "$dropin_dir" "$dropin_body"
+  log "Cockpit projection (needs --workspace-db support): --workspace-db $LABEL=$STATE_DB"
+  exit 0
+fi
+
+[[ -f "$INSTALL_ROOT/producer_daemon.py" && -f "$INSTALL_ROOT/hindsight_producer.py" ]] \
+  || die "producer runtime missing in $INSTALL_ROOT; run configure-workspace-cockpit-local --apply first"
+install -d -m 0755 "$CONFIG_DIR" "$dropin_dir"
+printf '%s\n' "$template_body" > "$UNIT_DIR/$TEMPLATE.tmp" && mv -f -- "$UNIT_DIR/$TEMPLATE.tmp" "$UNIT_DIR/$TEMPLATE"
+printf '%s\n' "$env_body" > "$config.tmp" && chmod 0644 "$config.tmp" && mv -f -- "$config.tmp" "$config"
+printf '%s\n' "$dropin_body" > "$dropin_dir/10-instance.conf"
+if [[ "$STATE_DB" != "$STATE_PARENT/$NAME/"* ]]; then
+  install -d -m 0750 -o "$SERVICE_USER" "$(dirname -- "$STATE_DB")"
+fi
+systemctl daemon-reload
+
+if ((ENABLE)); then
+  systemctl enable "$unit" >/dev/null
+  systemctl restart "$unit"
+  systemctl is-active --quiet "$unit" || {
+    systemctl --no-pager --full status "$unit" || true
+    die "$unit did not become active"
+  }
+  log "$unit active"
+else
+  systemctl is-active --quiet "$unit" && systemctl restart "$unit" && log "$unit restarted with the new configuration"
+  log "$unit configured; rerun with --enable to start it at boot"
+fi
+log "Cockpit projection (needs --workspace-db support): --workspace-db $LABEL=$STATE_DB"

@@ -1,0 +1,110 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Entity Relation
+description: >-
+  Explicit, project-scoped relation between two governed EntityRef values. The
+  storage shape is generic, while this first admitted vocabulary is bounded to
+  Information-to-Information relations. Recording a relation does not create a
+  project fact, admit Evidence, validate either endpoint or authorize an effect.
+type: object
+required:
+  - relation_id
+  - project_ref
+  - from
+  - to
+  - relation_type
+  - created_by
+  - created_at
+properties:
+  relation_id:
+    $ref: "#/$defs/governed_id"
+  project_ref:
+    $ref: "#/$defs/governed_id"
+  from:
+    $ref: "#/$defs/information_ref"
+  to:
+    $ref: "#/$defs/information_ref"
+  relation_type:
+    type: string
+    enum:
+      - responds_to
+      - relies_on
+      - supersedes
+      - contradicts
+    description: >-
+      Direction is from -> to: the source responds to, relies on, supersedes or
+      contradicts the target.
+  rationale:
+    type: [string, "null"]
+    minLength: 1
+    maxLength: 10000
+  source_refs:
+    type: array
+    uniqueItems: true
+    items:
+      type: string
+      minLength: 1
+    default: []
+  created_by:
+    type: string
+    minLength: 1
+  created_at:
+    type: string
+    format: date-time
+  retired_at:
+    type: [string, "null"]
+    format: date-time
+  retired_by:
+    type: [string, "null"]
+    minLength: 1
+additionalProperties: false
+allOf:
+  - if:
+      required: [retired_at]
+      properties:
+        retired_at:
+          type: string
+    then:
+      required: [retired_by]
+      properties:
+        retired_by:
+          type: string
+          minLength: 1
+  - if:
+      properties:
+        retired_at:
+          type: "null"
+    then:
+      properties:
+        retired_by:
+          type: "null"
+$defs:
+  governed_id:
+    type: string
+    pattern: "^[a-z0-9][a-z0-9._-]*$"
+  information_ref:
+    type: object
+    required:
+      - entity_type
+      - entity_id
+    properties:
+      entity_type:
+        const: information
+      entity_id:
+        $ref: "#/$defs/governed_id"
+    additionalProperties: false
+x-vocabulary-labels:
+  responds_to: "répond à"
+  relies_on: "s’appuie sur"
+  supersedes: "remplace"
+  contradicts: "contredit"
+x-boundary:
+  generic_storage_shape: true
+  admitted_endpoint_types:
+    - information
+  inferred_relation: false
+  project_truth_created: false
+  evidence_admission: false
+  professional_validation: false
+  task_authorization: false
+  runtime_execution: false
+  memory_promotion: false

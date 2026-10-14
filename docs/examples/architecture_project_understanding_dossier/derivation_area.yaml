@@ -1,0 +1,10 @@
+derivation_id: DER-CHB-AREA
+produces:
+  - claim_type: attribute_claim
+    claim_id: AC-CHB-AREA-OBS
+method: scaled_from_calibration
+inputs: [CAL-SRC042]
+method_penalty: 0.9
+rule: "area from calibrated polygon; certainty bounded by calibration"
+produced_certainty_score: 0.7
+produced_tolerance: { m2: 0.3 }

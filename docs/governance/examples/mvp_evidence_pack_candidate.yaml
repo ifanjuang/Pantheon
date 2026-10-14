@@ -1,0 +1,45 @@
+# MVP governed task loop — step 5: Evidence Pack Candidate.
+# Fictional and illustrative. Runtime completion is not approval.
+
+object_type: evidence_pack_candidate
+object_id: mvp.devis-reprise.ep-001
+evidence_pack_id: mvp.devis-reprise.ep-001
+status: candidate
+applies_to: mvp.devis-reprise.rc-001
+supports: mvp.devis-reprise.rc-001
+produced_by: hermes
+produced_at: "2026-07-07T10:12:00Z"
+result_candidate:
+  object_type: result_candidate
+  object_id: mvp.devis-reprise.rc-001
+  status: draft_to_review
+  commitment_flags:
+    - phrase: "nous acceptons la reprise du lot 06"
+      risk: external commitment if sent as-is
+evidence_items:
+  - evidence_id: ei-quote-item4
+    claim: Quote item 4 appears broader than the CCTP excerpt for lot 06.
+    source_ref: fictional-doc/quote-Q-2026-041#item-4
+    retrieval_trace: pgvector://mvp-index/chunk-118
+    support_status: sourced_not_verified
+  - evidence_id: ei-cctp-3.2
+    claim: CCTP section 3.2 limits the recovery perimeter.
+    source_ref: fictional-doc/cctp-excerpt-lot06#section-3.2
+    retrieval_trace: pgvector://mvp-index/chunk-201
+    support_status: sourced_not_verified
+assumptions:
+  - The client email of 2026-07-05 is the latest exchange on this subject.
+limitations:
+  - Full CCTP was outside the declared perimeter; only the excerpt was read.
+contradictions_preserved:
+  - Quote item 4 versus CCTP 3.2 scope — preserved for human review, not resolved.
+open_risks:
+  - Sending any acceptance phrase commits the practitioner externally.
+possible_decisions:
+  - approve
+  - refuse
+  - request_revision
+  - request_more_evidence
+governance_refs:
+  - docs/governance/MVP_GOVERNED_TASK_LOOP.md
+  - docs/governance/EVIDENCE_PACK.md

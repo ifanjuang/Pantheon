@@ -1,0 +1,87 @@
+x-mvp-runtime: &mvp-runtime
+  image: ${PANTHEON_MVP_IMAGE_NAME:-pantheon-mvp}:${PANTHEON_MVP_IMAGE_TAG:-phase-b}
+  build:
+    context: .
+    dockerfile: Dockerfile
+
+services:
+  pgvector:
+    image: ${MVP_PGVECTOR_IMAGE:?set MVP_PGVECTOR_IMAGE to a reviewed pinned pgvector image}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${MVP_PG_USER:-pantheon_mvp}
+      POSTGRES_PASSWORD: ${MVP_PG_PASSWORD:?set MVP_PG_PASSWORD outside the repository}
+      POSTGRES_DB: ${MVP_PG_DB:-pantheon_mvp}
+    volumes:
+      - type: bind
+        source: ${MVP_PG_DATA_PATH:?set MVP_PG_DATA_PATH outside the repository}
+        target: /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${MVP_PG_USER:-pantheon_mvp} -d ${MVP_PG_DB:-pantheon_mvp}"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks:
+      - ai-net
+
+  docling:
+    image: ${DOCLING_IMAGE:?set DOCLING_IMAGE to a reviewed pinned Docling Serve image}
+    restart: unless-stopped
+    environment:
+      DOCLING_SERVE_ENABLE_UI: "0"
+    networks:
+      - ai-net
+
+  cockpit-api:
+    <<: *mvp-runtime
+    command: ["mvp-cockpit-api"]
+    restart: unless-stopped
+    depends_on:
+      pgvector:
+        condition: service_healthy
+    environment:
+      MVP_PG_DSN: ${MVP_PG_DSN:?set MVP_PG_DSN outside the repository}
+      MVP_DOCUMENT_ROOT: /documents
+      MVP_COCKPIT_API_KEY: ${MVP_COCKPIT_API_KEY:?set MVP_COCKPIT_API_KEY outside the repository}
+      MVP_EDITOR_API_KEY: ${MVP_EDITOR_API_KEY:-}
+      MVP_HERMES_API_KEY: ${MVP_HERMES_API_KEY:-}
+      MVP_UPDATE_SIGNING_SECRET: ${MVP_UPDATE_SIGNING_SECRET:-}
+      MVP_COCKPIT_PUBLIC_URL: ${MVP_COCKPIT_PUBLIC_URL:-http://cockpit-api:8081}
+      MVP_COCKPIT_HOST: 0.0.0.0
+      MVP_COCKPIT_PORT: 8081
+    volumes:
+      - type: bind
+        source: ${MVP_DOCUMENT_ROOT:?set MVP_DOCUMENT_ROOT outside the repository}
+        target: /documents
+        read_only: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - ai-net
+
+  hermes:
+    image: ${HERMES_IMAGE:?set HERMES_IMAGE to a reviewed pinned Hermes Agent image}
+    command: ["gateway", "run"]
+    restart: unless-stopped
+    environment:
+      API_SERVER_ENABLED: "true"
+      API_SERVER_HOST: 0.0.0.0
+      API_SERVER_PORT: "8642"
+      API_SERVER_KEY: ${HERMES_API_SERVER_KEY:?set HERMES_API_SERVER_KEY outside the repository}
+      HERMES_DASHBOARD: ${HERMES_DASHBOARD:-0}
+    volumes:
+      - type: bind
+        source: ${HERMES_DATA_PATH:?set HERMES_DATA_PATH outside the repository}
+        target: /opt/data
+    networks:
+      - ai-net
+
+networks:
+  ai-net:
+    external: true
+    name: ai-net

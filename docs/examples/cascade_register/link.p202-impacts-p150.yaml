@@ -1,0 +1,20 @@
+# Fictional example for validation only. Not professional advice.
+link_id: belvedere.link.p202-impacts-p150
+from_id: belvedere.p-202.basement-erp
+to_id: belvedere.p-150.erp-classification
+relation: impacts
+dependency_type: regulatory_dependency
+impact_level: high
+revalidation_required: true
+revalidation_reason: A fitted basement changes the ERP category; the classification must be recomputed.
+scope:
+  scope_type: project
+  scope_id: belvedere
+  scope_label: Projet Belvedere
+created_at: "2026-06-14T09:01:00Z"
+created_by: HEPHAISTOS
+note: Validating P-202 supersedes the current ERP classification.
+governance_refs:
+  - docs/governance/EVIDENCE_MEMORY_CANONICALIZATION.md
+  - docs/governance/EVIDENCE_MEMORY_DEV_PLAN.md
+  - docs/governance/GLOSSARY.md

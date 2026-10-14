@@ -1,0 +1,252 @@
+corpus_id: h5.3.document-visual-cross-source
+status: qualification_only
+parent_issue: 613
+base_example: observation_bundle.example.yaml
+scenarios:
+  - scenario_ids: [H53-X-QTY]
+    title: DPGF stated quantity and PDF measured quantity remain separate candidates
+    expected_valid: true
+    invariants: [candidate_authority, quantities_remain_source_scoped]
+    overrides:
+      observation_bundle_id: observation-bundle.h53.cross-source-quantity
+      task_contract_ref: task-contract.compare-quantities.01
+      basis:
+        source_artifact_refs: [source.dpgf.menuiseries, source.pdf.plan-rdc]
+        exact_digests:
+          - {source_artifact_ref: source.dpgf.menuiseries, digest: sha256:dpgf-menuiseries}
+          - {source_artifact_ref: source.pdf.plan-rdc, digest: sha256:plan-rdc}
+      method:
+        capability_id: project_understanding.compare.source_quantities
+        binding_id: binding.synthetic.cross-source
+        operation_id: compare.source_quantities.v1
+        adapter_ref: pantheon.synthetic.cross-source
+        adapter_version: 1.0.0
+        request_ref: request-h53-x-qty
+      observed_at: "2026-08-09T16:30:00Z"
+      freshness_token: sha256:h53-cross-source-qty
+      scope:
+        document_refs: [document:dpgf, document:plan-rdc]
+        categories: [external_doors]
+      coverage:
+        completeness: complete_for_declared_scope
+        observed_scope:
+          document_refs: [document:dpgf, document:plan-rdc]
+          categories: [external_doors]
+        excluded_reasons: []
+        absence_inference_allowed: true
+      limitations: [Quantity comparison is informational and does not establish a payable quantity.]
+      source_representations:
+        - representation_id: rep.dpgf.external-doors
+          project_ref: project-a
+          source_artifact_ref: source.dpgf.menuiseries
+          source_kind: other
+          identifiers: [{scheme: dpgf.line, value: LOT-05-P01}]
+          observed_at: "2026-08-09T16:30:00Z"
+          binding_ref: binding.synthetic.cross-source
+          adapter_version: 1.0.0
+          freshness_token: sha256:dpgf-menuiseries
+          content_digest: sha256:dpgf-line-p01
+          proof_status: candidate
+        - representation_id: rep.pdf.external-doors
+          project_ref: project-a
+          source_artifact_ref: source.pdf.plan-rdc
+          source_kind: drawing_takeoff
+          identifiers: [{scheme: drawing.takeoff_group, value: external-doors}]
+          observed_at: "2026-08-09T16:30:00Z"
+          binding_ref: binding.synthetic.cross-source
+          adapter_version: 1.0.0
+          freshness_token: sha256:plan-rdc
+          content_digest: sha256:pdf-takeoff-external-doors
+          proof_status: candidate
+      attribute_claim_candidates:
+        - attribute_claim_id: claim.dpgf.external-doors.quantity
+          subject_ref: {entity_type: source_representation, entity_id: rep.dpgf.external-doors}
+          attribute_key: economy.stated_quantity
+          value: {value_type: number, value: 8, unit: unit}
+          assertion_mode: observed
+          source_authority: signed_market_document
+          proof_status: candidate
+          source_representation_refs: [rep.dpgf.external-doors]
+        - attribute_claim_id: claim.pdf.external-doors.quantity
+          subject_ref: {entity_type: source_representation, entity_id: rep.pdf.external-doors}
+          attribute_key: geometry.measured_count
+          value: {value_type: number, value: 7, unit: unit}
+          assertion_mode: derived
+          source_authority: model_interpretation_candidate
+          proof_status: candidate
+          source_representation_refs: [rep.pdf.external-doors]
+      relation_claim_candidates: []
+      gaps: []
+      withheld: []
+      warnings: [{code: economy.payable_quantity_not_established}]
+      operational_outcome: success
+
+  - scenario_ids: [H53-X-IDENTITY]
+    title: PDF occurrence proposes identity only to an already known stable object
+    expected_valid: true
+    invariants: [candidate_authority, identity_is_candidate_only]
+    overrides:
+      observation_bundle_id: observation-bundle.h53.cross-source-identity
+      task_contract_ref: task-contract.align-drawing-object.01
+      basis:
+        source_artifact_refs: [source.pdf.plan-rdc]
+        exact_digests: [{source_artifact_ref: source.pdf.plan-rdc, digest: sha256:plan-rdc}]
+      method:
+        capability_id: project_understanding.propose.identity_alignment
+        binding_id: binding.synthetic.drawing
+        operation_id: drawing.propose.identity_alignment.v1
+        adapter_ref: pantheon.synthetic.drawing
+        adapter_version: 1.0.0
+        request_ref: request-h53-x-identity
+      observed_at: "2026-08-09T16:35:00Z"
+      freshness_token: sha256:plan-rdc
+      scope: {document_refs: [document:plan-rdc], sheet_refs: [A-101]}
+      coverage:
+        completeness: complete_for_declared_scope
+        observed_scope: {document_refs: [document:plan-rdc], sheet_refs: [A-101]}
+        excluded_reasons: []
+        absence_inference_allowed: true
+      limitations: [Stable object OBJ-DOOR-017 is supplied by governed context; adapter does not create it.]
+      source_representations:
+        - representation_id: rep.pdf.door-p12
+          project_ref: project-a
+          source_artifact_ref: source.pdf.plan-rdc
+          source_kind: drawing
+          identifiers: [{scheme: drawing.local_label, value: P12}]
+          observed_at: "2026-08-09T16:35:00Z"
+          binding_ref: binding.synthetic.drawing
+          adapter_version: 1.0.0
+          freshness_token: sha256:plan-rdc
+          proof_status: candidate
+      attribute_claim_candidates: []
+      relation_claim_candidates:
+        - relation_claim_id: claim.identity.pdf-p12-to-door-017
+          subject_ref: {entity_type: source_representation, entity_id: rep.pdf.door-p12}
+          relation_type: identity.represents
+          object_ref: {entity_type: stable_object, entity_id: OBJ-DOOR-017}
+          assertion_mode: proposed
+          source_authority: model_interpretation_candidate
+          proof_status: candidate
+          certainty: E2
+          source_representation_refs: [rep.pdf.door-p12]
+      gaps: []
+      withheld: []
+      warnings: [{code: identity.review_required}]
+      operational_outcome: success
+
+  - scenario_ids: [H53-X-TEMPORARY]
+    title: Temporary construction state is observable without becoming intended final state
+    expected_valid: true
+    invariants: [candidate_authority, temporary_not_final]
+    overrides:
+      observation_bundle_id: observation-bundle.h53.temporary-state
+      task_contract_ref: task-contract.observe-temporary-work.01
+      basis:
+        source_artifact_refs: [source.photo.temporary-guardrail]
+        exact_digests: [{source_artifact_ref: source.photo.temporary-guardrail, digest: sha256:temporary-guardrail}]
+      method:
+        capability_id: image.observe.site_condition
+        binding_id: binding.synthetic.image
+        operation_id: image.observe.region.v1
+        adapter_ref: pantheon.synthetic.image
+        adapter_version: 1.0.0
+        request_ref: request-h53-x-temporary
+      observed_at: "2026-08-09T16:40:00Z"
+      freshness_token: sha256:temporary-guardrail
+      scope: {document_refs: [photo-set:site], region_refs: [region:stair-edge]}
+      coverage:
+        completeness: partial_for_declared_scope
+        observed_scope: {document_refs: [photo-set:site], region_refs: [region:stair-edge]}
+        excluded_reasons: [adjacent_areas_not_visible]
+        absence_inference_allowed: false
+      limitations: [Physical presence at observation time does not establish intended final design.]
+      source_representations:
+        - representation_id: rep.photo.temporary-guardrail
+          project_ref: project-a
+          source_artifact_ref: source.photo.temporary-guardrail
+          source_kind: photo
+          identifiers: [{scheme: image.region, value: stair-edge}]
+          observed_at: "2026-08-09T16:40:00Z"
+          binding_ref: binding.synthetic.image
+          adapter_version: 1.0.0
+          freshness_token: sha256:temporary-guardrail
+          content_digest: sha256:temporary-guardrail-region
+          proof_status: candidate
+      attribute_claim_candidates:
+        - attribute_claim_id: claim.photo.temporary-guardrail.present
+          subject_ref: {entity_type: source_representation, entity_id: rep.photo.temporary-guardrail}
+          attribute_key: physical.temporary_state
+          value: {value_type: controlled_label, value: temporary_guardrail_present}
+          assertion_mode: observed
+          source_authority: model_interpretation_candidate
+          proof_status: candidate
+          source_representation_refs: [rep.photo.temporary-guardrail]
+      relation_claim_candidates: []
+      gaps: []
+      withheld: []
+      warnings: [{code: design.final_state_not_inferred}]
+      operational_outcome: success
+
+  - scenario_ids: [H53-X-HIDDEN]
+    title: Hidden work keeps prior observation while later visibility is unavailable
+    expected_valid: true
+    invariants: [candidate_authority, hidden_work_history_preserved]
+    overrides:
+      observation_bundle_id: observation-bundle.h53.hidden-work
+      task_contract_ref: task-contract.observe-hidden-work-history.01
+      basis:
+        source_artifact_refs: [source.photo.before-closure, source.photo.after-closure]
+        exact_digests:
+          - {source_artifact_ref: source.photo.before-closure, digest: sha256:before-closure}
+          - {source_artifact_ref: source.photo.after-closure, digest: sha256:after-closure}
+      method:
+        capability_id: image.observe.site_condition
+        binding_id: binding.synthetic.image
+        operation_id: image.compare.visibility.v1
+        adapter_ref: pantheon.synthetic.image
+        adapter_version: 1.0.0
+        request_ref: request-h53-x-hidden
+      observed_at: "2026-08-09T16:45:00Z"
+      freshness_token: sha256:hidden-work-history
+      scope: {document_refs: [photo-set:hidden-work], region_refs: [region:wall-cavity]}
+      coverage:
+        completeness: partial_for_declared_scope
+        observed_scope: {document_refs: [photo-set:hidden-work], region_refs: [region:wall-cavity]}
+        excluded_reasons: [work_concealed_after_closure]
+        absence_inference_allowed: false
+      limitations: [Later photograph cannot verify concealed work.]
+      source_representations:
+        - representation_id: rep.photo.before-closure
+          project_ref: project-a
+          source_artifact_ref: source.photo.before-closure
+          source_kind: photo
+          identifiers: [{scheme: image.region, value: wall-cavity-before}]
+          observed_at: "2026-07-20T09:00:00Z"
+          binding_ref: binding.synthetic.image
+          adapter_version: 1.0.0
+          freshness_token: sha256:before-closure
+          proof_status: candidate
+        - representation_id: rep.photo.after-closure
+          project_ref: project-a
+          source_artifact_ref: source.photo.after-closure
+          source_kind: photo
+          identifiers: [{scheme: image.region, value: wall-cavity-after}]
+          observed_at: "2026-08-09T16:45:00Z"
+          binding_ref: binding.synthetic.image
+          adapter_version: 1.0.0
+          freshness_token: sha256:after-closure
+          proof_status: candidate
+      attribute_claim_candidates:
+        - attribute_claim_id: claim.photo.before-closure.insulation-visible
+          subject_ref: {entity_type: source_representation, entity_id: rep.photo.before-closure}
+          attribute_key: physical.visible_condition
+          value: {value_type: controlled_label, value: insulation_visible_before_closure}
+          assertion_mode: observed
+          source_authority: model_interpretation_candidate
+          proof_status: candidate
+          source_representation_refs: [rep.photo.before-closure]
+      relation_claim_candidates: []
+      gaps: [{code: visibility.concealed_after_closure, subject_refs: [rep.photo.after-closure]}]
+      withheld: [{code: verification.current_state_withheld, subject_refs: [rep.photo.after-closure]}]
+      warnings: []
+      operational_outcome: withheld

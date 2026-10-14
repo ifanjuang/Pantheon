@@ -1,0 +1,28 @@
+api_version: pantheon.next/v0alpha1
+kind: Resource
+metadata:
+  id: ifc_lite
+  title: IFClite
+  status: candidate
+spec:
+  resource_type: runtime
+  provides_roles:
+    - ifc_observation
+    - ifc_query
+    - ifc_diff
+    - ids_validation
+  lifecycle:
+    installable: true
+    connectable_existing_instance: true
+  interfaces:
+    - local_cli
+    - stdio_mcp
+  boundaries:
+    selected_release: v10.3.0
+    license: MPL-2.0
+    read_only_profile_required: true
+    mutation_commands_admitted: false
+    direct_project_anatomy_write: false
+    direct_evidence_admission: false
+    direct_hindsight_write: false
+    source_global_id_is_stable_identity: false

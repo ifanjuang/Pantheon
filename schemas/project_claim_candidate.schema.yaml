@@ -1,0 +1,107 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Project Claim Candidate
+description: >-
+  Typed candidate produced by a bounded execution for possible human creation of a
+  ProjectClaim. The candidate preserves its project scope, proposed assertion,
+  basis references, certainty, rationale and limits. It does not create a Claim,
+  adopt Project truth, admit Evidence, decide, create Work or authorize an effect.
+type: object
+required:
+  - project_ref
+  - claim_type
+  - proposed_value
+  - certainty
+  - observed_at
+  - basis_refs
+  - rationale
+  - limitations
+  - authority
+properties:
+  project_ref:
+    $ref: "#/$defs/governed_id"
+  claim_type:
+    type: string
+    minLength: 1
+    description: Claim vocabulary requested by the governed Agency schema.
+  proposed_value:
+    type: [string, number, boolean, "null"]
+  unit:
+    type: [string, "null"]
+  certainty:
+    type: string
+    enum: [E0, E1, E2, E3, E4]
+    description: Canonical certainty axis; not a truth probability or approval level.
+  observed_at:
+    type: string
+    format: date-time
+  effective_at:
+    type: [string, "null"]
+    format: date-time
+    description: Optional business-effective date distinct from the observation time.
+  basis_refs:
+    type: array
+    minItems: 1
+    uniqueItems: true
+    items:
+      $ref: "#/$defs/entity_ref"
+    description: Governed identities used as the basis of the proposed assertion.
+  supersedes_claim_ref:
+    type: [string, "null"]
+    pattern: "^[a-z0-9][a-z0-9._-]*$"
+    description: Optional prior Claim the human may choose to supersede.
+  rationale:
+    type: string
+    minLength: 1
+    maxLength: 10000
+  limitations:
+    type: array
+    items:
+      type: string
+      minLength: 1
+    default: []
+  authority:
+    type: object
+    required:
+      - creates_project_claim
+      - adopts_project_truth
+      - admits_evidence
+      - creates_decision
+      - creates_work_issue
+      - authorizes_effect
+    properties:
+      creates_project_claim: { const: false }
+      adopts_project_truth: { const: false }
+      admits_evidence: { const: false }
+      creates_decision: { const: false }
+      creates_work_issue: { const: false }
+      authorizes_effect: { const: false }
+    additionalProperties: false
+additionalProperties: false
+$defs:
+  governed_id:
+    type: string
+    pattern: "^[a-z0-9][a-z0-9._-]*$"
+  entity_ref:
+    type: object
+    required: [entity_type, entity_id]
+    properties:
+      entity_type:
+        type: string
+        minLength: 1
+      entity_id:
+        $ref: "#/$defs/governed_id"
+      observed_revision:
+        type: [integer, "null"]
+        minimum: 0
+      observed_status:
+        type: [string, "null"]
+    additionalProperties: false
+x-boundary:
+  runtime_execution: false
+  persistence_execution: false
+  project_claim_creation: false
+  project_truth_adoption: false
+  evidence_admission: false
+  automatic_decision: false
+  work_issue_creation: false
+  external_effect_authorization: false

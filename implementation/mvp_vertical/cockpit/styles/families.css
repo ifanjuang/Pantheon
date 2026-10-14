@@ -1,0 +1,194 @@
+@layer reset, tokens, shell, navigation, cards, families, states, editors, responsive;
+
+@layer families {
+  [data-level="pack"] {
+    --card-padding: clamp(1.5rem, 4vw, 2.5rem);
+    --card-gap: 1.25rem;
+    --card-title-size: clamp(2.8rem, 8vw, 5.4rem);
+    --card-title-width: 12ch;
+  }
+
+  [data-level="booster"] {
+    --card-padding: clamp(1.4rem, 3.5vw, 2.2rem);
+    --card-gap: 1rem;
+    --card-title-size: clamp(2.4rem, 7vw, 4.6rem);
+    --card-title-width: 13ch;
+  }
+
+  [data-level="card"] {
+    --card-padding: clamp(1.25rem, 3vw, 1.8rem);
+    --card-gap: .85rem;
+    --card-title-size: clamp(1.8rem, 5.5vw, 3.4rem);
+    --card-title-width: 16ch;
+  }
+
+  /* Shared blob geometry: card dimensions never change; only decoration scales. */
+  [data-family="pantheon"],
+  [data-family="affaires"],
+  [data-kind="project"] {
+    --effect-1-top: 50%;
+    --effect-1-left: 50%;
+    --effect-2-top: 50%;
+    --effect-2-left: 50%;
+    --effect-3-top: 50%;
+    --effect-3-left: 50%;
+    --effect-1-width: 50%;
+    --effect-1-height: 50%;
+    --effect-2-width: 50%;
+    --effect-2-height: 50%;
+    --effect-3-width: 50%;
+    --effect-3-height: 50%;
+  }
+
+  [data-family="pantheon"] {
+    --card-front-background: linear-gradient(145deg, #10131d 0%, #252940 54%, #171922 100%);
+    --card-front-color: #fff;
+    --card-back-border-width: var(--cockpit-back-border-general);
+    --card-back-border-background: conic-gradient(
+      from 0deg,
+      var(--pantheon-cyan),
+      var(--pantheon-yellow),
+      var(--pantheon-magenta),
+      var(--pantheon-cyan)
+    );
+    --card-accent: var(--pantheon-cyan);
+    --effects-opacity: 1;
+    --effect-border-width: 1px;
+    --effect-1-color: var(--pantheon-cyan);
+    --effect-2-color: var(--pantheon-yellow);
+    --effect-3-color: var(--pantheon-magenta);
+  }
+
+  [data-family="affaires"] {
+    --card-front-background: #fff;
+    --card-front-color: var(--cockpit-ink);
+    --card-back-border-width: var(--cockpit-back-border-business);
+    --card-accent: #00a9b7;
+    --effects-opacity: 1;
+    --effect-1-fill: var(--pantheon-yellow);
+    --effect-2-fill: var(--pantheon-yellow);
+    --effect-3-fill: var(--pantheon-yellow);
+  }
+
+  [data-family="affaires"] .card-front::before,
+  [data-family="affaires"] .card-front::after,
+  [data-family="affaires"] .card-body::before {
+    mix-blend-mode: normal;
+  }
+
+  [data-family="knowledge"],
+  [data-family="information"] {
+    --card-front-background:
+      linear-gradient(150deg, #ecedee, transparent 30%),
+      linear-gradient(330deg, rgb(210 206 242), transparent 30%),
+      linear-gradient(225deg, #fff0be, #fbdce7, #e2fae1, powderblue);
+    --card-front-color: #302f42;
+    --card-back-border-width: var(--cockpit-back-border-general);
+    --card-back-border-background: linear-gradient(135deg, #d2cef2, #fff0be, #fbdce7, powderblue);
+    --card-accent: #7a67cf;
+  }
+
+  [data-family="skills"] {
+    --card-front-background:
+      linear-gradient(150deg, #f4c7ff, transparent 30%),
+      linear-gradient(330deg, #7be7d8, transparent 30%),
+      linear-gradient(225deg, #ffcf5a, #ee5eb8, #7657e8, #20cbd4);
+    --card-front-color: #fff;
+    --card-back-border-width: var(--cockpit-back-border-general);
+    --card-back-border-background: linear-gradient(135deg, #f4c7ff, #7be7d8, #ffcf5a, #ee5eb8, #7657e8, #20cbd4);
+    --card-accent: #7657e8;
+  }
+
+  [data-family="tool"],
+  [data-family="tools"] {
+    --card-front-background: linear-gradient(90deg, #214c55 0 33.333%, #39767a 33.333% 66.666%, #7ea99b 66.666% 100%);
+    --card-front-color: #fff;
+    --card-back-border-width: var(--cockpit-back-border-general);
+    --card-back-border-background: linear-gradient(90deg, #214c55 0 33.333%, #39767a 33.333% 66.666%, #7ea99b 66.666% 100%);
+    --card-accent: #39767a;
+  }
+
+  [data-family="contact"] .card-back-body {
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  [data-kind="project"] {
+    --card-front-background: #fff;
+    --card-front-color: var(--cockpit-ink);
+    --card-back-border-width: var(--cockpit-back-border-business);
+    --card-accent: var(--project-accent, #d75a28);
+    --effects-opacity: 1;
+    --effect-1-fill: var(--project-accent, #d75a28);
+    --effect-2-fill: color-mix(in srgb, var(--project-accent, #d75a28) 22%, white);
+    --effect-3-fill: color-mix(in srgb, var(--project-accent, #d75a28) 14%, white);
+  }
+
+  [data-kind="work"] {
+    --card-front-background: #fff;
+    --card-front-color: var(--cockpit-ink);
+    --card-back-border-width: var(--cockpit-back-border-business);
+    --card-accent: var(--project-accent, #d75a28);
+    --marker-width: var(--cockpit-accent-size);
+    --marker-height: var(--cockpit-accent-size);
+    --marker-background: var(--project-accent, #d75a28);
+    --marker-clip: polygon(0 0, 100% 0, 0 100%);
+  }
+
+  [data-kind="folder"] {
+    --card-front-background: #fff;
+    --card-front-color: var(--cockpit-ink);
+    --card-back-border-width: var(--cockpit-back-border-business);
+    --card-accent: var(--project-accent, #d75a28);
+    --marker-inset: calc(-1 * var(--card-padding, 1.5rem)) calc(-1 * var(--card-padding, 1.5rem)) auto;
+    --marker-width: calc(100% + (2 * var(--card-padding, 1.5rem)));
+    --marker-height: var(--cockpit-accent-size);
+    --marker-background: var(--project-accent, #d75a28);
+  }
+
+  [data-kind="decision"] { --card-accent: #d9a514; }
+
+  /* Gradient detail borders stay within the family visual system. */
+  .card-back::after {
+    box-sizing: border-box;
+    border: 0;
+    padding: var(--card-back-border-width, 1px);
+    background: var(--card-back-border-background, var(--card-accent, var(--cockpit-muted)));
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+  }
+
+  /* Pantheon blobs: transparent organic rings with animated gradient borders. */
+  [data-family="pantheon"] .card-front::before,
+  [data-family="pantheon"] .card-front::after,
+  [data-family="pantheon"] .card-body::before {
+    box-sizing: border-box;
+    border: 0;
+    padding: var(--effect-border-width, 1px);
+    background: conic-gradient(
+      from var(--effect-gradient-angle, 0deg),
+      var(--pantheon-cyan),
+      var(--pantheon-yellow),
+      var(--pantheon-magenta),
+      var(--pantheon-cyan)
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+  }
+
+  [data-family="pantheon"] .card-front::before { --effect-gradient-angle: 0deg; }
+  [data-family="pantheon"] .card-front::after { --effect-gradient-angle: 120deg; }
+  [data-family="pantheon"] .card-body::before { --effect-gradient-angle: 240deg; }
+}

@@ -1,0 +1,20 @@
+fixture_id: client_email_requesting_answer
+status: fictive_development_fixture
+case_type: normal_scope_to_clarify
+request:
+  intent: "A client email asks whether we can confirm a technical and financial position today."
+  external_effect: unknown
+  writes_state: false
+  scope: {}
+  sources_expected:
+    - client email
+    - current dossier scope
+expected_outputs:
+  classification:
+    consequence_level: K4
+    blocked_until_gate: true
+  scope_report: "scope unclear"
+  approval_level: C3
+  evidence_pack_skeleton: true
+  result_candidate_format: true
+  refusal_out_of_limits: "answering externally is blocked pending scope, evidence and gate"

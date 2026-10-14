@@ -1,0 +1,18 @@
+schema: pantheon/cartouche/v1
+document_id: doc-cctp-c
+source: CCTP_IND_C.pdf
+title: CCTP — Lot 03 Ossature bois
+project: VERGER
+phase: DCE
+type: CCTP
+index: C
+document_date: "2026-09-12"
+issuer: StructureCo
+revision_mode: supersedes
+revision_of: doc-cctp-b
+tags:
+  - structure
+  - ossature-bois
+source_sha256: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+source_size_bytes: 123456
+scope_move_confirmed: false

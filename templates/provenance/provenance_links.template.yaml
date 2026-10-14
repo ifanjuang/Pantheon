@@ -1,0 +1,45 @@
+# Non-executable provenance link template.
+# This is documentation scaffolding only.
+
+template_id: provenance_links_candidate
+owner_layer: provenance_support
+status: candidate_template_only
+purpose: >
+  Describe how future provenance support may connect sources, claims, evidence candidates, output candidates and memory status.
+
+candidate_items:
+  - source
+  - document
+  - excerpt
+  - claim
+  - task_contract
+  - context_pack
+  - evidence_item
+  - evidence_pack_candidate
+  - output_candidate
+  - memory_candidate
+  - approved_memory_reference
+  - contradiction_note
+  - run_reference
+
+candidate_links:
+  - cites
+  - supports_candidate
+  - conflicts_with_candidate
+  - derived_from
+  - selected_into
+  - reviewed_as
+  - approved_reference
+  - rejected_reference
+  - supersedes
+  - scoped_to
+
+boundary_rules:
+  - retrieved_is_not_validated
+  - linked_is_not_approved
+  - candidate_memory_is_not_canonical_memory
+  - trace_is_not_evidence_pack
+
+notes:
+  - Provenance support may help retrieve, compare and review.
+  - Pantheon remains responsible for evidence status and approval status.

@@ -1,0 +1,88 @@
+# Validation Report Candidate Template
+# Status: template — non-executable.
+# Repo state: documented non-implemented.
+# Authority: support scaffold only.
+# This template records a read-only validation report candidate for governance review.
+# It is not a schema, validator, test, MCP tool, runtime, approval engine or memory engine.
+# It does not approve, execute, send, select a model, route a provider or promote memory.
+
+validation_report_candidate:
+  report_id: ""
+  status: "candidate" # candidate | to_verify | needs_human_review | needs_approval | blocked | refused | accepted_as_review_support
+  validation_level: "L0" # L0_document_exists | L1_required_fields_present | L2_internally_coherent | L3_gate_recommendation_possible
+  generated_at: ""
+  generated_by: "" # human | reviewer | read_only_validator_candidate | other
+  reviewed_by: ""
+
+  references:
+    doctrine:
+      - "docs/governance/RUNTIME_REVIEW_MODEL_PASSPORT_VALIDATION_PROMOTION.md"
+      - "docs/governance/EXTERNAL_TOOLS_POLICY.md"
+      - "docs/governance/MODEL_CAPABILITY_PASSPORT.md"
+    candidate_ref: ""
+    candidate_type: "unknown" # external_runtime_review_candidate | model_capability_passport_candidate | other | unknown
+    source_files: []
+    notes: ""
+
+  input_candidate_summary:
+    declared_status: "unknown"
+    declared_validation_level: "unknown"
+    declared_risk: "unknown" # low | medium | high | critical | unknown
+    declared_approval_ceiling: "unknown" # C0 | C1 | C2 | C3 | C4 | C5 | unknown
+    declared_gate_recommendation: "unknown"
+    declared_boundary_candidate_only: "unknown" # true | false | unknown
+
+  completeness_check:
+    required_fields_present: "unknown" # true | false | unknown
+    missing_fields: []
+    incomplete_sections: []
+    unresolved_unknowns: []
+    completeness_level: "L0" # L0 | L1 | L2 | L3
+
+  coherence_check:
+    internally_coherent: "unknown" # true | false | unknown
+    contradictions: []
+    risk_mismatches: []
+    approval_mismatches: []
+    evidence_mismatches: []
+    memory_mismatches: []
+    external_effect_mismatches: []
+    notes: ""
+
+  boundary_check:
+    candidate_only: true
+    canonical_effect: false
+    runtime_effect: false
+    external_action: false
+    memory_promotion: false
+    professional_validation: false
+    boundary_violations: []
+
+  gate_recommendation:
+    recommendation: "needs_human_review" # allow_read_only | allow_candidate_only | needs_approval | needs_more_evidence | needs_human_review | needs_security_review | needs_adapter_review | block
+    reason: ""
+    approval_ceiling: "unknown" # C0 | C1 | C2 | C3 | C4 | C5 | unknown
+    human_decision_required: true
+    zeus_arbitration_required: true
+
+  evidence_expectation:
+    evidence_required: []
+    evidence_missing: []
+    assumptions_to_surface: []
+    sources_to_verify: []
+    freshness_to_verify: []
+
+  decision_trace:
+    accepted: []
+    refused: []
+    to_verify: []
+    to_arbitrate: []
+    final_report_status: "to_arbitrate" # accepted_as_review_support | refused | to_verify | to_arbitrate | blocked | non_applicable
+
+  next_action:
+    proposed_next_step: "human_review" # human_review | request_missing_fields | adapter_review | security_review | schema_proposal | test_proposal | mcp_policy_server_proposal | block | none
+    protected_path_change_required: false
+    protected_paths_requested: [] # schemas/ | tests/ | mcp-server/ | operations/ | platform/ | Docker | .env
+    notes: ""
+
+  boundary_statement: "The report qualifies a candidate. It does not approve, execute, validate professional truth, send externally or promote memory."

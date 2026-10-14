@@ -1,0 +1,218 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Next Register Candidate
+description: Governance schema for a proposed Registre Probatoire entry awaiting scoped review, evidence and approval.
+type: object
+required:
+  - candidate_id
+  - created_at
+  - proposed_by
+  - claim
+  - scope
+  - source
+  - evidence_link
+  - certainty
+  - risk
+  - proposed_durability
+  - required_approval
+  - status
+properties:
+  candidate_id:
+    type: string
+    pattern: "^[a-z0-9._-]+$"
+  created_at:
+    type: string
+    format: date-time
+  proposed_by:
+    type: string
+  claim:
+    type: string
+    minLength: 10
+  content:
+    type: string
+    deprecated: true
+    description: Legacy alias for claim. Prefer claim.
+  scope:
+    type: object
+    required:
+      - scope_type
+      - scope_id
+    properties:
+      scope_type:
+        type: string
+        enum:
+          - session
+          - task
+          - dossier
+          - project
+          - domain
+          - user
+          - organization
+          - repository
+          - governance
+          - system
+      scope_id:
+        type: string
+        minLength: 1
+      scope_label:
+        type: string
+    additionalProperties: false
+  source:
+    type: string
+    minLength: 1
+  evidence_link:
+    type: string
+    minLength: 1
+  evidence_pack_id:
+    type: string
+    pattern: "^[a-z0-9._-]+$"
+  certainty:
+    type: string
+    description: Probative certainty axis owned by GLOSSARY.md.
+    enum: [E0, E1, E2, E3, E4]
+    default: E1
+  confidence:
+    type: string
+    deprecated: true
+    description: Legacy confidence flag superseded by certainty.
+    enum:
+      - low
+      - medium
+      - high
+  source_date:
+    type:
+      - string
+      - "null"
+    format: date
+  received_date:
+    type:
+      - string
+      - "null"
+    format: date
+  effective_date:
+    type:
+      - string
+      - "null"
+    format: date
+  author_detected:
+    type:
+      - string
+      - "null"
+  page_or_location:
+    type:
+      - string
+      - "null"
+  origin_channel:
+    type:
+      - string
+      - "null"
+  source_excerpt:
+    type:
+      - string
+      - "null"
+  linked_files:
+    type: array
+    items:
+      type: string
+    default: []
+  risk:
+    type: object
+    required:
+      - level
+      - notes
+    properties:
+      level:
+        type: string
+        enum:
+          - low
+          - medium
+          - high
+          - critical
+      notes:
+        type: string
+    additionalProperties: false
+  proposed_durability:
+    type: string
+    enum:
+      - session_only
+      - task
+      - dossier
+      - project
+      - domain
+      - user
+      - organization
+      - repository
+      - governance
+      - system
+  required_approval:
+    type: string
+    enum:
+      - C0
+      - C1
+      - C2
+      - C3
+      - C4
+      - C5
+  status:
+    type: string
+    enum:
+      - candidate
+      - under_review
+      - approved
+      - rejected
+      - deferred
+      - superseded
+      - revoked
+      - archived
+  validation_state:
+    type: string
+    deprecated: true
+    enum:
+      - candidate
+      - under_review
+      - approved
+      - rejected
+      - deferred
+      - superseded
+      - revoked
+      - archived
+  reviewer:
+    type:
+      - string
+      - "null"
+  reviewed_at:
+    type:
+      - string
+      - "null"
+    format: date-time
+  supersedes_candidate_id:
+    type:
+      - string
+      - "null"
+  link_ids:
+    type: array
+    description: >-
+      Optional references to register_link entries that relate this entry to
+      others (depends_on, impacts, conflicts_with, supersedes…). Metadata only;
+      the links drive review, never automatic cascade resolution.
+    items:
+      type: string
+    default: []
+  governance_refs:
+    type: array
+    items:
+      type: string
+    default:
+      - docs/governance/EVIDENCE_MEMORY_CANONICALIZATION.md
+      - docs/governance/GLOSSARY.md
+      - docs/governance/MEMORY.md
+      - docs/governance/EVIDENCE_PACK.md
+      - docs/governance/SCOPE_ISOLATION.md
+additionalProperties: false
+x-boundary:
+  runtime_execution: false
+  autonomous_loop: false
+  provider_routing: false
+  scheduler: false
+  queue_system: false
+  memory_promotion: false
+  automatic_canonization: false

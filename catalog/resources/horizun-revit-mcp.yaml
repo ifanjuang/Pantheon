@@ -1,0 +1,28 @@
+api_version: pantheon.next/v0alpha1
+kind: Resource
+metadata:
+  id: horizun_revit_mcp
+  title: Horizun Revit MCP
+  status: candidate
+spec:
+  resource_type: runtime
+  provides_roles:
+    - revit_observation
+    - revit_query
+  lifecycle:
+    installable: true
+    connectable_existing_instance: true
+  interfaces:
+    - local_mcp
+    - revit_addin
+  boundaries:
+    selected_release: v2.1.5
+    license: Apache-2.0
+    public_installer_signed: false
+    read_only_profile_required: true
+    write_tools_admitted: false
+    arbitrary_python_admitted: false
+    save_sync_delete_purge_admitted: false
+    direct_project_anatomy_write: false
+    direct_evidence_admission: false
+    source_element_id_is_stable_identity: false

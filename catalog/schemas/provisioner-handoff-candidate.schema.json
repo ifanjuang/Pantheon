@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pantheon-next.local/catalog/schemas/provisioner-handoff-candidate.schema.json",
+  "title": "Pantheon Provisioner Handoff Candidate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["api_version", "kind", "metadata", "spec", "governance"],
+  "properties": {
+    "api_version": {"const": "pantheon.next/v0alpha1"},
+    "kind": {"const": "ProvisionerHandoffCandidate"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "created_at", "status", "installation_candidate_id"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^handoff_candidate_[a-z0-9_-]+$"},
+        "created_at": {"type": "string", "format": "date-time"},
+        "status": {"const": "prepared"},
+        "installation_candidate_id": {"type": "string", "pattern": "^installation_candidate_[a-z0-9_-]+$"}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["selected_provisioner", "install_mode", "artifact", "expected_changes", "preflight", "rollback", "secret_references"],
+      "properties": {
+        "selected_provisioner": {"enum": ["portainer", "docker_compose", "connector_config_adapter", "manual_oauth_setup", "manual_operator"]},
+        "install_mode": {"enum": ["docker_stack", "compose_stack", "connector_configuration", "manual_procedure"]},
+        "artifact": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "reference", "digest_required"],
+          "properties": {
+            "type": {"enum": ["compose_candidate", "portainer_stack_candidate", "connector_config_candidate", "manual_checklist"]},
+            "reference": {"type": "string", "minLength": 1},
+            "digest_required": {"const": true}
+          }
+        },
+        "expected_changes": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "preflight": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "rollback": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "secret_references": {"type": "array", "items": {"type": "string", "pattern": "^secretref://[a-z0-9/_-]+$"}}
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["handoff_authorized", "execution_authorized", "execution_started", "human_approval_required"],
+      "properties": {
+        "handoff_authorized": {"const": false},
+        "execution_authorized": {"const": false},
+        "execution_started": {"const": false},
+        "human_approval_required": {"const": true}
+      }
+    }
+  }
+}

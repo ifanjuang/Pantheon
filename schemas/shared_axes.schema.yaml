@@ -1,0 +1,54 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Next Shared Governance Axes
+description: Validation schema for the shared E/V/K/C governance axes. It defines vocabulary only and executes nothing.
+type: object
+required:
+  - axes_id
+  - certainty
+  - verification
+  - consequence
+  - approval
+  - governance_refs
+properties:
+  axes_id:
+    type: string
+    pattern: "^[a-z0-9._-]+$"
+  certainty:
+    $ref: "#/$defs/certainty"
+  verification:
+    $ref: "#/$defs/verification"
+  consequence:
+    $ref: "#/$defs/consequence"
+  approval:
+    $ref: "#/$defs/approval"
+  notes:
+    type: string
+  governance_refs:
+    type: array
+    items:
+      type: string
+    default:
+      - docs/governance/GLOSSARY.md
+      - docs/governance/APPROVALS.md
+additionalProperties: false
+$defs:
+  certainty:
+    type: string
+    enum: [E0, E1, E2, E3, E4]
+  verification:
+    type: string
+    enum: [V0, V1, V2, V3, V4]
+  consequence:
+    type: string
+    enum: [K0, K1, K2, K3, K4]
+  approval:
+    type: string
+    enum: [C0, C1, C2, C3, C4, C5]
+x-boundary:
+  runtime_execution: false
+  autonomous_loop: false
+  provider_routing: false
+  scheduler: false
+  queue_system: false
+  memory_promotion: false
+  automatic_canonization: false

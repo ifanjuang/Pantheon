@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pantheon Current Decision Projection — Static Review</title>
+<style>
+:root{color-scheme:dark;--bg:#0d1014;--panel:#171b21;--line:#3a424d;--text:#f3f5f7;--muted:#abb4be;--block:#ff8b78}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}main{max-width:760px;margin:auto;padding:28px 18px}.notice,.card{border:1px solid var(--line);border-radius:18px;background:var(--panel);padding:18px}.notice{margin-bottom:18px;color:var(--muted)}.card{border-left:7px double var(--block)}.top{display:flex;justify-content:space-between;gap:12px}.kind{font-size:12px;text-transform:uppercase;letter-spacing:.1em}.outcome{border:2px solid var(--block);border-radius:999px;padding:5px 9px;font-weight:700}h1{font-size:clamp(30px,7vw,54px);margin:10px 0}h2{margin:20px 0 8px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{border-top:1px solid var(--line);padding-top:10px}.field b{display:block;font-size:11px;text-transform:uppercase;color:var(--muted)}ul{line-height:1.6}.boundary{margin-top:18px;color:var(--muted);font-size:13px}@media(max-width:560px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body><main>
+<div class="notice"><strong>Static projection.</strong> This page displays a synthetic resolver result. It does not approve, authorize, execute, activate or call Hermes.</div>
+<article class="card" aria-labelledby="title">
+<div class="top"><span class="kind">Current Decision Projection</span><span class="outcome">Blocked</span></div>
+<h1 id="title">Docling sandbox handoff</h1>
+<p>The recorded approval is not current because an exact-scope revocation became effective before the evaluation time.</p>
+<div class="grid">
+<div class="field"><b>Recorded approval</b>handoff_decision_approval_a</div>
+<div class="field"><b>Applicable record</b>handoff_decision_revocation_a</div>
+<div class="field"><b>Decision type</b>revoke</div>
+<div class="field"><b>Evaluated at</b>2026-07-12 14:25 UTC</div>
+<div class="field"><b>Scope</b>sandbox · docling · reviewed configuration</div>
+<div class="field"><b>Execution authorized</b>No</div>
+</div>
+<h2>Why this projection</h2>
+<ul><li>The approval became effective at 14:10 UTC.</li><li>The revocation became effective at 14:20 UTC.</li><li>The reviewed scope exactly matches the superseded approval scope.</li></ul>
+<div class="boundary">recorded != current · current != executable · projection != permission token</div>
+</article>
+</main></body></html>

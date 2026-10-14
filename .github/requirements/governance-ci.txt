@@ -1,0 +1,3 @@
+# Stable entry point used by the Governance CI workflow.
+# The resolved dependency set lives in governance-ci.lock.txt.
+-r governance-ci.lock.txt

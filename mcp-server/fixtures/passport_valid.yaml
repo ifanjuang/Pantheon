@@ -1,0 +1,69 @@
+# Fixture — a well-formed candidate Passport. Fictional, for tests only.
+passport_id: fixture.source-audit.read
+status: candidate
+reviewed_at: null
+reviewed_by: null
+mcp_server:
+  server_id: fixture-server
+  server_name: Fixture Server
+  canonical_uri: stdio://fixture
+  transport: stdio
+  protocol_revision: "2025-06-18"
+  source: fixtures
+  trust_level: internal
+  authorization_model: none
+capability:
+  primitive: tool
+  name: audit_source
+  description_snapshot: Reads a dossier source and reports provenance.
+  description_hash: "1111111111111111111111111111111111111111111111111111111111111111"
+  annotations_snapshot: ""
+  icons_reviewed: not_applicable
+operation:
+  reads_private_data: "true"
+  writes_external_state: "false"
+  can_execute_code: "false"
+  can_send_to_external_party: "false"
+  can_change_register: "false"
+  can_promote_memory: "false"
+  can_commit_professional_position: low
+governance:
+  activation_state: detected
+  task_authorization: unauthorized
+  allowed_scopes:
+    - dossier
+  forbidden_scopes:
+    - organization
+  risk_level: low
+  approval_required: C1
+  memory_behavior: candidate_only
+  evidence_required:
+    - source citation
+  context_minimization_required: true
+  user_decision_gate_required: true
+interface:
+  allowed_inputs:
+    - source_ref
+  allowed_outputs:
+    - provenance_report_candidate
+  forbidden_outputs:
+    - approval
+    - external_message
+  required_envelope: task_contract_in__candidate_out__evidence_pack_out
+result_handling:
+  default_output_status: candidate
+  evidence_pack_required: true
+  raw_result_never_final: true
+  permitted_register_output: none
+revocation:
+  status: active
+  reason: ""
+  review_after: "2026-09-01"
+notes:
+  accepted: []
+  refused: []
+  to_verify: []
+  to_arbitrate: []
+governance_refs:
+  - docs/governance/UNIFORM_CAPABILITY_GOVERNANCE.md
+  - docs/governance/APPROVALS.md

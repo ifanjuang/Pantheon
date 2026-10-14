@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pantheon-next.local/catalog/schemas/capability-activation.schema.json",
+  "title": "Pantheon Capability Activation candidate",
+  "description": "Governance record attaching scoped activation posture to one exact Capability Binding. It records no runtime activation effect and grants no task authorization.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["api_version", "kind", "metadata", "spec", "governance"],
+  "properties": {
+    "api_version": {"const": "pantheon.next/v0alpha1"},
+    "kind": {"const": "CapabilityActivation"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^capability_activation_[a-z0-9_]+$"},
+        "status": {"enum": ["candidate", "reviewed", "superseded"]}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["binding_id", "state", "scope", "decision_ref", "review_after", "supersedes"],
+      "properties": {
+        "binding_id": {
+          "type": "string",
+          "pattern": "^capability_binding_[a-z0-9_]+$"
+        },
+        "state": {
+          "enum": [
+            "unavailable",
+            "detected",
+            "disabled",
+            "watch",
+            "candidate",
+            "sandbox_enabled",
+            "project_enabled",
+            "dossier_enabled",
+            "domain_enabled",
+            "organization_enabled",
+            "suspended",
+            "deprecated",
+            "rejected"
+          ]
+        },
+        "scope": {
+          "oneOf": [
+            {"type": "null"},
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["scope_type", "scope_id"],
+              "properties": {
+                "scope_type": {
+                  "enum": [
+                    "session",
+                    "task",
+                    "dossier",
+                    "project",
+                    "domain",
+                    "user",
+                    "organization",
+                    "repository",
+                    "governance",
+                    "system"
+                  ]
+                },
+                "scope_id": {"type": "string", "minLength": 1},
+                "scope_label": {"type": "string"}
+              }
+            }
+          ]
+        },
+        "decision_ref": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z0-9._-]+$"
+        },
+        "review_after": {
+          "type": ["string", "null"],
+          "format": "date"
+        },
+        "supersedes": {
+          "type": ["string", "null"],
+          "pattern": "^capability_activation_[a-z0-9_]+$"
+        }
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "record_only",
+        "runtime_activation_effect",
+        "task_authorization_effect",
+        "automatic_activation",
+        "binding_replacement_inherits_activation"
+      ],
+      "properties": {
+        "record_only": {"const": true},
+        "runtime_activation_effect": {"const": "none"},
+        "task_authorization_effect": {"const": "none"},
+        "automatic_activation": {"const": false},
+        "binding_replacement_inherits_activation": {"const": false}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "spec": {
+            "properties": {
+              "state": {
+                "enum": [
+                  "sandbox_enabled",
+                  "project_enabled",
+                  "dossier_enabled",
+                  "domain_enabled",
+                  "organization_enabled"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "metadata": {
+            "properties": {
+              "status": {"const": "reviewed"}
+            }
+          },
+          "spec": {
+            "properties": {
+              "scope": {"type": "object"},
+              "decision_ref": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      }
+    }
+  ]
+}

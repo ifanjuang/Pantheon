@@ -1,0 +1,38 @@
+/* The wordmark sits centred in absolute position: drop navigation entries
+   before they can run under it. */
+@media (max-width: 1180px){
+  body:not(.manifesto-page) .topbar nav a:nth-child(1){display:none}
+}
+
+@media (max-width: 960px){
+  body:not(.manifesto-page) .topbar nav a:nth-child(4){display:none}
+}
+
+@media (max-width: 1040px){
+  .hero-grid{grid-template-columns:1fr;gap:42px}
+  .hero{min-height:auto;padding-top:96px}
+  .hero h1{max-width:900px}
+  .hero-copy{max-width:720px}
+  .links-section{grid-template-columns:1fr;gap:42px}
+  .manifesto-triptych,.lineage{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .lineage article:last-child{grid-column:1/-1}
+  .memory-duo{grid-template-columns:1fr}
+  .manifesto-beat:last-child{grid-column:1/-1}
+  .source-meta{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+@media (max-width: 760px){
+  .topbar{min-height:58px;padding:0 18px}.brand img{width:124px}.topbar nav{gap:10px}.topbar nav a:not(.nav-strong){display:none}.nav-strong{padding:7px 10px}
+  .hero,.section,.transparency,.links-section,footer{width:min(100% - 32px,var(--max))}
+  .hero{padding:82px 0 58px}.hero h1{font-size:clamp(50px,15vw,76px)}.hero-accent{font-size:clamp(28px,9vw,42px)}.hero-copy p{font-size:17px}.hero-thesis{grid-template-columns:1fr;margin-top:48px}.hero-thesis span{min-height:76px;align-items:center}
+  .section{padding:70px 0}.section-heading{margin-bottom:32px}.section-heading h2,.links-section h2,.transparency h2{font-size:clamp(38px,12vw,56px)}.section-heading>p:last-child{font-size:16px}
+  .questions,.principles,.benefits,.flow,.link-grid,.manifesto-triptych,.continuity-rail,.source-meta,.case-contrast,.case-lower,.non-equivalences,.memory-duo,.lineage{grid-template-columns:1fr}.lineage article:last-child{grid-column:auto}.roles-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.questions .question-wide{grid-column:auto}.questions article{min-height:94px}.principles article,.benefits article,.flow article,.link-grid a{min-height:auto}.principles article>span,.benefits article>span,.flow article>span{margin-bottom:28px}.principles h3,.benefits h3,.flow h3{margin-top:0}.flow article:not(:last-child):after{content:"↓"}
+  .manifesto-beat:last-child{grid-column:auto}.manifesto-beat{min-height:190px}.manifesto-beat h3{margin-top:54px}
+  .continuity-rail span{border-right:0;border-bottom:1px solid var(--line)}.continuity-rail span:last-child{border-bottom:0}.case-card{padding:20px}.case-card-head{align-items:flex-start}.case-card h3{font-size:38px}.source-meta div{border-right:0}.case-bubble{border-radius:16px 16px 4px 16px}.memory-card{padding:22px}.memory-card h3{font-size:24px}.memory-gate{padding:20px}.check-row{gap:12px}.non-equivalences span{min-height:72px}
+  .transparency{margin-top:70px;padding:24px;grid-template-columns:1fr;align-items:start}.transparency .button{justify-self:start}
+  .links-section{padding:70px 0 82px}.link-grid a{min-height:136px}
+  footer{flex-direction:column;padding-bottom:34px}
+  .manifesto-main{width:min(100% - 32px,880px);padding:64px 0 90px}.manifesto-intro{margin-bottom:48px;padding-bottom:44px}.manifesto-section{padding:48px 0}.manifesto-section p{font-size:17px}.manifesto-section .statement{margin:30px 0;padding:22px 24px}.manifesto-final{padding-top:58px}
+}
+
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}

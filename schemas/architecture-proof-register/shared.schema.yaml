@@ -1,0 +1,131 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Architecture Proof Register Shared Definitions
+description: Shared validation vocabulary for Architecture Proof Register objects. Consequence levels use the K0-K4 axis defined by schemas/shared_axes.schema.yaml; C0-C5 remains approval only.
+type: object
+additionalProperties: false
+properties:
+  schema_status:
+    $ref: "#/$defs/schema_status"
+  governance_refs:
+    type: array
+    items:
+      type: string
+    default:
+      - docs/domain-packs/architecture/PROOF_REGISTER.md
+      - docs/domain-packs/architecture/PROOF_REGISTER_IMPLEMENTATION_SPEC.md
+      - docs/domain-packs/architecture/INDEX_EFFECT_MATRIX.md
+      - docs/governance/GLOSSARY.md
+      - schemas/shared_axes.schema.yaml
+$defs:
+  schema_status:
+    type: string
+    enum: [candidate, active, deprecated, superseded]
+  uuid:
+    type: string
+    format: uuid
+  human_ref:
+    type: string
+    minLength: 1
+    maxLength: 160
+  date:
+    type: string
+    format: date
+  positive_integer:
+    type: integer
+    minimum: 0
+  phase_code:
+    type: string
+    enum: [DIAG, APS, APD, PRO, DCE, ACT, EXE, VISA, DET, OPC, AOR, DOE, GPA, AGENCY_LIBRARY, GLOBAL_REFERENCE]
+  scope_type:
+    type: string
+    enum: [project, phase, lot, agency_library, global_reference, external_project_subset]
+  effect_class:
+    type: string
+    enum: [working_revision, minor_correction, coordination_update, modification_candidate, issued_for_review, issued_for_client_approval, approved_phase_decision, issued_for_consultation, issued_for_contract, signed_contractual_version, issued_for_execution, issued_for_site, visa_status_record, signed_or_contradictory_record, as_built_record, obsolete_superseded]
+  source_authority_level:
+    type: string
+    enum: [law_or_regulation, operation_contract, signed_market_document, approved_phase_decision, signed_or_contradictory_site_evidence, approved_client_decision, contractor_signed_response, approved_technical_report, agency_standard, project_working_document, derived_text, semantic_search_result, model_interpretation_candidate]
+  version_status:
+    type: string
+    enum: [draft, issued, under_review, approved, signed, effective, superseded, obsolete, rejected, withdrawn]
+  authority_status:
+    type: string
+    enum: [not_authoritative, internal_working_authority, internal_review_authority, client_review_authority, phase_approval_authority, consultation_authority, execution_authority, site_record_authority, contractual_authority, as_built_authority, historical_evidence_only]
+  approval_state:
+    type: string
+    enum: [candidate, requires_human_review, requires_more_evidence, approved_for_internal_use, approved_for_meeting_preparation, approved_for_transmission_draft, approved_for_contractual_action, rejected, obsolete, superseded]
+  proof_status:
+    type: string
+    enum: [candidate, source_missing, source_incomplete, source_complete_for_task, source_superseded, contradictory_evidence, authority_too_low, requires_more_evidence, accepted_as_support, rejected, obsolete, superseded]
+  use_type:
+    type: string
+    enum: [internal_review, meeting_preparation, client_review, external_transmission, consultation, contract_preparation, contractual_action, execution_use, site_record, reserve_followup, doe_handover, gpa_followup, memory_promotion, administrative_filing, payment_or_financial]
+  severity:
+    type: string
+    enum: [low, medium, high, critical]
+  consequence_level:
+    type: string
+    description: K0-K4 consequence axis. C0-C5 is reserved for approval ceilings.
+    enum: [K0, K1, K2, K3, K4]
+  approval_ceiling:
+    type: string
+    enum: [C0, C1, C2, C3, C4, C5]
+  external_effect_possible:
+    type: string
+    enum: [yes, no, unknown]
+  external_effect_type:
+    type: string
+    enum: [client_transmission, contractor_transmission, contractual_action, administrative_filing, payment_or_financial, memory_promotion, other]
+  decision_gate_reason_code:
+    type: string
+    enum: [K4_consequence, K3_external_effect, external_effect_unknown, contractual_authority_claimed, key_index_missing_evidence, signature_missing, approval_missing, source_authority_too_low, superseded_index_used_as_current, memory_promotion_requested, administrative_filing_requested, payment_or_financial_effect, other]
+  anchor:
+    type: object
+    additionalProperties: false
+    required: [type, value]
+    properties:
+      type:
+        type: string
+        enum: [page, clause, drawing_sheet, reserve_id, meeting_item, email_message, file, other]
+      value:
+        type: string
+        minLength: 1
+      note:
+        type: string
+        minLength: 1
+  evidence_ref:
+    type: object
+    additionalProperties: false
+    required: [evidence_id]
+    properties:
+      evidence_id:
+        $ref: "#/$defs/uuid"
+      evidence_type:
+        type: string
+      evidence_label:
+        type: string
+      source_version_id:
+        $ref: "#/$defs/uuid"
+      anchor:
+        $ref: "#/$defs/anchor"
+  metadata:
+    type: object
+    additionalProperties: false
+    properties:
+      source_system:
+        type: string
+      notes:
+        type: string
+      external_refs:
+        type: array
+        items:
+          type: string
+        default: []
+x-boundary:
+  runtime_execution: false
+  provider_routing: false
+  scheduler: false
+  queue_system: false
+  memory_promotion: false
+  automatic_canonization: false
+  approval_engine: false

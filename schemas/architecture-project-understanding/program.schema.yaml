@@ -1,0 +1,40 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Architecture Project Understanding Program
+description: >-
+  A typed, layered, versioned source of project intent (the client program).
+  Highest-authority source for required claims. Several programs may coexist
+  (general orientations and specific requirements, mixed typologies). See
+  PROGRAM_AND_CONFORMANCE.md. Structure only; no runtime.
+type: object
+additionalProperties: false
+required: [program_id, program_type, program_layer, source_authority, proof_status]
+properties:
+  program_id: { type: string, minLength: 1 }
+  human_ref: { $ref: "shared.schema.yaml#/$defs/human_ref" }
+  program_type:
+    type: string
+    enum: [housing, medical, office, erp, education, hospitality, industrial, mixed, other]
+  program_layer:
+    type: string
+    enum: [general_orientation, specific_requirement]
+  source_authority: { $ref: "shared.schema.yaml#/$defs/source_authority_level" }
+  version: { type: integer, minimum: 1 }
+  scope_type: { $ref: "shared.schema.yaml#/$defs/scope_type" }
+  scope_id: { type: string }
+  proof_status: { $ref: "shared.schema.yaml#/$defs/proof_status" }
+  supersedes_program_id: { type: string }
+  superseded_by_program_id: { type: string }
+  notes: { type: string }
+  governance_refs:
+    type: array
+    items: { type: string }
+    default:
+      - docs/governance/PROGRAM_AND_CONFORMANCE.md
+      - docs/domain-packs/architecture/PROJECT_ANATOMY_MODEL.md
+      - schemas/architecture-project-understanding/shared.schema.yaml
+x-boundary:
+  runtime_execution: false
+  provider_routing: false
+  memory_promotion: false
+  automatic_canonization: false
+  approval_engine: false

@@ -1,0 +1,11 @@
+scope_link_id: scope-link-task-001-project
+issue_ref: issue-task-001
+scope_ref:
+  entity_type: project
+  entity_id: project-fictional-renovation
+scope_role: primary
+rationale: Project view must expose the same WorkIssue identity as the agency attention view.
+created_by: human-reviewer
+created_at: "2026-08-06T09:45:00Z"
+retired_at: null
+retired_by: null

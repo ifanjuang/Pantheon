@@ -1,0 +1,44 @@
+template_status: candidate_only
+template_version: 1
+
+deliberation_candidate:
+  candidate_id: REQUIRED
+  work_issue_ref: REQUIRED
+  hermes_run_ref: REQUIRED
+  task_contract_ref: OPTIONAL_FOR_LOW_RISK_EPHEMERAL_REVIEW
+  subject: REQUIRED
+  frozen_input_revision: REQUIRED
+
+  participating_slots:
+    - slot_id: REQUIRED
+      provider: REQUIRED
+      model: REQUIRED
+      passport_ref: REQUIRED
+      runtime_status: returned | partial | failed | excluded
+      exclusion_or_failure_reason:
+
+  passes_completed: 1
+  aggregation_method: hermes_native_moa
+  agreements: []
+  material_dissent: []
+  unsupported_claims: []
+  evidence_gaps: []
+  doctrine_or_scope_conflicts: []
+  proposed_discriminating_tests: []
+  limitations: []
+  capability_gaps: []
+
+  output_candidates:
+    evidence_pack_candidate_refs: []
+    contradiction_record_candidates: []
+    improvement_candidates: []
+    change_proposal_refs: []
+
+  remaining_human_decision:
+  recommended_next_procedure: archive_trace | request_evidence | challenge_pass | create_or_update_issue | prepare_change_proposal | user_decision_gate | stop
+
+  governance_status: candidate
+  approval_granted: false
+  memory_promotion_allowed: false
+  external_effect_authorized: false
+  repository_mutation_authorized: false

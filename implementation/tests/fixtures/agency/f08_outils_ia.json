@@ -1,0 +1,44 @@
+{
+  "fixture_version": 1,
+  "fixture_id": "F08",
+  "title": "Outils IA / ComfyUI / Hermès / retrieval",
+  "synthetic": true,
+  "purpose": "Stress-test Tool governance axes and runtime observations without installation, approval or activation inference.",
+  "project": {
+    "project_id": "fixture-project-f08",
+    "code": "F08-OUTILS",
+    "display_name": "Atelier Outils IA",
+    "status": "Référence",
+    "location": "Interne",
+    "attributes": {
+      "programme_summary": "Fixture dédiée aux outils de production visuelle, retrieval, skills et runtime Hermes.",
+      "agency_notes": "Un outil disponible ou sain n'est jamais automatiquement approuvé, sûr ou task-authorized."
+    }
+  },
+  "project_claims": [],
+  "information": [
+    {"key":"comfyui-a01","title":"ComfyUI — environnement agence","category":"Outil","source_type":"draft","source_note":"ComfyUI desktop avec environnement Python et GPU local.","index_label":"A01","summary":"Outil externe de production visuelle.","details":"L'état runtime n'est pas une Evidence et ne confère aucun pouvoir de décision.","status":"acted","limits":["consultatif"],"type_tags":["outil"],"subject_tags":["image","ia"]},
+    {"key":"retrieval-a01","title":"Comparaison retrieval","category":"Outil","source_type":"draft","source_note":"Comparer pgvector actuel, hybrid retrieval et candidats externes seulement si besoin mesuré.","index_label":"A01","summary":"Haystack candidat ; LlamaIndex/LangChain en observation.","details":"Aucun framework n'est adopté par disponibilité.","status":"acted","limits":["consultatif"],"type_tags":["analyse"],"subject_tags":["retrieval","rag"]}
+  ],
+  "contacts": {"groups":{"maitrise_oeuvre":1},"note":"Fixture interne synthétique."},
+  "work": [
+    {"id":"work-benchmark-retrieval","title":"Définir un benchmark retrieval si nécessaire","objective":"Mesurer recall, précision, citations, scope isolation, latence et complexité avant sélection d'un binding.","status":"open","requested_effect":"read_only"}
+  ],
+  "decisions": [
+    {"title":"Autoriser un futur benchmark comparatif","trigger":"manual-review","human_required":true}
+  ],
+  "tools": [
+    {"tool_id":"comfyui","catalogued":true,"discovered":true,"installed":true,"native_enabled":true,"healthy":"observed","approved":false,"safe":"unknown","update_available":true,"update_authorized":false,"activated":false,"task_authorized":false},
+    {"tool_id":"hermes-api-server","catalogued":true,"discovered":true,"installed":true,"native_enabled":true,"healthy":"observed","approved":true,"safe":"qualified_separately","update_available":false,"update_authorized":false,"activated":true,"task_authorized":false},
+    {"tool_id":"haystack","catalogued":true,"discovered":false,"installed":false,"native_enabled":false,"healthy":"unknown","approved":false,"safe":"unknown","update_available":"unknown","update_authorized":false,"activated":false,"task_authorized":false},
+    {"tool_id":"llamaindex","catalogued":true,"discovered":false,"installed":"unknown","native_enabled":"unknown","healthy":"unknown","approved":false,"safe":"unknown","update_available":"unknown","update_authorized":false,"activated":false,"task_authorized":false}
+  ],
+  "expected_observations": [
+    "installed != approved",
+    "healthy != safe",
+    "update_available != update_authorized",
+    "activated != task_authorized",
+    "runtime_success != Evidence",
+    "watchlist_item != install_instruction"
+  ]
+}

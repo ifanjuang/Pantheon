@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+HINDSIGHT_URL="${HINDSIGHT_PROJECT_URL:-http://127.0.0.1:8888}"
+BANK_ID="${HINDSIGHT_PROJECT_BANK_ID:-AGENCY_PROJECTS}"
+HOOK_URL="${HINDSIGHT_ENRICHMENT_HOOK_URL:-http://127.0.0.1:8191/hindsight/retain-completed}"
+SECRET_FILE="${HINDSIGHT_ENRICHMENT_SECRET_FILE:-/etc/pantheon-hindsight-enrichment-hook.env}"
+APPLY=0
+
+log() { printf '[hindsight-enrichment-hook] %s\n' "$*"; }
+die() { printf '[hindsight-enrichment-hook] ERROR: %s\n' "$*" >&2; exit 1; }
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  sudo deployment/ubuntu/configure-hindsight-enrichment-hook --prepare
+  sudo deployment/ubuntu/configure-hindsight-enrichment-hook --apply
+
+--prepare creates or preserves the local HMAC secret file outside Git.
+Start/recreate the hindsight-enrichment-hook Compose service after that step.
+--apply verifies that the loopback receiver is healthy, then creates or updates
+one retain.completed webhook in the selected private Hindsight bank.
+USAGE
+}
+
+while (($#)); do
+  case "$1" in
+    --prepare) APPLY=0 ;;
+    --apply) APPLY=1 ;;
+    -h|--help) usage; exit 0 ;;
+    *) die "unknown argument: $1" ;;
+  esac
+  shift
+done
+
+[[ ${EUID:-$(id -u)} -eq 0 ]] || die "requires root"
+command -v curl >/dev/null || die "curl is required"
+command -v jq >/dev/null || die "jq is required"
+command -v openssl >/dev/null || die "openssl is required"
+
+install -d -m 0700 "$(dirname "$SECRET_FILE")"
+if [[ ! -s "$SECRET_FILE" ]]; then
+  umask 077
+  printf 'HINDSIGHT_ENRICHMENT_HOOK_SECRET=%s\n' "$(openssl rand -hex 32)" > "$SECRET_FILE"
+fi
+chmod 0600 "$SECRET_FILE"
+secret="$(sed -n 's/^HINDSIGHT_ENRICHMENT_HOOK_SECRET=//p' "$SECRET_FILE" | head -n 1)"
+[[ -n "$secret" ]] || die "secret file is invalid: $SECRET_FILE"
+log "local secret prepared outside Git: $SECRET_FILE"
+
+if ((APPLY == 0)); then
+  log "start or recreate the Compose service, then run this command again with --apply"
+  exit 0
+fi
+
+curl -fsS "$HINDSIGHT_URL/health" | jq -e '.status == "healthy"' >/dev/null \
+  || die "Hindsight is unavailable at $HINDSIGHT_URL"
+curl -fsS http://127.0.0.1:8191/health | jq -e '.status == "ok"' >/dev/null \
+  || die "local receiver is unavailable; start hindsight-enrichment-hook first"
+
+base="$HINDSIGHT_URL/v1/default/banks/$BANK_ID/webhooks"
+existing="$(curl -fsS "$base?limit=1000")"
+webhook_id="$(printf '%s' "$existing" | jq -r --arg url "$HOOK_URL" '.items[] | select(.url == $url) | .id' | head -n 1)"
+payload="$(jq -nc --arg url "$HOOK_URL" --arg secret "$secret" \
+  '{url:$url, secret:$secret, event_types:["retain.completed"], enabled:true}')"
+if [[ -n "$webhook_id" ]]; then
+  curl -fsS -X PATCH "$base/$webhook_id" -H 'Content-Type: application/json' -d "$payload" >/dev/null
+  log "webhook updated for bank=$BANK_ID"
+else
+  curl -fsS -X POST "$base" -H 'Content-Type: application/json' -d "$payload" >/dev/null
+  log "webhook registered for bank=$BANK_ID"
+fi
+log "the hook is private (127.0.0.1) and queues retain.completed work only"

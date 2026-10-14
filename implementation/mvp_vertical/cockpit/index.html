@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0d0e11">
+  <meta name="color-scheme" content="dark">
+  <link rel="canonical" href="./">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,0,0">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@14.0.7/swiper-bundle.min.css"
+      integrity="sha384-qbiQGW8TLynT6rJgBowWSoRzyfSpiJaHZWLttiv+Ux2XlhlwU25/FGLq7yVBoeos"
+      crossorigin="anonymous">
+  <link rel="stylesheet" href="styles/cockpit.css">
+  <link rel="stylesheet" href="styles/cards.css">
+  <link rel="stylesheet" href="styles/families.css">
+  <link rel="stylesheet" href="styles/editors.css">
+  <title>Pantheon Cockpit</title>
+</head>
+<body class="v2-body v3-body v3-page">
+  <header class="app-header v2-header v3-header" aria-label="Commandes du Cockpit">
+    <button id="v2-menu-toggle" class="v3-floating-button v3-floating-button--menu" type="button" aria-label="Ouvrir le menu Pantheon" aria-controls="v2-header-menu" aria-expanded="false"><span aria-hidden="true">P</span></button>
+    <button id="v2-hermes-toggle" class="v3-floating-button v3-floating-button--hermes" type="button" aria-label="Ouvrir Hermès" aria-controls="v2-hermes-dock" aria-expanded="false"><span aria-hidden="true">H</span></button>
+    <output id="v2-network" class="network-pill" aria-live="polite" hidden>chargement</output>
+    <nav id="v2-header-menu" class="v3-space-menu" aria-label="Espaces principaux" hidden>
+      <span class="v3-space-menu-title">Espaces</span>
+    </nav>
+  </header>
+
+  <div class="v2-loader v2-loader--internal" hidden aria-hidden="true">
+    <input id="v2-project" autocomplete="off">
+    <input id="v2-token" type="password" autocomplete="off">
+    <button id="v2-load" type="button">Charger</button>
+    <button id="v2-load-demo" type="button">Données fictives</button>
+  </div>
+
+  <main class="v2-shell v3-shell">
+    <section class="v2-location" aria-live="polite">
+      <p id="v2-breadcrumb" class="v2-breadcrumb">Pantheon</p>
+      <p id="v2-status" class="v2-status v2-status--quiet"></p>
+    </section>
+
+    <section class="v2-navigation v3-navigation-bridge" aria-label="Navigation de la carte courante">
+      <button id="v2-previous" class="v2-nav-button" type="button" aria-label="Carte précédente" hidden>←</button>
+      <button id="v2-ascend" class="v2-nav-button v2-nav-button--vertical" type="button" aria-label="Remonter au parent">↑</button>
+      <button id="v2-flip" class="v2-nav-button" type="button" aria-label="Afficher ou masquer les détails">résumé / détails</button>
+      <button id="v2-descend" class="v2-nav-button v2-nav-button--vertical" type="button" aria-label="Descendre dans les enfants">↓</button>
+      <button id="v2-next" class="v2-nav-button" type="button" aria-label="Carte suivante" hidden>→</button>
+    </section>
+
+    <section id="v2-stage" class="v2-stage v3-stage" aria-label="Carte courante">
+      <p class="v2-empty" role="status">Chargement du Cockpit…</p>
+    </section>
+  </main>
+
+  <aside id="v2-hermes-dock" class="v2-hermes-dock" aria-label="Hermès" hidden>
+    <div class="v2-handoff-shell">
+      <div class="v2-handoff-head">
+        <div class="v2-hermes-mark" aria-hidden="true">H</div>
+        <span id="v2-handoff-scope" class="v2-handoff-scope">Aucune carte courante</span>
+        <button id="v2-hermes-close" class="v2-hermes-close" type="button" aria-label="Fermer Hermès">×</button>
+      </div>
+      <textarea id="v2-handoff-question" class="v2-handoff-question" rows="4" placeholder="Que voulez-vous faire ?" aria-label="Message pour Hermès"></textarea>
+      <section class="v2-context-panel v2-context-panel--hermes" aria-label="Ajouter un contexte">
+        <input id="v2-context-input" class="v2-context-input" autocomplete="off" placeholder="Retrouver une affaire, une personne ou un sujet…" aria-label="Rechercher un contexte">
+        <div id="v2-context-selected" class="v2-context-selected" aria-label="Contexte sélectionné"></div>
+        <p id="v2-context-message" class="v2-context-message" aria-live="polite"></p>
+        <div id="v2-context-results" class="v2-context-results" aria-label="Résultats de contexte"></div>
+      </section>
+      <input id="v2-handoff-actor" type="hidden" value="IFan">
+      <input id="v2-handoff-ttl" type="hidden" value="900">
+      <input id="v2-handoff-revoke-reason" type="hidden" value="">
+      <input id="v2-handoff-descendants" type="checkbox" checked hidden>
+      <div class="v2-handoff-actions"><button id="v2-handoff-send" type="button">Envoyer</button></div>
+      <button id="v2-handoff-prepare" type="button" hidden>Préparer</button>
+      <button id="v2-handoff-submit" type="button" hidden disabled>Créer</button>
+      <button id="v2-handoff-admit" type="button" hidden disabled>Admettre</button>
+      <button id="v2-handoff-revoke" type="button" hidden disabled>Révoquer</button>
+      <p id="v2-handoff-message" class="v2-handoff-message" aria-live="polite"></p>
+      <div id="v2-handoff-preview" class="v2-handoff-preview" aria-label="Aperçu"></div>
+      <section id="v2-role-dialogue" class="v2-role-dialogue" aria-labelledby="v2-role-dialogue-title">
+        <div class="v2-role-dialogue-head">
+          <strong id="v2-role-dialogue-title">Trace des rôles</strong>
+          <span id="v2-role-dialogue-state" class="v2-role-dialogue-state" aria-live="polite">Aucune exécution</span>
+        </div>
+        <div class="v2-role-trace-tabs" role="tablist" aria-label="Vue de la trace des rôles">
+          <button id="v2-role-view-dialogue" class="v2-role-trace-tab" type="button" role="tab" data-role-trace-view="dialogue" aria-selected="true" aria-controls="v2-role-dialogue-events">Dialogue</button>
+          <button id="v2-role-view-graph" class="v2-role-trace-tab" type="button" role="tab" data-role-trace-view="graph" aria-selected="false" aria-controls="v2-role-graph" tabindex="-1">Graphe</button>
+        </div>
+        <p class="v2-role-dialogue-boundary">Jalons publics observables — aucun raisonnement privé.</p>
+        <ol id="v2-role-dialogue-events" class="v2-role-dialogue-events" role="tabpanel" aria-labelledby="v2-role-view-dialogue" aria-live="polite"></ol>
+        <section id="v2-role-graph" class="v2-role-graph" role="tabpanel" aria-labelledby="v2-role-view-graph" hidden>
+          <p class="v2-role-graph-boundary">Ordre observable — aucun lien causal n’est déduit.</p>
+          <div class="v2-role-graph-scroll" tabindex="0" aria-label="Graphe chronologique des rôles observés">
+            <div id="v2-role-graph-lanes" class="v2-role-graph-lanes"></div>
+          </div>
+          <div id="v2-role-graph-detail" class="v2-role-graph-detail" aria-live="polite"></div>
+        </section>
+      </section>
+      <section id="v2-runtime-topology" class="v2-runtime-topology" aria-labelledby="v2-runtime-topology-title">
+        <div class="v2-runtime-topology-head">
+          <strong id="v2-runtime-topology-title">Runtime Hermes</strong>
+          <span id="v2-runtime-topology-state" class="v2-runtime-topology-state" aria-live="polite">Aucun worker observé</span>
+        </div>
+        <p class="v2-runtime-topology-boundary">Workers observés — relations parent/enfant explicites du runtime uniquement · worker ≠ rôle Pantheon.</p>
+        <div id="v2-runtime-topology-tree" class="v2-runtime-topology-tree" role="tree" aria-label="Topologie runtime Hermes"></div>
+        <div id="v2-runtime-topology-detail" class="v2-runtime-topology-detail" aria-live="polite"></div>
+      </section>
+    </div>
+  </aside>
+
+  <script type="module" src="cockpit_bootstrap.js"></script>
+</body>
+</html>

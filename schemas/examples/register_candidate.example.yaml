@@ -1,0 +1,36 @@
+# Fictional example for validation only. Not professional advice.
+candidate_id: example.register-candidate
+created_at: "2026-06-08T10:00:00Z"
+proposed_by: HEPHAISTOS
+claim: Pantheon schema files are validation contracts only, not runtime components.
+scope:
+  scope_type: repository
+  scope_id: pantheon-next
+  scope_label: Pantheon Next repository
+source: docs/governance/STATUS.md
+evidence_link: example.evidence-pack
+evidence_pack_id: example.evidence-pack
+certainty: E2
+source_date: "2026-06-01"
+received_date: "2026-06-01"
+author_detected: null
+origin_channel: repository
+source_excerpt: "Pantheon Next is a governance-first repository."
+linked_files: []
+risk:
+  level: low
+  notes: The claim repeats active repository doctrine but still remains a candidate in this example.
+proposed_durability: repository
+required_approval: C3
+status: candidate
+reviewer: null
+reviewed_at: null
+supersedes_candidate_id: null
+link_ids:
+  - example.link-foundations-seismic
+governance_refs:
+  - docs/governance/EVIDENCE_MEMORY_CANONICALIZATION.md
+  - docs/governance/GLOSSARY.md
+  - docs/governance/MEMORY.md
+  - docs/governance/EVIDENCE_PACK.md
+  - docs/governance/SCOPE_ISOLATION.md

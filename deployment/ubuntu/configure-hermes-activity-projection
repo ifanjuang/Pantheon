@@ -1,0 +1,782 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+STATE_ROOT="${PANTHEON_STATE_ROOT:-/srv/pantheon}"
+HERMES_ROOT="$STATE_ROOT/hermes"
+PROFILE="pantheon-governed"
+APPLY=0
+RESTART=0
+ROUTE_WHATSAPP=0
+WHATSAPP_CHAT_ID=""
+ALL_AUTHORIZED_WHATSAPP=0
+BIND_LOCAL_MCP=0
+CURATED_DEFAULT_SKILLS=0
+VAULT_ADAPTER=0
+ENABLE_CLARIFY=0
+ENABLE_BOUNDED_DELEGATION=0
+HERMES_USER="${HERMES_USER:-pantheon-hermes}"
+HERMES_HOME="${HERMES_HOME:-/home/$HERMES_USER}"
+HERMES_BIN="${HERMES_BIN:-$HERMES_HOME/.local/bin/hermes}"
+HERMES_SKILLS_ROOT="${HERMES_SKILLS_ROOT:-$HERMES_ROOT/skills}"
+CURATED_STAGE_ROOT=""
+LOCAL_MCP_SELECTED=""
+PANTHEON_POLICY_TOOLS_JSON='["classify_request","find_relevant_sources","route_governed_request","read_doctrine","explain_governance_structure","get_consultation_catalog","explain_architecture","get_capability_status","evaluate_preflight","prepare_task_contract_skeleton","prepare_evidence_pack_skeleton","plan_context_pack","validate_context_pack"]'
+DOCLING_TOOLS_JSON='["is_document_in_local_cache","convert_document_into_docling_document","get_overview_of_document_anchors","search_for_text_in_document_anchors","get_text_of_document_item_at_anchor"]'
+HINDSIGHT_PROJECT_TOOLS_JSON='["recall_project_memory","hindsight_project_list"]'
+VAULT_TOOLS_JSON='["find_vault_projects","list_vault_project_sources","search_vault_markdown","read_vault_markdown_lines"]'
+VAULT_MCP_URL="http://127.0.0.1:8021/mcp"
+VAULT_TOKEN_FILE="/srv/pantheon/docling/vault-read.token"
+HINDSIGHT_PROJECT_MCP_URL="http://127.0.0.1:8022/mcp"
+HINDSIGHT_PROJECT_TOKEN_FILE="/srv/pantheon/hindsight-project-router/token"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
+SKILL_NAMES=(
+  administrative-form-review
+  contract-clause-review
+  construction-cost-review
+  construction-schedule-review
+  external-commitment-guard
+  pantheon-activity-projection
+  pantheon-governed-method
+  pantheon-request-intake
+  site-report-review
+  source-research
+  technical-standard-review
+)
+SKILL_SOURCES=(
+  "$REPO_ROOT/templates/hermes/skills/administrative-form-review"
+  "$REPO_ROOT/templates/hermes/skills/contract-clause-review"
+  "$REPO_ROOT/templates/hermes/skills/construction-cost-review"
+  "$REPO_ROOT/templates/hermes/skills/construction-schedule-review"
+  "$REPO_ROOT/templates/hermes/skills/external-commitment-guard"
+  "$REPO_ROOT/templates/hermes/skills/pantheon-activity-projection"
+  "$REPO_ROOT/templates/hermes/skills/pantheon-governed-method"
+  "$REPO_ROOT/templates/hermes/skills/pantheon-request-intake"
+  "$REPO_ROOT/templates/hermes/skills/site-report-review"
+  "$REPO_ROOT/templates/hermes/skills/source-research"
+  "$REPO_ROOT/templates/hermes/skills/technical-standard-review"
+)
+CURATED_SKILL_PATHS=(
+  note-taking/obsidian
+  productivity/pdf
+  productivity/docx
+  productivity/xlsx
+  productivity/powerpoint
+  productivity/google-workspace
+  research/grounded-citations
+)
+SOUL_APPEND_SOURCE="$REPO_ROOT/templates/hermes/profiles/pantheon-governed/SOUL.append.md"
+BEGIN_MARKER="<!-- BEGIN PANTHEON ACTIVITY PROJECTION -->"
+END_MARKER="<!-- END PANTHEON ACTIVITY PROJECTION -->"
+clean_soul=""
+
+log() { printf '[pantheon-hermes-activity] %s\n' "$*"; }
+die() { printf '[pantheon-hermes-activity] ERROR: %s\n' "$*" >&2; exit 1; }
+cleanup() {
+  [[ -z "${clean_soul:-}" ]] || rm -f "$clean_soul"
+  [[ -z "${CURATED_STAGE_ROOT:-}" ]] || rm -rf "$CURATED_STAGE_ROOT"
+}
+trap cleanup EXIT
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  deployment/ubuntu/configure-hermes-activity-projection --check
+  sudo deployment/ubuntu/configure-hermes-activity-projection --apply [--restart]
+  deployment/ubuntu/configure-hermes-activity-projection --check --route-whatsapp --whatsapp-chat-id <id>
+  sudo deployment/ubuntu/configure-hermes-activity-projection --apply --route-whatsapp --whatsapp-chat-id <id> --with-curated-default-skills [--restart]
+  sudo deployment/ubuntu/configure-hermes-activity-projection --apply --with-vault-adapter --bind-local-mcp [--restart]
+  sudo deployment/ubuntu/configure-hermes-activity-projection --apply --enable-clarify [--restart]
+  sudo deployment/ubuntu/configure-hermes-activity-projection --apply --enable-clarify --enable-bounded-delegation [--restart]
+  sudo deployment/ubuntu/configure-hermes-activity-projection --apply --route-whatsapp --all-authorized-whatsapp [--restart]
+
+Installs the minimal generalist governed method, external-effect guard,
+versioned support skills and managed SOUL supplement
+into the existing pantheon-governed Hermes profile. It does not expose
+chain-of-thought, create agents, persist Role Signals or change task authorization.
+
+WhatsApp routing is opt-in. Prefer --whatsapp-chat-id. The broader
+--all-authorized-whatsapp form affects every chat already admitted by the
+WhatsApp adapter allowlist; it never widens that adapter allowlist.
+
+--bind-local-mcp merges only the existing Docling and Pantheon Policy bindings
+from the local default profile, plus the repository-owned, read-only agency
+vault Markdown reader and the project-scoped Hindsight router. It removes the
+legacy direct multi-bank and generic-memory Hindsight bindings from the
+governed profile.
+It restricts Pantheon Policy to the reviewed read-only consultation and
+governed-work tools. Missing required bindings fail closed; unrelated MCPs
+are not copied.
+
+--with-curated-default-skills copies a bounded document/research/diagram set
+from the native Hermes skill tree under HERMES_HOME/skills. It keeps
+.no-bundled-skills and keeps the admitted MCP tools directly visible to the
+local 9B model instead of relying on deferred tool discovery.
+
+--with-vault-adapter adds the agency project/source-routing module. It is an
+optional contextual adapter; it does not change the generalist identity of the
+pantheon-governed profile. --bind-local-mcp requires this explicit adapter.
+
+--enable-clarify exposes Hermes' native clarification tool to the governed CLI,
+TUI and Desktop chat surface. The parent session owns user questions; delegated
+children remain unable to call clarify.
+
+--enable-bounded-delegation exposes native Hermes delegation to the governed
+parent with a flat, single-child source-review posture. It requires
+--enable-clarify, disables inherited MCP toolsets for narrowed children and
+does not enable Kanban, child approval, recursive delegation or persistence.
+USAGE
+}
+
+while (($#)); do
+  case "$1" in
+    --check) APPLY=0 ;;
+    --apply) APPLY=1 ;;
+    --restart) RESTART=1 ;;
+    --route-whatsapp) ROUTE_WHATSAPP=1 ;;
+    --whatsapp-chat-id)
+      shift
+      (($#)) || die "--whatsapp-chat-id requires a value"
+      WHATSAPP_CHAT_ID="$1"
+      ;;
+    --all-authorized-whatsapp) ALL_AUTHORIZED_WHATSAPP=1 ;;
+    --bind-local-mcp) BIND_LOCAL_MCP=1 ;;
+    --with-curated-default-skills) CURATED_DEFAULT_SKILLS=1 ;;
+    --with-vault-adapter) VAULT_ADAPTER=1 ;;
+    --enable-clarify) ENABLE_CLARIFY=1 ;;
+    --enable-bounded-delegation) ENABLE_BOUNDED_DELEGATION=1 ;;
+    -h|--help) usage; exit 0 ;;
+    *) die "unknown argument: $1" ;;
+  esac
+  shift
+done
+
+if [[ -n "$WHATSAPP_CHAT_ID" ]] && ((ALL_AUTHORIZED_WHATSAPP == 1)); then
+  die "choose either --whatsapp-chat-id or --all-authorized-whatsapp"
+fi
+if ((ROUTE_WHATSAPP == 1)) && [[ -z "$WHATSAPP_CHAT_ID" ]] && ((ALL_AUTHORIZED_WHATSAPP == 0)); then
+  die "--route-whatsapp requires --whatsapp-chat-id or --all-authorized-whatsapp"
+fi
+if ((ROUTE_WHATSAPP == 0)) && { [[ -n "$WHATSAPP_CHAT_ID" ]] || ((ALL_AUTHORIZED_WHATSAPP == 1)); }; then
+  die "WhatsApp scope requires --route-whatsapp"
+fi
+if ((BIND_LOCAL_MCP == 1)) && ((VAULT_ADAPTER == 0)); then
+  die "--bind-local-mcp requires --with-vault-adapter"
+fi
+if ((ENABLE_BOUNDED_DELEGATION == 1)) && ((ENABLE_CLARIFY == 0)); then
+  die "--enable-bounded-delegation requires --enable-clarify"
+fi
+
+if ((VAULT_ADAPTER == 1)); then
+  SKILL_NAMES+=(project-context vault-search)
+  SKILL_SOURCES+=(
+    "$REPO_ROOT/templates/hermes/skills/project-context"
+    "$REPO_ROOT/implementation/hermes/skills/vault-search"
+  )
+fi
+
+PROFILE_ROOT="$HERMES_ROOT/profiles/$PROFILE"
+SOUL_TARGET="$PROFILE_ROOT/SOUL.md"
+CONFIG_TARGET="$HERMES_ROOT/config.yaml"
+PROFILE_CONFIG_TARGET="$PROFILE_ROOT/config.yaml"
+
+hermes_config() {
+  runuser -u "$HERMES_USER" -- env \
+    HOME="$HERMES_HOME" HERMES_HOME="$HERMES_ROOT" \
+    PATH="$HERMES_HOME/.local/bin:/usr/local/bin:/usr/bin:/bin" \
+    "$HERMES_BIN" "$@"
+}
+
+require_native_hermes() {
+  id "$HERMES_USER" >/dev/null 2>&1 || die "native Hermes service user is missing: $HERMES_USER"
+  [[ -x "$HERMES_BIN" ]] || die "native Hermes CLI is missing: $HERMES_BIN"
+  systemctl is-active --quiet pantheon-hermes-native.service \
+    || die "native Hermes gateway is not active"
+}
+
+get_optional_config_json() {
+  local key="$1" output status
+  set +e
+  output="$(hermes_config config get "$key" --json 2>&1)"
+  status=$?
+  set -e
+  if ((status == 0)); then
+    printf '%s' "$output"
+  elif [[ "$output" == *"Config key not set: $key"* ]]; then
+    printf 'null'
+  else
+    printf '%s\n' "$output" >&2
+    return "$status"
+  fi
+}
+
+normalize_json_array() {
+  jq -ce '
+    if type == "array" then .
+    elif type == "string" then (fromjson | if type == "array" then . else error("decoded value is not an array") end)
+    elif . == null then []
+    else error("value is not an array")
+    end
+  '
+}
+
+normalize_json_object() {
+  jq -ce '
+    if type == "object" then .
+    elif type == "string" then (fromjson | if type == "object" then . else error("decoded value is not an object") end)
+    elif . == null then {}
+    else error("value is not an object")
+    end
+  '
+}
+
+get_profile_optional_config_json() {
+  local profile="$1" key="$2" output status
+  set +e
+  output="$(hermes_config -p "$profile" config get "$key" --json 2>&1)"
+  status=$?
+  set -e
+  if ((status == 0)); then
+    printf '%s' "$output"
+  elif [[ "$output" == *"Config key not set: $key"* ]]; then
+    printf 'null'
+  else
+    printf '%s\n' "$output" >&2
+    return "$status"
+  fi
+}
+
+prepare_local_mcp_selection() {
+  local source_raw source_mcp selected vault_token hindsight_project_token
+  command -v jq >/dev/null || die "jq is required for local MCP binding"
+  require_native_hermes
+  [[ -f "$REPO_ROOT/implementation/hermes/skills/vault-search/scripts/vault_mcp.py" ]] \
+    || die "repository-owned agency vault MCP reader is missing"
+  [[ -r "$VAULT_TOKEN_FILE" ]] \
+    || die "agency vault reader token is missing; install the loopback service first"
+  [[ -r "$HINDSIGHT_PROJECT_TOKEN_FILE" ]] \
+    || die "Hindsight project router token is missing; install the loopback service first"
+  vault_token="$(<"$VAULT_TOKEN_FILE")"
+  hindsight_project_token="$(<"$HINDSIGHT_PROJECT_TOKEN_FILE")"
+  [[ ${#vault_token} -ge 32 ]] || die "agency vault reader token is too short"
+  [[ ${#hindsight_project_token} -ge 32 ]] || die "Hindsight project router token is too short"
+  source_raw="$(get_profile_optional_config_json default mcp_servers)" \
+    || die "cannot read local default-profile mcp_servers"
+  source_mcp="$(printf '%s' "$source_raw" | normalize_json_object)" \
+    || die "cannot parse local default-profile mcp_servers"
+  selected="$(printf '%s' "$source_mcp" | jq -ce --argjson docling_tools "$DOCLING_TOOLS_JSON" --argjson policy_tools "$PANTHEON_POLICY_TOOLS_JSON" --argjson project_tools "$HINDSIGHT_PROJECT_TOOLS_JSON" --argjson vault_tools "$VAULT_TOOLS_JSON" --arg vault_url "$VAULT_MCP_URL" --arg vault_token "$vault_token" --arg project_url "$HINDSIGHT_PROJECT_MCP_URL" --arg project_token "$hindsight_project_token" '
+  with_entries(select(.key == "docling" or .key == "pantheon-policy"))
+  | if has("pantheon-policy") then . else error("pantheon-policy binding is absent") end
+  | .docling.tools = (
+      (if (.docling.tools | type) == "object" then .docling.tools else {} end)
+      + {"include": $docling_tools, "prompts": false, "resources": false}
+    )
+  | ."pantheon-policy".tools = (
+      (if (."pantheon-policy".tools | type) == "object" then ."pantheon-policy".tools else {} end)
+      + {"include": $policy_tools, "prompts": false, "resources": false}
+    )
+  | ."pantheon-policy".sampling = (
+      (if (."pantheon-policy".sampling | type) == "object" then ."pantheon-policy".sampling else {} end)
+      + {"enabled": false}
+    )
+  | ."pantheon-policy".supports_parallel_tool_calls = false
+  | . + {"vault-read": {
+      "url": $vault_url,
+      "headers": {"Authorization": ("Bearer " + $vault_token)},
+      "tools": {"include": $vault_tools, "prompts": false, "resources": false},
+      "sampling": {"enabled": false},
+      "supports_parallel_tool_calls": false,
+      "enabled": true
+    }, "hindsight-project": {
+      "url": $project_url,
+      "headers": {"Authorization": ("Bearer " + $project_token)},
+      "tools": {"include": $project_tools, "prompts": false, "resources": false},
+      "sampling": {"enabled": false},
+      "supports_parallel_tool_calls": false,
+      "enabled": true
+    }}')" || die "cannot select governed local MCP bindings"
+  printf '%s' "$selected" | jq -e --argjson docling_tools "$DOCLING_TOOLS_JSON" --argjson policy_tools "$PANTHEON_POLICY_TOOLS_JSON" --argjson project_tools "$HINDSIGHT_PROJECT_TOOLS_JSON" --argjson vault_tools "$VAULT_TOOLS_JSON" --arg vault_url "$VAULT_MCP_URL" --arg project_url "$HINDSIGHT_PROJECT_MCP_URL" '
+    has("docling") and (has("hindsight-affaires") | not) and (has("hindsight-documentaires") | not) and (has("hindsight-memory") | not)
+    and has("pantheon-policy")
+    and (.docling.tools.include == $docling_tools)
+    and (.docling.tools.prompts == false)
+    and (.docling.tools.resources == false)
+    and (."hindsight-project".url == $project_url)
+    and (."hindsight-project".headers.Authorization | startswith("Bearer "))
+    and (."hindsight-project".tools.include == $project_tools)
+    and (."hindsight-project".tools.prompts == false)
+    and (."hindsight-project".tools.resources == false)
+    and (."hindsight-project".sampling.enabled == false)
+    and (."vault-read".url == $vault_url)
+    and (."vault-read".headers.Authorization | startswith("Bearer "))
+    and (."vault-read".tools.include == $vault_tools)
+    and (."vault-read".tools.prompts == false)
+    and (."vault-read".tools.resources == false)
+    and (."vault-read".sampling.enabled == false)
+    and (."pantheon-policy".tools.include == $policy_tools)
+    and (."pantheon-policy".tools.prompts == false)
+    and (."pantheon-policy".tools.resources == false)
+    and (."pantheon-policy".sampling.enabled == false)
+  ' >/dev/null || die "required local Hindsight bindings are absent; refusing partial inheritance"
+  LOCAL_MCP_SELECTED="$selected"
+}
+
+check_local_mcp_bindings() {
+  local current_raw current
+  [[ -n "$LOCAL_MCP_SELECTED" ]] || prepare_local_mcp_selection
+  current_raw="$(get_profile_optional_config_json "$PROFILE" mcp_servers)" \
+    || die "cannot read governed mcp_servers"
+  current="$(printf '%s' "$current_raw" | normalize_json_object)" \
+    || die "cannot parse governed mcp_servers"
+  if printf '%s' "$current" | jq -e --argjson docling_tools "$DOCLING_TOOLS_JSON" --argjson policy_tools "$PANTHEON_POLICY_TOOLS_JSON" --argjson project_tools "$HINDSIGHT_PROJECT_TOOLS_JSON" --argjson vault_tools "$VAULT_TOOLS_JSON" --arg vault_url "$VAULT_MCP_URL" --arg project_url "$HINDSIGHT_PROJECT_MCP_URL" '
+    has("docling") and (has("hindsight-affaires") | not) and (has("hindsight-documentaires") | not) and (has("hindsight-memory") | not) and has("hindsight-project")
+    and has("pantheon-policy") and has("vault-read")
+    and (."vault-read".tools.include == $vault_tools)
+    and (."vault-read".url == $vault_url)
+    and (."vault-read".headers.Authorization | startswith("Bearer "))
+    and (."hindsight-project".url == $project_url)
+    and (."hindsight-project".tools.include == $project_tools)
+    and (.docling.tools.include == $docling_tools)
+    and (.docling.tools.prompts == false)
+    and (.docling.tools.resources == false)
+    and (."pantheon-policy".tools.include == $policy_tools)
+    and (."pantheon-policy".tools.prompts == false)
+    and (."pantheon-policy".tools.resources == false)
+    and (."pantheon-policy".sampling.enabled == false)
+  ' >/dev/null; then
+    log "governed local MCP bindings and policy tool boundary are current"
+  else
+    log "governed local MCP bindings require installation or update"
+  fi
+}
+
+stage_curated_default_skills() {
+  local path name source target flat_name
+  command -v rsync >/dev/null || die "rsync is required for curated Hermes skills"
+  require_native_hermes
+  [[ -z "$CURATED_STAGE_ROOT" ]] || return 0
+  CURATED_STAGE_ROOT="$(mktemp -d)"
+  chmod 0700 "$CURATED_STAGE_ROOT"
+  for path in "${CURATED_SKILL_PATHS[@]}"; do
+    name="${path##*/}"
+    source="$HERMES_SKILLS_ROOT/$path"
+    # Prefer Hermes' category path, then accept its exact flat skill path.
+    # Never synthesize a missing skill or copy from an unrelated location.
+    if [[ ! -f "$source/SKILL.md" ]]; then
+      flat_name="$HERMES_SKILLS_ROOT/$name"
+      if [[ -f "$flat_name/SKILL.md" ]]; then
+        source="$flat_name"
+      fi
+    fi
+    target="$CURATED_STAGE_ROOT/$name"
+    [[ -f "$source/SKILL.md" ]] \
+      || die "bundled skill missing from native Hermes installation: $path"
+    install -d -m 0700 "$target"
+    rsync -a -- "$source/" "$target/" \
+      || die "cannot stage bundled native Hermes skill: $path"
+    [[ -f "$target/SKILL.md" ]] || die "staged bundled skill is incomplete: $path"
+  done
+}
+
+check_curated_default_skills() {
+  local path name source target search_mode
+  [[ -n "$CURATED_STAGE_ROOT" ]] || stage_curated_default_skills
+  for path in "${CURATED_SKILL_PATHS[@]}"; do
+    name="${path##*/}"
+    source="$CURATED_STAGE_ROOT/$name"
+    target="$PROFILE_ROOT/skills/$name"
+    if [[ -f "$target/SKILL.md" ]] && diff -qr "$source" "$target" >/dev/null; then
+      log "curated runtime skill is current: $name"
+    else
+      log "curated runtime skill requires installation or update: $name"
+    fi
+  done
+  search_mode="$(hermes_config -p "$PROFILE" config get tools.tool_search.enabled --json 2>/dev/null || true)"
+  [[ "$search_mode" == '"off"' ]] && log "governed MCP tools are directly visible" \
+    || log "governed direct MCP tool visibility requires configuration"
+}
+
+apply_curated_default_skills() {
+  local path name source target
+  [[ -n "$CURATED_STAGE_ROOT" ]] || die "curated skills were not staged"
+  for path in "${CURATED_SKILL_PATHS[@]}"; do
+    name="${path##*/}"
+    source="$CURATED_STAGE_ROOT/$name"
+    target="$PROFILE_ROOT/skills/$name"
+    [[ -f "$source/SKILL.md" ]] || die "staged bundled skill is incomplete: $path"
+    if [[ -d "$target" ]]; then cp -a "$target" "$backup_root/skills/$name"; fi
+    install -d -m 0755 "$target"
+    rsync -a --delete --exclude '__pycache__/' "$source/" "$target/"
+    chown -R "$profile_uid:$profile_gid" "$target"
+  done
+  hermes_config -p "$PROFILE" config set tools.tool_search.enabled off >/dev/null
+  [[ "$(hermes_config -p "$PROFILE" config get tools.tool_search.enabled --json)" == '"off"' ]] \
+    || die "Hermes did not retain governed tools.tool_search.enabled=off"
+  log "installed bounded image-derived skills and exposed admitted MCP tools directly"
+}
+
+apply_local_mcp_bindings() {
+  local current_raw current merged observed
+  command -v jq >/dev/null || die "jq is required for local MCP binding"
+  require_native_hermes
+  [[ -n "$LOCAL_MCP_SELECTED" ]] || die "local MCP bindings were not preflighted"
+  current_raw="$(get_profile_optional_config_json "$PROFILE" mcp_servers)" \
+    || die "cannot read governed mcp_servers"
+  current="$(printf '%s' "$current_raw" | normalize_json_object)" \
+    || die "cannot parse governed mcp_servers"
+  merged="$(jq -cn --argjson current "$current" --argjson selected "$LOCAL_MCP_SELECTED" '($current | del(."hindsight-affaires", ."hindsight-documentaires", ."hindsight-memory")) + $selected')" \
+    || die "cannot merge governed local MCP bindings"
+  hermes_config -p "$PROFILE" config set --force mcp_servers "$merged" >/dev/null
+
+  observed="$(get_profile_optional_config_json "$PROFILE" mcp_servers)"
+  printf '%s' "$observed" | normalize_json_object | jq -e --argjson docling_tools "$DOCLING_TOOLS_JSON" --argjson policy_tools "$PANTHEON_POLICY_TOOLS_JSON" --argjson project_tools "$HINDSIGHT_PROJECT_TOOLS_JSON" --argjson vault_tools "$VAULT_TOOLS_JSON" --arg vault_url "$VAULT_MCP_URL" --arg project_url "$HINDSIGHT_PROJECT_MCP_URL" '
+    has("docling") and (has("hindsight-affaires") | not) and (has("hindsight-documentaires") | not) and (has("hindsight-memory") | not) and has("hindsight-project")
+    and has("pantheon-policy") and has("vault-read")
+    and (.docling.tools.include == $docling_tools)
+    and (."vault-read".tools.include == $vault_tools)
+    and (."vault-read".url == $vault_url)
+    and (."vault-read".headers.Authorization | startswith("Bearer "))
+    and (."hindsight-project".url == $project_url)
+    and (."hindsight-project".tools.include == $project_tools)
+    and (."pantheon-policy".tools.include == $policy_tools)
+    and (."pantheon-policy".tools.prompts == false)
+    and (."pantheon-policy".tools.resources == false)
+    and (."pantheon-policy".sampling.enabled == false)
+  ' >/dev/null || die "Hermes did not retain the governed local MCP bindings"
+  hermes_config -p "$PROFILE" tools enable --platform cli hindsight-project:recall_project_memory hindsight-project:hindsight_project_list >/dev/null
+  hermes_config -p "$PROFILE" config set tools.tool_search.enabled off >/dev/null
+  log "merged reviewed local MCP bindings and bounded Pantheon Policy tools into $PROFILE"
+}
+
+preflight_whatsapp_runtime() {
+  local routes_raw allowlist_raw
+  command -v jq >/dev/null || die "jq is required for WhatsApp routing"
+  require_native_hermes
+  routes_raw="$(get_optional_config_json gateway.profile_routes)" \
+    || die "cannot read Hermes gateway.profile_routes; refusing to alter routing"
+  printf '%s' "$routes_raw" | normalize_json_array >/dev/null \
+    || die "cannot parse Hermes gateway.profile_routes; refusing to alter routing"
+  allowlist_raw="$(get_optional_config_json gateway.multiplex_profile_allowlist)" \
+    || die "cannot read Hermes gateway.multiplex_profile_allowlist; refusing to alter routing"
+  if ! printf '%s' "$allowlist_raw" | jq -e '. == null or . == "null"' >/dev/null; then
+    printf '%s' "$allowlist_raw" | normalize_json_array >/dev/null \
+      || die "cannot parse Hermes gateway.multiplex_profile_allowlist"
+  fi
+}
+
+preflight_optional_dependencies() {
+  if ((ROUTE_WHATSAPP == 1)); then preflight_whatsapp_runtime; fi
+  if ((BIND_LOCAL_MCP == 1)); then prepare_local_mcp_selection; fi
+  if ((CURATED_DEFAULT_SKILLS == 1)); then stage_curated_default_skills; fi
+}
+
+check_whatsapp_runtime() {
+  local routes_raw routes multiplex reasoning interim
+  command -v jq >/dev/null || die "jq is required for WhatsApp routing"
+  require_native_hermes
+
+  routes_raw="$(get_optional_config_json gateway.profile_routes)" \
+    || die "cannot read Hermes gateway.profile_routes"
+  routes="$(printf '%s' "$routes_raw" | normalize_json_array)" \
+    || die "cannot parse Hermes gateway.profile_routes"
+  multiplex="$(hermes_config config get gateway.multiplex_profiles --json 2>/dev/null || true)"
+  [[ "$multiplex" == "true" ]] && log "multi-profile gateway routing is enabled" \
+    || log "multi-profile gateway routing requires enabling"
+
+  if [[ -n "$WHATSAPP_CHAT_ID" ]]; then
+    printf '%s' "$routes" | jq -e --arg profile "$PROFILE" --arg chat "$WHATSAPP_CHAT_ID" '
+      any(.[]; .name == "pantheon-governed-whatsapp" and .enabled != false
+        and .platform == "whatsapp" and .profile == $profile and .chat_id == $chat)
+    ' >/dev/null && log "scoped WhatsApp route is current" \
+      || log "scoped WhatsApp route requires installation or update"
+  else
+    printf '%s' "$routes" | jq -e --arg profile "$PROFILE" '
+      any(.[]; .name == "pantheon-governed-whatsapp" and .enabled != false
+        and .platform == "whatsapp" and .profile == $profile and (has("chat_id") | not))
+    ' >/dev/null && log "authorized-WhatsApp route is current" \
+      || log "authorized-WhatsApp route requires installation or update"
+  fi
+
+  reasoning="$(hermes_config config get display.platforms.whatsapp.show_reasoning --json 2>/dev/null || true)"
+  interim="$(hermes_config config get display.platforms.whatsapp.interim_assistant_messages --json 2>/dev/null || true)"
+  [[ "$reasoning" == "false" ]] && log "WhatsApp private-reasoning display is disabled" \
+    || log "WhatsApp private-reasoning display requires disabling"
+  [[ "$interim" == "true" ]] && log "WhatsApp interim assistant messages are enabled" \
+    || log "WhatsApp interim assistant messages require enabling"
+}
+
+check_profile_display() {
+  local reasoning commentary interim deltas
+  require_native_hermes
+  reasoning="$(hermes_config -p "$PROFILE" config get display.show_reasoning --json 2>/dev/null || true)"
+  commentary="$(hermes_config -p "$PROFILE" config get display.show_commentary --json 2>/dev/null || true)"
+  interim="$(hermes_config -p "$PROFILE" config get display.interim_assistant_messages --json 2>/dev/null || true)"
+  deltas="$(hermes_config -p "$PROFILE" config get plugins.stream_reasoning_deltas --json 2>/dev/null || true)"
+  [[ "$reasoning" == "false" ]] && log "governed private-reasoning display is disabled" \
+    || log "governed private-reasoning display requires disabling"
+  [[ "$commentary" == "true" ]] && log "governed public commentary is enabled" \
+    || log "governed public commentary requires enabling"
+  [[ "$interim" == "true" ]] && log "governed interim assistant messages are enabled" \
+    || log "governed interim assistant messages require enabling"
+  [[ "$deltas" == "false" ]] && log "governed reasoning deltas are disabled" \
+    || log "governed reasoning deltas require disabling"
+}
+
+check_clarify_runtime() {
+  require_native_hermes
+  if hermes_config -p "$PROFILE" tools list --platform cli 2>/dev/null \
+      | grep -Eq 'enabled[[:space:]]+clarify'; then
+    log "governed parent clarification is enabled"
+  else
+    log "governed parent clarification requires enabling"
+  fi
+}
+
+apply_clarify_runtime() {
+  require_native_hermes
+  hermes_config -p "$PROFILE" tools enable --platform cli clarify >/dev/null
+  check_clarify_runtime
+}
+
+check_bounded_delegation_runtime() {
+  local delegation toolset attempt
+  require_native_hermes
+  delegation="$(hermes_config -p "$PROFILE" config get delegation --json)" \
+    || die "cannot read governed delegation configuration"
+  printf '%s' "$delegation" | jq -e '
+    .max_concurrent_children == 1
+    and .max_iterations == 12
+    and .child_timeout_seconds == 180
+    and .max_spawn_depth == 1
+    and .orchestrator_enabled == false
+    and .inherit_mcp_toolsets == false
+    and .subagent_auto_approve == false
+  ' >/dev/null || die "governed bounded delegation configuration differs"
+  for toolset in delegation skills; do
+    for attempt in 1 2 3; do
+      if hermes_config -p "$PROFILE" tools list --platform cli 2>/dev/null \
+          | grep -Eq "enabled[[:space:]]+${toolset}([[:space:]]|$)"; then
+        break
+      fi
+      [[ "$attempt" == 3 ]] || sleep 1
+    done
+    if [[ "$attempt" == 3 ]] && ! hermes_config -p "$PROFILE" tools list --platform cli 2>/dev/null \
+        | grep -Eq "enabled[[:space:]]+${toolset}([[:space:]]|$)"; then
+      die "governed ${toolset} tool is not enabled"
+    fi
+    log "governed ${toolset} tool is enabled"
+  done
+}
+
+apply_bounded_delegation_runtime() {
+  local current updated
+  require_native_hermes
+  current="$(hermes_config -p "$PROFILE" config get delegation --json)" \
+    || die "cannot read governed delegation configuration"
+  updated="$(printf '%s' "$current" | jq -ce '
+    . + {
+      max_concurrent_children: 1,
+      max_iterations: 12,
+      child_timeout_seconds: 180,
+      max_spawn_depth: 1,
+      orchestrator_enabled: false,
+      inherit_mcp_toolsets: false,
+      subagent_auto_approve: false
+    }
+  ')" || die "cannot prepare governed bounded delegation configuration"
+  # Hermes treats delegation as a configuration section. The merged JSON keeps
+  # every current leaf and changes only the bounded-delegation keys above; its
+  # section replacement must therefore be explicit on current Hermes releases.
+  hermes_config -p "$PROFILE" config set --force delegation "$updated" >/dev/null
+  hermes_config -p "$PROFILE" tools enable --platform cli skills delegation >/dev/null
+  check_bounded_delegation_runtime
+}
+
+apply_profile_display() {
+  require_native_hermes
+  hermes_config -p "$PROFILE" config set display.show_reasoning false >/dev/null
+  hermes_config -p "$PROFILE" config set display.show_commentary true >/dev/null
+  hermes_config -p "$PROFILE" config set display.interim_assistant_messages true >/dev/null
+  hermes_config -p "$PROFILE" config set plugins.stream_reasoning_deltas false >/dev/null
+  check_profile_display
+  if ((ENABLE_CLARIFY == 1)); then check_clarify_runtime; fi
+  if ((ENABLE_BOUNDED_DELEGATION == 1)); then check_bounded_delegation_runtime; fi
+  log "configured governed public milestone display (no private reasoning)"
+}
+
+apply_whatsapp_runtime() {
+  local routes_raw routes route merged_routes allowlist_raw allowlist merged_allowlist update_allowlist observed_routes
+  command -v jq >/dev/null || die "jq is required for WhatsApp routing"
+  require_native_hermes
+
+  routes_raw="$(get_optional_config_json gateway.profile_routes)" \
+    || die "cannot read Hermes gateway.profile_routes; refusing to replace it"
+  routes="$(printf '%s' "$routes_raw" | normalize_json_array)" \
+    || die "cannot parse Hermes gateway.profile_routes; refusing to replace it"
+
+  if [[ -n "$WHATSAPP_CHAT_ID" ]]; then
+    route="$(jq -cn --arg profile "$PROFILE" --arg chat "$WHATSAPP_CHAT_ID" '{
+      name: "pantheon-governed-whatsapp", platform: "whatsapp", chat_id: $chat,
+      profile: $profile, enabled: true
+    }')"
+  else
+    route="$(jq -cn --arg profile "$PROFILE" '{
+      name: "pantheon-governed-whatsapp", platform: "whatsapp",
+      profile: $profile, enabled: true
+    }')"
+  fi
+  if [[ -n "$WHATSAPP_CHAT_ID" ]]; then
+    merged_routes="$(printf '%s' "$routes" | jq -ce --argjson route "$route" '
+      [$route] + map(select(.name != "pantheon-governed-whatsapp"))
+    ')" || die "cannot merge Hermes gateway.profile_routes"
+  else
+    merged_routes="$(printf '%s' "$routes" | jq -ce --argjson route "$route" '
+      map(select(.name != "pantheon-governed-whatsapp")) + [$route]
+    ')" || die "cannot merge Hermes gateway.profile_routes"
+  fi
+
+  allowlist_raw="$(get_optional_config_json gateway.multiplex_profile_allowlist)" \
+    || die "cannot read Hermes gateway.multiplex_profile_allowlist; refusing to alter routing"
+  update_allowlist=0
+  if ! printf '%s' "$allowlist_raw" | jq -e '. == null or . == "null"' >/dev/null; then
+    allowlist="$(printf '%s' "$allowlist_raw" | normalize_json_array)" \
+      || die "cannot parse Hermes gateway.multiplex_profile_allowlist"
+    merged_allowlist="$(printf '%s' "$allowlist" | jq -ce --arg profile "$PROFILE" '
+      map(select(type == "string")) | if index($profile) then . else . + [$profile] end
+    ')" || die "cannot merge Hermes gateway.multiplex_profile_allowlist"
+    update_allowlist=1
+  fi
+
+  hermes_config config set gateway.multiplex_profiles true >/dev/null
+  if ((update_allowlist == 1)); then
+    hermes_config config set gateway.multiplex_profile_allowlist "$merged_allowlist" >/dev/null
+  fi
+  hermes_config config set gateway.profile_routes "$merged_routes" >/dev/null
+  hermes_config config set display.platforms.whatsapp.show_reasoning false >/dev/null
+  hermes_config config set display.platforms.whatsapp.interim_assistant_messages true >/dev/null
+  hermes_config config set display.platforms.whatsapp.tool_progress new >/dev/null
+  observed_routes="$(hermes_config config get gateway.profile_routes --json)"
+  if [[ -n "$WHATSAPP_CHAT_ID" ]]; then
+    printf '%s' "$observed_routes" | normalize_json_array | jq -e \
+      --arg profile "$PROFILE" --arg chat "$WHATSAPP_CHAT_ID" '
+        any(.[]; .name == "pantheon-governed-whatsapp" and .enabled != false
+          and .platform == "whatsapp" and .profile == $profile and .chat_id == $chat)
+      ' >/dev/null || die "Hermes did not retain the scoped governed WhatsApp route"
+  else
+    printf '%s' "$observed_routes" | normalize_json_array | jq -e --arg profile "$PROFILE" '
+      any(.[]; .name == "pantheon-governed-whatsapp" and .enabled != false
+        and .platform == "whatsapp" and .profile == $profile and (has("chat_id") | not))
+    ' >/dev/null || die "Hermes did not retain the authorized-WhatsApp governed route"
+  fi
+  [[ "$(hermes_config config get display.platforms.whatsapp.show_reasoning --json)" == "false" ]] \
+    || die "Hermes did not retain WhatsApp show_reasoning=false"
+  [[ "$(hermes_config config get display.platforms.whatsapp.interim_assistant_messages --json)" == "true" ]] \
+    || die "Hermes did not retain WhatsApp interim_assistant_messages=true"
+  log "configured supported Hermes routing/display settings (no provider patch)"
+}
+
+for skill_source in "${SKILL_SOURCES[@]}"; do
+  [[ -f "$skill_source/SKILL.md" ]] || die "skill source missing: $skill_source/SKILL.md"
+done
+[[ -f "$SOUL_APPEND_SOURCE" ]] || die "SOUL supplement missing: $SOUL_APPEND_SOURCE"
+
+if ((APPLY == 0)); then
+  [[ -d "$PROFILE_ROOT" ]] || die "Hermes profile missing: $PROFILE_ROOT"
+  for index in "${!SKILL_NAMES[@]}"; do
+    skill_name="${SKILL_NAMES[$index]}"
+    skill_source="${SKILL_SOURCES[$index]}"
+    skill_target="$PROFILE_ROOT/skills/$skill_name"
+    if [[ -f "$skill_target/SKILL.md" ]] && diff -qr "$skill_source" "$skill_target" >/dev/null; then
+      log "skill is current: $skill_name"
+    else
+      log "skill requires installation or update: $skill_name"
+    fi
+  done
+  if [[ -f "$SOUL_TARGET" ]] && grep -Fq "$BEGIN_MARKER" "$SOUL_TARGET" && grep -Fq "$END_MARKER" "$SOUL_TARGET"; then
+    log "managed SOUL block is present"
+  else
+    log "managed SOUL block requires installation"
+  fi
+  check_profile_display
+  if ((ROUTE_WHATSAPP == 1)); then check_whatsapp_runtime; fi
+  if ((BIND_LOCAL_MCP == 1)); then prepare_local_mcp_selection; check_local_mcp_bindings; fi
+  if ((CURATED_DEFAULT_SKILLS == 1)); then stage_curated_default_skills; check_curated_default_skills; fi
+  log "check only; no runtime state changed"
+  exit 0
+fi
+
+[[ ${EUID:-$(id -u)} -eq 0 ]] || die "--apply requires root"
+[[ -d "$PROFILE_ROOT" ]] || die "Hermes profile missing: $PROFILE_ROOT"
+[[ -f "$SOUL_TARGET" ]] || die "Hermes profile SOUL missing: $SOUL_TARGET"
+
+preflight_optional_dependencies
+
+stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+backup_root="$STATE_ROOT/backups/hermes-activity-$stamp"
+install -d -m 0700 "$backup_root"
+cp -a "$SOUL_TARGET" "$backup_root/SOUL.md"
+if ((ROUTE_WHATSAPP == 1)) && [[ -f "$CONFIG_TARGET" ]]; then cp -a "$CONFIG_TARGET" "$backup_root/config.yaml"; fi
+if { ((BIND_LOCAL_MCP == 1)) || ((CURATED_DEFAULT_SKILLS == 1)); } && [[ -f "$PROFILE_CONFIG_TARGET" ]]; then
+  cp -a "$PROFILE_CONFIG_TARGET" "$backup_root/profile-config.yaml"
+fi
+
+install -d -m 0755 "$PROFILE_ROOT/skills" "$backup_root/skills"
+for index in "${!SKILL_NAMES[@]}"; do
+  skill_name="${SKILL_NAMES[$index]}"
+  skill_source="${SKILL_SOURCES[$index]}"
+  skill_target="$PROFILE_ROOT/skills/$skill_name"
+  if [[ -d "$skill_target" ]]; then cp -a "$skill_target" "$backup_root/skills/$skill_name"; fi
+  install -d -m 0755 "$skill_target"
+  rsync -a --delete --exclude '__pycache__/' "$skill_source/" "$skill_target/"
+done
+
+clean_soul="$(mktemp)"
+awk -v begin="$BEGIN_MARKER" -v end="$END_MARKER" '
+  $0 == begin {managed=1; next}
+  $0 == end {managed=0; next}
+  !managed {print}
+' "$SOUL_TARGET" > "$clean_soul"
+{
+  sed -e '${/^$/d;}' "$clean_soul"
+  printf '\n%s\n' "$BEGIN_MARKER"
+  cat "$SOUL_APPEND_SOURCE"
+  printf '%s\n' "$END_MARKER"
+} > "$SOUL_TARGET"
+
+profile_uid="$(stat -c '%u' "$PROFILE_ROOT")"
+profile_gid="$(stat -c '%g' "$PROFILE_ROOT")"
+chown "$profile_uid:$profile_gid" "$SOUL_TARGET"
+for skill_name in "${SKILL_NAMES[@]}"; do
+  chown -R "$profile_uid:$profile_gid" "$PROFILE_ROOT/skills/$skill_name"
+done
+chmod 0600 "$SOUL_TARGET"
+
+log "installed minimal governed skill set and managed SOUL block for $PROFILE"
+log "backup: $backup_root"
+
+apply_profile_display
+
+if ((ROUTE_WHATSAPP == 1)); then
+  apply_whatsapp_runtime
+fi
+if ((BIND_LOCAL_MCP == 1)); then
+  apply_local_mcp_bindings
+fi
+if ((CURATED_DEFAULT_SKILLS == 1)); then
+  apply_curated_default_skills
+fi
+if ((ENABLE_CLARIFY == 1)); then
+  apply_clarify_runtime
+fi
+if ((ENABLE_BOUNDED_DELEGATION == 1)); then
+  apply_bounded_delegation_runtime
+fi
+
+if ((RESTART == 1)); then
+  systemctl restart pantheon-hermes-native.service
+  log "restarted native Hermes gateway"
+else
+  log "restart not requested; new sessions may require a Hermes restart"
+fi
+
+log "projection != persistence; visible role != autonomous agent"

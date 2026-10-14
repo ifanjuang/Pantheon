@@ -1,0 +1,220 @@
+name: Graphify Structural Gain Q2
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/graphify-structure-q2.yml"
+      - "implementation/qualification/external-pins.json"
+      - "implementation/qualification/external-upstream-observations.json"
+      - "implementation/tools/export_external_qualification_pins.py"
+      - "implementation/tools/git_material_snapshot.py"
+      - "implementation/tools/qualify_graphify_structure.py"
+      - "tests/test_graphify_structure_q2_contract.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pytest
+      - run: pytest -q tests/test_graphify_structure_q2_contract.py
+
+  upstream-observation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout current Pantheon candidate
+        uses: actions/checkout@v4
+        with:
+          path: monorepo
+
+      - name: Load canonical Graphify qualification pin
+        shell: bash
+        run: python3 monorepo/implementation/tools/export_external_qualification_pins.py --github-env "$GITHUB_ENV" graphify
+
+      - name: Checkout exact Graphify revision
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.GRAPHIFY_REPOSITORY }}
+          ref: ${{ env.GRAPHIFY_REF }}
+          path: graphify-upstream
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify and install exact upstream source
+        shell: bash
+        run: |
+          test "$(git -C graphify-upstream rev-parse HEAD)" = "$GRAPHIFY_REF"
+          grep -F "version = \"$GRAPHIFY_VERSION\"" graphify-upstream/pyproject.toml
+          grep -F 'name = "graphifyy"' graphify-upstream/pyproject.toml
+          python -m pip install ./graphify-upstream
+          graphify --version | tee "$RUNNER_TEMP/graphify-version.txt"
+          grep -F "$GRAPHIFY_VERSION" "$RUNNER_TEMP/graphify-version.txt"
+
+      - name: Record Pantheon tracked baseline
+        shell: bash
+        run: |
+          OUT="$RUNNER_TEMP/graphify-structure-q2"
+          mkdir -p "$OUT"
+          OUT="$OUT" python - <<'PY'
+          import json
+          import os
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          repo = Path("monorepo")
+          out = Path(os.environ["OUT"])
+          sys.path.insert(0, str((repo / "implementation").resolve()))
+          from tools.git_material_snapshot import snapshot_tracked_material
+
+          snapshot = snapshot_tracked_material(repo)
+          (out / "pantheon-before.json").write_text(
+              json.dumps(snapshot, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          (out / "metadata.json").write_text(
+              json.dumps(
+                  {
+                      "candidate_repository": os.environ["GRAPHIFY_REPOSITORY"],
+                      "candidate_package": os.environ["GRAPHIFY_PACKAGE"],
+                      "candidate_version": os.environ["GRAPHIFY_VERSION"],
+                      "candidate_ref": os.environ["GRAPHIFY_REF"],
+                      "pantheon_commit": subprocess.check_output(
+                          ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+                      ).strip(),
+                      "scope": "Pantheon tracked repository, Graphify code-only extraction",
+                      "provider_surfaces": ["extract --code-only --no-cluster"],
+                      "excluded_surfaces": [
+                          "semantic LLM extraction",
+                          "global graph mutation",
+                          "watch mode",
+                          "skill installation",
+                          "Pantheon relation persistence",
+                          "Evidence admission",
+                          "mutation-gate qualification",
+                      ],
+                  },
+                  indent=2,
+                  sort_keys=True,
+              ) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Execute pinned structural extraction twice
+        shell: bash
+        run: |
+          OUT="$RUNNER_TEMP/graphify-structure-q2"
+          graphify extract "$GITHUB_WORKSPACE/monorepo" \
+            --out "$OUT/run1" \
+            --code-only \
+            --no-cluster \
+            --force \
+            --max-workers 2
+          graphify extract "$GITHUB_WORKSPACE/monorepo" \
+            --out "$OUT/run2" \
+            --code-only \
+            --no-cluster \
+            --force \
+            --max-workers 2
+          test -s "$OUT/run1/graphify-out/graph.json"
+          test -s "$OUT/run2/graphify-out/graph.json"
+
+      - name: Summarize marginal structural signal
+        shell: bash
+        run: |
+          OUT="$RUNNER_TEMP/graphify-structure-q2"
+          python monorepo/implementation/tools/qualify_graphify_structure.py \
+            "$OUT/run1/graphify-out/graph.json" \
+            --output "$OUT/run1-analysis.json"
+          python monorepo/implementation/tools/qualify_graphify_structure.py \
+            "$OUT/run2/graphify-out/graph.json" \
+            --output "$OUT/run2-analysis.json"
+
+          OUT="$OUT" python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          out = Path(os.environ["OUT"])
+          first = json.loads((out / "run1-analysis.json").read_text(encoding="utf-8"))
+          second = json.loads((out / "run2-analysis.json").read_text(encoding="utf-8"))
+          comparison = {
+              "same_normalized_graph_fingerprint": (
+                  first["normalized_graph_fingerprint"]
+                  == second["normalized_graph_fingerprint"]
+              ),
+              "same_counts": first["counts"] == second["counts"],
+              "same_relation_histogram": first["relations"] == second["relations"],
+              "run1_fingerprint": first["normalized_graph_fingerprint"],
+              "run2_fingerprint": second["normalized_graph_fingerprint"],
+              "interpretation": "Observation only; mismatch is a provider finding, not a harness failure.",
+          }
+          (out / "determinism-observation.json").write_text(
+              json.dumps(comparison, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps(comparison, sort_keys=True))
+          PY
+
+      - name: Enforce read-only Pantheon boundary
+        shell: bash
+        run: |
+          OUT="$RUNNER_TEMP/graphify-structure-q2"
+          OUT="$OUT" python - <<'PY'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          repo = Path("monorepo")
+          out = Path(os.environ["OUT"])
+          sys.path.insert(0, str((repo / "implementation").resolve()))
+          from tools.git_material_snapshot import porcelain_status, snapshot_tracked_material
+
+          before = json.loads((out / "pantheon-before.json").read_text(encoding="utf-8"))
+          after = snapshot_tracked_material(repo)
+          status = porcelain_status(repo)
+          changed = sorted(
+              path for path in set(before) | set(after)
+              if before.get(path) != after.get(path)
+          )
+          observation = {
+              "tracked_material_unchanged": before == after,
+              "working_tree_clean": not status,
+              "changed_tracked_files": changed,
+              "git_status": status,
+              "pantheon_state_mutated": bool(changed or status),
+              "evidence_admitted": False,
+              "governed_relations_persisted": False,
+              "provider_binding_changed": False,
+              "mutation_inventory_replaced": False,
+          }
+          (out / "mutation-observation.json").write_text(
+              json.dumps(observation, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps(observation, sort_keys=True))
+          if observation["pantheon_state_mutated"]:
+              raise SystemExit("Graphify qualification mutated the Pantheon checkout")
+          PY
+
+      - name: Upload raw bounded observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: graphify-structure-q2-${{ github.run_id }}
+          path: ${{ runner.temp }}/graphify-structure-q2/
+          if-no-files-found: error
+          retention-days: 30

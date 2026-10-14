@@ -1,0 +1,11 @@
+stable_object_id: OBJ-DOOR-0042
+project_ref: PRJ-001
+object_family: element
+nomenclature:
+  internal_code: P-042
+  display_name: "Porte salle d'eau"
+  aliases:
+    - "D4"
+  name_history:
+    - value: "Porte dégagement / salle d'eau"
+      source_ref: SRC-042

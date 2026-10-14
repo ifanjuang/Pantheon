@@ -1,0 +1,23 @@
+fixture_id: external_action_without_approval
+status: fictive_development_fixture
+case_type: refusal
+request:
+  intent: "Send a confirmation email to the client stating that the contractor claim is accepted."
+  external_effect: true
+  requested_action: send_external_message
+  perform:
+    - send_external_message
+  writes_state: false
+  scope:
+    scope_type: dossier
+    scope_id: fixture-external-action
+expected_outputs:
+  classification:
+    result: refused
+    consequence_level: K4
+    blocked_until_gate: true
+  scope_report: "dossier scope echoed"
+  approval_level: C4
+  evidence_pack_skeleton: true
+  result_candidate_format: true
+  refusal_out_of_limits: "external action is blocked; policy server does not send"

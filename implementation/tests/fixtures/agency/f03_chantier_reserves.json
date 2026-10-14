@@ -1,0 +1,53 @@
+{
+  "fixture_version": 1,
+  "fixture_id": "F03",
+  "title": "Chantier / réserves / sinistre / assurance",
+  "synthetic": true,
+  "purpose": "Stress-test Information provenance, Work, Decision and ChangeCandidate on consequential chantier situations.",
+  "project": {
+    "project_id": "fixture-project-f03",
+    "code": "F03-CHANTIER",
+    "display_name": "Rénovation du Clos",
+    "phase": "DET",
+    "status": "En cours",
+    "location": "Normandie",
+    "attributes": {
+      "programme_summary": "Rénovation lourde avec reprise de lots techniques et suivi de réserves.",
+      "agency_notes": "Distinguer fait constaté, interprétation, responsabilité et décision humaine."
+    }
+  },
+  "project_claims": [
+    {"claim_type": "budget", "value": 420000, "unit": "EUR", "status": "source_backed", "backing_information_key": "marche-a01"},
+    {"claim_type": "reception_date", "value": "2026-09-15", "status": "asserted", "backing_information_key": null}
+  ],
+  "information": [
+    {"key":"cr-a01","title":"Compte rendu de chantier n°18","category":"Chantier","source_type":"file","source_ref":"fixture://f03/cr18.pdf","index_label":"A01","summary":"Constats et actions par lot.","details":"Présence d'une fuite localisée et réserves de finition. Les causes restent à qualifier.","status":"acted","limits":["contractuel"],"type_tags":["compte-rendu"],"subject_tags":["chantier","plomberie","finitions"]},
+    {"key":"constat-a01","title":"Constat photographique","category":"Constat","source_type":"file","source_ref":"fixture://f03/constat.pdf","index_label":"A01","summary":"Photographies datées de désordres visibles.","details":"Le constat documente l'état apparent sans attribuer automatiquement une responsabilité.","status":"acted","limits":["consultatif"],"type_tags":["constat"],"subject_tags":["sinistre","chantier"]},
+    {"key":"email-client-a01","title":"Email du maître d'ouvrage","category":"Correspondance","source_type":"link","source_ref":"fixture://f03/email-client","index_label":"A01","summary":"Demande d'explication et de calendrier de reprise.","details":"Message synthétique anonymisé.","status":"acted","limits":["contractuel"],"type_tags":["email"],"subject_tags":["client","reservations"]},
+    {"key":"assureur-a01","title":"Déclaration de sinistre","category":"Assurance","source_type":"draft","source_note":"Projet de déclaration à l'assureur, à valider avant envoi.","index_label":"A01","summary":"Version de travail non envoyée.","details":"Aucune qualification juridique automatique à partir des constats.","status":"in_progress","limits":["questionnement"],"type_tags":["courrier"],"subject_tags":["assurance","sinistre"]},
+    {"key":"maf-a01","title":"Dossier MAF DS-DEMO-2026-157675","category":"Assurance","source_type":"link","source_ref":"fixture://f03/maf/ds-demo-2026-157675","index_label":"A01","information_date":"2026-07-24","author":"MAF — gestionnaire du dossier","summary":"Ouverture du dossier confirmée ; pièces complémentaires attendues.","details":"Référence externe, dernière position connue, interlocuteur et demande de pièces sont projetés sans valoir reconnaissance de responsabilité.","status":"acted","limits":["consultatif"],"type_tags":["email"],"subject_tags":["assurance","sinistre","responsabilite"]},
+    {"key":"email-maf-a01","title":"Transmission de pièces à la MAF","category":"Correspondance","source_type":"link","source_ref":"fixture://f03/gmail/thread-maf-demo","index_label":"A01","information_date":"2026-07-25","author":"Agence Test","summary":"Contrat, constat et correspondances transmis pour instruction du dossier.","details":"La trace de transmission est distincte du contenu des pièces et de leur qualification probatoire.","status":"acted","limits":["contractuel"],"type_tags":["email"],"subject_tags":["assurance","pieces-contractuelles"]},
+    {"key":"marche-a01","title":"Marché de travaux signé","category":"Marché","source_type":"file","source_ref":"fixture://f03/marche.pdf","index_label":"A01","summary":"Montant contractuel synthétique : 420 000 €.","details":"Document source-backed pour le claim budget/montant contractuel de la fixture.","status":"acted","limits":["contractuel"],"type_tags":["contrat"],"subject_tags":["travaux","budget"]}
+  ],
+  "contacts": {"groups":{"maitrise_ouvrage":2,"maitrise_oeuvre":1,"entreprises_travaux":5,"assurance":1},"note":"Contacts synthétiques groupés dans une seule carte."},
+  "work": [
+    {"id":"work-analyse-reserves","title":"Analyser les réserves par lot","objective":"Séparer faits, hypothèses, demandes de reprise et points à vérifier.","status":"in_progress","requested_effect":"draft"},
+    {"id":"work-reponse-client","title":"Préparer la réponse au maître d'ouvrage","objective":"Produire un email prêt à valider, sans attribuer de responsabilité non établie.","status":"review","requested_effect":"external_effect"},
+    {"id":"work-pieces-maf","title":"Compléter les pièces du dossier MAF","objective":"Identifier les pièces demandées, leur version et leur auteur avant transmission.","status":"in_progress","responsibilities":["architecte référent"],"requested_effect":"draft"}
+  ],
+  "decisions": [
+    {"title":"Valider la réponse au maître d'ouvrage","trigger":"work-reponse-client","human_required":true},
+    {"title":"Valider la déclaration assureur","trigger":"assureur-a01","human_required":true}
+  ],
+  "change_candidates": [
+    {"candidate_id":"fixture-f03-candidate-1","target":"project","base_revision":4,"status":"pending_review","changes":[{"field":"agency_notes","before":"Suivi DET en cours","proposed":"Suivi DET en cours — sinistre déclaré à vérifier"}],"provenance":["constat-a01","email-client-a01"],"idempotency_key":"fixture-f03-cc-1"}
+  ],
+  "expected_observations": [
+    "Un constat source-backed ne devient pas automatiquement Evidence ni attribution de responsabilité.",
+    "Work en review produit une Decision humaine distincte.",
+    "ChangeCandidate conserve base_revision, diff et provenance.",
+    "Une information de travail assurance peut coexister avec les constats ACTÉS.",
+    "Une correspondance Gmail reste une source liée ; sa lecture ou sa transmission ne reconnaît aucune responsabilité.",
+    "La référence MAF, la dernière position et les pièces attendues enrichissent le contexte sans devenir un statut Project."
+  ]
+}

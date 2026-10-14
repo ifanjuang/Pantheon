@@ -1,0 +1,368 @@
+qualification_id: q949.spatial-perception-episodic-memory
+status: qualification_only
+issue_ref: 949
+
+purpose: >-
+  Qualify the boundary between dense visual/spatial perception, free episodic
+  runtime memory, structured Project Anatomy semantics, and task-local working
+  context without creating a second graph, memory owner, or spatial truth store.
+
+authority:
+  adopts_schema: false
+  adopts_runtime: false
+  adopts_provider: false
+  creates_project_truth: false
+  creates_evidence: false
+  creates_decision: false
+  creates_register_entry: false
+  authorizes_external_effect: false
+
+cognitive_layers:
+  - layer_id: perception
+    role: >-
+      Recalculable source-linked visual/spatial derivatives such as masks,
+      detections, depth, normals, poses, tracks and reconstructed geometry.
+    persistence_posture: derived_representation_only
+
+  - layer_id: episodic_memory
+    role: >-
+      Preserve singular observations, ambiguity, narrative, hypotheses and
+      associations using a free payload with a minimal routing envelope when
+      those routing facts are honestly known.
+    persistence_posture: runtime_memory_only
+
+  - layer_id: structured_semantics
+    role: >-
+      Reuse Project Anatomy and other governed owners for stable identity,
+      addressable claims, relations and requirements when selected information
+      actually deserves semantic structure.
+    persistence_posture: existing_governed_owners_only
+
+  - layer_id: working_context
+    role: >-
+      Compose the smallest bounded context needed by Hermes or another admitted
+      runtime for one task; context is neither memory authority nor persistence.
+    persistence_posture: task_local
+
+governance_boundary:
+  principle: >-
+    Retrieval may compose structured and free material in both directions, but
+    promotion from runtime memory or perception into governed semantics remains
+    one-way through existing validation, review and application owners.
+  invariants:
+    - memory != Evidence
+    - association != relation_claim
+    - perception != measurement
+    - source_representation != stable_object
+    - retrieved != true
+    - candidate != admitted
+    - projection != persistence
+    - runtime_success != authorization
+
+perception_stages:
+  segmentation:
+    candidate_families: [SAM-family, equivalent]
+    output: masks_or_regions
+    semantic_limit: mask_does_not_define_stable_identity
+
+  detection:
+    candidate_families: [YOLO-family, equivalent]
+    output: class_and_region_candidates
+    semantic_limit: detector_class_does_not_define_project_object
+
+  monocular_depth:
+    candidate_families: [Depth-Anything-family, equivalent]
+    output: relative_or_model_specific_depth_field
+    semantic_limit: predicted_depth_is_not_surveyed_geometry
+
+  surface_normals:
+    candidate_families: [replaceable-normal-estimator]
+    output: local_surface_orientation_field
+    semantic_limit: predicted_normal_is_not_professionally_measured_orientation
+
+  multi_view_geometry:
+    candidate_families: [SfM-like, transformer-multiview, equivalent]
+    output: camera_pose_tracks_point_map_or_reconstruction
+    semantic_limit: multiview_track_does_not_accept_project_identity
+
+coordinate_ladder:
+  - PIXEL
+  - CAMERA
+  - LOCAL_RECONSTRUCTION
+  - PROJECT
+
+coordinate_rules:
+  - PROJECT requires explicit alignment or calibration provenance.
+  - Local XYZ without a declared frame is not project geometry.
+  - Relative monocular depth may be useful while metric scale remains unresolved.
+  - A transform proposal is not an admitted project-coordinate mapping.
+
+derived_representations:
+  - derived_id: drv.photo-01.seg-opening
+    source_ref: source.photo.zone-a.01
+    stage: segmentation
+    model_identity: synthetic.segmentation.fixture
+    model_version: qualification-only
+    config_ref: config.synthetic.segmentation.default
+    coordinate_frame: PIXEL
+    locator: {type: image_bbox, bbox: [120, 80, 420, 520]}
+    authoritative: false
+    professional_measurement: false
+
+  - derived_id: drv.photo-01.depth
+    source_ref: source.photo.zone-a.01
+    stage: monocular_depth
+    model_identity: synthetic.depth.fixture
+    model_version: qualification-only
+    config_ref: config.synthetic.depth.relative
+    coordinate_frame: CAMERA
+    depth_mode: relative
+    metric_scale_resolved: false
+    authoritative: false
+    professional_measurement: false
+
+  - derived_id: drv.photo-01.normals
+    source_ref: source.photo.zone-a.01
+    stage: surface_normals
+    model_identity: synthetic.normals.fixture
+    model_version: qualification-only
+    config_ref: config.synthetic.normals.default
+    coordinate_frame: CAMERA
+    authoritative: false
+    professional_measurement: false
+
+  - derived_id: drv.zone-a.multiview-cluster-01
+    source_refs:
+      - source.photo.zone-a.01
+      - source.photo.zone-a.02
+      - source.photo.zone-a.03
+    stage: multi_view_geometry
+    model_identity: synthetic.multiview.fixture
+    model_version: qualification-only
+    config_ref: config.synthetic.multiview.default
+    coordinate_frame: LOCAL_RECONSTRUCTION
+    project_alignment_status: unresolved
+    authoritative: false
+    professional_measurement: false
+
+free_episodes:
+  - episode_id: episode.zone-a.irregular-wall
+    scope: project-a
+    observed_at: "2026-09-03T18:00:00Z"
+    free_payload: >-
+      The wall appears slightly irregular near the opening. Compare this region
+      with the previous visit before treating it as a defect or measurement.
+    refs:
+      - {kind: source, ref: source.photo.zone-a.01, locator: image:region:opening-left}
+      - {kind: derived, ref: drv.photo-01.seg-opening}
+      - {kind: derived, ref: drv.photo-01.normals}
+    stable_identity_status: unresolved
+    provider_provenance: synthetic.runtime-memory.fixture
+
+  - episode_id: episode.zone-a.same-feature-cluster
+    scope: project-a
+    free_payload: >-
+      Three photographs appear to show the same physical opening, and two
+      independently retained episodes appear relevant to the same feature. Keep
+      these associations provisional until project identity is reviewed.
+    refs:
+      - {kind: source, ref: source.photo.zone-a.01}
+      - {kind: source, ref: source.photo.zone-a.02}
+      - {kind: source, ref: source.photo.zone-a.03}
+      - {kind: derived, ref: drv.zone-a.multiview-cluster-01}
+      - {kind: episode, ref: episode.zone-a.irregular-wall}
+      - {kind: episode, ref: episode.zone-a.contextual-recall}
+    association:
+      status: candidate
+      proposed_same_feature: true
+      identity_represents_admitted: false
+    provider_provenance: synthetic.runtime-memory.fixture
+
+  - episode_id: episode.zone-a.contextual-recall
+    scope: project-a
+    free_payload: >-
+      The opening visible in the site photographs may correspond to the project
+      window used as structured retrieval context; retain the episode even if the
+      match remains provisional.
+    refs:
+      - {kind: anatomy_context, ref: stable-object:window-17}
+      - {kind: source, ref: source.photo.zone-a.02}
+    stable_identity_status: candidate_only
+    provider_provenance: synthetic.runtime-memory.fixture
+
+  - episode_id: episode.zone-a.ambiguous-opening
+    scope: project-a
+    free_payload: >-
+      The photographed opening could correspond to either of two nearby project
+      openings. Do not select one solely from visual similarity.
+    refs:
+      - {kind: source, ref: source.photo.zone-a.03}
+      - {kind: anatomy_candidate, ref: stable-object:window-17}
+      - {kind: anatomy_candidate, ref: stable-object:window-18}
+    identity_candidates:
+      - stable-object:window-17
+      - stable-object:window-18
+    resolution_status: unresolved
+    selected_identity: null
+    provider_provenance: synthetic.runtime-memory.fixture
+
+qualification_cases:
+  - case_id: Q949-FREE-NO-IDENTITY
+    episode_ref: episode.zone-a.irregular-wall
+    expected:
+      free_payload_retained: true
+      stable_object_required: false
+      semantic_promotion_required: false
+
+  - case_id: Q949-CROSS-EPISODE-ASSOCIATION
+    episode_ref: episode.zone-a.same-feature-cluster
+    expected:
+      associative_cluster_allowed: true
+      linked_episode_count: 2
+      relation_claim_created: false
+      identity_represents_admitted: false
+
+  - case_id: Q949-STRUCTURED-CONTEXT-RECALL
+    query_context_ref: stable-object:window-17
+    expected_episode_refs:
+      - episode.zone-a.contextual-recall
+      - episode.zone-a.ambiguous-opening
+    expected:
+      structured_context_may_improve_recall: true
+      recalled_episode_becomes_project_truth: false
+
+  - case_id: Q949-AMBIGUITY-SURVIVES
+    episode_ref: episode.zone-a.ambiguous-opening
+    expected:
+      identity_candidate_count: 2
+      selected_identity: null
+      automatic_resolution_forbidden: true
+
+retrieval_comparison:
+  question: >-
+    What do we know around this opening, including structured project facts,
+    photos, unusual observations and unresolved hypotheses?
+  structured_only:
+    context_refs:
+      - stable-object:window-17
+      - document:plan-a203:detail-d12
+    expected_scope: structured_facts_and_document_refs
+  structured_plus_episodic_spatial:
+    context_refs:
+      - stable-object:window-17
+      - document:plan-a203:detail-d12
+      - episode.zone-a.irregular-wall
+      - episode.zone-a.same-feature-cluster
+      - drv.zone-a.multiview-cluster-01
+    expected_scope: >-
+      structured facts plus source-linked narrative observations, spatial
+      derivatives and unresolved associations
+  benchmark_claim: none
+  qualification_goal: useful_additional_recall_without_authority_transfer
+
+selected_promotion:
+  source_episode_ref: episode.zone-a.irregular-wall
+  rule: >-
+    Distill one useful observation into the existing Observation Bundle candidate
+    seam; do not promote the episode itself and do not fabricate stable identity.
+  observation_bundle_candidate:
+    observation_bundle_id: observation-bundle.q949.photo-irregularity
+    project_ref: project-a
+    task_contract_ref: task-contract.q949.observe-photo-region
+    basis:
+      source_artifact_refs: [source.photo.zone-a.01]
+      source_version_refs: [photo-receipt:zone-a.01]
+      exact_digests:
+        - source_artifact_ref: source.photo.zone-a.01
+          source_version_ref: photo-receipt:zone-a.01
+          digest: sha256:q949-photo-01
+    method:
+      capability_id: image.observe.site_condition
+      binding_id: binding.synthetic.q949.image
+      operation_id: image.observe.region.v1
+      adapter_ref: pantheon.synthetic.q949
+      adapter_version: 1.0.0
+      request_ref: request-q949-selected-promotion
+    observed_at: "2026-09-03T18:00:00Z"
+    freshness_token: sha256:q949-photo-01
+    scope:
+      document_refs: [photo-set:zone-a]
+      region_refs: [region:opening-left]
+    coverage:
+      completeness: partial_for_declared_scope
+      observed_scope:
+        document_refs: [photo-set:zone-a]
+        region_refs: [region:opening-left]
+      excluded_reasons: [hidden_geometry_not_visible, metric_scale_unresolved]
+      absence_inference_allowed: false
+    limitations:
+      - Visual inference only; no professional measurement or defect conclusion.
+      - Metric scale and stable project identity remain unresolved.
+    source_representations:
+      - representation_id: rep.q949.photo-01.opening-left
+        project_ref: project-a
+        source_artifact_ref: source.photo.zone-a.01
+        source_version_ref: photo-receipt:zone-a.01
+        source_kind: photo
+        identifiers:
+          - {scheme: image.region, value: opening-left}
+        locators:
+          - {type: other, value: image:region:opening-left}
+        observed_at: "2026-09-03T18:00:00Z"
+        binding_ref: binding.synthetic.q949.image
+        adapter_version: 1.0.0
+        freshness_token: sha256:q949-photo-01
+        content_digest: sha256:q949-photo-01-opening-left
+        coordinate_frame: PIXEL
+        context:
+          document_ref: photo-set:zone-a
+          native_context:
+            derived_refs:
+              - drv.photo-01.seg-opening
+              - drv.photo-01.normals
+            episodic_memory_ref: episode.zone-a.irregular-wall
+        proof_status: candidate
+        limitations:
+          - Region localization is source-local and does not resolve project identity.
+        evidence_refs: []
+    attribute_claim_candidates:
+      - attribute_claim_id: claim.q949.photo-01.apparent-surface-irregularity
+        subject_ref:
+          entity_type: source_representation
+          entity_id: rep.q949.photo-01.opening-left
+        attribute_key: physical.apparent_condition
+        value:
+          value_type: controlled_label
+          value: apparent_surface_irregularity
+        assertion_mode: derived
+        source_authority: model_interpretation_candidate
+        proof_status: candidate
+        source_representation_refs:
+          - rep.q949.photo-01.opening-left
+    relation_claim_candidates: []
+    gaps:
+      - {code: measurement.scale_unresolved, subject_refs: [rep.q949.photo-01.opening-left]}
+      - {code: identity.stable_object_unresolved, subject_refs: [rep.q949.photo-01.opening-left]}
+    withheld:
+      - {code: measurement.professional_geometry_withheld, subject_refs: [rep.q949.photo-01.opening-left]}
+    warnings:
+      - {code: interpretation.not_defect_conclusion, subject_refs: [rep.q949.photo-01.opening-left]}
+    operational_outcome: success
+    authority:
+      is_fact: false
+      is_evidence: false
+      is_decision: false
+      is_memory: false
+      is_apu_write: false
+      authorizes_external_effect: false
+
+non_goals:
+  - no SpatialGraph owner
+  - no EpisodicMemory Pantheon primitive
+  - no fifth Project Anatomy primitive
+  - no universal persisted scene graph
+  - no automatic stable-object creation
+  - no automatic Evidence or Decision promotion
+  - no SAM, YOLO, Depth Anything or multiview provider adoption
+  - no pixel-level or point-level canonical claim explosion
+  - no claim that monocular depth is a professional measurement

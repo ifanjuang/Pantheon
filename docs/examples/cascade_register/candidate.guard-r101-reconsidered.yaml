@@ -1,0 +1,24 @@
+# Fictional example for validation only. Not professional advice.
+candidate_id: guard.r-101.facade-finish-reconsidered
+created_at: "2026-06-03T09:00:00Z"
+proposed_by: HEPHAISTOS
+claim: The courtyard facade finish is zinc.
+scope:
+  scope_type: project
+  scope_id: atlas-guard-fixture
+  scope_label: Atlas guard fixture
+source: signed facade schedule
+evidence_link: guard.ev.facade-signed-schedule
+certainty: E3
+risk:
+  level: low
+  notes: New stronger evidence justifies explicit reconsideration; the prior rejection remains in history.
+proposed_durability: project
+required_approval: C2
+status: under_review
+supersedes_candidate_id: guard.r-100.facade-finish
+reviewer: null
+reviewed_at: null
+governance_refs:
+  - docs/governance/EVIDENCE_MEMORY_CANONICALIZATION.md
+  - docs/governance/MEMORY.md

@@ -1,0 +1,106 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Architecture Project Understanding Source Representation
+description: >-
+  V0.2 source-bound occurrence observed by an admitted adapter. A representation
+  may exist before Pantheon knows which stable project object it represents.
+  Persisting it records source reality, not project truth.
+type: object
+additionalProperties: false
+required:
+  - representation_id
+  - project_ref
+  - source_artifact_ref
+  - source_kind
+  - identifiers
+  - observed_at
+  - binding_ref
+  - adapter_version
+  - freshness_token
+  - proof_status
+properties:
+  representation_id:
+    type: string
+    minLength: 1
+  project_ref:
+    type: string
+    minLength: 1
+  source_artifact_ref:
+    type: string
+    minLength: 1
+  source_version_ref:
+    type: string
+    minLength: 1
+  source_kind:
+    $ref: "shared.schema.yaml#/$defs/source_kind"
+  identifiers:
+    type: array
+    minItems: 1
+    uniqueItems: true
+    items:
+      $ref: "shared.schema.yaml#/$defs/source_identifier"
+  locators:
+    type: array
+    default: []
+    items:
+      $ref: "shared.schema.yaml#/$defs/locator"
+  observed_at:
+    $ref: "shared.schema.yaml#/$defs/date_time"
+  binding_ref:
+    type: string
+    minLength: 1
+  adapter_version:
+    type: string
+    minLength: 1
+  freshness_token:
+    type: string
+    minLength: 1
+  content_digest:
+    type: string
+    minLength: 1
+  coordinate_frame:
+    $ref: "shared.schema.yaml#/$defs/coordinate_frame"
+  calibration_ref:
+    type: string
+    minLength: 1
+  context:
+    type: object
+    additionalProperties: false
+    properties:
+      document_ref: { type: string, minLength: 1 }
+      view_ref: { type: string, minLength: 1 }
+      phase_ref: { type: string, minLength: 1 }
+      design_option_ref: { type: string, minLength: 1 }
+      workset_ref: { type: string, minLength: 1 }
+      level_ref: { type: string, minLength: 1 }
+      sheet_ref: { type: string, minLength: 1 }
+      page: { type: integer, minimum: 1 }
+      native_context:
+        type: object
+        additionalProperties: true
+  proof_status:
+    $ref: "shared.schema.yaml#/$defs/proof_status"
+  limitations:
+    type: array
+    uniqueItems: true
+    default: []
+    items:
+      type: string
+      minLength: 1
+  evidence_refs:
+    type: array
+    default: []
+    items:
+      $ref: "shared.schema.yaml#/$defs/evidence_ref"
+  governance_refs:
+    type: array
+    items: { type: string }
+    default:
+      - docs/domain-packs/architecture/PROJECT_ANATOMY_MODEL.md
+      - docs/domain-packs/architecture/PROJECT_UNDERSTANDING_ADAPTER_CONTRACT.md
+      - schemas/architecture-project-understanding/shared.schema.yaml
+x-boundary:
+  runtime_execution: false
+  provider_routing: false
+  memory_promotion: false
+  automatic_canonization: false
+  approval_engine: false

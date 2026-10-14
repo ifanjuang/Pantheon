@@ -1,0 +1,18 @@
+derivation_id: DERIV-DRAW-009
+produces:
+  - claim_type: attribute_claim
+    claim_id: AC-DRAW044-area
+method: drawing.scaled_measurement
+method_version: "1"
+inputs:
+  - CAL-SRC042
+  - REP-DRAW-044
+binding_ref: drawing_takeoff_local
+adapter_version: "0.9.38"
+deterministic: true
+method_penalty: 0.92
+rule: "area = polygon_area_px * calibration_scale^2"
+produced_certainty_score: 0.74
+produced_tolerance:
+  m2: 0.15
+notes: "The derivation records the calculation; it does not approve the produced claim."

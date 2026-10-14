@@ -1,0 +1,170 @@
+#!/usr/bin/env bash
+# Bootstrap one WireGuard server and one operator peer without placing a secret
+# in the repository, shell history, or command output.
+set -euo pipefail
+
+PROGRAM_NAME="${0##*/}"
+STATE_DIR="/etc/pantheon-wireguard"
+WG_INTERFACE="wg0"
+WG_ADDRESS="10.77.0.1/24"
+CLIENT_ADDRESS="10.77.0.2/32"
+LISTEN_PORT="51820"
+ENDPOINT=""
+ENDPOINT_PORT="$LISTEN_PORT"
+CLIENT_NAME="operator-1"
+MODE="check"
+
+usage() {
+  cat <<EOF
+Usage:
+  $PROGRAM_NAME --check
+  sudo $PROGRAM_NAME --apply --endpoint PUBLIC_IP_OR_DNS [--endpoint-port PORT] [--client-name NAME]
+
+Creates the WireGuard server configuration and one client profile locally.
+Keys are generated below $STATE_DIR with mode 0700/0600 and are never printed.
+The public endpoint is an IP address or DNS name only; it is not a credential.
+Use --endpoint-port when a temporary upstream NAT port differs from the local
+WireGuard listener, for example while another router-hosted VPN keeps 51820.
+
+This command does not expose application dashboards. Apply the dashboard
+publication stage only after this tunnel has been tested from the client.
+EOF
+}
+
+die() {
+  printf '%s: %s\n' "$PROGRAM_NAME" "$*" >&2
+  exit 1
+}
+
+require_root() {
+  [ "$(id -u)" -eq 0 ] || die "run with sudo for --apply"
+}
+
+valid_client_name() {
+  [[ "$1" =~ ^[a-z0-9][a-z0-9-]{0,31}$ ]]
+}
+
+valid_endpoint() {
+  # WireGuard accepts an IPv4/IPv6 literal or a DNS hostname. Deliberately
+  # accept only a single non-whitespace token: endpoints are configuration,
+  # never shell fragments.
+  [[ "$1" =~ ^[^[:space:]/:]+$ || "$1" =~ ^[0-9a-fA-F:.]+$ ]]
+}
+
+valid_port() {
+  [[ "$1" =~ ^[0-9]{1,5}$ ]] && [ "$1" -ge 1 ] && [ "$1" -le 65535 ]
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --check)
+      MODE="check"
+      ;;
+    --apply)
+      MODE="apply"
+      ;;
+    --endpoint)
+      shift
+      [ "$#" -gt 0 ] || die "--endpoint needs an IP address or DNS name"
+      ENDPOINT="$1"
+      ;;
+    --endpoint-port)
+      shift
+      [ "$#" -gt 0 ] || die "--endpoint-port needs a port number"
+      ENDPOINT_PORT="$1"
+      ;;
+    --client-name)
+      shift
+      [ "$#" -gt 0 ] || die "--client-name needs a value"
+      CLIENT_NAME="$1"
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      die "unknown argument: $1"
+      ;;
+  esac
+  shift
+done
+
+if [ "$MODE" = "check" ]; then
+  printf 'wireguard-tools: '
+  command -v wg >/dev/null 2>&1 && printf 'installed\n' || printf 'not installed\n'
+  printf 'interface %s: ' "$WG_INTERFACE"
+  ip link show "$WG_INTERFACE" >/dev/null 2>&1 && printf 'present\n' || printf 'absent\n'
+  printf 'UFW: '
+  systemctl is-active --quiet ufw 2>/dev/null && printf 'active\n' || printf 'inactive or unavailable\n'
+  printf 'UDP %s: ' "$LISTEN_PORT"
+  if listeners="$(ss -lunH "sport = :$LISTEN_PORT" 2>/dev/null)"; then
+    [ -n "$listeners" ] && printf 'in use\n' || printf 'available\n'
+  else
+    printf 'requires elevated inspection\n'
+  fi
+  exit 0
+fi
+
+require_root
+[ -n "$ENDPOINT" ] || die "--endpoint is required for --apply"
+valid_client_name "$CLIENT_NAME" || die "client name must be lowercase letters, digits or hyphens"
+valid_endpoint "$ENDPOINT" || die "endpoint must be one IP address or DNS hostname"
+valid_port "$ENDPOINT_PORT" || die "--endpoint-port must be between 1 and 65535"
+
+export DEBIAN_FRONTEND=noninteractive
+apt-get update
+apt-get install -y --no-install-recommends wireguard-tools
+
+install -d -m 0700 "$STATE_DIR/clients"
+umask 077
+
+server_private="$STATE_DIR/server.key"
+server_public="$STATE_DIR/server.pub"
+client_private="$STATE_DIR/clients/$CLIENT_NAME.key"
+client_public="$STATE_DIR/clients/$CLIENT_NAME.pub"
+client_config="$STATE_DIR/clients/$CLIENT_NAME.conf"
+
+[ -f "$server_private" ] || wg genkey >"$server_private"
+[ -f "$server_public" ] || wg pubkey <"$server_private" >"$server_public"
+[ -f "$client_private" ] || wg genkey >"$client_private"
+[ -f "$client_public" ] || wg pubkey <"$client_private" >"$client_public"
+
+install -m 0600 /dev/null "/etc/wireguard/$WG_INTERFACE.conf"
+{
+  printf '[Interface]\n'
+  printf 'Address = %s\n' "$WG_ADDRESS"
+  printf 'ListenPort = %s\n' "$LISTEN_PORT"
+  printf 'PrivateKey = '
+  cat "$server_private"
+  printf '\n[Peer]\n'
+  printf '# %s\n' "$CLIENT_NAME"
+  printf 'PublicKey = '
+  cat "$client_public"
+  printf '\nAllowedIPs = %s\n' "$CLIENT_ADDRESS"
+} >"/etc/wireguard/$WG_INTERFACE.conf"
+
+{
+  printf '[Interface]\n'
+  printf 'Address = %s\n' "$CLIENT_ADDRESS"
+  printf 'PrivateKey = '
+  cat "$client_private"
+  printf '\n\n[Peer]\n'
+  printf 'PublicKey = '
+  cat "$server_public"
+  printf '\nEndpoint = %s:%s\n' "$ENDPOINT" "$ENDPOINT_PORT"
+  printf 'AllowedIPs = 10.77.0.1/32\n'
+  printf 'PersistentKeepalive = 25\n'
+} >"$client_config"
+
+chmod 0600 "$server_private" "$server_public" "$client_private" "$client_public" "$client_config" "/etc/wireguard/$WG_INTERFACE.conf"
+
+if systemctl is-active --quiet ufw; then
+  ufw allow "$LISTEN_PORT/udp"
+fi
+
+systemctl enable --now "wg-quick@$WG_INTERFACE"
+
+printf 'WireGuard server enabled locally on UDP %s; client endpoint uses UDP %s.\n' "$LISTEN_PORT" "$ENDPOINT_PORT"
+printf 'Client profile written locally: %s\n' "$client_config"
+printf 'Import that file on the intended device through a secure local channel.\n'
+printf 'Do not print, copy into chat, commit, or email the profile.\n'

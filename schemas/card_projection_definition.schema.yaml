@@ -1,0 +1,155 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: https://pantheon.local/schemas/card_projection_definition.schema.yaml
+title: Pantheon Card Projection Definition
+description: >-
+  Validation-only contract for bounded Cockpit projection mappings. It does not
+  define the underlying entity, lifecycle, authorization, Evidence or execution.
+type: object
+additionalProperties: false
+required:
+  - schema_id
+  - revision
+  - definition_id
+  - entity_types
+  - card_role
+  - presentation_family
+  - identity
+  - actions
+  - relations
+properties:
+  schema_id:
+    const: cockpit.card_projection_definition
+  revision:
+    type: integer
+    minimum: 1
+  definition_id:
+    $ref: '#/$defs/stable_id'
+  entity_types:
+    type: array
+    minItems: 1
+    uniqueItems: true
+    items:
+      $ref: '#/$defs/stable_id'
+  card_role:
+    enum: [conversation, container, entity]
+  presentation_family:
+    enum: [pantheon, project, information, contact, work, decision, tool]
+  identity:
+    type: object
+    additionalProperties: false
+    required: [id_field, title]
+    properties:
+      id_field:
+        $ref: '#/$defs/field_name'
+      title:
+        $ref: '#/$defs/value_mapping'
+      category:
+        $ref: '#/$defs/value_mapping'
+      index_field:
+        $ref: '#/$defs/field_name'
+      date_field:
+        $ref: '#/$defs/field_name'
+      author_field:
+        $ref: '#/$defs/field_name'
+  summary:
+    $ref: '#/$defs/value_mapping'
+  tags:
+    type: object
+    additionalProperties: false
+    properties:
+      type_field:
+        $ref: '#/$defs/field_name'
+      subject_field:
+        $ref: '#/$defs/field_name'
+      subject_limit:
+        type: integer
+        minimum: 1
+        maximum: 5
+  detail:
+    type: object
+    additionalProperties: false
+    properties:
+      field_source:
+        $ref: '#/$defs/stable_id'
+      static_rows:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required: [label, value]
+          properties:
+            label:
+              type: string
+              minLength: 1
+            value:
+              type: string
+              minLength: 1
+      hidden_storage:
+        type: array
+        uniqueItems: true
+        items:
+          $ref: '#/$defs/stable_id'
+  actions:
+    type: object
+    additionalProperties: false
+    required: [source]
+    properties:
+      source:
+        const: server_projection
+  relations:
+    type: object
+    additionalProperties: false
+    required: [children_source]
+    properties:
+      children_source:
+        enum: [none, navigation_registry, server_projection]
+  governance_refs:
+    type: array
+    minItems: 1
+    uniqueItems: true
+    items:
+      type: string
+      minLength: 1
+  x-boundary:
+    type: object
+    additionalProperties: false
+    required:
+      - object_schema
+      - lifecycle
+      - authorization
+      - evidence_qualification
+      - runtime_execution
+      - provider_routing
+    properties:
+      object_schema: {const: false}
+      lifecycle: {const: false}
+      authorization: {const: false}
+      evidence_qualification: {const: false}
+      runtime_execution: {const: false}
+      provider_routing: {const: false}
+$defs:
+  stable_id:
+    type: string
+    pattern: '^[a-z][a-z0-9_-]*$'
+  field_name:
+    type: string
+    pattern: '^[a-z][a-z0-9_]*$'
+  value_mapping:
+    type: object
+    additionalProperties: false
+    oneOf:
+      - required: [field]
+      - required: [static]
+    properties:
+      field:
+        $ref: '#/$defs/field_name'
+      static:
+        type: string
+        minLength: 1
+x-boundary:
+  object_schema: false
+  lifecycle: false
+  authorization: false
+  evidence_qualification: false
+  runtime_execution: false
+  provider_routing: false

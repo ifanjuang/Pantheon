@@ -1,0 +1,106 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Next Verification Preset
+description: >-
+  Per-module declaration binding the read-only verification family to a module:
+  which verifications apply to it and the thresholds the evidence is expected to
+  meet. It is a governance contract — structure only. It runs no verification,
+  gathers no evidence, installs nothing and decides nothing; a producer (Hermes,
+  an operator, the cockpit) reads it to know which verifications to gather
+  evidence for and which thresholds to apply, and the verify_* tools still
+  classify the provided evidence and return verdicts as data. This baseline is
+  documented but not yet consumed by a tool.
+type: object
+required:
+  - module_id
+  - verifications
+properties:
+  module_id:
+    type: string
+    pattern: "^[a-z0-9._-]+$"
+  title:
+    type: string
+    minLength: 3
+  verifications:
+    type: object
+    description: >-
+      Known verifications keyed by type; each carries an `applies` flag and its
+      type-specific expected thresholds. Thresholds mirror the corresponding
+      evidence schema (e.g. freshness_max_age_s mirrors freshness.max_age_s).
+    additionalProperties: false
+    properties:
+      install:
+        type: object
+        additionalProperties: false
+        properties:
+          applies:
+            type: boolean
+          expected_checks:
+            type: array
+            items:
+              type: string
+      observability:
+        type: object
+        additionalProperties: false
+        properties:
+          applies:
+            type: boolean
+          expected_signals:
+            type: array
+            items:
+              type: string
+          freshness_max_age_s:
+            type: number
+          errors_threshold:
+            type: number
+      backup:
+        type: object
+        additionalProperties: false
+        properties:
+          applies:
+            type: boolean
+          freshness_max_age_s:
+            type: number
+          require_restore:
+            type: boolean
+      exposure:
+        type: object
+        additionalProperties: false
+        properties:
+          applies:
+            type: boolean
+          max_reach:
+            type: string
+            enum: [local, vpn, public]
+          require_auth:
+            type: boolean
+          require_scope:
+            type: boolean
+      update:
+        type: object
+        additionalProperties: false
+        properties:
+          applies:
+            type: boolean
+          channel:
+            type: string
+  governance_refs:
+    type: array
+    items:
+      type: string
+    default:
+      - docs/governance/PANTHEON_MCP_POLICY_SERVER_DEVELOPMENT.md
+      - docs/governance/PANTHEON_CONTROL_BOUNDARY.md
+additionalProperties: false
+x-boundary:
+  runtime_execution: false
+  decision_is_data: true
+  runs_verification: false
+  gathers_evidence: false
+  performs_probe: false
+  nas_access: false
+  autonomous_loop: false
+  provider_routing: false
+  scheduler: false
+  queue_system: false
+  memory_promotion: false
+  automatic_canonization: false

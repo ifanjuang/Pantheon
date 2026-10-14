@@ -1,0 +1,152 @@
+{
+  "pilot_id": "lotus-renderer-001",
+  "capability": "optional_interactive_visualization",
+  "purpose": "Qualify the smallest Lotus surface that can render a declarative visualization in Obsidian without treating Lotus as an execution runtime, knowledge owner, persistence owner or authority surface.",
+  "execution_status": "source_reviewed_runtime_smoke_pending",
+  "reference_candidate": {
+    "repository": "TzadikimBIU/lotus",
+    "reviewed_release": "1.2.3",
+    "reviewed_main_sha": "b3b4dec3095d6cfe32d1443ad8a4a87ea50dd3e4",
+    "upstream_open_prs_observed": 0,
+    "upstream_open_issues_observed": 0,
+    "upstream_smoke_run": {
+      "run_id": 32519680456,
+      "head_sha": "b3b4dec3095d6cfe32d1443ad8a4a87ea50dd3e4",
+      "conclusion": "success"
+    },
+    "reviewed_source_blobs": {
+      "src/engine/managedOutput.ts": "8d2ea48eee202ee6faae7f1d24e553982af23aff",
+      "src/plugin/main.ts": "57e0a52c6b0f688c970e084daae6840c25f4fa43",
+      "src/plugin/visualization/javascriptGraphs.ts": "1e2358b21cfb0c2b5c19d505efc4316f8c2d36c1",
+      "src/engine/defaultSettings.ts": "342c3892c0661f86547d493710f939210316f99a",
+      "src/engine/buildProfile.ts": "372ddd5a11310da170eb9fe8c385e7c420bc4941",
+      "src/engine/languagePackages.ts": "499d572ebe5bee43f55476546a79c7a47708cb5e",
+      "scripts/managed-output.test.mjs": "77a1320eb386ece7ed59db74c275c016c92b2a0d"
+    }
+  },
+  "source_observations": {
+    "managed_display_path": {
+      "status": "observed_in_source",
+      "facts": [
+        "lotus-display source is parsed with JSON.parse into MIME display records",
+        "the Markdown lotus-display processor calls renderDisplayOutput directly",
+        "the lotus-display processor is registered independently of runBlock and ensureExecutionEnabled",
+        "upstream managed-output tests round-trip one or more MIME display records"
+      ]
+    },
+    "default_settings": {
+      "status": "observed_in_source",
+      "enableLocalExecution": false,
+      "writeOutputToNote": false,
+      "autoRunOnFileOpen": false,
+      "apiEnabled": false,
+      "loggingEnabled": false
+    },
+    "d3_renderer": {
+      "status": "candidate_for_runtime_smoke",
+      "mime_type": "application/vnd.lotus.d3+json",
+      "observed_shape": {
+        "kind": [
+          "bar",
+          "line",
+          "scatter"
+        ],
+        "data": "array_of_records",
+        "behavior": "renderer constructs SVG through bundled D3 from declarative values; no JavaScript from the display payload is evaluated"
+      }
+    },
+    "cytoscape_renderer": {
+      "status": "deferred_restricted_candidate",
+      "reason": "The renderer treats the JSON payload as a partial CytoscapeOptions object and forwards options such as style and layout. A Pantheon profile would need an explicit allowlisted projection before this surface is qualified."
+    },
+    "excluded_surfaces": [
+      "local fenced-code execution",
+      "obsidian-js execution",
+      "custom languages",
+      "external language packs",
+      "container execution groups",
+      "Graphviz process execution",
+      "text/html display",
+      "Plotly display",
+      "JSXGraph display",
+      "Cytoscape display until a restricted payload contract is demonstrated",
+      "automatic write-back",
+      "API server",
+      "logging sinks",
+      "signing and reproducibility mutation commands"
+    ]
+  },
+  "candidate_profile": {
+    "name": "renderer_only_d3",
+    "input_surface": "fenced lotus-display JSON already present in an authorized Markdown note",
+    "allowed_mime_types": [
+      "application/vnd.lotus.d3+json"
+    ],
+    "required_runtime_settings": {
+      "enableLocalExecution": false,
+      "writeOutputToNote": false,
+      "autoRunOnFileOpen": false,
+      "apiEnabled": false,
+      "loggingEnabled": false
+    },
+    "payload_contract": {
+      "allowed_kinds": [
+        "bar",
+        "line",
+        "scatter"
+      ],
+      "data": "JSON records only",
+      "custom_color": "omit in the first profile; use renderer default",
+      "external_urls": "forbidden",
+      "script_or_function_fields": "forbidden",
+      "html": "forbidden"
+    },
+    "workspace_write_boundary": "Creating or replacing a lotus-display fence is a separate workspace persistence action and requires explicit authorized workspace-persistence intent. Rendering an existing fence is read-only.",
+    "projection_boundary": [
+      "display record != Evidence",
+      "rendered node or edge != governed relation",
+      "view model != canonical model",
+      "visualization success != professional validation",
+      "renderer available != renderer authorized",
+      "projection != persistence"
+    ]
+  },
+  "cases": [
+    {
+      "id": "managed_display_without_code_runner",
+      "expected": "Existing lotus-display JSON can enter the display renderer through the Markdown processor without executing a fenced code runner.",
+      "runtime_smoke_required": true
+    },
+    {
+      "id": "execution_disabled_profile",
+      "expected": "Local execution, auto-run, API, logging and note write-back remain disabled while an existing declarative display is rendered.",
+      "runtime_smoke_required": true
+    },
+    {
+      "id": "d3_fixed_declarative_payload",
+      "expected": "A D3 bar, line or scatter payload renders from JSON only and does not evaluate JavaScript carried in the display payload.",
+      "runtime_smoke_required": true
+    },
+    {
+      "id": "invalid_or_unapproved_mime_rejected_by_profile",
+      "expected": "The Pantheon profile refuses HTML, Graphviz, JSXGraph, Plotly and unrestricted Cytoscape MIME records even though Lotus may support them globally.",
+      "runtime_smoke_required": false
+    },
+    {
+      "id": "render_does_not_mutate_note",
+      "expected": "Rendering an already-present lotus-display fence does not rewrite the Markdown note or create output files.",
+      "runtime_smoke_required": true
+    },
+    {
+      "id": "visualization_is_not_authority",
+      "expected": "A successful visualization remains a projection only and does not promote graph structure, claims, Evidence or professional status.",
+      "runtime_smoke_required": false
+    }
+  ],
+  "execution_gate": {
+    "source_review_can_prove": "A declarative lotus-display path exists in the reviewed source, D3 consumes a bounded JSON chart shape, and risky execution/write features are disabled by current defaults.",
+    "source_review_cannot_prove": "That the installed Obsidian release renders the fixture correctly, stays mutation-free under the target configuration, or remains safe after configuration drift.",
+    "required_before_register_placement": "Run the renderer_only_d3 cases in an isolated Obsidian test vault using release 1.2.3, retain screenshots/log-free observations and before/after note hashes, then review the result before adding Lotus to the external-tool placement register.",
+    "forbidden_shortcut": "Do not treat source review, upstream smoke CI, plugin installation or successful rendering as provider-wide approval, execution authorization, Evidence or a canonical graph binding."
+  }
+}

@@ -1,0 +1,13 @@
+fixture_status: synthetic_candidate
+local_health: QUALIFIABLE
+qualification:
+  status: unadmitted
+  identity_mapping: unresolved
+observed:
+  package_name: CCTP
+  representation:
+    markdown:
+      file: CCTP.md
+      digest_sha256: 6ae3440900a90579e4b54ea7dac554bcdac28b2c6ff08f6e8771fd7d133e6f68
+semantic_enrichment:
+  status: not_requested

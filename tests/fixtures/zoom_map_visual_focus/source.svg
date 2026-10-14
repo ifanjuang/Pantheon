@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="800" viewBox="0 0 1000 800">
+  <rect width="1000" height="800" fill="#f7f7f7"/>
+  <rect x="80" y="90" width="840" height="570" fill="#ffffff" stroke="#333333" stroke-width="4"/>
+  <line x1="100" y1="180" x2="900" y2="180" stroke="#777777" stroke-width="3"/>
+  <rect x="180" y="210" width="180" height="150" fill="#dfe8f2" stroke="#334455" stroke-width="3"/>
+  <rect x="570" y="210" width="210" height="150" fill="#dfe8f2" stroke="#334455" stroke-width="3"/>
+  <polygon points="520,440 820,440 780,624 550,590" fill="#ececec" stroke="#555555" stroke-width="3"/>
+  <text x="100" y="60" font-size="28">Synthetic visual-focus qualification image</text>
+  <text x="195" y="285" font-size="24">A</text>
+  <text x="635" y="285" font-size="24">B</text>
+  <text x="650" y="535" font-size="24">C</text>
+</svg>

@@ -1,0 +1,12 @@
+# Example backup evidence (protected verdict). Provided to verify_backup, which
+# classifies it; it runs no backup or restore, accesses no NAS and decides nothing.
+component: registre-probatoire
+present: true
+backup_markers:
+  - /volume1/snapshots/registre-2026-06-22
+freshness:
+  last_backup_age_s: 3600
+  max_age_s: 86400
+restore:
+  verified: true
+  detail: monthly restore drill passed

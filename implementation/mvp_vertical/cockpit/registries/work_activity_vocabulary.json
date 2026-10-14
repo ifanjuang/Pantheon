@@ -1,0 +1,38 @@
+{
+  "schema_id": "cockpit.work_activity_vocabulary",
+  "revision": 1,
+  "statuses": {
+    "work_issue": {
+      "open": {"title": "À faire"},
+      "in_progress": {"title": "En cours"},
+      "waiting": {"title": "En attente"},
+      "review": {"title": "À examiner"},
+      "done": {"title": "Clôturé"},
+      "cancelled": {"title": "Annulé"}
+    },
+    "hermes_run": {
+      "not_started": {"title": "Non démarré"},
+      "running": {"title": "En cours"},
+      "returned": {"title": "Résultat retourné"},
+      "partial": {"title": "Partiel"},
+      "failed": {"title": "Échec"},
+      "cancelled": {"title": "Annulé"},
+      "unknown": {"title": "Inconnu"}
+    }
+  },
+  "outcomes": {
+    "result_candidate": {"title": "Résultat candidat produit"},
+    "partial": {"title": "Résultat partiel"},
+    "failed": {"title": "Échec signalé"},
+    "capability_gap": {"title": "Capacité manquante"}
+  },
+  "event_types": {
+    "issue_created": {"title": "Travail demandé"},
+    "comment_added": {"title": "Commentaire ajouté"},
+    "status_changed": {"title": "État modifié"},
+    "hermes_started": {"title": "Hermès a pris en charge le Travail"},
+    "hermes_returned": {"title": "Hermès a retourné un résultat"},
+    "review_requested": {"title": "Revue humaine demandée"},
+    "issue_closed": {"title": "Travail clôturé par un humain"}
+  }
+}

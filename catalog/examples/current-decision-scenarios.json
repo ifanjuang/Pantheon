@@ -1,0 +1,30 @@
+{
+  "subject": "handoff_candidate_docling_cpu_internal",
+  "scope": {
+    "environment": "sandbox",
+    "resource": "docling",
+    "configuration_ref": "installation_candidate_docling_cpu_internal",
+    "provisioner": "docker_compose",
+    "one_time": true
+  },
+  "scenarios": [
+    {"id": "none", "evaluation_time": "2026-07-12T14:00:00Z", "records": [], "expected": "none"},
+    {"id": "current-approval", "evaluation_time": "2026-07-12T14:15:00Z", "records": ["approval-a"], "expected": "current", "expected_decision_type": "approve"},
+    {"id": "future-approval", "evaluation_time": "2026-07-12T14:05:00Z", "records": ["approval-a"], "expected": "none"},
+    {"id": "natural-expiry", "evaluation_time": "2026-07-12T15:11:00Z", "records": ["approval-a"], "expected": "none"},
+    {"id": "revoked", "evaluation_time": "2026-07-12T14:25:00Z", "records": ["approval-a", "revocation-a"], "expected": "blocked", "expected_decision_type": "revoke"},
+    {"id": "recorded-expiration", "evaluation_time": "2026-07-12T14:25:00Z", "records": ["approval-a", "expiration-a"], "expected": "blocked", "expected_decision_type": "expire"},
+    {"id": "refused", "evaluation_time": "2026-07-12T14:15:00Z", "records": ["refusal-a"], "expected": "blocked", "expected_decision_type": "refuse"},
+    {"id": "wrong-subject", "evaluation_time": "2026-07-12T14:15:00Z", "records": ["approval-other-subject"], "expected": "none"},
+    {"id": "wrong-scope", "evaluation_time": "2026-07-12T14:15:00Z", "records": ["approval-other-scope"], "expected": "none"},
+    {"id": "concurrent-approvals", "evaluation_time": "2026-07-12T14:15:00Z", "records": ["approval-a", "approval-b"], "expected": "ambiguous"},
+    {"id": "approval-and-refusal", "evaluation_time": "2026-07-12T14:15:00Z", "records": ["approval-a", "refusal-a"], "expected": "ambiguous"},
+    {"id": "duplicate-identifiers", "evaluation_time": "2026-07-12T14:15:00Z", "records": ["approval-a", "approval-a-duplicate"], "expected": "invalid-record-set"},
+    {"id": "orphan-supersedes", "evaluation_time": "2026-07-12T14:25:00Z", "records": ["orphan-revocation"], "expected": "invalid-record-set"},
+    {"id": "supersession-cycle", "evaluation_time": "2026-07-12T14:25:00Z", "records": ["cycle-a", "cycle-b"], "expected": "invalid-record-set"},
+    {"id": "cross-subject-revocation-target", "evaluation_time": "2026-07-12T14:25:00Z", "records": ["approval-other-subject", "cross-subject-revocation"], "expected": "invalid-record-set"},
+    {"id": "revocation-before-approval", "evaluation_time": "2026-07-12T14:25:00Z", "records": ["approval-a", "early-revocation"], "expected": "invalid-record-set"},
+    {"id": "historical-non-overlap", "evaluation_time": "2026-07-12T16:15:00Z", "records": ["approval-a", "approval-later"], "expected": "current", "expected_decision_type": "approve"},
+    {"id": "new-after-expiry", "evaluation_time": "2026-07-12T16:15:00Z", "records": ["approval-a", "approval-later"], "expected": "current", "expected_decision_type": "approve"}
+  ]
+}

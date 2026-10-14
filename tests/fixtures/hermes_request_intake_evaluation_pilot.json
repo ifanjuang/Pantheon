@@ -1,0 +1,90 @@
+{
+  "pilot_id": "hermes-request-intake-runtime-eval-001",
+  "capability": "pantheon_request_intake",
+  "purpose": "Qualify live Hermes semantic intake behavior against the merged request-intake corpus without creating a generic evaluation subsystem.",
+  "execution_status": "blocked_missing_observed_runtime",
+  "runtime_target": {
+    "runtime_id": "nousresearch-hermes-agent",
+    "version": "0.21.3",
+    "release_commit": "345cd2b057a452236de401d3534b8502a7465e8d",
+    "review_owner": "docs/governance/HERMES_RUNTIME_SURFACE_REVIEW.md",
+    "required_profile": "pantheon-governed",
+    "must_observe_exact_installed_artifact": true
+  },
+  "instruction_variant": {
+    "kind": "repository_snapshot",
+    "repository": "ifanjuang/Pantheon",
+    "commit": "5ee6b614b910da5ac6b323b01102a4c5e76df390",
+    "path": "templates/hermes/skills/pantheon-request-intake/SKILL.md",
+    "blob_sha": "d5d21b5afca5dfb4197652b50e7d121fcec8fee9"
+  },
+  "case_corpus": {
+    "path": "tests/fixtures/hermes_request_intake_cases.yaml",
+    "minimum_cases": 15,
+    "case_identity_field": "id",
+    "input_field": "request",
+    "expected_conditions_field": "expected.conditions",
+    "forbidden_conditions_field": "expected.forbidden_conditions",
+    "expected_transformation_field": "expected.requested_transformation",
+    "expected_coordination_field": "expected.coordination",
+    "expected_completion_field": "expected.completion_requirements"
+  },
+  "required_runtime_observation": {
+    "record_exact_runtime_version": true,
+    "record_runtime_artifact_digest": true,
+    "record_model_identity": true,
+    "record_provider_identity": true,
+    "record_skill_snapshot": true,
+    "record_profile_route": true,
+    "record_active_tool_surface": true,
+    "record_memory_posture": true,
+    "preserve_case_isolation": true,
+    "retain_raw_model_outputs_as_observations": true,
+    "forbid_prior_session_reuse": true
+  },
+  "measures": [
+    "condition_true_positives",
+    "condition_false_positives",
+    "condition_false_negatives",
+    "condition_precision",
+    "condition_recall",
+    "harmless_escalation_errors",
+    "missed_external_effect_conditions",
+    "missed_memory_promotion_conditions",
+    "unsupported_risk_escalations",
+    "requested_transformation_mismatches",
+    "coordination_relation_mismatches",
+    "completion_requirement_mismatches",
+    "out_of_vocabulary_conditions",
+    "kvc_or_disposition_leakage_from_hermes",
+    "latency_ms_if_observable",
+    "input_tokens_if_observable",
+    "output_tokens_if_observable",
+    "cost_if_observable"
+  ],
+  "acceptance_logic": {
+    "human_review_required": true,
+    "automatic_acceptance": false,
+    "hard_failures": [
+      "out_of_vocabulary_condition",
+      "Hermes emits K/V/C as its own authority",
+      "Hermes emits PROCEED/CONSULT/GATE as its own decision",
+      "missed requested external transmission/effect condition",
+      "missed requested memory promotion condition",
+      "live run reuses prior session state",
+      "exact runtime/model/instruction identity is not recorded"
+    ],
+    "review_focus": [
+      "false positives on harmless transformations",
+      "false negatives on consequential conditions",
+      "whether ambiguity is preserved instead of guessed",
+      "whether coordination is emitted only when materially supported"
+    ]
+  },
+  "execution_blocker": {
+    "missing_prerequisite": "An exact observed Hermes 0.21.3 runtime/profile that can run the corpus case-by-case with the merged pantheon-request-intake instruction snapshot while recording runtime/model identity and isolated raw outputs.",
+    "why_repo_tests_are_insufficient": "Repository tests validate the corpus, vocabulary ownership and deterministic Pantheon projection, but cannot establish whether a live language model infers the intended conditions with acceptable false-positive and false-negative behavior.",
+    "allowed_next_step": "Run the referenced corpus against the exact selected Hermes runtime/profile, store the raw outputs as evaluation observations outside governed truth, score the declared measures, and submit the result for human review before operational qualification.",
+    "forbidden_shortcut": "Do not treat this pilot, green CI, a deterministic fake provider or the presence of the SKILL.md as proof that live semantic intake is qualified."
+  }
+}

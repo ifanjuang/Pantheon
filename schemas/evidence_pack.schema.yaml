@@ -1,0 +1,411 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Next Evidence Pack
+description: Governance evidence package describing sources, assumptions, actions, risks, outputs, reviews and approval state for a bounded task.
+type: object
+required:
+  - evidence_pack_id
+  - task_contract_id
+  - created_at
+  - summary
+  - scope
+  - sources
+  - assumptions
+  - actions
+  - risks
+  - outputs
+  - reviews
+  - approval_state
+properties:
+  evidence_pack_id:
+    type: string
+    pattern: "^[a-z0-9._-]+$"
+  task_contract_id:
+    type: string
+    pattern: "^[a-z0-9._-]+$"
+  created_at:
+    type: string
+    format: date-time
+  summary:
+    type: string
+    minLength: 10
+  scope:
+    type: object
+    required:
+      - scope_type
+      - scope_id
+    properties:
+      scope_type:
+        type: string
+        enum:
+          - session
+          - task
+          - dossier
+          - project
+          - domain
+          - user
+          - organization
+          - repository
+          - governance
+          - system
+      scope_id:
+        type: string
+        minLength: 1
+      scope_label:
+        type: string
+    additionalProperties: false
+  sources:
+    type: array
+    items:
+      type: object
+      required:
+        - type
+        - reference
+        - status
+      properties:
+        type:
+          type: string
+          enum:
+            - raw_source
+            - source_reference
+            - knowledge_item
+            - retrieved_knowledge
+            - file
+            - url
+            - command
+            - user_input
+            - tool_output
+            - repository
+            - other
+        reference:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          enum:
+            - retrieved
+            - relevant
+            - partially_relevant
+            - stale
+            - contradicted
+            - unverified
+            - sensitive
+            - candidate_evidence
+            - selected_evidence
+        supports:
+          type: string
+        limitations:
+          type: array
+          items:
+            type: string
+        notes:
+          type: string
+      additionalProperties: false
+  evidence_items:
+    type: array
+    description: Optional structured claims with source locators. Evidence Items support review; they are not final conclusions.
+    items:
+      type: object
+      required:
+        - evidence_id
+        - claim
+        - source_type
+        - source_ref
+        - scope_of_support
+        - confidence
+      properties:
+        evidence_id:
+          type: string
+          pattern: "^[a-z0-9._-]+$"
+        claim:
+          type: string
+          minLength: 3
+        source_type:
+          type: string
+        source_ref:
+          type:
+            - string
+            - object
+        source_location:
+          type: string
+        supports:
+          type: string
+        claim_status:
+          type: string
+          description: Optional claim-ledger review status. This does not replace confidence and does not validate the claim by itself.
+          enum:
+            - supported
+            - weak
+            - unverified
+            - contradicted
+            - out_of_scope
+        scope_of_support:
+          type: string
+        confidence:
+          type: string
+          description: Legacy confidence flag superseded by the certainty axis; kept for compatibility.
+          enum:
+            - low
+            - low_medium
+            - medium
+            - medium_high
+            - high
+            - unknown
+        limitations:
+          type: array
+          items:
+            type: string
+        open_questions:
+          type: array
+          items:
+            type: string
+        scope_warnings:
+          type: array
+          items:
+            type: string
+      additionalProperties: false
+  handoff_artifacts:
+    type: array
+    description: Optional bounded artifacts passed between staged roles or workers. Handoff Artifacts do not approve the next action.
+    items:
+      type: object
+      required:
+        - handoff_id
+        - type
+        - from_role
+        - to_role
+        - scope
+        - artifact_ref
+        - approval_gap
+      properties:
+        handoff_id:
+          type: string
+          pattern: "^[a-z0-9._-]+$"
+        type:
+          type: string
+        from_role:
+          type: string
+        to_role:
+          type: string
+        scope:
+          type: string
+        artifact_ref:
+          type: string
+        changed_surface:
+          type: array
+          items:
+            type: string
+        assumptions:
+          type: array
+          items:
+            type: string
+        blockers:
+          type: array
+          items:
+            type: string
+        evidence_refs:
+          type: array
+          items:
+            type: string
+        approval_gap:
+          type: string
+      additionalProperties: false
+  reasoning_topology_record:
+    type:
+      - object
+      - "null"
+    description: Optional record of the selected evidence topology. This is not a runtime trace or hidden chain-of-thought archive.
+    required:
+      - selected
+      - reason
+    properties:
+      selected:
+        type: string
+        enum:
+          - single_primary_reasoning_context
+          - fanout_extract_then_single_synthesis
+          - parallel_independent_workers
+          - router
+          - sequential_handoff
+          - persistent_role_team_handoff
+          - bounded_hermes_swarm
+      reason:
+        type: string
+        minLength: 3
+      rejected_topologies:
+        type: array
+        items:
+          type: string
+      worker_outputs_used:
+        type: array
+        items:
+          type: string
+      handoff_artifacts_used:
+        type: array
+        items:
+          type: string
+      contradictions_preserved:
+        type: array
+        items:
+          type: string
+      unresolved_gaps:
+        type: array
+        items:
+          type: string
+      approval_impact:
+        type: string
+      memory_impact:
+        type: string
+      notes:
+        type: string
+    additionalProperties: false
+  assumptions:
+    type: array
+    items:
+      type: string
+  actions:
+    type: array
+    items:
+      type: string
+  risks:
+    type: array
+    items:
+      type: object
+      required:
+        - description
+        - mitigation
+      properties:
+        description:
+          type: string
+        severity:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+            - critical
+        mitigation:
+          type: string
+      additionalProperties: false
+  outputs:
+    type: array
+    items:
+      type: object
+      required:
+        - output_id
+        - output_type
+        - status
+      properties:
+        output_id:
+          type: string
+          pattern: "^[a-z0-9._-]+$"
+        output_type:
+          type: string
+        status:
+          type: string
+          enum:
+            - candidate
+            - under_review
+            - approved
+            - rejected
+            - deferred
+            - superseded
+            - revoked
+            - archived
+            - blocked_by_scope
+            - blocked_by_approval
+            - blocked_by_evidence
+            - blocked_by_capability_gap
+        reference:
+          type: string
+      additionalProperties: false
+  reviews:
+    type: array
+    items:
+      type: object
+      required:
+        - reviewer
+        - status
+      properties:
+        reviewer:
+          type: string
+        status:
+          type: string
+          enum:
+            - accepted
+            - rejected
+            - needs_revision
+            - superseded
+            - escalated
+            - pending
+        notes:
+          type: string
+      additionalProperties: false
+  memory_candidates:
+    type: array
+    items:
+      type: string
+  approval_state:
+    type: object
+    required:
+      - level
+      - status
+    properties:
+      level:
+        type: string
+        enum:
+          - C0
+          - C1
+          - C2
+          - C3
+          - C4
+          - C5
+      status:
+        type: string
+        enum:
+          - not_required
+          - required
+          - pending
+          - approved
+          - rejected
+          - blocked
+      notes:
+        type: string
+    additionalProperties: false
+  user_decision_gate:
+    type:
+      - object
+      - "null"
+    properties:
+      status:
+        type: string
+        enum:
+          - none
+          - reserve
+          - clarification
+          - decision_required
+          - resolved
+      decision_effects:
+        type: array
+        items:
+          type: string
+    additionalProperties: false
+  governance_refs:
+    type: array
+    items:
+      type: string
+    default:
+      - docs/governance/EVIDENCE_PACK.md
+      - docs/governance/APPROVALS.md
+      - docs/governance/USER_DECISION_GATE.md
+      - docs/governance/KNOWLEDGE_TAXONOMY.md
+      - docs/governance/EVIDENCE_TOPOLOGY.md
+additionalProperties: false
+x-boundary:
+  runtime_execution: false
+  autonomous_loop: false
+  provider_routing: false
+  scheduler: false
+  queue_system: false
+  topology_dispatch: false
+  memory_promotion: false
+  hidden_chain_of_thought_archive: false

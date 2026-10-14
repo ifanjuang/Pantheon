@@ -1,0 +1,50 @@
+# Fictional example for validation only. A valid passport is not an authorized capability.
+passport_id: example.source-audit.read
+status: candidate
+mcp_server:
+  server_id: example-server
+  server_name: Example Policy-Reviewed Server
+  canonical_uri: stdio://example
+  transport: stdio
+  protocol_revision: "2025-06-18"
+  source: fixtures
+  trust_level: internal
+  authorization_model: none
+capability:
+  primitive: tool
+  name: audit_source
+  description_hash: "0000000000000000000000000000000000000000000000000000000000000000"
+operation:
+  reads_private_data: "true"
+  writes_external_state: "false"
+  can_execute_code: "false"
+  can_send_to_external_party: "false"
+  can_change_register: "false"
+  can_promote_memory: "false"
+  can_commit_professional_position: low
+governance:
+  activation_state: detected
+  task_authorization: unauthorized
+  risk_level: low
+  approval_required: C1
+  evidence_required:
+    - source citation
+  user_decision_gate_required: true
+interface:
+  required_envelope: task_contract_in__candidate_out__evidence_pack_out
+  allowed_inputs:
+    - source_ref
+  allowed_outputs:
+    - provenance_report_candidate
+  forbidden_outputs:
+    - approval
+    - external_message
+result_handling:
+  default_output_status: candidate
+  evidence_pack_required: true
+  raw_result_never_final: true
+  permitted_register_output: register_candidate_only
+governance_refs:
+  - docs/governance/UNIFORM_CAPABILITY_GOVERNANCE.md
+  - docs/governance/APPROVALS.md
+  - templates/mcp_capability_passport.yaml

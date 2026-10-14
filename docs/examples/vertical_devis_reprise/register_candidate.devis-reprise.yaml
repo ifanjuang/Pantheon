@@ -1,0 +1,37 @@
+# Vertical slice — architecture_devis_reprise (fictional; validation-only).
+candidate_id: vertical.devis-reprise.register-candidate
+created_at: '2026-06-08T10:00:00Z'
+proposed_by: HEPHAISTOS
+claim: The complementary quote's added amount is not yet reconcilable with the prior
+  signed amendment; it is returned as a point to verify, not approved.
+scope:
+  scope_type: project
+  scope_id: maison-lierre
+  scope_label: Maison Lierre — extension (devis complémentaire)
+source: docs/examples/vertical_devis_reprise/evidence_pack.devis-reprise.yaml
+evidence_link: vertical.devis-reprise.evidence-pack
+evidence_pack_id: vertical.devis-reprise.evidence-pack
+certainty: E2
+source_date: '2026-06-01'
+received_date: '2026-06-01'
+author_detected: null
+origin_channel: repository
+source_excerpt: Complementary quote adds a plus-value inconsistent with the signed
+  amendment.
+linked_files: []
+risk:
+  level: low
+  notes: The claim repeats active repository doctrine but still remains a candidate
+    in this example.
+proposed_durability: repository
+required_approval: C3
+status: candidate
+reviewer: null
+reviewed_at: null
+supersedes_candidate_id: null
+link_ids: []
+governance_refs:
+- docs/governance/EVIDENCE_MEMORY_CANONICALIZATION.md
+- docs/governance/GLOSSARY.md
+- docs/governance/SCOPE_ISOLATION.md
+- docs/governance/EVIDENCE_PACK.md

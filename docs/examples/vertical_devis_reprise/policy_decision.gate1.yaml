@@ -1,0 +1,24 @@
+# Vertical slice — architecture_devis_reprise (fictional; validation-only).
+decision_id: vertical.devis-reprise.gate1
+created_at: '2026-06-12T10:00:00Z'
+decision: allow_with_gate
+status: candidate
+reasons:
+- consequential external opinion; proceed only under the required envelope and the
+  evidence gate
+required_approval: C3
+required_evidence:
+- dated quote line items
+- prior amendment amount
+permitted_invocation_reference: null
+permitted_scope: null
+invocation_constraints:
+- task contract required
+forbidden_actions:
+- send externally before the gate decision
+next_step: run the bounded review, then the post-execution evidence gate, then the
+  User Decision Gate
+governance_refs:
+- docs/governance/UNIFORM_CAPABILITY_GOVERNANCE.md
+- docs/governance/USER_DECISION_GATE.md
+- docs/governance/APPROVALS.md

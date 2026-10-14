@@ -1,0 +1,38 @@
+id: architecte.ingest_local_folder
+name: Ingest local architecture knowledge folder
+version: 0.1.0
+runtime: python
+entrypoint: ingest.py
+summary: Convertit les PDF/MD/DOCX locaux en corpus Markdown, chunks RAG et manifestes d'indexation.
+inputs:
+  base_dir:
+    type: path
+    default: base_metier/architecte
+  mode:
+    type: string
+    enum: [extract_only, corpus, chunks, exhaustive]
+    default: exhaustive
+  vector_store:
+    type: string
+    enum: [none, qdrant, pgvector]
+    default: none
+  collections:
+    type: string
+    default: auto
+outputs:
+  extraction_manifest:
+    path: knowledge/indexes/extraction_manifest.json
+  review_report:
+    path: knowledge/reviews/
+permissions:
+  filesystem:
+    read:
+      - knowledge/sources
+    write:
+      - knowledge/extracted
+      - knowledge/corpus
+      - knowledge/chunks
+      - knowledge/indexes
+      - knowledge/reviews
+  network:
+    required: false

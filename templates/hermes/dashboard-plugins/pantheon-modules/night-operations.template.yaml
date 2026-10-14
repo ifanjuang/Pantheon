@@ -1,0 +1,238 @@
+manifest_version: 1
+id: pantheon-night-operations
+status: operator_review_required
+execution_owner: hermes_native_cron
+observation_surface: pantheon-modules
+scheduling_posture: control_existing_bounded_jobs_only
+
+# Hermes evaluates cron schedules in the host's local timezone. Replace this
+# marker only after checking the deployed host clock and timezone.
+runtime_timezone: REQUIRED
+default_delivery: local
+
+activation_contract:
+  profile: REQUIRED
+  workdir: REQUIRED_ABSOLUTE_PATH
+  input_scope: REQUIRED
+  output_scope: REQUIRED
+  expiry_or_run_limit: REQUIRED
+  trial_runs: 7
+  review_after_trial: true
+  task_contract: REQUIRED_FOR_CONSEQUENTIAL_WORK
+  direct_dashboard_creation_supported: false
+  existing_bounded_job_controls:
+    pause: separately_confirmed
+    resume: separately_confirmed
+    retime_while_paused: separately_confirmed
+    trigger_now_while_enabled: separately_confirmed
+    delete: forbidden
+  direct_dashboard_creation_blocker: >-
+    The audited Hermes dashboard create API does not expose a finite repeat or
+    expiry field. Recurring jobs must therefore be created through a reviewed
+    native Hermes path that records a finite --repeat value, then observed here.
+
+global_guards:
+  - Pantheon does not run or schedule these operations; Hermes owns execution.
+  - A schedule is operational state, not Pantheon authorization.
+  - Every trial must be finite and reviewed before renewal.
+  - Delivery remains local until a separate external-communication approval exists.
+  - Source, evidence, retrieval, runtime memory, and the Registre Probatoire remain distinct.
+  - No operation may approve evidence, resolve a contradiction, or promote memory automatically.
+  - Failure remains failure and must not advance a downstream operation silently.
+  - Secrets stay in the native Hermes or external service configuration, never this template.
+
+operations:
+  - id: backup_preflight
+    label: Backup and restore preflight
+    job_name: pantheon-night:backup-preflight
+    order: 10
+    recommended_schedule:
+      cron: "30 0 * * *"
+      display: "00:30 every day"
+      timezone_basis: hermes_host_local
+    cadence: daily_trial
+    trial_runs: 7
+    effect_class: durable_backup_write
+    risk: medium
+    execution_mode: reviewed_script_only
+    activation_status: blocked_until_command_and_restore_target_are_reviewed
+    resource_envelope:
+      concurrency_group: pantheon_heavy_io
+      max_runtime_minutes: 30
+      network: local_or_preapproved_backup_target_only
+    prerequisites:
+      - exact source paths and backup destination are visible
+      - retention and free-space policy are reviewed
+      - restore command has been rehearsed on non-production data
+    allowed_outputs:
+      - backup receipt
+      - checksum report
+      - restore-readiness report candidate
+    forbidden_effects:
+      - source deletion
+      - automatic retention purge
+      - success claim without a verified backup artifact
+
+  - id: pdf_ingestion_vectorization
+    label: PDF ingestion and scoped vectorization
+    job_name: pantheon-night:pdf-ingestion-vectorization
+    order: 20
+    recommended_schedule:
+      cron: "0 1 * * *"
+      display: "01:00 every day"
+      timezone_basis: hermes_host_local
+    cadence: daily_trial
+    trial_runs: 7
+    effect_class: scoped_knowledge_and_index_write
+    risk: high
+    execution_mode: reviewed_external_ingestion_adapter
+    activation_status: blocked_until_adapter_paths_and_index_scope_are_reviewed
+    resource_envelope:
+      concurrency_group: pantheon_heavy_io
+      max_runtime_minutes: 90
+      network: denied_unless_converter_or_index_binding_requires_it
+    prerequisites:
+      - input and output roots are explicit and project-scoped
+      - converter and embedding model versions are pinned
+      - duplicate detection and source hashing are enabled
+      - vector target and namespace are explicit
+      - original files remain immutable
+    allowed_outputs:
+      - ingestion manifest candidate
+      - converted Markdown knowledge item
+      - chunks with source references
+      - quality report
+      - scoped index receipt
+    forbidden_effects:
+      - indexed_means_evidence
+      - retrieved_means_truth
+      - automatic_general_memory_promotion
+      - cross_project_indexing
+
+  - id: retrieval_quality_review
+    label: Retrieval and index quality review
+    job_name: pantheon-night:retrieval-quality-review
+    order: 30
+    recommended_schedule:
+      cron: "45 2 * * *"
+      display: "02:45 every day"
+      timezone_basis: hermes_host_local
+    cadence: daily_trial
+    trial_runs: 7
+    effect_class: read_only_quality_analysis
+    risk: medium
+    execution_mode: bounded_agent_review
+    activation_status: blocked_until_retrieval_scope_and_test_questions_are_reviewed
+    resource_envelope:
+      concurrency_group: pantheon_heavy_io
+      max_runtime_minutes: 45
+      network: retrieval_binding_only
+    prerequisites:
+      - the preceding ingestion receipt is available or the run exits without inference
+      - representative scoped retrieval questions are approved
+      - retrieval traces retain source and chunk identifiers
+    allowed_outputs:
+      - missing-chunk report candidate
+      - duplicate-or-stale-index report candidate
+      - scoped retrieval smoke-test report
+    forbidden_effects:
+      - source mutation
+      - automatic reindex without a reviewed ingestion action
+      - quality_score_means_proof
+
+  - id: memory_consolidation_review
+    label: Memory consolidation review
+    job_name: pantheon-night:memory-consolidation-review
+    order: 40
+    recommended_schedule:
+      cron: "45 3 * * 0"
+      display: "03:45 every Sunday"
+      timezone_basis: hermes_host_local
+    cadence: weekly_trial
+    trial_runs: 4
+    effect_class: read_only_memory_candidate_analysis
+    risk: high
+    execution_mode: bounded_agent_review
+    activation_status: blocked_until_memory_provider_and_scope_are_reviewed
+    resource_envelope:
+      concurrency_group: pantheon_heavy_io
+      max_runtime_minutes: 60
+      network: configured_memory_provider_only
+    prerequisites:
+      - exactly one Hermes memory provider is selected
+      - project and general memory scopes remain separate
+      - source references are available for durable claims
+    allowed_outputs:
+      - duplicate candidate list
+      - stale or superseded candidate list
+      - conflict candidate list
+      - proposed consolidation review pack
+    forbidden_effects:
+      - memory deletion
+      - automatic merge
+      - automatic canonicalization
+      - automatic Registre Probatoire promotion
+
+  - id: contradiction_drift_review
+    label: Contradiction and governance-drift review
+    job_name: pantheon-night:contradiction-drift-review
+    order: 50
+    recommended_schedule:
+      cron: "0 5 * * *"
+      display: "05:00 every day"
+      timezone_basis: hermes_host_local
+    cadence: daily_trial
+    trial_runs: 7
+    effect_class: read_only_governance_analysis
+    risk: medium
+    execution_mode: bounded_agent_review
+    activation_status: blocked_until_policy_mcp_and_read_scope_are_verified
+    resource_envelope:
+      concurrency_group: pantheon_heavy_io
+      max_runtime_minutes: 60
+      network: approved_read_only_sources_only
+    prerequisites:
+      - pantheon-policy MCP is reachable with the three read-only wiki tools
+      - repository and knowledge sources are mounted read-only
+      - the scan perimeter and comparison baseline are explicit
+    allowed_outputs:
+      - contradiction ledger candidate
+      - repository or doctrine drift review candidate
+      - Evidence Pack Candidate
+      - decision-needed digest
+    forbidden_effects:
+      - automatic contradiction resolution
+      - doctrine mutation
+      - repository write or merge
+      - automatic dashboard status promotion
+
+  - id: morning_decision_digest
+    label: Morning decision digest
+    job_name: pantheon-night:morning-decision-digest
+    order: 60
+    recommended_schedule:
+      cron: "15 6 * * *"
+      display: "06:15 every day"
+      timezone_basis: hermes_host_local
+    cadence: daily_trial
+    trial_runs: 7
+    effect_class: local_candidate_summary
+    risk: low
+    execution_mode: bounded_agent_review
+    activation_status: blocked_until_upstream_outputs_and_delivery_are_reviewed
+    resource_envelope:
+      concurrency_group: pantheon_light_review
+      max_runtime_minutes: 20
+      network: none
+    prerequisites:
+      - only completed local outputs from the preceding operations are included
+      - failed or missing upstream runs remain visible
+      - delivery is local unless separately approved
+    allowed_outputs:
+      - local morning status candidate
+      - failed-run list
+      - decisions required from the operator
+    forbidden_effects:
+      - external delivery without approval
+      - approval by summary
+      - hiding failed or contradictory upstream results

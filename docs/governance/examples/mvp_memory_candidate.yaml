@@ -1,0 +1,34 @@
+# MVP governed task loop — step 9: Register Candidate.
+# Fictional and illustrative. Separate retention authorization is present; memory admission is not.
+
+object_type: register_candidate
+object_id: mvp.devis-reprise.register-001
+candidate_id: mvp.devis-reprise.register-001
+status: pending_register_admission
+created_because_of: mvp.devis-reprise.dr-002
+statement: >-
+  For project Les Tilleuls, the recovery perimeter of lot 06 excludes
+  quote item 4 until the client confirms otherwise.
+scope: project:les-tilleuls/lot-06
+basis:
+  - decision:mvp.devis-reprise.dr-002
+  - evidence:fictional-doc/cctp-excerpt-lot06#section-3.2
+retention_authorization:
+  authorized: true
+  authorized_by: practitioner
+  identity_assurance: authenticated
+  authenticated_principal:
+    user_id: user-001
+    display_name: Practitioner
+    identity_provider: openwebui
+  recorded_at: "2026-07-07T11:05:00Z"
+  decision_id: mvp.devis-reprise.dr-002
+not_memory_until_admitted: true
+forbidden_reuse:
+  - automatic_promotion
+  - scope_widening_on_reuse
+  - use_as_truth_before_admission
+governance_refs:
+  - docs/governance/MVP_GOVERNED_TASK_LOOP.md
+  - docs/governance/MEMORY.md
+  - docs/governance/GLOSSARY.md

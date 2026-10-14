@@ -1,0 +1,154 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/release.env"
+MCP_VERSION="${RELEASE_VAULT_MCP_VERSION:?release.env missing RELEASE_VAULT_MCP_VERSION}"
+SOURCE_ROOT="$REPO_ROOT/implementation/hermes/skills/vault-search/scripts"
+APP_ROOT="/opt/pantheon-node/vault-read"
+UV="/opt/pantheon-node/uv/bin/uv"
+TOKEN_FILE="/srv/pantheon/docling/vault-read.token"
+UNIT_FILE="/etc/systemd/system/pantheon-vault-read.service"
+AFFAIRES_ROOT="${AFFAIRES_ROOT:-}"
+DOCUMENTAIRES_ROOT="${DOCUMENTAIRES_ROOT:-}"
+APPLY=0
+ENABLE=0
+
+log() { printf '[vault-read] %s\n' "$*"; }
+die() { printf '[vault-read] ERROR: %s\n' "$*" >&2; exit 1; }
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  deployment/ubuntu/configure-vault-read-local --check
+  sudo deployment/ubuntu/configure-vault-read-local --apply --affaires-root PATH --documentaires-root PATH [--enable]
+
+Stages a pinned, read-only, authenticated agency vault MCP service on loopback.
+Paths are the Linux-mounted NAS roots (or set AFFAIRES_ROOT and DOCUMENTAIRES_ROOT).
+--enable is explicit. No Hermes profile or project document is changed here.
+USAGE
+}
+
+while (($#)); do
+  case "$1" in
+    --check) APPLY=0 ;;
+    --apply) APPLY=1 ;;
+    --affaires-root) AFFAIRES_ROOT="${2:?missing AFFAIRES root}"; shift ;;
+    --documentaires-root) DOCUMENTAIRES_ROOT="${2:?missing DOCUMENTAIRES root}"; shift ;;
+    --enable) ENABLE=1 ;;
+    -h|--help) usage; exit 0 ;;
+    *) die "unknown argument: $1" ;;
+  esac
+  shift
+done
+
+[[ -f "$SOURCE_ROOT/vault_mcp.py" && -f "$SOURCE_ROOT/vault_sources.py" ]] \
+  || die "repository-owned vault reader sources are missing"
+
+if ((APPLY == 0)); then
+  [[ "$ENABLE" == 0 ]] || die "--enable requires --apply"
+  [[ -x "$APP_ROOT/.venv/bin/python" ]] && log "isolated runtime present" \
+    || log "isolated runtime absent"
+  [[ -f "$TOKEN_FILE" ]] && log "bearer token present (not displayed)" \
+    || log "bearer token absent"
+  [[ -n "$AFFAIRES_ROOT" ]] && log "AFFAIRES root selected" \
+    || log "AFFAIRES root not selected"
+  [[ -n "$DOCUMENTAIRES_ROOT" ]] && log "DOCUMENTAIRES root selected" \
+    || log "DOCUMENTAIRES root not selected"
+  if systemctl is-active --quiet pantheon-vault-read.service; then
+    log "loopback service active"
+  else
+    log "loopback service inactive"
+  fi
+  log "check only; no state changed"
+  exit 0
+fi
+
+[[ ${EUID:-$(id -u)} -eq 0 ]] || die "--apply requires root"
+id -u pantheon-docling >/dev/null 2>&1 \
+  || die "pantheon-docling service user is required; install Docling first"
+[[ -x "$UV" ]] || die "managed uv is missing: $UV"
+[[ -n "$AFFAIRES_ROOT" && "$AFFAIRES_ROOT" = /* ]] \
+  || die "set --affaires-root to an absolute Linux-mounted NAS path"
+[[ -d "$AFFAIRES_ROOT" ]] || die "AFFAIRES mount is missing"
+runuser -u pantheon-docling -- test -r "$AFFAIRES_ROOT" \
+  || die "pantheon-docling cannot read AFFAIRES mount"
+runuser -u pantheon-docling -- test -x "$AFFAIRES_ROOT" \
+  || die "pantheon-docling cannot traverse AFFAIRES mount"
+[[ -n "$DOCUMENTAIRES_ROOT" && "$DOCUMENTAIRES_ROOT" = /* ]] \
+  || die "set --documentaires-root to an absolute Linux-mounted NAS path"
+[[ -d "$DOCUMENTAIRES_ROOT" ]] || die "DOCUMENTAIRES mount is missing"
+runuser -u pantheon-docling -- test -r "$DOCUMENTAIRES_ROOT" \
+  || die "pantheon-docling cannot read DOCUMENTAIRES mount"
+runuser -u pantheon-docling -- test -x "$DOCUMENTAIRES_ROOT" \
+  || die "pantheon-docling cannot traverse DOCUMENTAIRES mount"
+
+install -d -m 0755 "$APP_ROOT"
+if [[ -f "$APP_ROOT/vault_mcp.py" || -f "$UNIT_FILE" ]]; then
+  stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+  backup="/srv/pantheon/backups/vault-read-$stamp"
+  install -d -m 0700 "$backup"
+  [[ ! -f "$APP_ROOT/vault_mcp.py" ]] || cp -a "$APP_ROOT/vault_mcp.py" "$backup/"
+  [[ ! -f "$APP_ROOT/vault_sources.py" ]] || cp -a "$APP_ROOT/vault_sources.py" "$backup/"
+  [[ ! -f "$UNIT_FILE" ]] || cp -a "$UNIT_FILE" "$backup/"
+  log "previous service code/config checkpoint: $backup"
+fi
+install -m 0644 "$SOURCE_ROOT/vault_mcp.py" "$APP_ROOT/vault_mcp.py"
+install -m 0644 "$SOURCE_ROOT/vault_sources.py" "$APP_ROOT/vault_sources.py"
+if [[ ! -x "$APP_ROOT/.venv/bin/python" ]]; then
+  "$UV" venv --python /usr/bin/python3 "$APP_ROOT/.venv"
+fi
+"$UV" pip install --python "$APP_ROOT/.venv/bin/python" "mcp==$MCP_VERSION"
+chmod -R a+rX "$APP_ROOT"
+
+install -d -o pantheon-docling -g pantheon-docling -m 0750 /srv/pantheon/docling
+if [[ ! -e "$TOKEN_FILE" ]]; then
+  umask 077
+  openssl rand -hex 32 > "$TOKEN_FILE"
+fi
+chown pantheon-docling:pantheon-docling "$TOKEN_FILE"
+chmod 0600 "$TOKEN_FILE"
+
+cat > "$UNIT_FILE" <<EOF_UNIT
+[Unit]
+Description=Read-only agency vault MCP reader for Hermes
+After=network-online.target
+Wants=network-online.target
+RequiresMountsFor=$AFFAIRES_ROOT $DOCUMENTAIRES_ROOT
+
+[Service]
+Type=simple
+User=pantheon-docling
+Group=pantheon-docling
+WorkingDirectory=$APP_ROOT
+Environment=VAULT_AFFAIRES_ROOT=$AFFAIRES_ROOT
+Environment=VAULT_DOCUMENTAIRES_ROOT=$DOCUMENTAIRES_ROOT
+Environment=VAULT_TOKEN_FILE=$TOKEN_FILE
+ExecStart=$APP_ROOT/.venv/bin/python $APP_ROOT/vault_mcp.py --http
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadOnlyPaths=$AFFAIRES_ROOT $DOCUMENTAIRES_ROOT $TOKEN_FILE
+
+[Install]
+WantedBy=multi-user.target
+EOF_UNIT
+chmod 0644 "$UNIT_FILE"
+systemctl daemon-reload
+if ((ENABLE == 1)); then
+  systemctl enable pantheon-vault-read.service
+  if systemctl is-active --quiet pantheon-vault-read.service; then
+    systemctl restart pantheon-vault-read.service
+  else
+    systemctl start pantheon-vault-read.service
+  fi
+  log "enabled authenticated MCP on 127.0.0.1:8021"
+else
+  log "staged but not activated; rerun with --apply --enable after review"
+fi
+log "Hermes binding remains a separate explicit --with-vault-adapter --bind-local-mcp step"

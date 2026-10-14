@@ -1,0 +1,51 @@
+{
+  "fixture_version": 1,
+  "fixture_id": "F05",
+  "title": "DCE / CCTP / marchés / consultation entreprises",
+  "synthetic": true,
+  "purpose": "Stress-test Information taxonomy, financial ProjectClaims, Work/Decision and document provenance during contractor consultation.",
+  "project": {
+    "project_id": "fixture-project-f05",
+    "code": "F05-DCE",
+    "display_name": "Extension des Tilleuls",
+    "phase": "DCE",
+    "status": "Consultation",
+    "location": "Normandie",
+    "attributes": {
+      "programme_summary": "Extension bois et rénovation énergétique avec consultation par lots.",
+      "architectural_style": "Volume simple, bardage bois prégrisé et couverture ardoise.",
+      "agency_notes": "Le Project ne porte pas directement les montants conséquents : ils restent projetés depuis des claims."
+    }
+  },
+  "project_claims": [
+    {"claim_type":"budget","value":500000,"unit":"EUR","status":"source_backed","backing_information_key":"estimatif-dce-a01"},
+    {"claim_type":"montant_marche","value":118500,"unit":"EUR","status":"source_backed","backing_information_key":"marche-structure-a01"},
+    {"claim_type":"surface_projet","value":185.4,"unit":"m²","status":"source_backed","backing_information_key":"plans-dce-a01"}
+  ],
+  "information": [
+    {"key":"cctp-structure-a01","title":"CCTP — Lot Structure","category":"DCE","source_type":"file","source_ref":"fixture://f05/cctp-structure-a01.pdf","index_label":"A01","summary":"Prescriptions structure et interfaces.","details":"Version de consultation synthétique.","status":"acted","limits":["contractuel"],"type_tags":["DCE","CCTP"],"subject_tags":["structure"]},
+    {"key":"ccap-a01","title":"CCAP","category":"DCE","source_type":"file","source_ref":"fixture://f05/ccap-a01.pdf","index_label":"A01","summary":"Conditions administratives particulières.","details":"Prix global forfaitaire, délais, pénalités et pièces contractuelles synthétiques.","status":"acted","limits":["contractuel"],"type_tags":["DCE","CCAP"],"subject_tags":["marche"]},
+    {"key":"estimatif-dce-a01","title":"Estimatif DCE","category":"Économie","source_type":"file","source_ref":"fixture://f05/estimatif-dce.xlsx","index_label":"A01","summary":"Enveloppe travaux synthétique 500 000 €.","details":"Répartition par lots utilisée comme source du claim budget.","status":"acted","limits":["consultatif"],"type_tags":["DCE","estimatif"],"subject_tags":["budget"]},
+    {"key":"plans-dce-a01","title":"Plans DCE","category":"DCE","source_type":"file","source_ref":"fixture://f05/plans-dce-a01.pdf","index_label":"A01","summary":"Jeu de plans de consultation.","details":"Surface projet synthétique 185,40 m².","status":"acted","limits":["contractuel"],"type_tags":["DCE","plan"],"subject_tags":["architecture","surfaces"]},
+    {"key":"devis-structure-a01","title":"Devis entreprise Structure A","category":"Offre","source_type":"file","source_ref":"fixture://f05/devis-structure-a.pdf","index_label":"A01","summary":"Offre reçue avec une variante technique.","details":"La variante doit être analysée avant toute sélection.","status":"acted","limits":["consultatif"],"type_tags":["devis"],"subject_tags":["structure","entreprise"]},
+    {"key":"marche-structure-a01","title":"Marché signé — Structure","category":"Marché","source_type":"file","source_ref":"fixture://f05/marche-structure.pdf","index_label":"A01","summary":"Montant signé synthétique : 118 500 €.","details":"Source du claim montant_marche.","status":"acted","limits":["contractuel"],"type_tags":["contrat"],"subject_tags":["structure","budget"]},
+    {"key":"analyse-offres-a01","title":"Analyse comparative des offres","category":"Consultation","source_type":"draft","source_note":"Comparaison des montants, exclusions, variantes et délais par entreprise.","index_label":"A01","summary":"Travail en cours avant proposition de choix.","details":"Le meilleur prix ne vaut pas sélection automatique.","status":"in_progress","limits":["hypothese"],"type_tags":["analyse"],"subject_tags":["entreprises","budget"]}
+  ],
+  "contacts": {"groups":{"maitrise_ouvrage":2,"maitrise_oeuvre":1,"bureaux_etudes":2,"entreprises_travaux":8},"note":"Les entreprises restent des contacts projet, sans Participation entity."},
+  "work": [
+    {"id":"work-compare-offres","title":"Comparer les offres structure","objective":"Identifier écarts, exclusions, variantes et risques.","status":"in_progress","requested_effect":"draft"},
+    {"id":"work-proposer-attributaire","title":"Préparer la proposition d'attributaire","objective":"Présenter une recommandation argumentée pour validation humaine.","status":"review","requested_effect":"canonical_effect"}
+  ],
+  "decisions": [
+    {"title":"Valider l'entreprise proposée pour le lot Structure","trigger":"work-proposer-attributaire","human_required":true}
+  ],
+  "change_candidates": [
+    {"candidate_id":"fixture-f05-candidate-1","target":"project","base_revision":7,"status":"pending_review","changes":[{"field":"phase","before":"DCE","proposed":"ACT"}],"provenance":["analyse-offres-a01"],"idempotency_key":"fixture-f05-cc-1"}
+  ],
+  "expected_observations": [
+    "DCE/CCTP/CCAP/devis restent des tags de type, pas des status ou limits.",
+    "Structure/budget/entreprise restent des tags sujet.",
+    "Montant de marché et budget sont source-backed sans devenir des attributs libres.",
+    "La sélection d'une entreprise reste une décision humaine conséquente."
+  ]
+}

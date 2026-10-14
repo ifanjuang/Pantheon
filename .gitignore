@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Build artifacts
+build/
+dist/
+# Hermes dashboard plugins ship pre-built browser assets by contract.
+!templates/hermes/dashboard-plugins/pantheon-modules/dashboard/dist/
+!templates/hermes/dashboard-plugins/pantheon-modules/dashboard/dist/**
+*.egg-info/
+
+# Local outputs
+*.log
+/tmp/
+
+# base_metier professional corpus binaries are kept out of git (arbitration B-2, decision c).
+# Provenance + integrity are tracked in base_metier/architecte/knowledge/sources/SOURCES.manifest.yaml.
+base_metier/**/*.pdf

@@ -1,0 +1,37 @@
+@layer accessibility {
+  :focus-visible {
+    outline: 3px solid #155fc5;
+    outline-offset: 3px;
+  }
+
+  .card-button:focus-visible {
+    outline: 3px solid var(--ink-950);
+    outline-offset: -8px;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      scroll-behavior: auto !important;
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .01ms !important;
+    }
+  }
+
+  @media (prefers-contrast: more) {
+    .p-card { --card-border-width: 7px; }
+    .event-chip, .type-icon, .responsibility-icon { background: var(--white); border-color: var(--ink-950); }
+  }
+}

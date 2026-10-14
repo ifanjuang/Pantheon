@@ -1,0 +1,166 @@
+{
+  "contract": "pantheon.obsidian-operational-health-pilot.v1",
+  "execution_status": "prepared_not_executed",
+  "purpose": "Prepare bounded report-only checks for silent workspace, plugin and synchronization failures after local or scripted Obsidian workspace changes.",
+  "owners": [
+    "docs/governance/OBSIDIAN_HINDSIGHT_WORKSPACE_MODEL.md",
+    "docs/architecture/WORKSPACE_MANIFEST_INSPECTOR_CANDIDATE.md"
+  ],
+  "prior_art": {
+    "repository": "dtiger1889-ops/obsidian-agent-integration",
+    "reviewed_main_sha": "6f1d58ceb49e3fbb69e52b502e1f9d794fb173b3",
+    "reviewed_files": [
+      "operations/vault-maintenance.md",
+      "operations/context-budget.md"
+    ],
+    "classification": "operational prior art only; not a Pantheon dependency or authority"
+  },
+  "authorized_scope": {
+    "include_prefixes": [
+      "projects/maison/"
+    ],
+    "explicitly_out_of_scope_prefixes": [
+      "projects/autre-projet/"
+    ],
+    "external_pointer_roots": [
+      "project-checkpoints/"
+    ]
+  },
+  "post_mutation_posture": {
+    "mode": "report_only",
+    "trigger_examples": [
+      "bulk archive or move",
+      "scripted file mutation",
+      "plugin or template configuration change",
+      "sync conflict resolution",
+      "workspace restructure"
+    ],
+    "required_result": "findings with exact observed paths/device/plugin/sync context when available",
+    "automatic_repairs": false
+  },
+  "invariants": [
+    "workspace health observation != professional currentness",
+    "health finding != defect confirmed",
+    "filesystem mutation success != sync convergence",
+    "config snapshot != active per-device state",
+    "metadata field != source-authored observation",
+    "conflict copy != stale by definition",
+    "bulk mutation != authorization to auto-fix",
+    "audit clean != Evidence",
+    "workspace path != governed identity"
+  ],
+  "cases": [
+    {
+      "id": "archive_move_link_impact",
+      "observed_condition": "a note is moved or archived while live notes still contain inbound wikilinks to the previous target",
+      "expected_finding": "inbound_link_impact_candidate",
+      "required_observations": [
+        "source path",
+        "destination path when known",
+        "inbound link locations"
+      ],
+      "forbidden_effects": [
+        "auto-relink every inbound reference",
+        "auto-delete dangling references",
+        "infer one universal archive-link policy",
+        "treat the finding as a confirmed professional defect"
+      ]
+    },
+    {
+      "id": "link_frontmatter_shape",
+      "observed_condition": "one scalar frontmatter value appears to contain multiple wikilink targets",
+      "expected_finding": "link_property_shape_candidate",
+      "required_observations": [
+        "exact property name",
+        "exact serialized value",
+        "local schema expectation when one exists"
+      ],
+      "forbidden_effects": [
+        "rewrite the property automatically",
+        "invent a schema when none is owned",
+        "create missing notes from malformed link text"
+      ]
+    },
+    {
+      "id": "timestamp_writer_ambiguity",
+      "observed_condition": "a metadata timestamp changes without attributable content-edit provenance and may have been written by a plugin or linter",
+      "expected_finding": "metadata_writer_ambiguity",
+      "required_observations": [
+        "field value",
+        "filesystem timestamps when relevant",
+        "known plugin/linter configuration when available"
+      ],
+      "forbidden_effects": [
+        "treat the metadata timestamp as proof of a human-authored edit",
+        "rewrite historical timestamps automatically",
+        "promote plugin output to source truth"
+      ]
+    },
+    {
+      "id": "device_local_setting_divergence",
+      "observed_condition": "synced plugin configuration appears correct but observed behavior differs on one device",
+      "expected_finding": "device_setting_divergence_candidate",
+      "required_observations": [
+        "device identity sufficient for the test",
+        "plugin identity/version",
+        "synced configuration snapshot",
+        "observed device behavior"
+      ],
+      "forbidden_effects": [
+        "assume synced configuration proves effective device state",
+        "change every device automatically",
+        "classify the plugin as healthy from configuration alone"
+      ]
+    },
+    {
+      "id": "sync_conflict_live_copy_ambiguity",
+      "observed_condition": "a live file and one or more synchronization-conflict copies coexist after a configuration or note change",
+      "expected_finding": "sync_conflict_requires_review",
+      "required_observations": [
+        "live path and digest",
+        "conflict-copy path and digest",
+        "available sync provenance"
+      ],
+      "forbidden_effects": [
+        "discard the conflict copy automatically",
+        "assume the live filename is the correct version",
+        "select a winner from modification time alone",
+        "claim convergence before the conflict is resolved and re-observed"
+      ]
+    },
+    {
+      "id": "scripted_write_convergence",
+      "observed_condition": "a scripted or bulk filesystem change succeeded locally but downstream synchronization has not been re-observed",
+      "expected_finding": "sync_convergence_unverified",
+      "required_observations": [
+        "changed local path/digest",
+        "sync mechanism identity",
+        "rescan or convergence observation when the selected mechanism supports it"
+      ],
+      "forbidden_effects": [
+        "claim sync success from local filesystem success",
+        "start a second synchronization producer",
+        "treat a rescan request as professional approval"
+      ]
+    },
+    {
+      "id": "external_leaf_pointer_rename",
+      "observed_condition": "a file outside the vault stores a direct pointer to a vault leaf that was renamed or moved",
+      "expected_finding": "external_pointer_stale_candidate",
+      "required_observations": [
+        "external pointer location",
+        "previous target",
+        "current candidate target when resolvable"
+      ],
+      "forbidden_effects": [
+        "rewrite files outside the authorized scope automatically",
+        "infer governed identity from the old or new path",
+        "treat pointer repair as authorization for the underlying workspace mutation"
+      ]
+    }
+  ],
+  "execution_gate": {
+    "required_before_observed_result": "run each selected case against an isolated or explicitly authorized workspace/device/sync setup and retain exact observed evidence",
+    "forbidden_shortcut": "Do not convert the prepared expectations in this fixture into claims that Pantheon, Obsidian, plugins or LiveSync exhibited these failures on a real deployment."
+  }
+}

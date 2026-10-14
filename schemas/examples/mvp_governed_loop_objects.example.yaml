@@ -1,0 +1,42 @@
+# Fictional example for the MVP governed loop object bundle (task_contract variant).
+# Validation is not authorization; the gate decides.
+object_type: task_contract
+object_id: mvp.devis-reprise.tc-001
+contract_id: mvp.devis-reprise.tc-001
+status: ready_for_governed_processing
+requested_by: practitioner
+exposure_surface: openwebui_capture
+consequence_class: K3
+approval_ceiling: draft_only
+intent:
+  action: draft_reply_candidate
+  must_not:
+  - approve_quote
+  - accept_scope
+  - send_external_message
+  - promote_memory
+scope:
+  declared_sources:
+  - source_ref: src.client_email.001
+    title: Client message asking for position on recovery quote
+    traceable: true
+  - source_ref: src.quote.041
+    title: Recovery quote Q-2026-041, lot 06
+    traceable: true
+  - source_ref: src.cctp.lot06
+    title: CCTP excerpt, lot 06
+    traceable: true
+  forbidden_sources:
+  - outside_project_corpus
+  - unstated_email_threads
+expected_outputs:
+- result_candidate
+- evidence_pack_candidate
+- decision_options
+retrieval_boundary:
+  pgvector: retrieval_only
+  indexed_is_evidence: false
+  retrieved_is_truth: false
+governance_refs:
+- docs/governance/MVP_GOVERNED_TASK_LOOP.md
+- schemas/mvp_governed_loop_objects.schema.yaml

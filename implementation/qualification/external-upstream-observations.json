@@ -1,0 +1,190 @@
+{
+  "schema_id": "pantheon.external_upstream_observations",
+  "revision": 1,
+  "status": "candidate",
+  "description": "What upstream published, when it was last looked at, and whether a lag behind it was decided. This file records observations about external projects. It is not the pin registry, does not select a target, and authorizes no update. `external-pins.json` remains the sole owner of which artifact each qualification targets.",
+  "method": {
+    "why_separate_from_the_registry": "The registry records a decision; this file records a fact about someone else's project. Keeping them apart preserves `observed != adopted`: refreshing an observation must never look like moving a pin.",
+    "version_comparison": "No mechanical comparison is made between `latest_seen` and the pinned version. Upstream identifiers are heterogeneous — Hermes Agent 0.20.6 ships as tag `v2026.8.27` — so a human records the `delta` verdict. The tool only detects that upstream moved past `latest_seen`.",
+    "delta_states": {
+      "none": "the pin is on the upstream head recorded here",
+      "acknowledged": "a newer upstream release exists and a dated human decision explains why the pin stays; this cannot close freshness for pins whose tracking_policy is follow_latest_stable",
+      "open": "a newer upstream release exists and no decision has been recorded"
+    }
+  },
+  "observations": {
+    "hermes-agent": {
+      "source": "github_releases_latest",
+      "locator": "NousResearch/hermes-agent",
+      "latest_seen": "v0.21.7",
+      "observed_on": "2026-10-13",
+      "delta": {
+        "state": "open",
+        "reason": "Hermes Agent 0.21.7 (v0.21.7, 2026-10-12, tag commit 71d34bad1045610252eda02ee79549436896e784) is the latest stable upstream release; 0.21.4-0.21.7 are not yet surface-reviewed. The pin follows latest stable, so moving it requires the HERMES_RUNTIME_SURFACE_REVIEW.md requalification under Pantheon-Next#644/H5.9b; the selected target stays 0.21.3 until that review. Deployment is ahead of the reviewed target: on 2026-10-13 the linux-node operator moved the native source install to v0.21.7 on the stable update channel, and release.env now selects the immutable v0.21.6 container image (no v0.21.7 image tag is published; v0.21.6 carries the dashboard-authentication security fixes). Deployed is not reviewed.",
+        "decided_on": "2026-10-13"
+      },
+      "note": "Observed from the stable GitHub release v0.21.7 (Hermes Agent 0.21.7), published 2026-10-12. Upstream switched from date tags (v2026.9.24 = 0.21.5) to semantic tags with 0.21.6. Observation only; it does not move the pin."
+    },
+    "personal-ai-router": {
+      "source": "github_releases_latest",
+      "locator": "NVIDIA/Personal-AI-Router",
+      "latest_seen": "v1.0.0",
+      "observed_on": "2026-10-13",
+      "delta": {
+        "state": "acknowledged",
+        "reason": "Upstream v1.0.0 observed on 2026-10-13; not yet evaluated. The reviewed pin stays at 0.1.1 until a qualification owner moves it. Observing the release does not adopt it.",
+        "decided_on": "2026-10-13"
+      },
+      "note": "Observed from NVIDIA Personal AI Router release v0.1.1. The source review confirms request-level routing across paired nodes, Ollama/LM Studio support, loopback-only plaintext client ingress, cluster mTLS, and no cross-machine VRAM pooling. This record is upstream observation only; the separate qualification pin selects the candidate artifact and no Pantheon deployment or activation follows from this observation."
+    },
+    "unsloth": {
+      "source": "github_releases_latest",
+      "locator": "unslothai/unsloth",
+      "latest_seen": "v0.1.906-beta",
+      "observed_on": "2026-10-13",
+      "delta": {
+        "state": "acknowledged",
+        "reason": "Upstream v0.1.906-beta observed on 2026-10-13; not yet evaluated. The reviewed pin stays at 0.1.806-beta until a qualification owner moves it. Observing the release does not adopt it.",
+        "decided_on": "2026-10-13"
+      },
+      "note": "Observed from the current GitHub release v0.1.806-beta. The tagged source exposes an OpenAI-compatible local server path and an `unsloth start hermes` convenience path that writes a session-scoped Hermes configuration. Pantheon qualification deliberately targets Unsloth as a separate provider candidate through the existing Hermes custom-provider seam rather than selecting a second Hermes runtime. Observation does not install, activate, authorize, or admit Evidence."
+    },
+    "hindsight": {
+      "source": "github_releases_latest",
+      "locator": "vectorize-io/hindsight",
+      "latest_seen": "v1.0.0",
+      "observed_on": "2026-10-13",
+      "delta": {
+        "state": "acknowledged",
+        "reason": "Upstream v1.0.0 observed on 2026-10-13; not yet qualified. The reviewed pin stays at 0.10.2 until a qualification owner re-runs the O1/O2/Q5 labs against it. On 2026-10-13 the linux-node operator upgraded the native hindsight-api to 1.0.0 after a verified database dump; the schema migrated to c8e2f4a6b1d3 and a tag-scoped project recall answered. That node observation is not qualification and does not move the pin.",
+        "decided_on": "2026-10-13"
+      },
+      "note": "The pin was moved to the observed head on 2026-08-31; the O1/O2/Q5 labs re-run against it on this change and their result is the qualification. Moving the pin closes the version lag only. It does not settle which lexical lane is authoritative on which corpus: 0.9.2's BM25 change overlaps the hand-written lexical fallback added to implementation/mvp_vertical/retrieval.py in Pantheon-Next#874, and Hindsight is not wired into that retrieval path, so the two lanes remain a separate open design question."
+    },
+    "hindsight-obsidian-sync": {
+      "source": "github_releases_latest",
+      "locator": "vectorize-io/hindsight-obsidian",
+      "latest_seen": "0.3.1",
+      "observed_on": "2026-10-13",
+      "delta": {
+        "state": "acknowledged",
+        "reason": "Upstream 0.3.1 observed on 2026-10-13; not yet evaluated. The reviewed pin stays at 0.2.1 until a qualification owner moves it. Observing the release does not adopt it.",
+        "decided_on": "2026-10-13"
+      }
+    },
+    "obsidian-desktop": {
+      "source": "github_releases_latest",
+      "locator": "obsidianmd/obsidian-releases",
+      "latest_seen": "v1.14.4",
+      "observed_on": "2026-10-13",
+      "delta": {
+        "state": "acknowledged",
+        "reason": "Upstream v1.14.4 observed on 2026-10-13. `releases/latest` mixes desktop and mobile releases, so this tag is not by itself proof of a newer desktop head; the desktop pin stays at 1.13.7 until a reviewed qualification moves it.",
+        "decided_on": "2026-10-13"
+      }
+    },
+    "obsidian-wiki": {
+      "source": "github_releases_latest",
+      "locator": "Ar9av/obsidian-wiki",
+      "latest_seen": "v2026.10.2",
+      "observed_on": "2026-10-13",
+      "delta": {
+        "state": "acknowledged",
+        "reason": "Upstream v2026.10.2 observed on 2026-10-13; not yet evaluated. The reviewed pin stays at 2026.8.6 until a qualification owner moves it. Observing the release does not adopt it.",
+        "decided_on": "2026-10-13"
+      }
+    },
+    "notemesh": {
+      "source": "not_observable",
+      "locator": "ChangeNode/notemesh",
+      "latest_seen": "a9011dc0ed547a7db78e3327c33b5f00ae4f0ea6",
+      "observed_on": "2026-09-03",
+      "delta": "none",
+      "note": "ChangeNode/notemesh currently publishes no GitHub Release, so the existing automated freshness checker has no supported release feed for this repository. The default branch was checked directly on 2026-09-03 and main resolved to a9011dc0ed547a7db78e3327c33b5f00ae4f0ea6, the exact qualification ref. `not_observable` describes the automated freshness source only; it does not mean the repository state was guessed. The pin remains qualification input only and does not install, activate, authorize or adopt NoteMesh."
+    },
+    "graphify": {
+      "source": "github_releases_latest",
+      "locator": "Graphify-Labs/graphify",
+      "latest_seen": "v0.9.89",
+      "observed_on": "2026-10-13",
+      "delta": {
+        "state": "acknowledged",
+        "reason": "Upstream v0.9.89 observed on 2026-10-13; not yet evaluated. The reviewed pin stays at 0.9.53 until a qualification owner moves it. Observing the release does not adopt it.",
+        "decided_on": "2026-10-13"
+      },
+      "note": "Observed from Graphify 0.9.53 at commit 33362d969292b57eda82f3fbd9eb5f3f5bc9bbc2. This record answers freshness for the bounded structural qualification only. It does not install or activate Graphify in Pantheon, grant relation authority, qualify mutation gates, admit Evidence, or authorize persistence."
+    },
+    "mnemosyne-memory": {
+      "source": "pypi_latest",
+      "locator": "mnemosyne-memory",
+      "latest_seen": "3.15.1",
+      "observed_on": "2026-09-15",
+      "delta": "none",
+      "note": "3.15.1 remains the latest stable release. PyPI also lists 4.0.0b2 (2026-09-10) as a pre-release; the candidate stays on the stable line until the Hermes integration is requalified."
+    },
+    "mnemosyne-hermes": {
+      "source": "pypi_latest",
+      "locator": "mnemosyne-hermes",
+      "latest_seen": "0.7.4",
+      "observed_on": "2026-10-13",
+      "delta": {
+        "state": "acknowledged",
+        "reason": "Upstream 0.7.4 observed on 2026-10-13; not yet qualified. The reviewed pin stays at 0.7.0 until a qualification owner moves it. On 2026-10-13 linux-node runs mnemosyne-hermes 0.7.4 through the Hermes catalog plugin (re-applied by the Hermes v0.21.7 update) as the active provider of both profiles. That node observation is not qualification and does not move the pin.",
+        "decided_on": "2026-10-13"
+      },
+      "note": "PyPI stable release 0.7.0 was published 2026-09-09. It requires the mnemosyne-memory embeddings extra; installation and Hermes 0.21.3 compatibility still require a node-side qualification run."
+    },
+    "haystack": {
+      "source": "github_releases_latest",
+      "locator": "deepset-ai/haystack",
+      "latest_seen": "v3.3.0",
+      "observed_on": "2026-10-13",
+      "delta": {
+        "state": "acknowledged",
+        "reason": "Upstream v3.3.0 observed on 2026-10-13; not yet evaluated. The reviewed pin stays at 3.1.0 until a qualification owner moves it. Observing the release does not adopt it.",
+        "decided_on": "2026-10-13"
+      },
+      "note": "Observed from the immutable v3.1.0 GitHub release published 2026-08-24; annotated tag resolves to release commit 859a6eb3ac4d0bd33f069bab57fb041e3434a353. This observation supports the Pantheon-Next#908 qualification pin only and does not select or activate Haystack."
+    },
+    "isnad": {
+      "source": "github_releases_latest",
+      "locator": "alizahidraja/isnad",
+      "latest_seen": "v3.1.7",
+      "observed_on": "2026-10-13",
+      "delta": {
+        "state": "acknowledged",
+        "reason": "Upstream v3.1.7 observed on 2026-10-13; not yet evaluated. The reviewed pin stays at 2.20.1 until a qualification owner moves it. Observing the release does not adopt it.",
+        "decided_on": "2026-10-13"
+      },
+      "note": "Observed from the current GitHub latest release v2.20.1, published 2026-09-01. The qualification pin targets package 2.20.1 at commit 4a9a9a3dd22b459c5e6a15d87af0997febad1703. This observation answers freshness only; it does not install, activate, authorize, admit Evidence, or adopt ISNAD."
+    },
+    "harnessrouter": {
+      "source": "github_releases_latest",
+      "locator": "HarnessRouter/harnessrouter",
+      "latest_seen": "v0.32.9",
+      "observed_on": "2026-10-13",
+      "delta": {
+        "state": "acknowledged",
+        "reason": "Upstream v0.32.9 observed on 2026-10-13; not yet evaluated. The reviewed pin stays at 0.26.14 until a qualification owner moves it. Observing the release does not adopt it.",
+        "decided_on": "2026-10-13"
+      },
+      "note": "Observed stable HarnessRouter CE v0.26.14 at commit 7d0fa14bf70e81a2226d232bc519e729d32793d3. The newer v0.27.0-rc.1 is a prerelease and is not treated as the stable head. Source review of both v0.26.14 and v0.27.0-rc.1 shows their self-hosted entrypoint installs hermes-agent==0.19.0, while Pantheon's separately selected Hermes qualification pin is newer. This observation does not adopt HarnessRouter, authorize UHP, or establish runtime comparability."
+    },
+    "contrastive-lm": {
+      "source": "not_observable",
+      "locator": "Contrastive-LM/CLM",
+      "latest_seen": "bb42c6c5bf914fd449bed2f6ca65be80602cb1f7",
+      "observed_on": "2026-10-01",
+      "delta": "none",
+      "note": "Contrastive-LM/CLM has no GitHub Release feed at this observation point, so the current default-branch commit was reviewed directly and pinned separately for the bounded Pantheon-Next#1047 shadow-ranking experiment. Package metadata at that ref reports contrastive-lm 0.1.0. Upstream issue #3 reports unexpected score behavior and PR #6 discusses long-state truncation semantics; this qualification therefore uses /v1/rank on short synthetic states only. Observation does not install, activate, route, authorize, admit Evidence, or adopt CLM. Quantized-encoder qualification additionally records the official Qwen/Qwen3-8B-GGUF Q8_0 and Q4_K_M artifacts by exact SHA-256 and llama.cpp v0.5.0 at commit 7fe450e19305b828c199d602c23a8337aaa1f03b. These are experimental encoder variants only; the pinned Qwen3-8B/vLLM path remains the numerical reference and no quantized variant is activated by registry presence."
+    }
+  },
+  "authority": {
+    "deployment_truth": false,
+    "installation_state": false,
+    "runtime_activation": false,
+    "update_authorization": false,
+    "task_authorization": false,
+    "evidence_admission": false
+  }
+}

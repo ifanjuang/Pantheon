@@ -1,0 +1,311 @@
+corpus_id: h5.7.project-anatomy.multi-purpose
+status: qualification_only
+parent_issue: 624
+description: >-
+  One shared Project Anatomy world reused across architecture, economy/quantities,
+  construction/DET, thermal/RE2020 preparation and ACV/carbon preparation. The
+  purpose_cases section is fixture-only qualification metadata; it is not a
+  persisted status model, a purpose owner or a professional sufficiency contract.
+
+project_world:
+  project_ref: project-h57
+  stable_objects:
+    - stable_object_id: OBJ-OPENING-017
+      project_ref: project-h57
+      object_family: element
+      nomenclature:
+        internal_code: P17
+        display_name: Baie séjour
+    - stable_object_id: OBJ-HVAC-004
+      project_ref: project-h57
+      object_family: system
+      nomenclature:
+        internal_code: VMC-04
+        display_name: Bouche VMC séjour
+    - stable_object_id: OBJ-SWALE-001
+      project_ref: project-h57
+      object_family: element
+      nomenclature:
+        internal_code: NOUE-01
+        display_name: Noue paysagère
+
+  source_representations:
+    - representation_id: rep.pdf.opening-017
+      project_ref: project-h57
+      source_artifact_ref: source.pdf.plan-a
+      source_version_ref: document-revision:plan-a-index-b
+      source_kind: drawing
+      identifiers: [{scheme: drawing.local_label, value: P17}]
+      observed_at: "2026-08-08T08:00:00Z"
+      binding_ref: binding.synthetic.drawing
+      adapter_version: 1.0.0
+      freshness_token: sha256:plan-a-index-b
+      content_digest: sha256:pdf-p17
+      proof_status: accepted_as_support
+    - representation_id: rep.ifc.opening-017
+      project_ref: project-h57
+      source_artifact_ref: source.ifc.model-a
+      source_version_ref: snapshot.ifc.42
+      source_kind: ifc
+      identifiers: [{scheme: ifc_guid, value: 3OpeningGuid17}]
+      observed_at: "2026-08-08T09:00:00Z"
+      binding_ref: binding.synthetic.ifc
+      adapter_version: 1.0.0
+      freshness_token: sha256:ifc-42
+      content_digest: sha256:ifc-opening-17
+      proof_status: accepted_as_support
+    - representation_id: rep.revit.opening-017
+      project_ref: project-h57
+      source_artifact_ref: source.revit.model-a
+      source_version_ref: revit-snapshot:88
+      source_kind: revit
+      identifiers: [{scheme: revit.unique_id, value: uid-opening-17}]
+      observed_at: "2026-08-08T10:00:00Z"
+      binding_ref: binding.synthetic.revit
+      adapter_version: 1.0.0
+      freshness_token: sha256:revit-doc-88
+      content_digest: sha256:revit-opening-17
+      proof_status: accepted_as_support
+    - representation_id: rep.dpgf.openings
+      project_ref: project-h57
+      source_artifact_ref: source.dpgf.menuiseries
+      source_version_ref: document-revision:dpgf-index-c
+      source_kind: other
+      identifiers: [{scheme: document.section, value: lot-menuiseries}]
+      observed_at: "2026-08-08T11:00:00Z"
+      binding_ref: binding.synthetic.document
+      adapter_version: 1.0.0
+      freshness_token: sha256:dpgf-index-c
+      content_digest: sha256:dpgf-openings
+      proof_status: accepted_as_support
+    - representation_id: rep.photo.hvac-004
+      project_ref: project-h57
+      source_artifact_ref: source.photo.site-01
+      source_version_ref: photo-receipt:site-01
+      source_kind: photo
+      identifiers: [{scheme: image.region, value: hvac-004-visible}]
+      observed_at: "2026-08-08T12:00:00Z"
+      binding_ref: binding.synthetic.image
+      adapter_version: 1.0.0
+      freshness_token: sha256:site-photo-01
+      content_digest: sha256:photo-hvac-004
+      proof_status: accepted_as_support
+      limitations: [Visible installation only; commissioning and attestation are not observed.]
+    - representation_id: rep.cctp.swale-group
+      project_ref: project-h57
+      source_artifact_ref: source.cctp.vrd
+      source_version_ref: document-revision:cctp-vrd-b
+      source_kind: other
+      identifiers: [{scheme: document.section, value: gestion-eaux-pluviales}]
+      observed_at: "2026-08-08T13:00:00Z"
+      binding_ref: binding.synthetic.document
+      adapter_version: 1.0.0
+      freshness_token: sha256:cctp-vrd-b
+      content_digest: sha256:cctp-swale-group
+      proof_status: accepted_as_support
+
+  relation_claims:
+    - relation_claim_id: identity.pdf.opening-017
+      subject_ref: {entity_type: source_representation, entity_id: rep.pdf.opening-017}
+      relation_type: identity.represents
+      object_ref: {entity_type: stable_object, entity_id: OBJ-OPENING-017}
+      assertion_mode: human_asserted
+      source_authority: project_working_document
+      proof_status: accepted_as_support
+      source_representation_refs: [rep.pdf.opening-017]
+    - relation_claim_id: identity.ifc.opening-017
+      subject_ref: {entity_type: source_representation, entity_id: rep.ifc.opening-017}
+      relation_type: identity.represents
+      object_ref: {entity_type: stable_object, entity_id: OBJ-OPENING-017}
+      assertion_mode: human_asserted
+      source_authority: project_working_document
+      proof_status: accepted_as_support
+      source_representation_refs: [rep.ifc.opening-017]
+    - relation_claim_id: identity.revit.opening-017
+      subject_ref: {entity_type: source_representation, entity_id: rep.revit.opening-017}
+      relation_type: identity.represents
+      object_ref: {entity_type: stable_object, entity_id: OBJ-OPENING-017}
+      assertion_mode: human_asserted
+      source_authority: project_working_document
+      proof_status: accepted_as_support
+      source_representation_refs: [rep.revit.opening-017]
+    - relation_claim_id: identity.photo.hvac-004
+      subject_ref: {entity_type: source_representation, entity_id: rep.photo.hvac-004}
+      relation_type: identity.represents
+      object_ref: {entity_type: stable_object, entity_id: OBJ-HVAC-004}
+      assertion_mode: human_asserted
+      source_authority: project_working_document
+      proof_status: accepted_as_support
+      source_representation_refs: [rep.photo.hvac-004]
+
+  attribute_claims:
+    - attribute_claim_id: claim.pdf.opening-width
+      subject_ref: {entity_type: source_representation, entity_id: rep.pdf.opening-017}
+      attribute_key: geometry.width
+      value: {value_type: number, value: 0.90, unit: m}
+      assertion_mode: observed
+      source_authority: project_working_document
+      proof_status: accepted_as_support
+      source_representation_refs: [rep.pdf.opening-017]
+    - attribute_claim_id: claim.ifc.opening-width
+      subject_ref: {entity_type: source_representation, entity_id: rep.ifc.opening-017}
+      attribute_key: geometry.width
+      value: {value_type: number, value: 0.93, unit: m}
+      assertion_mode: observed
+      source_authority: model_interpretation_candidate
+      proof_status: candidate
+      source_representation_refs: [rep.ifc.opening-017]
+    - attribute_claim_id: claim.revit.opening-width
+      subject_ref: {entity_type: source_representation, entity_id: rep.revit.opening-017}
+      attribute_key: geometry.width
+      value: {value_type: number, value: 0.93, unit: m}
+      assertion_mode: observed
+      source_authority: project_working_document
+      proof_status: candidate
+      source_representation_refs: [rep.revit.opening-017]
+    - attribute_claim_id: claim.ifc.opening-count
+      subject_ref: {entity_type: source_representation, entity_id: rep.ifc.opening-017}
+      attribute_key: economy.observed_count
+      value: {value_type: number, value: 1}
+      assertion_mode: derived
+      source_authority: model_interpretation_candidate
+      proof_status: candidate
+      source_representation_refs: [rep.ifc.opening-017]
+    - attribute_claim_id: claim.dpgf.opening-count
+      subject_ref: {entity_type: source_representation, entity_id: rep.dpgf.openings}
+      attribute_key: economy.document_quantity
+      value: {value_type: number, value: 2}
+      assertion_mode: observed
+      source_authority: project_working_document
+      proof_status: candidate
+      source_representation_refs: [rep.dpgf.openings]
+      notes: Document quantity is not an adopted or payable quantity.
+    - attribute_claim_id: claim.revit.opening-uw
+      subject_ref: {entity_type: source_representation, entity_id: rep.revit.opening-017}
+      attribute_key: thermal.uw
+      value: {value_type: number, value: 1.4, unit: W/m2K}
+      assertion_mode: observed
+      source_authority: project_working_document
+      proof_status: candidate
+      source_representation_refs: [rep.revit.opening-017]
+    - attribute_claim_id: claim.ifc.opening-material
+      subject_ref: {entity_type: source_representation, entity_id: rep.ifc.opening-017}
+      attribute_key: material.product_candidate
+      value: {value_type: controlled_label, value: aluminium_window_candidate_a}
+      assertion_mode: derived
+      source_authority: model_interpretation_candidate
+      proof_status: candidate
+      source_representation_refs: [rep.ifc.opening-017]
+    - attribute_claim_id: claim.revit.opening-fdes
+      subject_ref: {entity_type: source_representation, entity_id: rep.revit.opening-017}
+      attribute_key: carbon.fdes_candidate
+      value: {value_type: reference, value: fdes:candidate-b}
+      assertion_mode: derived
+      source_authority: model_interpretation_candidate
+      proof_status: candidate
+      source_representation_refs: [rep.revit.opening-017]
+      notes: Reference availability does not establish applicability.
+    - attribute_claim_id: claim.photo.hvac-installed
+      subject_ref: {entity_type: source_representation, entity_id: rep.photo.hvac-004}
+      attribute_key: physical.installation_status
+      value: {value_type: controlled_label, value: apparently_installed}
+      assertion_mode: observed
+      source_authority: model_interpretation_candidate
+      proof_status: accepted_as_support
+      source_representation_refs: [rep.photo.hvac-004]
+    - attribute_claim_id: claim.cctp.swale-capacity-group
+      subject_ref: {entity_type: source_representation, entity_id: rep.cctp.swale-group}
+      attribute_key: stormwater.required_capacity_group
+      value: {value_type: number, value: 75, unit: L/m2}
+      assertion_mode: observed
+      source_authority: project_working_document
+      proof_status: candidate
+      source_representation_refs: [rep.cctp.swale-group]
+      notes: Source-level group statement is not duplicated onto every landscape object.
+
+# Existing document-currentness semantics are represented here only as the output
+# of their own owner/projection. These postures are not generalized into a
+# Project Anatomy purpose status.
+document_currentness_examples:
+  - document_ref: document:dpgf-menuiseries
+    purpose: latest_received
+    posture: resolved
+    version_ref: revision:C
+    basis_refs: [receipt:C]
+  - document_ref: document:dpgf-menuiseries
+    purpose: current_for_coordination
+    posture: resolved
+    version_ref: revision:B
+    basis_refs: [version-event:B:coordination]
+  - document_ref: document:dpgf-menuiseries
+    purpose: current_contractual
+    posture: unresolved
+    missing_requirements: [contractual_authority_basis]
+
+purpose_cases:
+  - purpose_id: architecture_design
+    stable_object_refs: [OBJ-OPENING-017, OBJ-SWALE-001]
+    basis_claim_refs:
+      - claim.pdf.opening-width
+      - claim.ifc.opening-width
+      - claim.revit.opening-width
+      - claim.cctp.swale-capacity-group
+    conflict_sets:
+      - [claim.pdf.opening-width, claim.ifc.opening-width, claim.revit.opening-width]
+    missing_inputs: []
+    external_refs: []
+    prohibited_inferences: [accepted_design, universal_current_value]
+
+  - purpose_id: economy_quantities
+    stable_object_refs: [OBJ-OPENING-017, OBJ-SWALE-001]
+    basis_claim_refs:
+      - claim.ifc.opening-count
+      - claim.dpgf.opening-count
+      - claim.cctp.swale-capacity-group
+    conflict_sets:
+      - [claim.ifc.opening-count, claim.dpgf.opening-count]
+    missing_inputs: [adopted_dpgf_quantity, payable_quantity]
+    external_refs:
+      - document-currentness:document:dpgf-menuiseries:latest_received
+      - document-currentness:document:dpgf-menuiseries:current_contractual
+    prohibited_inferences: [payable_quantity, approved_budget, contractual_currentness_from_latest_received]
+
+  - purpose_id: construction_det
+    stable_object_refs: [OBJ-HVAC-004, OBJ-OPENING-017]
+    basis_claim_refs: [claim.photo.hvac-installed]
+    conflict_sets: []
+    missing_inputs: [commissioning_test, attestation, reception_decision]
+    external_refs: [work-issue:hvac-verification]
+    prohibited_inferences: [verified, compliant, received, reservation_free]
+
+  - purpose_id: thermal_re2020_preparation
+    stable_object_refs: [OBJ-OPENING-017]
+    basis_claim_refs:
+      - claim.pdf.opening-width
+      - claim.revit.opening-uw
+    conflict_sets:
+      - [claim.pdf.opening-width, claim.ifc.opening-width, claim.revit.opening-width]
+    missing_inputs: [validated_orientation, validated_frame_fraction]
+    external_refs: [execution-result:thermal-calculation-candidate]
+    prohibited_inferences: [validated_input, regulatory_compliance]
+
+  - purpose_id: acv_carbon_preparation
+    stable_object_refs: [OBJ-OPENING-017, OBJ-SWALE-001]
+    basis_claim_refs:
+      - claim.ifc.opening-material
+      - claim.revit.opening-fdes
+      - claim.ifc.opening-count
+    conflict_sets: []
+    missing_inputs: [fdes_applicability_review, accepted_acv_quantity]
+    external_refs: [execution-result:acv-calculation-candidate]
+    prohibited_inferences: [specified_product, fdes_applicable, acv_approved]
+
+authority:
+  is_project_truth_projection: false
+  is_evidence: false
+  is_decision: false
+  is_approval: false
+  is_payment_state: false
+  is_reception_state: false
+  is_regulatory_compliance: false
+  authorizes_external_effect: false

@@ -1,0 +1,135 @@
+# Fictional external return fixture. Validation-only; no runtime or bridge is implemented by this file.
+external_run_return:
+  schema_version: "0.1"
+  run_id: run.devis-reprise.fixture.001
+  task_contract_id: vertical.devis-reprise.task-contract
+  context_pack_id: vertical.devis-reprise.context-pack.external-test
+  pantheon_ref: replace-with-audited-tag-or-commit
+  runtime:
+    name: hermes-agent
+    version: "0.19.0"
+    model: fictional-model-for-contract-test
+    status: success
+  bridge:
+    surface: openwebui
+    status: simulated_fixture
+    implementation_ref: fictional://external-openwebui-hermes-bridge
+  trace_refs:
+    - trace://fictional/run.devis-reprise.fixture.001
+  effect_report:
+    external_effect_attempted: false
+    approval_claimed: false
+    register_admission_attempted: false
+  outcome_type: candidate_return
+  result_candidate:
+    run_id: run.devis-reprise.fixture.001
+    task_contract_id: vertical.devis-reprise.task-contract
+    status: candidate
+    summary: Fictional comparison of a complementary quote and a prior amendment.
+    candidate_opinion: The added amount requires line-by-line clarification before any position is taken.
+    draft_moa_email: >-
+      Bonjour, le devis complémentaire présente des écarts qui doivent être clarifiés avant toute décision.
+      Ce projet de message n'est pas envoyé.
+    uncertain_points:
+      - The exact scope already covered by the signed amendment remains to be confirmed.
+    discrepancy_notes:
+      - One line item appears to overlap with the prior amendment.
+    external_commitment_risks:
+      - The draft could be misread as agency approval if sent without human review.
+    required_human_decision: Review the comparison and decide whether to request clarification.
+    forbidden_effects_confirmed:
+      approve: false
+      approve_payment: false
+      sign: false
+      send: false
+      instruct_enterprise: false
+      register_admission: false
+  evidence_pack_candidate:
+    evidence_pack_id: vertical.devis-reprise.external-run-evidence-pack
+    task_contract_id: vertical.devis-reprise.task-contract
+    created_at: "2026-07-21T06:00:00Z"
+    summary: Fictional evidence returned by the external-run contract fixture for review only.
+    scope:
+      scope_type: project
+      scope_id: maison-lierre
+      scope_label: Maison Lierre — fictional complementary quote
+    sources:
+      - type: user_input
+        reference: fictional complementary quote
+        status: selected_evidence
+        supports: Quote line-item comparison.
+        limitations:
+          - Fictional fixture only.
+      - type: user_input
+        reference: fictional prior signed amendment
+        status: selected_evidence
+        supports: Prior agreed amount and scope.
+        limitations:
+          - Fictional fixture only.
+      - type: user_input
+        reference: fictional MOA correspondence
+        status: selected_evidence
+        supports: Context for the requested clarification.
+        limitations:
+          - Fictional fixture only.
+    evidence_items:
+      - evidence_id: ei.devis.line-items
+        claim: The complementary quote contains the listed additional line items.
+        source_type: user_document
+        source_ref: fictional complementary quote
+        scope_of_support: Supports the quoted line items only.
+        claim_status: supported
+        # Legacy Evidence Pack compatibility field; not the governed E-axis.
+        confidence: medium_high
+        limitations:
+          - Fictional fixture only.
+      - evidence_id: ei.avenant.amount
+        claim: The prior amendment contains the previously agreed amount and scope.
+        source_type: user_document
+        source_ref: fictional prior signed amendment
+        scope_of_support: Supports the previous agreement only.
+        claim_status: supported
+        # Legacy Evidence Pack compatibility field; not the governed E-axis.
+        confidence: medium_high
+        limitations:
+          - Fictional fixture only.
+      - evidence_id: ei.moa.context
+        claim: The fictional MOA correspondence requests clarification before a decision.
+        source_type: user_input
+        source_ref: fictional MOA correspondence
+        scope_of_support: Supports the request context only.
+        claim_status: supported
+        # Legacy Evidence Pack compatibility field; not the governed E-axis.
+        confidence: medium_high
+        limitations:
+          - Fictional fixture only.
+    assumptions:
+      - All inputs are fictional and were supplied only for contract validation.
+    actions:
+      - Compared the fictional quote with the fictional prior amendment.
+      - Prepared a candidate opinion and a draft message without sending anything.
+    risks:
+      - description: A draft could be mistaken for agency approval.
+        severity: high
+        mitigation: Keep the output candidate-only and require a human decision before any send.
+    outputs:
+      - output_id: vertical.devis-reprise.external-run-result
+        output_type: candidate opinion and draft MOA email
+        status: candidate
+        reference: external_run_return.result_candidate
+    reviews:
+      - reviewer: human-owner
+        status: pending
+        notes: No review has occurred in this fictional fixture.
+    approval_state:
+      level: C3
+      status: pending
+      notes: The runtime cannot approve the quote or the draft.
+    user_decision_gate:
+      status: decision_required
+      decision_effects:
+        - Request clarification, reject the candidate, or request revision.
+    governance_refs:
+      - docs/governance/TASK_CONTRACTS.md
+      - docs/governance/EVIDENCE_PACK.md
+      - docs/governance/USER_DECISION_GATE.md

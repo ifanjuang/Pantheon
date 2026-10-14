@@ -1,0 +1,4 @@
+# Root workspace validation dependencies. Installing these does not install the
+# repository as a Python distribution.
+-r .github/requirements/governance-ci.txt
+pytest>=8.0,<9

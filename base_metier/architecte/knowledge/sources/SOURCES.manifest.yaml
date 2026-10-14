@@ -1,0 +1,61 @@
+# Reconstructible source manifest — base_metier/architecte/ (arbitration B-2, decision c).
+#
+# The original source PDFs are intentionally NOT versioned in git (see the repo
+# .gitignore). They are kept locally / in private storage. To restore the corpus,
+# drop the files back into this folder (knowledge/sources/) with the names below and
+# verify each sha256. The 2 ingestion skills execute (PyMuPDF) and belong Hermes-side.
+#
+# Licence is TO VERIFY per source and is not determined here. Do not redistribute the
+# copyrighted items (MAF, Ordre des Architectes). This manifest records provenance and
+# integrity only; it promotes nothing.
+status: validation-only / reconstructible manifest — to verify
+note: >
+  Three PDFs previously existed both here and at base_metier/architecte/ root
+  (identical sha256); the duplicate root copies were removed. Code-de-La-Construction-
+  Et-de-l-Habitation.txt (official legal code, text) is kept in git.
+sources:
+  - file: MAF_OUTILS_PERMIS_ANNEXES.pdf
+    origin: Mutuelle des Architectes Français — "Outils" (permis, annexes)
+    licence: copyrighted (MAF); redistribution not authorized — to verify
+    bytes: 15537451
+    sha256: bae7e1fcf1646e0ca8f847c3983ba377714f1ff162fe16997913553851689841
+  - file: MAF_OUTILS_PERMIS.pdf
+    origin: Mutuelle des Architectes Français — "Outils" (permis)
+    licence: copyrighted (MAF) — to verify
+    bytes: 10570338
+    sha256: 2fd4848a53b722f768c567f6be68f1259e3957d9ac3cfc55cd97287c24f98cc0
+  - file: MAF_Outils_CHANTIER.pdf
+    origin: Mutuelle des Architectes Français — "Outils" (chantier)
+    licence: copyrighted (MAF) — to verify
+    bytes: 11184355
+    sha256: 3feb17b148b3cbc7d222fc7416d84b4e64d646f5723a6c5b710f8c689c7928cd
+  - file: MAF_Outils_CONTRAT.pdf
+    origin: Mutuelle des Architectes Français — "Outils" (contrat)
+    licence: copyrighted (MAF) — to verify
+    bytes: 4925022
+    sha256: b1f10dbc414e3484a6275509e01cef384a26db9b26d8d3f0fe0ec3f317afe62a
+  - file: MAF_Outils_CONTRAT_Annexe.pdf
+    origin: Mutuelle des Architectes Français — "Outils" (contrat, annexe)
+    licence: copyrighted (MAF) — to verify
+    bytes: 4943728
+    sha256: 1653469a3f9935d770e97cc9a9388921f4724ab6f8de29aeb13e09199e3da886
+  - file: 1113-construire-avec-l-architecte-2019_-_bdef.pdf
+    origin: Conseil National de l'Ordre des Architectes — "Construire avec l'architecte" (2019)
+    licence: copyrighted (Ordre des Architectes) — to verify
+    bytes: 2087430
+    sha256: 714b7f81bc58003957b95adccb04b8ca1ad35f6cac496271e44b68d5f4ed0b36
+  - file: ccag_des_marches_publics_de_maitrise_doeuvre.pdf
+    origin: CCAG-MOE — official French public-procurement general clauses
+    licence: official text; reproduction conditions — to verify
+    bytes: 355500
+    sha256: 6fc1ae8c76492e00280e61494fec3731a221447aef6338a60d8403155692c57f
+  - file: Chantier_cahier des clauses administratives générales.pdf
+    origin: CCAG (administrative clauses, chantier)
+    licence: official text; reproduction conditions — to verify
+    bytes: 495920
+    sha256: 0ce6e90fe6c6284fe90edc00913e7778fce35d629d26bc1929b04137059690b5
+  - file: GLOSSAIRE.pdf
+    origin: unknown
+    licence: unknown — to verify
+    bytes: 58083
+    sha256: e0961496490fe04b0981af68d566f490f7708b9164f362d162ddc405746da697

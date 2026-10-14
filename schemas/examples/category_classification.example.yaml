@@ -1,0 +1,94 @@
+schema_id: agency.category_classification
+revision: 1
+governance_refs:
+  - docs/governance/AGENCY_DATA_SYSTEM_OF_RECORD.md
+  - docs/governance/CATEGORY_CLASSIFICATION_MODEL.md
+categories:
+  - category_id: reglementations
+    title: Réglementations
+    description: Références réglementaires et administratives.
+    parent_category_id: null
+    applies_to:
+      - information
+      - document
+      - knowledge
+    sort_order: 10
+    revision: 1
+    created_by: human:ifj
+    updated_by: human:ifj
+    created_at: '2026-08-20T00:00:00+02:00'
+    updated_at: '2026-08-20T00:00:00+02:00'
+    archived_at: null
+  - category_id: urbanisme
+    title: Urbanisme
+    description: Urbanisme, autorisations et règles de planification.
+    parent_category_id: reglementations
+    applies_to:
+      - information
+      - document
+      - knowledge
+    sort_order: 10
+    revision: 1
+    created_by: human:ifj
+    updated_by: human:ifj
+    created_at: '2026-08-20T00:01:00+02:00'
+    updated_at: '2026-08-20T00:01:00+02:00'
+    archived_at: null
+  - category_id: plu-plui
+    title: PLU et PLUi
+    description: Plans locaux d'urbanisme et documents associés.
+    parent_category_id: urbanisme
+    applies_to:
+      - information
+      - document
+      - knowledge
+    sort_order: 20
+    revision: 1
+    created_by: human:ifj
+    updated_by: human:ifj
+    created_at: '2026-08-20T00:02:00+02:00'
+    updated_at: '2026-08-20T00:02:00+02:00'
+    archived_at: null
+  - category_id: referentiels
+    title: Référentiels
+    description: Sources stables de consultation et de référence.
+    parent_category_id: null
+    applies_to:
+      - document
+      - knowledge
+    sort_order: 20
+    revision: 1
+    created_by: human:ifj
+    updated_by: human:ifj
+    created_at: '2026-08-20T00:03:00+02:00'
+    updated_at: '2026-08-20T00:03:00+02:00'
+    archived_at: null
+assignments:
+  - assignment_id: assignment:plui:plu-plui
+    category_id: plu-plui
+    entity_type: document
+    entity_id: document:plui-metropole
+    assigned_by: human:ifj
+    assigned_at: '2026-08-20T00:10:00+02:00'
+    rationale: Navigation métier Urbanisme.
+    revision: 1
+    retired_at: null
+    retired_by: null
+  - assignment_id: assignment:plui:referentiels
+    category_id: referentiels
+    entity_type: document
+    entity_id: document:plui-metropole
+    assigned_by: human:ifj
+    assigned_at: '2026-08-20T00:11:00+02:00'
+    rationale: Le même document est également une référence transversale.
+    revision: 1
+    retired_at: null
+    retired_by: null
+x-boundary:
+  runtime_execution: false
+  provider_routing: false
+  task_authorization: false
+  approval: false
+  evidence_promotion: false
+  memory_promotion: false
+  ownership_transfer: false

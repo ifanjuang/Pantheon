@@ -1,0 +1,109 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Work Issue Scope Link
+description: >-
+  Aggregate-owned scope link projecting one governed WorkIssue identity into an
+  agency, Project, Information, Decision, contact-directory or APU context. The
+  link is not an Information relation, does not widen a Context Pack and grants
+  no task authorization.
+type: object
+required:
+  - scope_link_id
+  - issue_ref
+  - scope_ref
+  - scope_role
+  - created_by
+  - created_at
+properties:
+  scope_link_id:
+    $ref: "#/$defs/governed_id"
+  issue_ref:
+    $ref: "#/$defs/governed_id"
+  scope_ref:
+    $ref: "#/$defs/work_scope_ref"
+  scope_role:
+    type: string
+    enum:
+      - primary
+      - related
+    description: >-
+      Presentation and retrieval posture only. A primary scope does not own the
+      WorkIssue and a related scope does not broaden runtime authorization.
+  rationale:
+    type: [string, "null"]
+    minLength: 1
+    maxLength: 10000
+  created_by:
+    type: string
+    minLength: 1
+  created_at:
+    type: string
+    format: date-time
+  retired_at:
+    type: [string, "null"]
+    format: date-time
+  retired_by:
+    type: [string, "null"]
+    minLength: 1
+additionalProperties: false
+allOf:
+  - if:
+      required: [retired_at]
+      properties:
+        retired_at:
+          type: string
+    then:
+      required: [retired_by]
+      properties:
+        retired_by:
+          type: string
+          minLength: 1
+  - if:
+      properties:
+        retired_at:
+          type: "null"
+    then:
+      properties:
+        retired_by:
+          type: "null"
+$defs:
+  governed_id:
+    type: string
+    pattern: "^[a-z0-9][a-z0-9._-]*$"
+  work_scope_ref:
+    type: object
+    required:
+      - entity_type
+      - entity_id
+    properties:
+      entity_type:
+        type: string
+        enum:
+          - agency
+          - project
+          - information
+          - decision
+          - person
+          - organization
+          - apu_object
+      entity_id:
+        $ref: "#/$defs/governed_id"
+    additionalProperties: false
+x-scope-rules:
+  active_scope_unique_per_issue_and_entity: true
+  one_active_primary_scope_per_issue: true
+  endpoint_existence_required_when_owner_exists: true
+  retirement_instead_of_deletion: true
+  same_work_issue_identity_across_projections: true
+x-boundary:
+  semantic_relation: false
+  second_graph: false
+  scope_widening: false
+  context_pack_mutation: false
+  task_authorization: false
+  project_truth_created: false
+  evidence_admission: false
+  runtime_execution: false
+  scheduler: false
+  queue_system: false
+  automatic_approval: false
+  memory_promotion: false

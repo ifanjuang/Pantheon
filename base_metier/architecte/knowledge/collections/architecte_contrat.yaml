@@ -1,0 +1,23 @@
+id: architecte_contrat
+label: Contrat / mission
+description: Périmètre de mission, contrat MOE, honoraires complémentaires, avenants, groupements et exclusions.
+include:
+  themes:
+    - contrat_mission
+  phases:
+    - CONTRAT
+    - ESQ
+    - APS
+    - APD
+    - PC
+    - PRO
+exclude: {}
+priority:
+  validated: 1.0
+  reviewed: 0.85
+  extracted: 0.55
+  draft: 0.35
+retrieval:
+  default_top_k: 6
+  rerank: true
+visibility: internal

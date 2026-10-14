@@ -1,0 +1,13 @@
+name: pdf-form-tool
+version: "0.1.0"
+description: Inspect, fill, render and flatten local AcroForm PDFs with PyMuPDF
+provides_tools:
+  - pdf_form_fields
+  - pdf_form_fill
+  - pdf_form_render_page
+  - pdf_form_flatten
+requires_env:
+  - name: HERMES_PDF_INPUT_ROOTS
+    description: Colon-separated readable directories containing user-authorized PDFs
+  - name: HERMES_PDF_OUTPUT_DIR
+    description: Private directory for generated PDFs and page images

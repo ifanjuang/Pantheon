@@ -1,0 +1,6 @@
+# Example update evidence (update_available verdict). Provided to verify_update,
+# which compares the versions; it fetches nothing, updates nothing and decides nothing.
+component: hermes
+current_version: "1.4.2"
+available_version: "1.5.0"
+channel: stable

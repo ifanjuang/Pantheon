@@ -1,0 +1,14 @@
+representation_id: REP-DRAW-OP-088
+project_ref: PRJ-TILLEULS
+source_artifact_ref: SRC-042
+source_kind: drawing
+identifiers:
+  - scheme: agency.source_candidate
+    value: OP-CAND-088
+observed_at: "2026-06-20T12:00:00Z"
+binding_ref: fixture.drawing
+adapter_version: "0.2-fixture"
+freshness_token: "SRC-042:fixture-revision-1"
+proof_status: candidate
+limitations:
+  - "Fictional worked-example representation created explicitly for the V0.2 fixture."

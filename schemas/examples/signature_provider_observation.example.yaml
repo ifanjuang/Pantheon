@@ -1,0 +1,28 @@
+schema_version: pantheon.signature-provider-observation/v1
+provider: docuseal
+provider_event_type: submission.completed
+provider_event_digest: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+observation_type: submission_completed
+provider_observed_at: "2026-09-30T01:05:00Z"
+received_signature_timestamp: 1790730300
+provider_submission_id: "42"
+provider_submitter_id: null
+provider_status: completed
+completed_at: "2026-09-30T01:05:00Z"
+signer: null
+submitters:
+  - id: 9
+    status: completed
+authenticity:
+  verified: true
+  scheme: hmac-sha256
+artifacts:
+  documents:
+    - name: contrat-signe.pdf
+      url: https://sign.example.test/file/signed
+  audit_log_url: https://sign.example.test/file/audit
+  combined_document_url: https://sign.example.test/file/combined
+governance:
+  authoritative: false
+  evidence_admitted: false
+  authorization_inferred: false

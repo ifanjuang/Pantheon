@@ -1,0 +1,188 @@
+corpus_id: h5.6.multi-source-identity-review
+status: qualification_only
+parent_issue: 622
+observation_bundle:
+  observation_bundle_id: observation-bundle.h56.multi-source
+  project_ref: project-a
+  task_contract_ref: task-contract.align-multi-source.01
+  basis:
+    source_artifact_refs:
+      - source.pdf.plan-rdc
+      - source.ifc.model-a
+      - source.revit.model-a
+    exact_digests:
+      - {source_artifact_ref: source.pdf.plan-rdc, digest: sha256:pdf-plan-rdc}
+      - {source_artifact_ref: source.ifc.model-a, digest: sha256:ifc-model-a}
+      - {source_artifact_ref: source.revit.model-a, digest: sha256:revit-model-a}
+  method:
+    capability_id: project_understanding.compare.identity_candidates
+    binding_id: binding.synthetic.multi-source
+    operation_id: compare.identity_candidates.v1
+    adapter_ref: pantheon.synthetic.multi-source
+    adapter_version: 1.0.0
+    request_ref: request-h56-multi-source
+  observed_at: "2026-08-09T18:00:00Z"
+  freshness_token: sha256:h56-multi-source
+  scope:
+    document_refs: [document:plan-rdc, ifc-document:model-a, revit-document:model-a]
+    categories: [external_door]
+  coverage:
+    completeness: complete_for_declared_scope
+    observed_scope:
+      document_refs: [document:plan-rdc, ifc-document:model-a, revit-document:model-a]
+      categories: [external_door]
+    excluded_reasons: []
+    absence_inference_allowed: true
+  limitations:
+    - Identity candidates are independent and require targeted human review.
+    - Attribute conflicts remain source-scoped and are not resolved by identity review.
+  source_representations:
+    - representation_id: rep.pdf.p12
+      project_ref: project-a
+      source_artifact_ref: source.pdf.plan-rdc
+      source_kind: drawing
+      identifiers: [{scheme: drawing.local_label, value: P12}]
+      locators: [{type: page_bbox, value: page-1:p12, page: 1, bbox: [100, 100, 160, 210]}]
+      observed_at: "2026-08-09T18:00:00Z"
+      binding_ref: binding.synthetic.multi-source
+      adapter_version: 1.0.0
+      freshness_token: sha256:pdf-plan-rdc
+      content_digest: sha256:pdf-p12
+      coordinate_frame: PAGE
+      proof_status: candidate
+    - representation_id: rep.ifc.door-a
+      project_ref: project-a
+      source_artifact_ref: source.ifc.model-a
+      source_kind: ifc
+      identifiers: [{scheme: ifc.global_id, value: 3aDoorGuidA}]
+      locators: [{type: ifc_guid, value: 3aDoorGuidA}]
+      observed_at: "2026-08-09T18:00:00Z"
+      binding_ref: binding.synthetic.multi-source
+      adapter_version: 1.0.0
+      freshness_token: sha256:ifc-model-a
+      content_digest: sha256:ifc-door-a
+      proof_status: candidate
+    - representation_id: rep.revit.door-a
+      project_ref: project-a
+      source_artifact_ref: source.revit.model-a
+      source_kind: revit
+      identifiers:
+        - {scheme: revit.unique_id, value: revit-door-unique-a}
+        - {scheme: revit.element_id, value: "145772"}
+      locators: [{type: element_id, value: "145772"}]
+      observed_at: "2026-08-09T18:00:00Z"
+      binding_ref: binding.synthetic.multi-source
+      adapter_version: 1.0.0
+      freshness_token: sha256:revit-model-a
+      content_digest: sha256:revit-door-a
+      coordinate_frame: MODEL_LOCAL
+      proof_status: candidate
+  attribute_claim_candidates:
+    - attribute_claim_id: claim.pdf.p12.width
+      subject_ref: {entity_type: source_representation, entity_id: rep.pdf.p12}
+      attribute_key: geometry.observed_width
+      value: {value_type: number, value: 0.90, unit: m}
+      assertion_mode: derived
+      source_authority: model_interpretation_candidate
+      proof_status: candidate
+      source_representation_refs: [rep.pdf.p12]
+    - attribute_claim_id: claim.ifc.door-a.width
+      subject_ref: {entity_type: source_representation, entity_id: rep.ifc.door-a}
+      attribute_key: geometry.observed_width
+      value: {value_type: number, value: 0.93, unit: m}
+      assertion_mode: observed
+      source_authority: project_working_document
+      proof_status: candidate
+      source_representation_refs: [rep.ifc.door-a]
+    - attribute_claim_id: claim.revit.door-a.width
+      subject_ref: {entity_type: source_representation, entity_id: rep.revit.door-a}
+      attribute_key: geometry.observed_width
+      value: {value_type: number, value: 0.93, unit: m}
+      assertion_mode: observed
+      source_authority: project_working_document
+      proof_status: candidate
+      source_representation_refs: [rep.revit.door-a]
+  relation_claim_candidates:
+    - relation_claim_id: identity.pdf.p12.obj-door-017
+      subject_ref: {entity_type: source_representation, entity_id: rep.pdf.p12}
+      relation_type: identity.represents
+      object_ref: {entity_type: stable_object, entity_id: OBJ-DOOR-017}
+      assertion_mode: proposed
+      source_authority: model_interpretation_candidate
+      proof_status: candidate
+      certainty: E3
+      source_representation_refs: [rep.pdf.p12]
+    - relation_claim_id: identity.ifc.door-a.obj-door-017
+      subject_ref: {entity_type: source_representation, entity_id: rep.ifc.door-a}
+      relation_type: identity.represents
+      object_ref: {entity_type: stable_object, entity_id: OBJ-DOOR-017}
+      assertion_mode: proposed
+      source_authority: model_interpretation_candidate
+      proof_status: candidate
+      certainty: E3
+      source_representation_refs: [rep.ifc.door-a]
+    - relation_claim_id: identity.revit.door-a.obj-door-017
+      subject_ref: {entity_type: source_representation, entity_id: rep.revit.door-a}
+      relation_type: identity.represents
+      object_ref: {entity_type: stable_object, entity_id: OBJ-DOOR-017}
+      assertion_mode: proposed
+      source_authority: model_interpretation_candidate
+      proof_status: candidate
+      certainty: E2
+      source_representation_refs: [rep.revit.door-a]
+  gaps: []
+  withheld: []
+  warnings:
+    - code: conflict.attribute_values_source_scoped
+      message: Width candidates remain source-scoped and identity review does not choose a value.
+  operational_outcome: success
+  authority:
+    is_fact: false
+    is_evidence: false
+    is_decision: false
+    is_memory: false
+    is_apu_write: false
+    authorizes_external_effect: false
+reviews:
+  - review_id: review.h56.pdf
+    execution_result_ref: execution.h56.multi-source
+    mapping_result_ref: result.h56.observation-bundle
+    mapping_ref: identity.pdf.p12.obj-door-017
+    action: select_existing_object
+    selected_stable_object_ref: OBJ-DOOR-017
+    reviewed_by: human:architect
+    reviewed_at: "2026-08-09T18:05:00Z"
+    authority:
+      confirms_stable_identity: false
+      writes_apu: false
+      adopts_project_truth: false
+      admits_evidence: false
+      promotes_memory: false
+  - review_id: review.h56.ifc
+    execution_result_ref: execution.h56.multi-source
+    mapping_result_ref: result.h56.observation-bundle
+    mapping_ref: identity.ifc.door-a.obj-door-017
+    action: reject_mapping
+    note: IFC occurrence is not accepted as this stable object in this review.
+    reviewed_by: human:architect
+    reviewed_at: "2026-08-09T18:06:00Z"
+    authority:
+      confirms_stable_identity: false
+      writes_apu: false
+      adopts_project_truth: false
+      admits_evidence: false
+      promotes_memory: false
+  - review_id: review.h56.revit
+    execution_result_ref: execution.h56.multi-source
+    mapping_result_ref: result.h56.observation-bundle
+    mapping_ref: identity.revit.door-a.obj-door-017
+    action: needs_clarification
+    clarification_question: Confirm whether the Revit occurrence is the same physical door after the latest model rework.
+    reviewed_by: human:architect
+    reviewed_at: "2026-08-09T18:07:00Z"
+    authority:
+      confirms_stable_identity: false
+      writes_apu: false
+      adopts_project_truth: false
+      admits_evidence: false
+      promotes_memory: false

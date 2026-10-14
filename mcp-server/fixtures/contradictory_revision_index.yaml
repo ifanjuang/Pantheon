@@ -1,0 +1,26 @@
+fixture_id: contradictory_revision_index
+status: fictive_development_fixture
+case_type: contradiction_gate
+request:
+  intent: "Two drawing indexes contradict each other; identify which source should be reviewed before using the quantity."
+  external_effect: false
+  writes_state: false
+  scope:
+    scope_type: dossier
+    scope_id: fixture-revision-index
+  sources_expected:
+    - drawing index B
+    - drawing index C
+    - transmittal log
+  contradictions_to_resolve:
+    - "latest file may not be contractual authority"
+    - "transmittal status must be checked"
+expected_outputs:
+  classification:
+    consequence_level: K3
+    evidence_required: true
+  scope_report: "dossier scope echoed"
+  approval_level: C2
+  evidence_pack_skeleton: true
+  result_candidate_format: true
+  refusal_out_of_limits: "no definitive authority claim without evidence review"

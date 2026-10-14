@@ -1,0 +1,26 @@
+document_version_id: 22222222-2222-4222-8222-222222222222
+human_ref: ML-D2-signed
+scope_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa
+scope_type: project
+document_family_id: 11111111-1111-4111-8111-111111111111
+document_family_label: DPGF signé Lot 06 Menuiseries
+issuer_document_reference: DPGF-L06/2026-042
+index_label: signed
+version_label: D2
+phase_code: PRO
+effect_class: signed_contractual_version
+source_authority_level: signed_market_document
+version_status: signed
+authority_status: contractual_authority
+authority_notes: Fictional signed DPGF candidate used as cost baseline in Maison Lierre.
+signed_by: Fictional MOA and contractor
+signed_at: "2026-04-18"
+source_file_ref: D2 DPGF_Lot06_signed.pdf
+allowed_use:
+  - internal_review
+  - contract_preparation
+  - contractual_action
+forbidden_use:
+  - memory_promotion
+metadata:
+  source_system: fictional_maison_lierre

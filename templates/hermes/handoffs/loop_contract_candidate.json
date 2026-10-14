@@ -1,0 +1,134 @@
+{
+  "template_name": "hermes_loop_contract_candidate",
+  "template_status": "candidate_runtime_adapter_template",
+  "repo_state": "documented_non_implemented",
+  "authority": {
+    "governance_source": [
+      "docs/governance/LOOP_GOVERNANCE_MODEL.md",
+      "docs/governance/CAPABILITY_PLACEMENT.md",
+      "docs/governance/MODULAR_DOMAIN_REORIENTATION.md"
+    ],
+    "not_executable_schema": true,
+    "not_runtime_configuration": true,
+    "not_approval": true,
+    "not_memory_promotion": true,
+    "not_external_action": true
+  },
+  "loop_contract_candidate": {
+    "loop_id": "loop:<task-or-project>:<YYYYMMDD>:<short-id>",
+    "linked_task_contract": {
+      "task_contract_ref": "task_contract:<id-or-path>",
+      "scope_summary": "<bounded task scope>",
+      "source_refs": [],
+      "approval_path_ref": null
+    },
+    "linked_context_pack": {
+      "context_pack_ref": "context_pack:<id-or-path>",
+      "project_ref": null,
+      "phase_ref": null,
+      "known_constraints": [],
+      "open_questions": []
+    },
+    "purpose": "<why this loop is useful>",
+    "target_runtime": "Hermes Agent",
+    "launch_mode": "draft",
+    "requested_effect": "read_only",
+    "allowed_scope": {
+      "objects": [],
+      "files": [],
+      "connectors": [],
+      "tools": [],
+      "timebox": null
+    },
+    "allowed_targets": [],
+    "forbidden_targets": [
+      "Registre Probatoire canonical state",
+      "Pantheon doctrine files unless separately authorized",
+      "external messages or submissions",
+      "approval status",
+      "memory promotion state"
+    ],
+    "allowed_actions": [
+      "read",
+      "analyze",
+      "draft_candidate",
+      "check_declared_criteria",
+      "report_blocker",
+      "return_candidate"
+    ],
+    "forbidden_actions": [
+      "approve",
+      "send_external_message",
+      "submit_external_form",
+      "promote_memory",
+      "mutate_doctrine",
+      "mark_truth_final",
+      "cross_scope_target"
+    ],
+    "iteration_budget": {
+      "max_iterations": 3,
+      "max_duration_seconds": 900,
+      "retry_policy": "retry_only_within_allowed_scope_and_stop_on_repeated_checker_failure"
+    },
+    "checker": {
+      "kind": "declared_criteria_check",
+      "independence_expectation": "checker step must be separated from maker step where runtime supports it",
+      "pass_condition": "all required candidate fields are present and forbidden effects are absent",
+      "fail_condition": "required source, scope, approval or output condition is missing"
+    },
+    "blocker_policy": {
+      "non_blocking_user_input": "suspend_dependent_branch_continue_independent_work",
+      "non_blocking_capability_gap": "continue_degraded_path_only_if_contract_allows",
+      "blocking_source_gap": "stop_affected_branch_and_return_pending_source",
+      "blocking_scope_gap": "stop_and_return_pending_scope",
+      "approval_blocker": "stop_before_consequential_effect",
+      "canonical_effect_blocker": "refuse_runtime_work_and_return_gate_required",
+      "safety_blocker": "stop_and_report_blocked"
+    },
+    "stop_rules": [
+      "stop_when_success_condition_met",
+      "stop_when_checker_repeatedly_fails",
+      "stop_when_iteration_budget_exceeded",
+      "stop_when_duration_budget_exceeded",
+      "stop_when_required_source_missing",
+      "stop_when_scope_unclear",
+      "stop_when_approval_required",
+      "stop_when_canonical_effect_detected",
+      "stop_when_forbidden_target_detected",
+      "stop_when_human_decision_required"
+    ],
+    "expected_result_candidate": {
+      "result_type": "<candidate kind>",
+      "required_fields": [],
+      "must_name_changed_objects": true,
+      "must_name_unchanged_objects": true
+    },
+    "expected_evidence_pack_candidate": {
+      "required_evidence_refs": [],
+      "required_trace_refs": [],
+      "must_distinguish_trace_from_evidence": true
+    },
+    "event_stream_expected": true,
+    "idempotency_key_required": true,
+    "trace_refs": [],
+    "zeus_gate_required": "conditional_on_consequential_effect",
+    "human_decision_required": "conditional_on_consequential_effect"
+  },
+  "runtime_boundary": {
+    "default_governance_result_status": "candidate",
+    "hermes_may_return": [
+      "result_candidate",
+      "evidence_pack_candidate",
+      "blockers",
+      "trace_refs",
+      "changed_objects",
+      "unchanged_objects"
+    ],
+    "hermes_must_not_return_as_self_granted": [
+      "approved",
+      "validated_truth",
+      "canonical_memory",
+      "external_action_completed_without_prior_gate"
+    ]
+  }
+}

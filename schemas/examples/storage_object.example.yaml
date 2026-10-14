@@ -1,0 +1,18 @@
+storage_object_id: storage-object-fictional-001
+content_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+byte_size: 482193
+media_type: application/pdf
+created_at: "2026-08-08T16:15:00Z"
+locations:
+  - location_id: storage-location-nas-001
+    storage_provider_ref: agency-retention-primary
+    locator: sha256/aa/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.pdf
+    retention_guarantee: content_addressed
+    location_status: verified
+    verification:
+      method: full_sha256
+      verified_at: "2026-08-08T16:15:01Z"
+    metadata:
+      binding_kind: fictional_local_or_nas
+metadata:
+  example_only: true

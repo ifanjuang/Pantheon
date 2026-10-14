@@ -1,0 +1,62 @@
+template_status: candidate_only
+template_version: 1
+binding: hermes_native_moa
+
+deliberation_handoff:
+  work_issue_ref: REQUIRED
+  task_contract_ref: REQUIRED_FOR_CONSEQUENTIAL_OR_DURABLE_REVIEW
+  subject: REQUIRED
+  question: REQUIRED
+
+  frozen_input:
+    context_pack_ref: REQUIRED
+    repository_or_artifact_revision: REQUIRED
+    included_scope: []
+    excluded_scope: []
+    permitted_data_class: REQUIRED
+
+  model_slots:
+    - slot_id: reference_1
+      provider: REQUIRED
+      model: REQUIRED
+      passport_ref: REQUIRED
+      viewpoint: independent_critical_review
+    - slot_id: reference_2
+      provider: REQUIRED
+      model: REQUIRED
+      passport_ref: REQUIRED
+      viewpoint: independent_alternative_review
+    - slot_id: aggregator
+      provider: REQUIRED
+      model: REQUIRED
+      passport_ref: REQUIRED
+      viewpoint: dissent_preserving_synthesis
+
+  execution_limits:
+    required_passes: 1
+    maximum_passes: 2
+    challenge_pass_condition: material_dissent_or_uncertainty_remains
+    reference_max_tokens: 800
+    aggregator_max_tokens: 4096
+    tools: read_only_or_none
+    external_effects: forbidden
+    repository_writes: forbidden
+    memory_promotion: forbidden
+
+  required_analysis:
+    - agreements
+    - material_dissent
+    - unsupported_claims
+    - evidence_gaps
+    - doctrine_or_scope_conflicts
+    - proposed_discriminating_tests
+    - remaining_human_decision
+
+  stop_conditions:
+    - maximum_passes_reached
+    - scope_gap_detected
+    - inadmissible_model_for_data
+    - budget_exhausted
+    - required_input_missing
+
+  output_contract: deliberation_candidate_v1

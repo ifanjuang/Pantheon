@@ -1,0 +1,101 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Human Response
+description: >-
+  Immutable governed human information recorded in response to a Decision Request
+  whose decision_type is question. A HumanResponse is not a Decision, approval,
+  authorization, Evidence admission or runtime continuation signal.
+type: object
+required:
+  - response_id
+  - request_id
+  - responded_by
+  - identity_assurance
+  - selected_option_ids
+  - response_text
+  - candidate_digest
+  - recorded_at
+properties:
+  response_id:
+    $ref: "#/$defs/governed_id"
+  request_id:
+    $ref: "#/$defs/governed_id"
+  responded_by:
+    type: string
+    minLength: 1
+  identity_assurance:
+    type: string
+    enum:
+      - declared
+      - authenticated
+  authenticated_principal:
+    type: [object, "null"]
+    additionalProperties: true
+  selected_option_ids:
+    type: array
+    uniqueItems: true
+    maxItems: 50
+    items:
+      $ref: "#/$defs/governed_id"
+  response_text:
+    type: [string, "null"]
+    minLength: 1
+    maxLength: 20000
+  candidate_digest:
+    $ref: "#/$defs/sha256_digest"
+  recorded_at:
+    type: string
+    format: date-time
+additionalProperties: false
+allOf:
+  - if:
+      properties:
+        identity_assurance:
+          const: authenticated
+      required:
+        - identity_assurance
+    then:
+      required:
+        - authenticated_principal
+      properties:
+        authenticated_principal:
+          type: object
+          required:
+            - user_id
+            - identity_provider
+          properties:
+            user_id:
+              type: string
+              minLength: 1
+            identity_provider:
+              type: string
+              minLength: 1
+          additionalProperties: true
+    else:
+      properties:
+        authenticated_principal:
+          type: "null"
+$defs:
+  governed_id:
+    type: string
+    pattern: "^[a-z0-9][a-z0-9._-]*$"
+  sha256_digest:
+    type: object
+    required:
+      - algorithm
+      - value
+    properties:
+      algorithm:
+        const: sha256
+      value:
+        type: string
+        pattern: "^[a-f0-9]{64}$"
+    additionalProperties: false
+x-boundary:
+  response_is_decision: false
+  response_is_approval: false
+  response_is_authorization: false
+  response_is_evidence: false
+  automatic_work_issue_transition: false
+  automatic_runtime_continuation: false
+  runtime_execution: false
+  automatic_approval: false

@@ -1,0 +1,385 @@
+@layer reset, tokens, shell, navigation, cards, families, states, editors, responsive;
+
+@layer cards {
+  /* 1. Card layout */
+  .card,
+  .card-preview {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    color: var(--card-front-color, var(--cockpit-ink));
+    outline: none;
+  }
+
+  .card-inner {
+    position: absolute;
+    inset: var(--cockpit-card-inset);
+    width: auto;
+    height: auto;
+    isolation: isolate;
+  }
+
+  .card-face {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--card-gap, 1rem);
+    padding: var(--card-padding, 1.5rem);
+    overflow: hidden;
+    border: 0;
+    border-radius: var(--cockpit-radius);
+    transition: opacity 180ms ease, visibility 180ms step-end;
+  }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .card-body,
+  .card-back-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  .card-footer {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: .75rem;
+  }
+
+  .card-identity-line,
+  .card-states,
+  .card-type-tags,
+  .indicator-rail,
+  .card-actions,
+  .card-back-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .4rem;
+  }
+
+  .card-identity-line { gap: .65rem; }
+  .card-back-multiline { display: grid; gap: .35rem; }
+
+  /* 2. Content state: details replace the summary without rotating the card. */
+  .card-front {
+    z-index: 2;
+    background: var(--card-front-background, var(--cockpit-surface));
+    color: var(--card-front-color, var(--cockpit-ink));
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .card-back {
+    z-index: 1;
+    background: var(--card-back-background, var(--cockpit-surface));
+    color: var(--card-back-color, var(--cockpit-ink));
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .card[data-flipped="true"] .card-front {
+    z-index: 1;
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .card[data-flipped="true"] .card-back {
+    z-index: 2;
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .card:not([data-flipped="true"]) .card-back,
+  .card[data-flipped="true"] .card-front {
+    pointer-events: none;
+  }
+
+  /* 3. CSS-only decoration */
+  .card-back::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    border: var(--card-back-border-width, 1px) solid var(--card-accent, var(--cockpit-muted));
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  .card-front > .card-top,
+  .card-front > .card-body {
+    position: static;
+  }
+
+  .card-front > .card-top > *,
+  .card-front > .card-body > *,
+  .card-front > .card-footer,
+  .card-back > * {
+    position: relative;
+    z-index: 3;
+  }
+
+  .card-top::after {
+    content: "";
+    position: absolute;
+    z-index: 2;
+    inset: var(--marker-inset, 0 auto auto 0);
+    width: var(--marker-width, 0);
+    height: var(--marker-height, 0);
+    background: var(--marker-background, transparent);
+    clip-path: var(--marker-clip, none);
+    pointer-events: none;
+  }
+
+  .card-front::before,
+  .card-front::after,
+  .card-body::before {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    width: var(--effect-width, 50%);
+    height: var(--effect-height, 50%);
+    top: 50%;
+    left: 50%;
+    border: var(--effect-border-width, 0) solid var(--effect-color, transparent);
+    border-radius: var(--effect-radius, 50%);
+    background: var(--effect-fill, transparent);
+    opacity: var(--effects-opacity, 0);
+    transform: translate(-50%, -50%) rotate(var(--effect-rotation, 0deg));
+    transform-origin: center;
+    pointer-events: none;
+  }
+
+  .card-front::before {
+    --effect-width: var(--effect-1-width, 50%);
+    --effect-height: var(--effect-1-height, 50%);
+    --effect-radius: var(--effect-1-radius, 61% 39% 48% 52% / 42% 62% 38% 58%);
+    --effect-rotation: var(--effect-1-rotation, -9deg);
+    --effect-fill: var(--effect-1-fill, transparent);
+    --effect-color: var(--effect-1-color, transparent);
+    animation: card-blob-rotate-forward var(--effect-1-duration, 1.1s) linear infinite;
+  }
+
+  .card-front::after {
+    --effect-width: var(--effect-2-width, 50%);
+    --effect-height: var(--effect-2-height, 50%);
+    --effect-radius: var(--effect-2-radius, 39% 61% 57% 43% / 64% 39% 61% 36%);
+    --effect-rotation: var(--effect-2-rotation, 13deg);
+    --effect-fill: var(--effect-2-fill, transparent);
+    --effect-color: var(--effect-2-color, transparent);
+    animation: card-blob-rotate-reverse var(--effect-2-duration, 1.6s) linear infinite;
+  }
+
+  .card-body::before {
+    --effect-width: var(--effect-3-width, 50%);
+    --effect-height: var(--effect-3-height, 50%);
+    --effect-radius: var(--effect-3-radius, 52% 48% 35% 65% / 47% 63% 37% 53%);
+    --effect-rotation: var(--effect-3-rotation, -18deg);
+    --effect-fill: var(--effect-3-fill, transparent);
+    --effect-color: var(--effect-3-color, transparent);
+    animation: card-blob-rotate-forward var(--effect-3-duration, 1.9s) linear infinite reverse;
+  }
+
+  .card[data-variant="1"],
+  .card-preview[data-variant="1"] {
+    --effect-1-rotation: -9deg;
+    --effect-2-rotation: 13deg;
+    --effect-3-rotation: -18deg;
+    --effect-1-duration: 1.1s;
+    --effect-2-duration: 1.6s;
+    --effect-3-duration: 1.9s;
+  }
+
+  .card[data-variant="2"],
+  .card-preview[data-variant="2"] {
+    --effect-1-rotation: 21deg;
+    --effect-2-rotation: -16deg;
+    --effect-3-rotation: 8deg;
+    --effect-1-duration: 1.8s;
+    --effect-2-duration: 1.2s;
+    --effect-3-duration: 1.5s;
+  }
+
+  .card[data-variant="3"],
+  .card-preview[data-variant="3"] {
+    --effect-1-rotation: -27deg;
+    --effect-2-rotation: 24deg;
+    --effect-3-rotation: 31deg;
+    --effect-1-duration: 1.4s;
+    --effect-2-duration: 1.9s;
+    --effect-3-duration: 1.1s;
+  }
+
+  @keyframes card-blob-rotate-forward {
+    from { transform: translate(-50%, -50%) rotate(var(--effect-rotation, 0deg)); }
+    to { transform: translate(-50%, -50%) rotate(calc(var(--effect-rotation, 0deg) + 360deg)); }
+  }
+
+  @keyframes card-blob-rotate-reverse {
+    from { transform: translate(-50%, -50%) rotate(var(--effect-rotation, 0deg)); }
+    to { transform: translate(-50%, -50%) rotate(calc(var(--effect-rotation, 0deg) - 360deg)); }
+  }
+
+  /* 4. Typography and semantic indicators */
+  .family-mark,
+  .state-icon,
+  .type-tag,
+  .subject-tag-icon {
+    display: grid;
+    place-items: center;
+    min-width: 2rem;
+    min-height: 2rem;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+  }
+
+  .card-back-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+  }
+
+  .card-category {
+    font-size: .78rem;
+    font-weight: 650;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .card-title,
+  .card-back-title {
+    max-width: var(--card-title-width, 16ch);
+    margin: 0;
+    font-size: var(--card-title-size, clamp(2rem, 7vw, 4.5rem));
+    line-height: .96;
+    letter-spacing: -.045em;
+    text-wrap: balance;
+  }
+
+  .card-summary,
+  .card-back-copy,
+  .card-back-section p {
+    max-width: 34ch;
+    margin: 1rem 0 0;
+    color: currentColor;
+    font-size: .95rem;
+    line-height: 1.45;
+    opacity: .78;
+    white-space: pre-line;
+  }
+
+  .card-back-section h3 {
+    margin: 1rem 0 0;
+    font-size: .78rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+
+  .collection-placeholder,
+  .create-card,
+  .level-preview,
+  .v3-collection-placeholder {
+    width: 100%;
+    height: 100%;
+    border-radius: var(--cockpit-radius);
+  }
+
+  .collection-placeholder,
+  .create-card,
+  .v3-collection-placeholder {
+    width: auto;
+    height: auto;
+    margin: var(--cockpit-card-inset);
+  }
+
+  .create-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    border: 1px solid rgb(255 255 255 / 22%);
+    color: #fff;
+  }
+
+  .create-mark { font-size: 2rem; }
+  .create-copy { display: grid; gap: .2rem; }
+}
+
+@layer states {
+  .card[data-status="blocked"] .state-icon,
+  .card[data-status="review"] .state-icon,
+  .card[data-status="pending_review"] .state-icon {
+    border-style: dashed;
+  }
+
+  .card[aria-hidden="true"],
+  .card-preview[aria-hidden="true"] {
+    pointer-events: none;
+  }
+}
+
+@layer cards {
+  .radix-icon {
+    display: inline-block;
+    inline-size: 1.1rem;
+    block-size: 1.1rem;
+    flex: 0 0 auto;
+    background-color: currentColor;
+    -webkit-mask: var(--radix-icon-source) center / contain no-repeat;
+    mask: var(--radix-icon-source) center / contain no-repeat;
+  }
+
+  .material-symbols-rounded {
+    font-family: "Material Symbols Rounded";
+    font-size: 1.1rem;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: "liga";
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "liga";
+  }
+
+  .tag-icon {
+    display: inline-grid;
+    inline-size: 1.1rem;
+    block-size: 1.1rem;
+    flex: 0 0 auto;
+    place-items: center;
+  }
+
+  .radix-icon[data-icon="document"] { --radix-icon-source: url("../vendor/radix-icons/icons/file-text.svg"); }
+  .radix-icon[data-icon="knowledge"] { --radix-icon-source: url("../vendor/radix-icons/icons/reader.svg"); }
+  .radix-icon[data-icon="work"] { --radix-icon-source: url("../vendor/radix-icons/icons/backpack.svg"); }
+  .radix-icon[data-icon="questionnaire"] { --radix-icon-source: url("../vendor/radix-icons/icons/question-mark-circled.svg"); }
+  .radix-icon[data-icon="source"] { --radix-icon-source: url("../vendor/radix-icons/icons/link-2.svg"); }
+  .radix-icon[data-icon="review"] { --radix-icon-source: url("../vendor/radix-icons/icons/check-circled.svg"); }
+  .radix-icon[data-icon="scope"] { --radix-icon-source: url("../vendor/radix-icons/icons/target.svg"); }
+  .radix-icon[data-icon="memory"] { --radix-icon-source: url("../vendor/radix-icons/icons/archive.svg"); }
+  .radix-icon[data-icon="history"] { --radix-icon-source: url("../vendor/radix-icons/icons/counter-clockwise-clock.svg"); }
+  .radix-icon[data-icon="decision"] { --radix-icon-source: url("../vendor/radix-icons/icons/commit.svg"); }
+  .radix-icon[data-icon="hermes"] { --radix-icon-source: url("../vendor/radix-icons/icons/lightning-bolt.svg"); }
+  .radix-icon[data-icon="comment"] { --radix-icon-source: url("../vendor/radix-icons/icons/chat-bubble.svg"); }
+  .radix-icon[data-icon="project"] { --radix-icon-source: url("../vendor/radix-icons/icons/home.svg"); }
+  .radix-icon[data-icon="evidence"] { --radix-icon-source: url("../vendor/radix-icons/icons/badge.svg"); }
+  .radix-icon[data-icon="gate"] { --radix-icon-source: url("../vendor/radix-icons/icons/lock-closed.svg"); }
+  .radix-icon[data-icon="close"] { --radix-icon-source: url("../vendor/radix-icons/icons/cross-2.svg"); }
+}

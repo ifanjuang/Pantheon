@@ -1,0 +1,3 @@
+[submodule "implementation/mvp_vertical/cockpit/vendor/radix-icons/upstream"]
+	path = implementation/mvp_vertical/cockpit/vendor/radix-icons/upstream
+	url = https://github.com/radix-ui/icons.git

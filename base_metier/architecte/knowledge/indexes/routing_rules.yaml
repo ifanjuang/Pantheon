@@ -1,0 +1,78 @@
+routing_rules:
+  - id: route_contrat_mission
+    match:
+      keywords:
+        - contrat
+        - mission
+        - honoraires
+        - avenant
+        - périmètre
+        - sous-traitance mission PC
+    collections:
+      - architecte_contrat
+      - architecte_assurance
+
+  - id: route_urbanisme
+    match:
+      keywords:
+        - permis
+        - PC
+        - DP
+        - ABF
+        - recours
+        - affichage
+        - permis modificatif
+        - permis balai
+    collections:
+      - architecte_contrat
+      - architecte_contentieux
+
+  - id: route_chantier
+    match:
+      keywords:
+        - chantier
+        - réunion
+        - OS
+        - visa
+        - entreprise
+        - OPC
+        - planning
+        - sous-traitant
+        - synthèse
+    collections:
+      - architecte_chantier
+      - architecte_assurance
+
+  - id: route_reception
+    match:
+      keywords:
+        - réception
+        - réserve
+        - OPR
+        - DOE
+        - DIUO
+        - GPA
+        - parfait achèvement
+    collections:
+      - architecte_reception
+      - architecte_contentieux
+
+  - id: route_contentieux_assurance
+    match:
+      keywords:
+        - assurance
+        - responsabilité
+        - décennale
+        - garantie
+        - sinistre
+        - mise en demeure
+        - litige
+        - impayé
+        - preuve
+    collections:
+      - architecte_assurance
+      - architecte_contentieux
+
+fallback:
+  collections:
+    - architecte_core

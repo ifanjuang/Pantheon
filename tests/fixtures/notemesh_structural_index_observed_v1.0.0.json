@@ -1,0 +1,100 @@
+{
+  "schema_id": "pantheon.notemesh_structural_index_q1.observed",
+  "status": "observed_candidate_not_adopted",
+  "observed_on": "2026-09-03",
+  "candidate": {
+    "repository": "ChangeNode/notemesh",
+    "version": "1.0.0",
+    "ref": "a9011dc0ed547a7db78e3327c33b5f00ae4f0ea6"
+  },
+  "execution": {
+    "kind": "real_upstream_runtime",
+    "workflow": "NoteMesh Structural Index Q1",
+    "run_id": 33802773273,
+    "artifact_id": 9911720667,
+    "artifact_digest": "sha256:92c7a1bdb6d9c55b1a92482b4db64ddec85edbe68d1fffef5d7b56a759f590e3",
+    "node": "22",
+    "pnpm": "11.16.0",
+    "operation": "VaultIndexer.rebuild() against the canonical obsidian_graph_health_pilot corpus",
+    "sync_backend_activated": false,
+    "mcp_write_surface_activated": false
+  },
+  "counts": {
+    "notes": 10,
+    "attachments": 6,
+    "links": 23,
+    "unresolved_links": 2
+  },
+  "observations": {
+    "true_missing_link_observed": true,
+    "escaped_alias_false_positive_observed": true,
+    "attachment_aware_resolution_observed": true,
+    "unresolved_links_retained_in_projection": true,
+    "valid_obsidian_link_resolution": {
+      "parser_valid_form_count": 10,
+      "normalized_cctp_parser_forms": 2,
+      "normalized_cctp_sql_rows": 1,
+      "resolved_unique_targets": [
+        "projects/maison/cctp.md",
+        "projects/maison/chauffage.md",
+        "plan.pdf",
+        "perspective.png",
+        "planning.base",
+        "schema.canvas",
+        "cctp.md",
+        "cctp"
+      ],
+      "known_false_unresolved_targets": [
+        "chauffage\\"
+      ],
+      "valid_obsidian_link_false_positives": 1,
+      "finding": "The real Q1 artifact shows every unique normalized valid target resolved except the escaped table-pipe alias target `chauffage\\`. The parser emits two `cctp` forms for the heading-anchor and alias cases, while the SQL projection contains one normalized `cctp` row; this collapse is observable and must not be confused with two independently preserved raw forms."
+    },
+    "whole_vault_negative_control": {
+      "bookkeeping_indexed": true,
+      "raw_indexed": true,
+      "out_of_scope_sentinel_indexed": true,
+      "protected_source_indexed": true,
+      "protected_evidence_indexed": true
+    },
+    "workspace_mutation": {
+      "added": [],
+      "changed": [],
+      "removed": []
+    }
+  },
+  "qualification": {
+    "class": "B",
+    "decision": "qualify_further",
+    "accepted_for_further_qualification_as": [
+      "replaceable reconstructible local structural workspace index candidate",
+      "attachment-aware Obsidian wikilink projection candidate",
+      "report-only structural observation candidate"
+    ],
+    "not_accepted_as": [
+      "Pantheon authorization or task-scope boundary",
+      "governed identity authority",
+      "Evidence admission authority",
+      "Pantheon MCP replacement",
+      "Hindsight replacement",
+      "direct professional write path",
+      "sync topology replacement"
+    ],
+    "reason": "The exact pinned upstream runtime rebuilt its SQLite structural projection successfully, retained unresolved links, resolved attachment-backed link targets and left workspace bytes unchanged. The same execution also proved one known escaped-alias structural false positive and that a whole-vault index includes bookkeeping, _raw material, an explicitly out-of-scope project sentinel and protected synthetic Source/Evidence material. Therefore the provider is technically credible as a bounded projection engine but cannot itself define Pantheon authorization or scope."
+  },
+  "governance": {
+    "retrieved_or_indexed_is_truth": false,
+    "workspace_note_is_evidence": false,
+    "provider_path_is_governed_identity": false,
+    "provider_visibility_is_task_authorization": false,
+    "projection_is_persistence": false,
+    "successful_execution_is_adoption": false
+  },
+  "open": [
+    "qualify caller-bounded staging/projection before any workspace-provider binding",
+    "escaped table-pipe alias normalization remains a bounded parser gap",
+    "semantic duplicate and contradiction quality remain outside Q1",
+    "sync topology comparison remains separate from Q1",
+    "MCP write governance remains separate from Q1"
+  ]
+}

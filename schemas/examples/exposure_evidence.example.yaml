@@ -1,0 +1,10 @@
+# Example exposure evidence (guarded verdict). Provided to verify_exposure, which
+# classifies it; it opens no port, accesses no NAS, sends nothing and decides nothing.
+component: openwebui
+reach: vpn
+auth:
+  enforced: true
+  detail: SSO required
+scope:
+  limited: true
+  detail: read-only, least-privilege

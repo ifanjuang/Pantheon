@@ -1,0 +1,79 @@
+{
+  "schema_version": "pantheon.hermes-dashboard.v1",
+  "meta": {
+    "mode": "demo",
+    "synthetic": true,
+    "source": "GitHub Pages fixture",
+    "generated_at": "2026-07-16T10:30:00+02:00",
+    "notice": "Données entièrement fictives. Aucune connexion, activation ou action Hermes."
+  },
+  "payloads": {
+    "memory": {
+      "active": "builtin",
+      "providers": [
+        {"name": "builtin", "status": "ready", "configured": true, "description": "Mémoire Hermes intégrée."},
+        {"name": "mem0", "status": "available", "configured": false, "description": "Candidat mémoire externe, volontairement non activé."}
+      ]
+    },
+    "catalog": {
+      "entries": [
+        {
+          "name": "pantheon-policy",
+          "description": "Wiki de gouvernance Pantheon en lecture seule.",
+          "source": "Pantheon MCP",
+          "installed": true,
+          "enabled": true,
+          "required_env": [],
+          "default_enabled": ["list_sources", "read_doctrine", "explain_governance_structure"]
+        },
+        {
+          "name": "n8n",
+          "description": "Automatisation déterministe optionnelle, non requise pour le MVP.",
+          "source": "CyberSamuraiX/hermes-n8n-mcp",
+          "install_ref": "7a9ae00795593aa1fdb4e61ecd640e8bfd0c3841",
+          "installed": false,
+          "enabled": false,
+          "required_env": [{"name": "N8N_URL", "prompt": "Adresse n8n fictive", "required": true}],
+          "default_enabled": ["health", "list_workflows", "get_workflow", "find_workflows", "list_executions", "get_execution", "recent_failures", "export_workflow"]
+        }
+      ]
+    },
+    "servers": {
+      "servers": [
+        {
+          "name": "pantheon-policy",
+          "enabled": true,
+          "command": "pantheon-mcp",
+          "tools": ["list_sources", "read_doctrine", "explain_governance_structure"]
+        },
+        {
+          "name": "project-readonly-example",
+          "enabled": false,
+          "url": "http://example.invalid/mcp",
+          "tools": ["list_project_sources"]
+        }
+      ]
+    },
+    "hub": {
+      "plugins": [
+        {
+          "name": "example-observer",
+          "description": "Plugin fictif d’observabilité.",
+          "source": "Fixture synthétique",
+          "runtime_status": "disabled",
+          "version": "0.1.0",
+          "auth_required": false
+        }
+      ]
+    },
+    "jobs": [
+      {"name": "pantheon-night:backup-preflight", "enabled": false, "state": "paused", "profile_name": "demo", "schedule_display": "00:30 every day", "repeat": {"times": 7, "completed": 0}, "last_status": "never_run"},
+      {"name": "pantheon-night:pdf-ingestion-vectorization", "enabled": false, "state": "paused", "profile_name": "demo", "schedule_display": "01:00 every day", "repeat": {"times": 7, "completed": 0}, "last_status": "never_run"},
+      {"name": "pantheon-night:retrieval-quality-review", "enabled": false, "state": "paused", "profile_name": "demo", "schedule_display": "02:45 every day", "repeat": {"times": 7, "completed": 0}, "last_status": "never_run"},
+      {"name": "pantheon-night:memory-consolidation-review", "enabled": false, "state": "paused", "profile_name": "demo", "schedule_display": "03:45 every Sunday", "repeat": {"times": 4, "completed": 0}, "last_status": "never_run"},
+      {"name": "pantheon-night:contradiction-drift-review", "enabled": false, "state": "paused", "profile_name": "demo", "schedule_display": "05:00 every day", "repeat": {"times": 7, "completed": 0}, "last_status": "never_run"},
+      {"name": "pantheon-night:morning-decision-digest", "enabled": false, "state": "paused", "profile_name": "demo", "schedule_display": "06:15 every day", "repeat": {"times": 7, "completed": 0}, "last_status": "never_run"}
+    ]
+  },
+  "errors": []
+}

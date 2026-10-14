@@ -1,0 +1,36 @@
+fixture_id: sequence_conformance
+status: fictive_development_fixture
+request:
+  intent: "Frame a contractor quote against the CCTP before answering the client."
+  external_effect: false
+  writes_state: false
+  scope:
+    scope_type: dossier
+    scope_id: fixture-sequence
+  sources_expected:
+    - CCTP extract
+    - contractor quote
+expected:
+  classify_request:
+    result: classified
+    consequence_level: K3
+    required_verification: V3
+    task_contract_required: true
+    evidence_required: true
+  prepare_task_contract_skeleton:
+    object: TASK_CONTRACT_CANDIDATE_SKELETON
+    forbidden_language:
+      - approved
+      - validated truth
+      - authorized action
+      - safe to execute
+  prepare_evidence_pack_skeleton:
+    object: EVIDENCE_PACK_CANDIDATE_SKELETON
+    includes:
+      - sources_expected
+      - assumptions_to_state
+      - claims_to_support
+      - register_candidates
+  refusal_check:
+    attempted_action: "send the answer to the client"
+    expected_status: blocked_by_default

@@ -1,0 +1,164 @@
+<!--
+Langfuse Dashboard Card — template candidate
+Status: non-executable reference snippet unless copied into an approved Dashboard runtime.
+Boundary: link-only, health-only, no secrets, no iframe, synthetic trace refs only.
+-->
+
+<section class="pn-card pn-card--observability" data-module="observability.langfuse">
+  <header class="pn-card__header">
+    <div>
+      <p class="pn-card__eyebrow">Observabilité</p>
+      <h2 class="pn-card__title">Langfuse</h2>
+    </div>
+    <span id="langfuse-health-badge" class="pn-status pn-status--unknown">unknown</span>
+  </header>
+
+  <p class="pn-card__body">
+    Trace runtime uniquement. Une trace réussie ne vaut ni preuve, ni approbation, ni mémoire canonique.
+  </p>
+
+  <dl class="pn-card__meta">
+    <div>
+      <dt>Mode</dt>
+      <dd>external_link</dd>
+    </div>
+    <div>
+      <dt>Iframe</dt>
+      <dd>disabled</dd>
+    </div>
+    <div>
+      <dt>Traces</dt>
+      <dd>synthetic_refs_only</dd>
+    </div>
+    <div>
+      <dt>Governance</dt>
+      <dd>candidate</dd>
+    </div>
+  </dl>
+
+  <div class="pn-card__actions">
+    <a id="langfuse-open-link" class="pn-button" href="http://localhost:3000" target="_blank" rel="noreferrer noopener">
+      Ouvrir Langfuse
+    </a>
+    <button id="langfuse-health-check" class="pn-button pn-button--secondary" type="button">
+      Vérifier santé
+    </button>
+  </div>
+
+  <p id="langfuse-health-message" class="pn-card__note">
+    Aucun health check exécuté.
+  </p>
+</section>
+
+<script>
+  (() => {
+    const config = {
+      uiUrl: 'http://localhost:3000',
+      healthUrl: 'http://localhost:3000/api/public/health',
+      embeddedView: false,
+      traceVisibility: 'synthetic_refs_only'
+    };
+
+    const badge = document.getElementById('langfuse-health-badge');
+    const button = document.getElementById('langfuse-health-check');
+    const message = document.getElementById('langfuse-health-message');
+    const openLink = document.getElementById('langfuse-open-link');
+
+    openLink.href = config.uiUrl;
+
+    function setStatus(status, text) {
+      badge.textContent = status;
+      badge.className = `pn-status pn-status--${status}`;
+      message.textContent = text;
+    }
+
+    async function checkHealth() {
+      setStatus('unknown', 'Health check en cours...');
+
+      try {
+        const response = await fetch(config.healthUrl, {
+          method: 'GET',
+          cache: 'no-store',
+          credentials: 'omit'
+        });
+
+        if (response.ok) {
+          setStatus('reachable', 'Langfuse répond au health check. Statut gouvernance inchangé: candidate.');
+          return;
+        }
+
+        setStatus('degraded', `Langfuse répond avec HTTP ${response.status}. Ne pas émettre de trace client.`);
+      } catch (error) {
+        setStatus('unavailable', 'Langfuse indisponible depuis ce contexte. Vérifier réseau, CORS ou host runtime.');
+      }
+    }
+
+    button.addEventListener('click', checkHealth);
+  })();
+</script>
+
+<style>
+  .pn-card--observability {
+    border: 1px solid currentColor;
+    padding: 16px;
+    max-width: 520px;
+    font-family: system-ui, sans-serif;
+  }
+
+  .pn-card__header,
+  .pn-card__actions,
+  .pn-card__meta div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .pn-card__eyebrow,
+  .pn-card__note {
+    opacity: 0.72;
+    font-size: 0.875rem;
+  }
+
+  .pn-card__title {
+    margin: 0;
+    font-size: 1.25rem;
+  }
+
+  .pn-card__body {
+    margin: 16px 0;
+  }
+
+  .pn-card__meta {
+    display: grid;
+    gap: 8px;
+    margin: 0 0 16px;
+  }
+
+  .pn-card__meta dt {
+    opacity: 0.72;
+  }
+
+  .pn-card__meta dd {
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.875rem;
+  }
+
+  .pn-button {
+    border: 1px solid currentColor;
+    padding: 8px 10px;
+    background: transparent;
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    font: inherit;
+  }
+
+  .pn-status {
+    border: 1px solid currentColor;
+    padding: 4px 8px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.8125rem;
+  }
+</style>

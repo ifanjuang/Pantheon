@@ -1,0 +1,179 @@
+observation_bundle_id: observation-bundle.m4.private-drawing-real-pattern
+project_ref: project.fixture.private-drawing-m4
+task_contract_ref: task-contract.observe-private-drawing.m4
+basis:
+  source_artifact_refs:
+    - source.private-drawing-package.not-retained
+  source_version_refs: []
+  exact_digests: []
+method:
+  capability_id: drawing_takeoff.observe.sheet
+  binding_id: binding.synthetic.private-drawing
+  operation_id: drawing.observe.selected-regions.v1
+  adapter_ref: pantheon.qualification.private-drawing
+  adapter_version: 0.1.0
+  request_ref: request-m4-private-drawing
+observed_at: "2026-08-30T21:00:00Z"
+freshness_token: qualification-session:m4-private-drawing-v1
+scope:
+  document_refs:
+    - document:private-drawing-package
+  sheet_refs:
+    - sheet-a
+    - sheet-b
+  pages: [1, 2]
+  region_refs:
+    - region:whole-package
+coverage:
+  completeness: partial_for_declared_scope
+  observed_scope:
+    document_refs:
+      - document:private-drawing-package
+    sheet_refs:
+      - sheet-a
+      - sheet-b
+    pages: [1, 2]
+    region_refs:
+      - region:sheet-a-provisional
+      - region:sheet-a-ambiguous
+      - region:sheet-b-space-area
+  excluded_reasons:
+    - selected_regions_only
+  absence_inference_allowed: false
+limitations:
+  - Private source content and identifying title-block metadata are not retained in this qualification fixture.
+  - PAGE coordinates are sanitized structural examples derived from the observed layout, not a fingerprint of the private file.
+  - Sheet-local title-block dates are preserved only as source context and do not establish purpose-specific currentness.
+source_representations:
+  - representation_id: rep.m4.sheet-a.provisional-note
+    project_ref: project.fixture.private-drawing-m4
+    source_artifact_ref: source.private-drawing-package.not-retained
+    source_kind: drawing
+    identifiers:
+      - scheme: drawing.local_region
+        value: provisional-note-a
+    locators:
+      - type: page_bbox
+        value: page-1:provisional-note-a
+        page: 1
+        bbox: [300, 560, 430, 585]
+    observed_at: "2026-08-30T21:00:00Z"
+    binding_ref: binding.synthetic.private-drawing
+    adapter_version: 0.1.0
+    freshness_token: qualification-session:m4-private-drawing-v1
+    coordinate_frame: PAGE
+    context:
+      document_ref: document:private-drawing-package
+      sheet_ref: sheet-a
+      page: 1
+      native_context:
+        sheet_role: lower_level_plan
+        sheet_date: "2025-10-14"
+        semantic_role: provisional_annotation
+        annotation_state: under_study
+        page_width_units: 1200
+        page_height_units: 840
+    limitations:
+      - Source wording is intentionally not retained; only its provisional semantic role is qualified.
+    proof_status: candidate
+  - representation_id: rep.m4.sheet-a.ambiguous-note
+    project_ref: project.fixture.private-drawing-m4
+    source_artifact_ref: source.private-drawing-package.not-retained
+    source_kind: drawing
+    identifiers:
+      - scheme: drawing.local_region
+        value: ambiguous-note-b
+    locators:
+      - type: page_bbox
+        value: page-1:ambiguous-note-b
+        page: 1
+        bbox: [390, 630, 460, 655]
+    observed_at: "2026-08-30T21:00:00Z"
+    binding_ref: binding.synthetic.private-drawing
+    adapter_version: 0.1.0
+    freshness_token: qualification-session:m4-private-drawing-v1
+    coordinate_frame: PAGE
+    context:
+      document_ref: document:private-drawing-package
+      sheet_ref: sheet-a
+      page: 1
+      native_context:
+        sheet_role: lower_level_plan
+        sheet_date: "2025-10-14"
+        semantic_role: provisional_annotation
+        annotation_state: possible_adjustment
+        page_width_units: 1200
+        page_height_units: 840
+    limitations:
+      - The note does not identify one governed project object and remains unresolved.
+    proof_status: candidate
+  - representation_id: rep.m4.sheet-b.space-area
+    project_ref: project.fixture.private-drawing-m4
+    source_artifact_ref: source.private-drawing-package.not-retained
+    source_kind: drawing
+    identifiers:
+      - scheme: drawing.local_region
+        value: space-area-a
+    locators:
+      - type: page_bbox
+        value: page-2:space-area-a
+        page: 2
+        bbox: [400, 520, 430, 550]
+    observed_at: "2026-08-30T21:00:00Z"
+    binding_ref: binding.synthetic.private-drawing
+    adapter_version: 0.1.0
+    freshness_token: qualification-session:m4-private-drawing-v1
+    coordinate_frame: PAGE
+    context:
+      document_ref: document:private-drawing-package
+      sheet_ref: sheet-b
+      page: 2
+      native_context:
+        sheet_role: upper_level_plan
+        sheet_date: "2026-05-22"
+        semantic_role: space_label_area
+        page_width_units: 1200
+        page_height_units: 840
+    limitations:
+      - The local space occurrence is not assigned a stable Project Anatomy identity in this bundle.
+    proof_status: candidate
+attribute_claim_candidates:
+  - attribute_claim_id: claim.m4.sheet-b.space-area
+    subject_ref:
+      entity_type: source_representation
+      entity_id: rep.m4.sheet-b.space-area
+    attribute_key: space.area
+    value:
+      value_type: number
+      value: 9.25
+      unit: m2
+    assertion_mode: observed
+    source_authority: project_working_document
+    proof_status: candidate
+    certainty: E3
+    source_representation_refs:
+      - rep.m4.sheet-b.space-area
+relation_claim_candidates: []
+gaps:
+  - code: identity.space_unresolved
+    subject_refs:
+      - rep.m4.sheet-b.space-area
+  - code: currentness.sheet_dates_not_resolved
+    subject_refs:
+      - rep.m4.sheet-a.provisional-note
+      - rep.m4.sheet-b.space-area
+withheld:
+  - code: interpretation.provisional_annotation_not_promoted
+    subject_refs:
+      - rep.m4.sheet-a.provisional-note
+      - rep.m4.sheet-a.ambiguous-note
+warnings:
+  - code: privacy.private_source_not_retained
+operational_outcome: success
+authority:
+  is_fact: false
+  is_evidence: false
+  is_decision: false
+  is_memory: false
+  is_apu_write: false
+  authorizes_external_effect: false

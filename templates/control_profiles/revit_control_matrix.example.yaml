@@ -1,0 +1,44 @@
+# Example Control Matrix profile for the future Pantheon Revit Gate add-in.
+# Documentation only. Non-executable example. The plugin does not exist.
+# See docs/governance/PANTHEON_REVIT_GATE_DEVELOPER_DOSSIER.md (sections 4 and 5).
+#
+# Effective permission is the minimum of all sources; an absent, expired,
+# incoherent or unknown profile falls back to N0 Read only. Delete is never part
+# of full control and is always a separate explicit permission. This sample is
+# not read by any runtime in this repository.
+
+schema_version: "0.1-draft"
+profile_id: "PTN-REVIT-PROFILE-N3-FINISHES"
+profile_name: "N3 Documentation / finishes"
+control_level: N3_FINISHES
+band:
+  color: "amber"
+  write_permission_active: true
+  dry_run_required: true
+  approval_required: true
+fallback_on_invalid_profile: N0_READ_ONLY
+
+# Columns per domain: forbidden | read | create | light_modify | model_modify | delete | sandbox_admin
+# Only "read", "create" and "light_modify" are granted at N3; delete stays separate.
+matrix:
+  text_notes_annotations: { read: true, create: true, light_modify: true, delete: false }
+  detail_lines:           { read: true, create: true, light_modify: true, delete: false }
+  filled_regions:         { read: true, create: true, light_modify: true, delete: false }
+  views:                  { read: true, create: true, light_modify: false, delete: false }
+  schedules:              { read: true, create: true, light_modify: false, delete: false }
+  review_parameters:      { read: true, create: false, light_modify: true, delete: false }
+  rooms_spaces:           { read: true, create: false, light_modify: true, delete: false }
+  walls:                  { read: true, create: false, model_modify: false, delete: false }
+  doors:                  { read: true, create: false, model_modify: false, delete: false }
+  windows:                { read: true, create: false, model_modify: false, delete: false }
+  type_parameters:        { read: true, light_modify: false, delete: false }
+  loadable_families:      { read: true, sandbox_admin: false, delete: false }
+  in_place_families:      { read: true, sandbox_admin: false, delete: false }
+  revit_links:            { read: true, forbidden_write: true }
+  groups:                 { read: true, model_modify: false, delete: false }
+  phases:                 { read: true, light_modify: false, delete: false }
+
+notes:
+  - "Delete is a separate explicit permission and is disabled here."
+  - "Linked models are read-only; write is forbidden."
+  - "Family edits require the N5 family sandbox, never production mode."

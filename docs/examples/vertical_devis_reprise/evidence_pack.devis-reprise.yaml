@@ -1,0 +1,59 @@
+# Vertical slice — architecture_devis_reprise (fictional; validation-only).
+evidence_pack_id: vertical.devis-reprise.evidence-pack
+task_contract_id: vertical.devis-reprise.task-contract
+created_at: "2026-07-02T09:00:00Z"
+summary: Evidence pack candidate for the complementary-quote review (fictional Maison Lierre dossier).
+scope:
+  scope_type: project
+  scope_id: maison-lierre
+  scope_label: Maison Lierre — extension (devis complémentaire)
+sources:
+  - type: source_reference
+    reference: docs/domain-packs/architecture/METHOD_DECK.md
+    status: selected_evidence
+    supports: The quote-variation-review and external-commitment-guard method boundaries.
+    limitations:
+      - Does not authorize any external action.
+  - type: user_input
+    reference: The complementary quote and the prior signed amendment, provided by the architect.
+    status: selected_evidence
+    supports: The amounts compared in the review.
+evidence_items:
+  - evidence_id: ei.quote-vs-amendment
+    claim: The complementary quote's added amount is not reconcilable with the prior signed amendment.
+    source_type: user_document
+    source_ref: project dossier — complementary quote and signed amendment
+    scope_of_support: Supports a point-to-verify only; it does not validate or refuse the quote.
+    claim_status: weak
+    limitations:
+      - "certainty lives on the answer status and the register candidate (E-axis)"
+      - "the 'confidence' field below is the schema's legacy support field, not the E-axis"
+    confidence: medium
+assumptions:
+  - Pantheon governs; Hermes executes the bounded steps outside the repo.
+  - Nothing is sent, signed or approved on completion alone.
+actions:
+  - Compared the quote line items against the signed amendment.
+  - Prepared a candidate opinion and a draft MOA email, both candidate-only.
+risks:
+  - description: A draft opinion could be mistaken for agency approval of the quote.
+    severity: high
+    mitigation: Output stays a candidate; the external-commitment-guard opens the gate before any send.
+outputs:
+  - output_id: vertical.devis-reprise.opinion
+    output_type: candidate opinion
+    status: candidate
+    reference: docs/examples/vertical_devis_reprise/answer_status.devis-reprise.yaml
+reviews:
+  - reviewer: APOLLO
+    status: pending
+    notes: Fictional dossier; requires review before use as a fixture.
+approval_state:
+  level: C3
+  status: pending
+  notes: Documents the expected approval ceiling; it does not approve itself.
+governance_refs:
+  - docs/governance/EVIDENCE_PACK.md
+  - docs/governance/APPROVALS.md
+  - docs/governance/USER_DECISION_GATE.md
+  - docs/domain-packs/architecture/METHOD_DECK.md

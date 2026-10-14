@@ -1,0 +1,41 @@
+[project]
+name = "pantheon-mcp-server"
+version = "0.1.66"
+description = "Pantheon Next policy plane: read-only MCP and HTTP consultation, validation and policy decisions as data."
+requires-python = ">=3.10"
+license = "MIT"
+dependencies = [
+    "mcp>=2,<3",
+    "PyYAML>=6.0",
+    "jsonschema>=4.22",
+]
+
+[project.optional-dependencies]
+http = [
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+]
+test = [
+    "jsonschema>=4.22",
+    "fastapi>=0.115",
+    "httpx>=0.27",
+]
+
+[project.scripts]
+pantheon-mcp-server = "pantheon_mcp.server:main"
+pantheon-policy-api = "pantheon_mcp.http_api:run"
+pantheon-apu-validate = "pantheon_mcp.cli:main"
+pantheon-verify = "pantheon_mcp.verification_cli:main"
+pantheon-verify-install = "pantheon_mcp.install_cli:main"
+pantheon-verify-observability = "pantheon_mcp.observability_cli:main"
+pantheon-verify-backup = "pantheon_mcp.backup_cli:main"
+pantheon-verify-exposure = "pantheon_mcp.exposure_cli:main"
+pantheon-verify-update = "pantheon_mcp.update_cli:main"
+pantheon-load-verification-preset = "pantheon_mcp.presets_cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["pantheon_mcp"]

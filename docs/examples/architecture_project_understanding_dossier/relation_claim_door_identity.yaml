@@ -1,0 +1,14 @@
+relation_claim_id: RC-ID-OP217
+subject_ref:
+  entity_type: source_representation
+  entity_id: REP-DRAW-OP-088
+relation_type: identity.represents
+object_ref:
+  entity_type: stable_object
+  entity_id: SO-OP-217
+assertion_mode: proposed
+source_authority: model_interpretation_candidate
+proof_status: candidate
+certainty: E3
+source_representation_refs: [REP-DRAW-OP-088]
+notes: "Curated V0.2 worked-example identity proposal; human review remains separate."

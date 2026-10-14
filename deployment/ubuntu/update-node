@@ -1,0 +1,277 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+TOOL_VERSION="0.1.0"
+CONFIG_ROOT="/etc/pantheon-node"
+APP_ROOT="/opt/pantheon-node"
+STATE_ROOT="/srv/pantheon"
+PANTHEON_ROOT="/opt/pantheon"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+RELEASE_LOCK="$SCRIPT_DIR/release.env"
+if [[ ! -f "$RELEASE_LOCK" ]]; then
+  printf '[pantheon-update] ERROR: reviewed deployment lock is missing: %s\n' "$RELEASE_LOCK" >&2
+  exit 1
+fi
+# shellcheck disable=SC1091
+source "$RELEASE_LOCK"
+
+# Reviewed deployment-candidate targets. These are not qualification or authorization truth.
+TARGET_OLLAMA_VERSION="${RELEASE_OLLAMA_VERSION:?release.env missing RELEASE_OLLAMA_VERSION}"
+
+APPLY=0
+ASSUME_YES=0
+COMPONENT="all"
+
+log() { printf '[pantheon-update] %s\n' "$*"; }
+warn() { printf '[pantheon-update] WARNING: %s\n' "$*" >&2; }
+die() { printf '[pantheon-update] ERROR: %s\n' "$*" >&2; exit 1; }
+usage() {
+  cat <<'USAGE'
+Usage:
+  ./update-node --check
+  sudo ./update-node --apply [--component all|pantheon|ollama] [--yes]
+
+Pantheon changes require PANTHEON_COMMIT_OVERRIDE=<reviewed full sha>.
+For a private repository, set PANTHEON_REPOSITORY_OVERRIDE=<local operator checkout>
+containing that commit; root cannot authenticate to the remote.
+Update-node never follows floating :latest tags and never changes activation/authorization state.
+USAGE
+}
+
+while (($#)); do
+  case "$1" in
+    --check) APPLY=0; ASSUME_YES=1 ;;
+    --apply) APPLY=1 ;;
+    --yes) ASSUME_YES=1 ;;
+    --component) shift; COMPONENT="${1:?missing component}" ;;
+    -h|--help) usage; exit 0 ;;
+    *) die "unknown argument: $1" ;;
+  esac
+  shift
+done
+
+case "$COMPONENT" in
+  all|pantheon|ollama) ;;
+  *) die "unsupported component: $COMPONENT" ;;
+esac
+
+[[ -f "$CONFIG_ROOT/versions.env" ]] || die "no existing node installation found at $CONFIG_ROOT"
+# shellcheck disable=SC1090
+source "$CONFIG_ROOT/versions.env"
+# shellcheck disable=SC1090
+source "$CONFIG_ROOT/node.env"
+
+# The policy entry point locates the repository before anything else and then
+# serves stdio MCP (it ignores --help), so validate the installed package by
+# importing it against one explicit checkout instead of launching it.
+validate_policy_package() {
+  PANTHEON_REPO_PATH="$1" "$STATE_ROOT/policy-venv/bin/python" -c \
+    'from pantheon_mcp.repo import find_repo_root; import pantheon_mcp.server; find_repo_root()' \
+    </dev/null >/dev/null
+}
+
+# Root cannot authenticate to a private remote, so an operator-owned local
+# checkout may be the reviewed source. Git refuses repositories owned by
+# another user; trust one only for reads of that local source.
+source_git() {
+  local source="$1"; shift
+  if [[ -d "$source" ]]; then git -c safe.directory='*' "$@"; else git "$@"; fi
+}
+
+selected() { [[ "$COMPONENT" == "all" || "$COMPONENT" == "$1" ]]; }
+set_version() {
+  local key="$1" value="$2"
+  if grep -q "^${key}=" "$CONFIG_ROOT/versions.env"; then
+    sed -i "s|^${key}=.*|${key}=${value}|" "$CONFIG_ROOT/versions.env"
+  else
+    printf '%s=%s\n' "$key" "$value" >> "$CONFIG_ROOT/versions.env"
+  fi
+}
+
+current_ollama="$(ollama --version 2>/dev/null | awk '{print $NF}' || echo absent)"
+hermes_state="$(systemctl is-active pantheon-hermes-native.service 2>/dev/null || echo inactive)"
+hindsight_state="$(systemctl is-active pantheon-hindsight-native.service 2>/dev/null || echo inactive)"
+
+cat <<EOF_STATUS
+Node update check — tool $TOOL_VERSION
+
+component        installed / pinned                         target in this updater
+Pantheon         ${PANTHEON_COMMIT:-unknown}                explicit reviewed SHA only
+Hermes native    $hermes_state
+Hindsight native $hindsight_state (managed separately)
+Ollama           $current_ollama                            $TARGET_OLLAMA_VERSION
+available upstream != qualified for this node
+successful update != activation or task authorization
+EOF_STATUS
+
+((APPLY == 1)) || exit 0
+[[ ${EUID:-$(id -u)} -eq 0 ]] || die "--apply must run as root (sudo)"
+
+if ((ASSUME_YES == 0)); then
+  [[ -t 0 ]] || die "non-interactive update requires --yes"
+  printf 'Create checkpoint and apply component=%s? [y/N] ' "$COMPONENT"
+  read -r answer
+  [[ "$answer" =~ ^[Yy]$ ]] || exit 0
+fi
+
+stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+checkpoint="$STATE_ROOT/backups/update-$stamp"
+umask 077
+install -d -m 0700 "$checkpoint"
+cp -a "$CONFIG_ROOT" "$checkpoint/etc-pantheon-node"
+readlink -f "$PANTHEON_ROOT/current" > "$checkpoint/pantheon-current.txt" 2>/dev/null || true
+readlink "$PANTHEON_ROOT/current" > "$checkpoint/pantheon-current-link.txt" 2>/dev/null || true
+if [[ -f "$STATE_ROOT/hermes/profiles/pantheon-governed/config.yaml" ]]; then
+  install -d -m 0700 "$checkpoint/hermes-pantheon-governed"
+  cp -a "$STATE_ROOT/hermes/profiles/pantheon-governed/config.yaml" \
+    "$checkpoint/hermes-pantheon-governed/config.yaml"
+fi
+if [[ -d "$STATE_ROOT/hermes-governed-skills" ]]; then
+  cp -a "$STATE_ROOT/hermes-governed-skills" "$checkpoint/hermes-governed-skills"
+fi
+
+PANTHEON_TRANSACTION_ACTIVE=0
+PANTHEON_PACKAGE_INSTALL_ATTEMPTED=0
+PANTHEON_LINK_SWITCH_ATTEMPTED=0
+PANTHEON_SKILLS_SYNC_ATTEMPTED=0
+PANTHEON_VERSION_WRITE_ATTEMPTED=0
+PANTHEON_PREVIOUS_CURRENT_LINK=""
+PANTHEON_PREVIOUS_CHECKOUT=""
+PANTHEON_PREVIOUS_COMMIT_RECORD="${PANTHEON_COMMIT:-}"
+
+restore_pantheon_checkpoint() {
+  local failed=0 profile_file projection
+  profile_file="$STATE_ROOT/hermes/profiles/pantheon-governed/config.yaml"
+  projection="$STATE_ROOT/hermes-governed-skills"
+
+  log "attempting Pantheon rollback from checkpoint $checkpoint"
+
+  if ((PANTHEON_LINK_SWITCH_ATTEMPTED)); then
+    if [[ -n "$PANTHEON_PREVIOUS_CURRENT_LINK" ]]; then
+      ln -sfn -- "$PANTHEON_PREVIOUS_CURRENT_LINK" "$PANTHEON_ROOT/current" \
+        || { warn "could not restore the previous Pantheon current link"; failed=1; }
+    else
+      warn "previous Pantheon current link was not captured; it was left unchanged"
+      failed=1
+    fi
+  fi
+
+  if ((PANTHEON_PACKAGE_INSTALL_ATTEMPTED)); then
+    if [[ -n "$PANTHEON_PREVIOUS_CHECKOUT" && -d "$PANTHEON_PREVIOUS_CHECKOUT/mcp-server" ]]; then
+      if "$APP_ROOT/uv/bin/uv" pip install --python "$STATE_ROOT/policy-venv/bin/python" \
+        --force-reinstall "$PANTHEON_PREVIOUS_CHECKOUT/mcp-server" \
+        && validate_policy_package "$PANTHEON_PREVIOUS_CHECKOUT"; then
+        log "previous Pantheon policy package restored"
+      else
+        warn "could not restore or validate the previous Pantheon policy package"
+        failed=1
+      fi
+    else
+      warn "previous Pantheon checkout is unavailable for package rollback"
+      failed=1
+    fi
+  fi
+
+  if ((PANTHEON_SKILLS_SYNC_ATTEMPTED)); then
+    if [[ -f "$checkpoint/hermes-pantheon-governed/config.yaml" ]]; then
+      cp -a -- "$checkpoint/hermes-pantheon-governed/config.yaml" "$profile_file" \
+        || { warn "could not restore the governed Hermes profile from checkpoint"; failed=1; }
+    else
+      rm -f -- "$profile_file" \
+        || { warn "could not remove a profile file created during the failed update"; failed=1; }
+    fi
+
+    if [[ -d "$checkpoint/hermes-governed-skills" ]]; then
+      rm -rf -- "$projection" \
+        && cp -a -- "$checkpoint/hermes-governed-skills" "$projection" \
+        || { warn "could not restore the governed skill projection from checkpoint"; failed=1; }
+    else
+      rm -rf -- "$projection" \
+        || { warn "could not remove a skill projection created during the failed update"; failed=1; }
+    fi
+
+    systemctl restart pantheon-hermes-native.service \
+      || { warn "could not restart Hermes on the restored checkpoint"; failed=1; }
+  fi
+
+  if ((PANTHEON_VERSION_WRITE_ATTEMPTED)); then
+    if [[ -n "$PANTHEON_PREVIOUS_COMMIT_RECORD" ]]; then
+      set_version PANTHEON_COMMIT "$PANTHEON_PREVIOUS_COMMIT_RECORD" \
+        || { warn "could not restore the previous recorded Pantheon commit"; failed=1; }
+    elif sed -i '/^PANTHEON_COMMIT=/d' "$CONFIG_ROOT/versions.env"; then
+      :
+    else
+      warn "could not remove the failed Pantheon commit record"
+      failed=1
+    fi
+  fi
+
+  if ((failed)); then
+    warn "Pantheon rollback is incomplete; retain and inspect checkpoint $checkpoint"
+  else
+    log "Pantheon rollback completed; checkpoint retained at $checkpoint"
+  fi
+}
+
+update_exit() {
+  local status=$?
+  trap - EXIT
+  if ((status != 0 && PANTHEON_TRANSACTION_ACTIVE)); then
+    set +e
+    restore_pantheon_checkpoint
+  fi
+  if ((status != 0)); then
+    warn "checkpoint retained at $checkpoint"
+  fi
+  exit "$status"
+}
+trap update_exit EXIT
+
+update_ollama() {
+  curl -fsSL https://ollama.com/install.sh | OLLAMA_VERSION="$TARGET_OLLAMA_VERSION" sh
+  systemctl restart ollama
+  set_version OLLAMA_VERSION "$TARGET_OLLAMA_VERSION"
+}
+
+update_pantheon() {
+  if [[ -z ${PANTHEON_COMMIT_OVERRIDE:-} ]]; then
+    warn "Pantheon not changed: set PANTHEON_COMMIT_OVERRIDE=<reviewed full sha> to update it"
+    return 0
+  fi
+  [[ "$PANTHEON_COMMIT_OVERRIDE" =~ ^[0-9a-f]{40}$ ]] || die "PANTHEON_COMMIT_OVERRIDE must be a full 40-character SHA"
+  local short target repository current
+  PANTHEON_PREVIOUS_CURRENT_LINK="$(readlink "$PANTHEON_ROOT/current")" \
+    || die "cannot capture the current Pantheon link; refusing to update"
+  current="$(readlink -f "$PANTHEON_ROOT/current")" \
+    || die "cannot resolve the current Pantheon checkout; refusing to update"
+  [[ -n "$current" && -d "$current/mcp-server" ]] \
+    || die "current Pantheon checkout has no mcp-server source for rollback"
+  git -C "$current" rev-parse --verify HEAD >/dev/null 2>&1 \
+    || die "current Pantheon checkout is not a valid Git revision for rollback"
+  PANTHEON_PREVIOUS_CHECKOUT="$current"
+
+  short="${PANTHEON_COMMIT_OVERRIDE:0:12}"
+  target="$PANTHEON_ROOT/Pantheon-Next-$short"
+  repository="${PANTHEON_REPOSITORY_OVERRIDE:-$(git -C "$PANTHEON_ROOT/current" remote get-url origin 2>/dev/null || true)}"
+  [[ -n "$repository" ]] || die "cannot resolve Pantheon repository remote; set PANTHEON_REPOSITORY_OVERRIDE"
+  if [[ ! -d "$target/.git" ]]; then source_git "$repository" clone "$repository" "$target"; fi
+  source_git "$repository" -C "$target" fetch origin "$PANTHEON_COMMIT_OVERRIDE"
+  git -C "$target" checkout --detach "$PANTHEON_COMMIT_OVERRIDE"
+  PANTHEON_TRANSACTION_ACTIVE=1
+  PANTHEON_PACKAGE_INSTALL_ATTEMPTED=1
+  "$APP_ROOT/uv/bin/uv" pip install --python "$STATE_ROOT/policy-venv/bin/python" --force-reinstall "$target/mcp-server"
+  validate_policy_package "$target"
+  PANTHEON_LINK_SWITCH_ATTEMPTED=1
+  ln -sfn "$target" "$PANTHEON_ROOT/current"
+  PANTHEON_SKILLS_SYNC_ATTEMPTED=1
+  bash "$SCRIPT_DIR/sync-hermes-governed-skills" "$target"
+  PANTHEON_VERSION_WRITE_ATTEMPTED=1
+  set_version PANTHEON_COMMIT "$PANTHEON_COMMIT_OVERRIDE"
+  PANTHEON_TRANSACTION_ACTIVE=0
+}
+
+selected ollama && update_ollama
+selected pantheon && update_pantheon
+
+log "checkpoint retained at $checkpoint"
+log "run service-specific health checks before changing any activation/authorization posture"

@@ -1,0 +1,18 @@
+api_version: pantheon.next/v0alpha1
+kind: CapabilityBinding
+metadata:
+  id: capability_binding_external_runtime_memory_unbound
+  status: unbound
+spec:
+  slot_id: external_runtime_memory
+  binding_role: unbound
+  capability_passport_id: null
+  implementation_anchor: null
+  resource_id: null
+  supersedes: null
+governance:
+  selection_only: true
+  dependency_adopted: false
+  installation_authorized: false
+  activation_authorized: false
+  task_authorized: false

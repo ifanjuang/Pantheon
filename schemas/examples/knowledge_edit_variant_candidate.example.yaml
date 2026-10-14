@@ -1,0 +1,25 @@
+candidate_kind: knowledge_edit_variant
+request_ref: knowledge-edit-request-42
+request_scope_digest: sha256:1111111111111111111111111111111111111111111111111111111111111111
+knowledge_ref: knowledge-project-brief
+base_version: 7
+selection_start: 120
+selection_end: 248
+selected_text_digest: sha256:2222222222222222222222222222222222222222222222222222222222222222
+variant_label: A
+replacement_markdown: |-
+  La solution proposée conserve la structure existante et précise les limites
+  d’intervention avant toute validation professionnelle.
+replacement_digest: sha256:3333333333333333333333333333333333333333333333333333333333333333
+rationale: Clarifies the scope without widening the selected passage.
+source_refs:
+  - source-email-2026-08-05
+limitations:
+  - The proposal does not validate the underlying source.
+authority:
+  selects_variant: false
+  applies_edit: false
+  validates_knowledge: false
+  admits_evidence: false
+  promotes_memory: false
+  authorizes_task: false

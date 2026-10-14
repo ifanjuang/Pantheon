@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <meta name="description" content="Vue locale en lecture seule des dossiers, sources et cartouches AFFAIRES.">
+    <title>Pantheon — AFFAIRES</title>
+    <base href="/workspace/">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="vendor/swiper-14.3.0-bundle.min.css" integrity="sha384-xkKzAc7JSlGq3SLCZHugx/i0gfYZf6kaFzg3v9/wz0HtsAFYPLz7aUvCFTac8KBk">
+    <link rel="stylesheet" href="role_trace_graph.css">
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Pantheon · Workspace</p>
+          <h1>AFFAIRES</h1>
+        </div>
+        <div class="sync-state" aria-label="État de la source">
+          <span class="sync-dot" aria-hidden="true"></span>
+          <span>Lecture seule · source AFFAIRES</span>
+        </div>
+      </header>
+
+      <nav id="tool-links" class="tool-links" aria-label="Outils locaux" hidden></nav>
+
+      <details class="producer-panel" id="producer-panel">
+        <summary><strong>Producteurs et sources</strong><span id="producer-scope-state">Vérification…</span></summary>
+        <div class="producer-panel-body">
+          <p id="producer-warning" class="producer-warning" role="status"></p>
+          <dl id="producer-status" class="producer-status"></dl>
+          <div class="producer-config">
+            <button id="producer-configure" type="button">Limiter Affaires au dossier attendu</button>
+            <small>Arrête le worker Affaires et prépare sa nouvelle portée. L’ingestion restera arrêtée jusqu’à la remise au propre du vault.</small>
+            <p id="producer-config-message" role="status"></p>
+          </div>
+          <div class="producer-log-controls">
+            <label for="producer-log-unit">Journaux</label>
+            <select id="producer-log-unit"><option value="affaires">Affaires</option><option value="bibliotheque">Bibliothèque</option></select>
+            <button id="producer-log-refresh" type="button">Actualiser les journaux</button>
+          </div>
+          <pre id="producer-logs" class="producer-logs" aria-live="polite">Ouvrez ce panneau pour lire les dernières lignes.</pre>
+        </div>
+      </details>
+
+      <details class="summary-disclosure">
+        <summary><strong><span id="package-count">—</span> éléments indexés</strong><span>Répartition par état</span></summary>
+        <section class="summary" aria-label="Résumé de l’espace de travail">
+          <div id="status-counts" class="status-counts"></div>
+        </section>
+      </details>
+
+      <section class="controls" aria-label="Filtres">
+        <label class="search-field">
+          <span class="visually-hidden">Rechercher un dossier ou document</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m2.1-5.4a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z"/></svg>
+          <input id="search" type="search" placeholder="Rechercher un dossier ou document…" autocomplete="off">
+        </label>
+        <button id="refresh" class="refresh" type="button">Actualiser</button>
+      </section>
+
+      <nav id="workspace-tabs" class="tabs" aria-label="Espaces documentaires"></nav>
+      <details class="filter-disclosure">
+        <summary id="filter-summary">Filtrer par état</summary>
+        <div id="status-filters" class="filters" aria-label="Filtrer par état"></div>
+      </details>
+      <nav id="breadcrumbs" class="breadcrumbs" aria-label="Chemin du dossier"></nav>
+
+      <section aria-live="polite">
+        <div id="loading" class="message">Lecture d’AFFAIRES…</div>
+        <div id="error" class="message error" hidden></div>
+        <div id="cards" class="cards" hidden></div>
+        <div id="folder-pager" class="folder-pager" hidden>
+          <button id="page-previous" type="button">Précédent</button>
+          <span id="page-label" aria-live="polite"></span>
+          <button id="page-next" type="button">Suivant</button>
+        </div>
+        <div id="empty" class="message" hidden>Aucun élément ne correspond à ces filtres.</div>
+      </section>
+
+      <details class="role-disclosure">
+        <summary>Jalons d’exécution</summary>
+        <section class="role-dialogue" aria-labelledby="role-dialogue-title">
+          <div class="role-dialogue-head">
+            <div>
+              <p class="eyebrow">Exécution gouvernée</p>
+              <h2 id="role-dialogue-title">Jalons observés</h2>
+            </div>
+            <span id="role-dialogue-state" class="role-dialogue-state" aria-live="polite">Aucune trace</span>
+          </div>
+          <div class="role-trace-tabs" role="tablist" aria-label="Vue des jalons observés">
+            <button id="role-view-dialogue" class="role-trace-tab" type="button" role="tab" data-role-trace-view="dialogue" aria-selected="true" aria-controls="role-dialogue-events">Dialogue</button>
+            <button id="role-view-graph" class="role-trace-tab" type="button" role="tab" data-role-trace-view="graph" aria-selected="false" aria-controls="role-graph" tabindex="-1">Graphe</button>
+          </div>
+          <p class="role-dialogue-boundary">Projection publique de l’exécution · worker ≠ rôle Pantheon · aucun raisonnement privé · aucune approbation implicite.</p>
+          <ol id="role-dialogue-events" class="role-dialogue-events" role="tabpanel" aria-labelledby="role-view-dialogue" aria-live="polite"></ol>
+          <section id="role-graph" class="role-graph" role="tabpanel" aria-labelledby="role-view-graph" hidden>
+            <p class="role-graph-boundary">Ordre observable · aucun lien causal n’est déduit.</p>
+            <div class="role-graph-scroll" tabindex="0" aria-label="Graphe chronologique des jalons observés">
+              <div id="role-graph-lanes" class="role-graph-lanes"></div>
+            </div>
+            <div id="role-graph-detail" class="role-graph-detail" aria-live="polite"></div>
+          </section>
+        </section>
+      </details>
+    </main>
+  </body>
+</html>

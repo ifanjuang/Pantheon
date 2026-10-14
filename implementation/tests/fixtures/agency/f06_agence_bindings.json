@@ -1,0 +1,60 @@
+{
+  "fixture_version": 1,
+  "fixture_id": "F06",
+  "title": "Agence / Contacts / Gmail / Drive / Notion / Google Contacts",
+  "synthetic": true,
+  "purpose": "Stress-test grouped Contacts and optional external bindings without granting external authority.",
+  "project": {
+    "project_id": "fixture-project-f06",
+    "code": "F06-AGENCE",
+    "display_name": "Dossier Agence Synthétique",
+    "phase": "ACT",
+    "status": "En cours",
+    "location": "Normandie",
+    "attributes": {
+      "programme_summary": "Fixture centrée sur l'annuaire projet et les raccordements externes optionnels.",
+      "agency_notes": "PostgreSQL Agency Data reste le system of record."
+    }
+  },
+  "project_claims": [],
+  "information": [
+    {"key":"email-bet-a01","title":"Email BET structure avec coordonnées","category":"Correspondance","source_type":"link","source_ref":"fixture://f06/gmail/message-1","index_label":"A01","summary":"Email contenant coordonnées et point technique.","details":"Les coordonnées retrouvées peuvent proposer une mise à jour Contact ; retrieved != truth.","status":"acted","limits":["consultatif"],"type_tags":["email"],"subject_tags":["structure","contact"]},
+    {"key":"doc-drive-a01","title":"Compte rendu partagé","category":"Réunion","source_type":"link","source_ref":"fixture://f06/drive/doc-1","index_label":"A01","summary":"Document partagé externe référencé par le Projet.","details":"Drive reste une source optionnelle, pas l'autorité Agency Data.","status":"acted","limits":["consultatif"],"type_tags":["compte-rendu"],"subject_tags":["coordination"]},
+    {"key":"note-notion-a01","title":"Projection Notion du suivi projet","category":"Agence","source_type":"link","source_ref":"fixture://f06/notion/page-1","index_label":"A01","summary":"Projection collaborative synthétique.","details":"La révision sert au contrôle de sync ; Notion ne stocke pas les archives ACTÉES de Pantheon.","status":"acted","limits":["consultatif"],"type_tags":["note"],"subject_tags":["agence","synchronisation"]}
+  ],
+  "contacts": {
+    "groups": {
+      "maitrise_ouvrage": [
+        {"name":"Client Alpha","organization":null,"role":"Maître d'ouvrage","email":"client.alpha@example.test","phone":"+33 2 00 00 00 01","source_ref":"manual://fixture"}
+      ],
+      "maitrise_oeuvre": [
+        {"name":"Architecte Fixture","organization":"Agence Test","role":"Architecte","email":"architecte@example.test","phone":"+33 2 00 00 00 02","source_ref":"manual://fixture"}
+      ],
+      "bureaux_etudes": [
+        {"name":"Ingénieur Structure","organization":"BET Structure Test","role":"Structure","email":"structure@example.test","phone":"+33 2 00 00 00 03","source_ref":"google-contacts://fixture/contact-3"},
+        {"name":"Ingénieur Fluides","organization":"BET Fluides Test","role":"Fluides / thermique","email":"fluides@example.test","phone":"+33 2 00 00 00 04","source_ref":"gmail://fixture/message-2"}
+      ],
+      "entreprises_travaux": [
+        {"name":"Conducteur Travaux","organization":"Entreprise Test","role":"Entreprise générale","email":"travaux@example.test","phone":"+33 2 00 00 00 05","source_ref":"google-contacts://fixture/contact-5"}
+      ]
+    }
+  },
+  "bindings": [
+    {"binding":"notion","optional":true,"direction":"project_to_external","authority":"projection_only","mapping_required":true,"sync_rules_required":true,"archives_external":false},
+    {"binding":"google_contacts","optional":true,"direction":"external_to_candidate","authority":"source_only","mapping_required":true,"sync_rules_required":true},
+    {"binding":"gmail","optional":true,"direction":"read_or_propose","authority":"source_only","mapping_required":false,"sync_rules_required":true},
+    {"binding":"drive","optional":true,"direction":"read_or_project","authority":"source_only","mapping_required":true,"sync_rules_required":true}
+  ],
+  "work": [
+    {"id":"work-contact-dedupe","title":"Vérifier les doublons Contacts","objective":"Comparer les propositions externes avec les contacts Project existants.","status":"in_progress","requested_effect":"internal_write"}
+  ],
+  "decisions": [
+    {"title":"Valider une mise à jour de coordonnées sensible","trigger":"work-contact-dedupe","human_required":true}
+  ],
+  "expected_observations": [
+    "Une seule carte Contacts suffit malgré plusieurs sources externes.",
+    "Google Contacts et Gmail peuvent proposer sans écrire silencieusement dans Agency Data.",
+    "Notion reste une projection optionnelle avec mapping et règles de sync.",
+    "Aucun binding externe ne devient source de vérité par disponibilité."
+  ]
+}

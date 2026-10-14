@@ -1,0 +1,15 @@
+document_family_id: 55555555-5555-4555-8555-555555555555
+human_ref: WMIF-CCTP
+scope_id: 77777777-7777-4777-8777-777777777777
+scope_type: project
+document_type: cctp
+business_object_type: professional_document
+phase_origin: DCE
+canonical_title: Cahier des clauses techniques particulières — Fixture DCE
+status: active
+created_at: "2026-08-22"
+metadata:
+  source_system: synthetic_workspace_manifest_inspector
+  notes: >-
+    Synthetic non-client Document Family used only to test sidecar mapping.
+    Purpose-specific currentness remains a separate calculated projection.

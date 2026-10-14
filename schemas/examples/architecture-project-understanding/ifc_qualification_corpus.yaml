@@ -1,0 +1,402 @@
+corpus_id: h5.4.ifc-source-qualification
+status: qualification_only
+parent_issue: 618
+base_example: observation_bundle.example.yaml
+scenarios:
+  - scenario_ids: [H54-IFC-SAME-GUID-CHANGED]
+    title: Same IFC GlobalId across snapshots preserves changed source observations
+    expected_valid: true
+    invariants: [candidate_authority, same_guid_changed_state_preserved]
+    overrides:
+      observation_bundle_id: observation-bundle.h54.same-guid-changed
+      task_contract_ref: task-contract.observe-ifc-snapshots.01
+      basis:
+        source_artifact_refs: [source.ifc.model-a]
+        source_version_refs: [snapshot.ifc.001, snapshot.ifc.002]
+        exact_digests:
+          - {source_artifact_ref: source.ifc.model-a, source_version_ref: snapshot.ifc.001, digest: sha256:ifc-001}
+          - {source_artifact_ref: source.ifc.model-a, source_version_ref: snapshot.ifc.002, digest: sha256:ifc-002}
+      method:
+        capability_id: building_model.observe.ifc
+        binding_id: binding.synthetic.ifc
+        operation_id: ifc.observe.snapshots.v1
+        adapter_ref: pantheon.synthetic.ifc
+        adapter_version: 1.0.0
+        request_ref: request-h54-same-guid
+      observed_at: "2026-08-09T17:30:00Z"
+      freshness_token: sha256:ifc-snapshot-pair
+      scope: {document_refs: [ifc-document:model-a], classes: [IfcDoor]}
+      coverage:
+        completeness: complete_for_declared_scope
+        observed_scope: {document_refs: [ifc-document:model-a], classes: [IfcDoor]}
+        excluded_reasons: []
+        absence_inference_allowed: true
+      limitations: [Same source identifier does not mean unchanged properties across snapshots.]
+      source_representations:
+        - representation_id: rep.ifc.001.door-guid-a
+          project_ref: project-a
+          source_artifact_ref: source.ifc.model-a
+          source_version_ref: snapshot.ifc.001
+          source_kind: ifc
+          identifiers: [{scheme: ifc.global_id, value: 3aDoorGuidA}]
+          locators: [{type: ifc_guid, value: 3aDoorGuidA}]
+          observed_at: "2026-08-08T12:00:00Z"
+          binding_ref: binding.synthetic.ifc
+          adapter_version: 1.0.0
+          freshness_token: sha256:ifc-001
+          content_digest: sha256:door-guid-a-state-001
+          proof_status: candidate
+        - representation_id: rep.ifc.002.door-guid-a
+          project_ref: project-a
+          source_artifact_ref: source.ifc.model-a
+          source_version_ref: snapshot.ifc.002
+          source_kind: ifc
+          identifiers: [{scheme: ifc.global_id, value: 3aDoorGuidA}]
+          locators: [{type: ifc_guid, value: 3aDoorGuidA}]
+          observed_at: "2026-08-09T12:00:00Z"
+          binding_ref: binding.synthetic.ifc
+          adapter_version: 1.0.0
+          freshness_token: sha256:ifc-002
+          content_digest: sha256:door-guid-a-state-002
+          proof_status: candidate
+      attribute_claim_candidates:
+        - attribute_claim_id: claim.ifc.001.fire-rating
+          subject_ref: {entity_type: source_representation, entity_id: rep.ifc.001.door-guid-a}
+          attribute_key: ifc.pset_door_common.fire_rating
+          value: {value_type: text, value: EI30}
+          assertion_mode: observed
+          source_authority: project_working_document
+          proof_status: candidate
+          source_representation_refs: [rep.ifc.001.door-guid-a]
+        - attribute_claim_id: claim.ifc.002.fire-rating
+          subject_ref: {entity_type: source_representation, entity_id: rep.ifc.002.door-guid-a}
+          attribute_key: ifc.pset_door_common.fire_rating
+          value: {value_type: text, value: EI60}
+          assertion_mode: observed
+          source_authority: project_working_document
+          proof_status: candidate
+          source_representation_refs: [rep.ifc.002.door-guid-a]
+      relation_claim_candidates: []
+      gaps: []
+      withheld: []
+      warnings: [{code: source.same_identifier_changed_state}]
+      operational_outcome: success
+
+  - scenario_ids: [H54-IFC-PARTIAL-MISSING]
+    title: Partial IFC export cannot infer missing occurrence as absence
+    expected_valid: true
+    invariants: [candidate_authority, partial_ifc_absence_refused]
+    overrides:
+      observation_bundle_id: observation-bundle.h54.partial-export
+      task_contract_ref: task-contract.observe-ifc-partial.01
+      basis:
+        source_artifact_refs: [source.ifc.partial]
+        exact_digests: [{source_artifact_ref: source.ifc.partial, digest: sha256:ifc-partial}]
+      method:
+        capability_id: building_model.observe.ifc
+        binding_id: binding.synthetic.ifc
+        operation_id: ifc.observe.snapshot.v1
+        adapter_ref: pantheon.synthetic.ifc
+        adapter_version: 1.0.0
+        request_ref: request-h54-partial
+      observed_at: "2026-08-09T17:31:00Z"
+      freshness_token: sha256:ifc-partial
+      scope:
+        document_refs: [ifc-document:model-a]
+        level_refs: [ifc-storey:00, ifc-storey:01]
+        classes: [IfcDoor]
+      coverage:
+        completeness: partial_for_declared_scope
+        observed_scope:
+          document_refs: [ifc-document:model-a]
+          level_refs: [ifc-storey:00]
+          classes: [IfcDoor]
+        excluded_reasons: [storey_01_not_exported]
+        absence_inference_allowed: false
+      limitations: [Export covers one storey only.]
+      source_representations: []
+      attribute_claim_candidates: []
+      relation_claim_candidates: []
+      gaps: [{code: coverage.ifc_storey_not_exported, subject_refs: [ifc-storey:01]}]
+      withheld: []
+      warnings: [{code: absence.inference_forbidden}]
+      operational_outcome: success
+
+  - scenario_ids: [H54-IFC-COMPLETE-DISAPPEARANCE]
+    title: Complete comparable IFC snapshot may show source disappearance without stable retirement
+    expected_valid: true
+    invariants: [candidate_authority, source_disappearance_not_retirement]
+    overrides:
+      observation_bundle_id: observation-bundle.h54.complete-disappearance
+      task_contract_ref: task-contract.compare-ifc-complete.01
+      basis:
+        source_artifact_refs: [source.ifc.model-a]
+        source_version_refs: [snapshot.ifc.010, snapshot.ifc.011]
+        exact_digests:
+          - {source_artifact_ref: source.ifc.model-a, source_version_ref: snapshot.ifc.010, digest: sha256:ifc-010}
+          - {source_artifact_ref: source.ifc.model-a, source_version_ref: snapshot.ifc.011, digest: sha256:ifc-011}
+      method:
+        capability_id: building_model.compare.ifc_snapshots
+        binding_id: binding.synthetic.ifc
+        operation_id: ifc.compare.complete_snapshots.v1
+        adapter_ref: pantheon.synthetic.ifc
+        adapter_version: 1.0.0
+        request_ref: request-h54-disappearance
+      observed_at: "2026-08-09T17:32:00Z"
+      freshness_token: sha256:ifc-011
+      scope: {document_refs: [ifc-document:model-a], classes: [IfcDoor]}
+      coverage:
+        completeness: complete_for_declared_scope
+        observed_scope: {document_refs: [ifc-document:model-a], classes: [IfcDoor]}
+        excluded_reasons: []
+        absence_inference_allowed: true
+      limitations: [Source occurrence disappearance is not stable-object retirement.]
+      source_representations:
+        - representation_id: rep.ifc.010.door-removed-later
+          project_ref: project-a
+          source_artifact_ref: source.ifc.model-a
+          source_version_ref: snapshot.ifc.010
+          source_kind: ifc
+          identifiers: [{scheme: ifc.global_id, value: 3aRemovedLater}]
+          observed_at: "2026-08-08T12:00:00Z"
+          binding_ref: binding.synthetic.ifc
+          adapter_version: 1.0.0
+          freshness_token: sha256:ifc-010
+          proof_status: candidate
+      attribute_claim_candidates: []
+      relation_claim_candidates: []
+      gaps: []
+      withheld: []
+      warnings:
+        - code: source.occurrence_not_observed_in_later_complete_snapshot
+          subject_refs: [rep.ifc.010.door-removed-later]
+        - code: project.retirement_not_inferred
+      operational_outcome: success
+
+  - scenario_ids: [H54-IFC-IDENTITY-CANDIDATE]
+    title: IFC GlobalId proposes identity only to an existing stable object
+    expected_valid: true
+    invariants: [candidate_authority, ifc_identity_candidate_only]
+    overrides:
+      observation_bundle_id: observation-bundle.h54.identity-candidate
+      task_contract_ref: task-contract.align-ifc-object.01
+      basis:
+        source_artifact_refs: [source.ifc.model-a]
+        exact_digests: [{source_artifact_ref: source.ifc.model-a, digest: sha256:ifc-model-a}]
+      method:
+        capability_id: project_understanding.propose.identity_alignment
+        binding_id: binding.synthetic.ifc
+        operation_id: ifc.propose.identity_alignment.v1
+        adapter_ref: pantheon.synthetic.ifc
+        adapter_version: 1.0.0
+        request_ref: request-h54-identity
+      observed_at: "2026-08-09T17:33:00Z"
+      freshness_token: sha256:ifc-model-a
+      scope: {document_refs: [ifc-document:model-a], classes: [IfcDoor]}
+      coverage:
+        completeness: complete_for_declared_scope
+        observed_scope: {document_refs: [ifc-document:model-a], classes: [IfcDoor]}
+        excluded_reasons: []
+        absence_inference_allowed: true
+      limitations: [Stable object OBJ-DOOR-017 is supplied by governed context.]
+      source_representations:
+        - representation_id: rep.ifc.door-guid-a
+          project_ref: project-a
+          source_artifact_ref: source.ifc.model-a
+          source_kind: ifc
+          identifiers: [{scheme: ifc.global_id, value: 3aDoorGuidA}]
+          locators: [{type: ifc_guid, value: 3aDoorGuidA}]
+          observed_at: "2026-08-09T17:33:00Z"
+          binding_ref: binding.synthetic.ifc
+          adapter_version: 1.0.0
+          freshness_token: sha256:ifc-model-a
+          proof_status: candidate
+      attribute_claim_candidates: []
+      relation_claim_candidates:
+        - relation_claim_id: claim.identity.ifc-door-a
+          subject_ref: {entity_type: source_representation, entity_id: rep.ifc.door-guid-a}
+          relation_type: identity.represents
+          object_ref: {entity_type: stable_object, entity_id: OBJ-DOOR-017}
+          assertion_mode: proposed
+          source_authority: model_interpretation_candidate
+          proof_status: candidate
+          certainty: E2
+          source_representation_refs: [rep.ifc.door-guid-a]
+      gaps: []
+      withheld: []
+      warnings: [{code: identity.review_required}]
+      operational_outcome: success
+
+  - scenario_ids: [H54-IFC-CHANGED-GUID-SAME-CANDIDATE]
+    title: Re-exported IFC ids may independently target the same known stable object without automatic merge
+    expected_valid: true
+    invariants: [candidate_authority, changed_guid_not_automatic_identity]
+    overrides:
+      observation_bundle_id: observation-bundle.h54.changed-guid-same-candidate
+      task_contract_ref: task-contract.align-ifc-reexport.01
+      basis:
+        source_artifact_refs: [source.ifc.export-a, source.ifc.export-b]
+        exact_digests:
+          - {source_artifact_ref: source.ifc.export-a, digest: sha256:ifc-export-a}
+          - {source_artifact_ref: source.ifc.export-b, digest: sha256:ifc-export-b}
+      method:
+        capability_id: project_understanding.propose.identity_alignment
+        binding_id: binding.synthetic.ifc
+        operation_id: ifc.propose.reexport_alignment.v1
+        adapter_ref: pantheon.synthetic.ifc
+        adapter_version: 1.0.0
+        request_ref: request-h54-reexport
+      observed_at: "2026-08-09T17:34:00Z"
+      freshness_token: sha256:ifc-reexport-pair
+      scope: {document_refs: [ifc-document:export-a, ifc-document:export-b], classes: [IfcDoor]}
+      coverage:
+        completeness: complete_for_declared_scope
+        observed_scope: {document_refs: [ifc-document:export-a, ifc-document:export-b], classes: [IfcDoor]}
+        excluded_reasons: []
+        absence_inference_allowed: true
+      limitations: [Two source occurrences remain distinct even when both target one governed stable identity candidate.]
+      source_representations:
+        - representation_id: rep.ifc.export-a.door
+          project_ref: project-a
+          source_artifact_ref: source.ifc.export-a
+          source_kind: ifc
+          identifiers: [{scheme: ifc.global_id, value: 3aOldGuid}]
+          observed_at: "2026-08-08T12:00:00Z"
+          binding_ref: binding.synthetic.ifc
+          adapter_version: 1.0.0
+          freshness_token: sha256:ifc-export-a
+          proof_status: candidate
+        - representation_id: rep.ifc.export-b.door
+          project_ref: project-a
+          source_artifact_ref: source.ifc.export-b
+          source_kind: ifc
+          identifiers: [{scheme: ifc.global_id, value: 3aNewGuid}]
+          observed_at: "2026-08-09T12:00:00Z"
+          binding_ref: binding.synthetic.ifc
+          adapter_version: 1.0.0
+          freshness_token: sha256:ifc-export-b
+          proof_status: candidate
+      attribute_claim_candidates: []
+      relation_claim_candidates:
+        - relation_claim_id: claim.identity.ifc-old-guid
+          subject_ref: {entity_type: source_representation, entity_id: rep.ifc.export-a.door}
+          relation_type: identity.represents
+          object_ref: {entity_type: stable_object, entity_id: OBJ-DOOR-017}
+          assertion_mode: proposed
+          source_authority: model_interpretation_candidate
+          proof_status: candidate
+          source_representation_refs: [rep.ifc.export-a.door]
+        - relation_claim_id: claim.identity.ifc-new-guid
+          subject_ref: {entity_type: source_representation, entity_id: rep.ifc.export-b.door}
+          relation_type: identity.represents
+          object_ref: {entity_type: stable_object, entity_id: OBJ-DOOR-017}
+          assertion_mode: proposed
+          source_authority: model_interpretation_candidate
+          proof_status: candidate
+          source_representation_refs: [rep.ifc.export-b.door]
+      gaps: []
+      withheld: []
+      warnings: [{code: identity.reexport_review_required}]
+      operational_outcome: success
+
+  - scenario_ids: [H54-IFC-HIERARCHY-CONTEXT]
+    title: IFC class and containment remain source context rather than universal hierarchy
+    expected_valid: true
+    invariants: [candidate_authority, ifc_hierarchy_not_promoted]
+    overrides:
+      observation_bundle_id: observation-bundle.h54.hierarchy-context
+      task_contract_ref: task-contract.observe-ifc-space.01
+      basis:
+        source_artifact_refs: [source.ifc.model-a]
+        exact_digests: [{source_artifact_ref: source.ifc.model-a, digest: sha256:ifc-model-a}]
+      method:
+        capability_id: building_model.observe.ifc
+        binding_id: binding.synthetic.ifc
+        operation_id: ifc.observe.space.v1
+        adapter_ref: pantheon.synthetic.ifc
+        adapter_version: 1.0.0
+        request_ref: request-h54-hierarchy
+      observed_at: "2026-08-09T17:35:00Z"
+      freshness_token: sha256:ifc-model-a
+      scope: {document_refs: [ifc-document:model-a], classes: [IfcSpace]}
+      coverage:
+        completeness: complete_for_declared_scope
+        observed_scope: {document_refs: [ifc-document:model-a], classes: [IfcSpace]}
+        excluded_reasons: []
+        absence_inference_allowed: true
+      limitations: [IFC source hierarchy is retained as native context only in this qualification case.]
+      source_representations:
+        - representation_id: rep.ifc.space-101
+          project_ref: project-a
+          source_artifact_ref: source.ifc.model-a
+          source_kind: ifc
+          identifiers:
+            - {scheme: ifc.global_id, value: 2aSpace101}
+            - {scheme: source.label, value: Bureau 101}
+          locators: [{type: ifc_guid, value: 2aSpace101}]
+          observed_at: "2026-08-09T17:35:00Z"
+          binding_ref: binding.synthetic.ifc
+          adapter_version: 1.0.0
+          freshness_token: sha256:ifc-model-a
+          context:
+            native_context:
+              ifc_class: IfcSpace
+              predefined_type: INTERNAL
+              container_global_id: 1aStorey00
+              container_class: IfcBuildingStorey
+          proof_status: candidate
+      attribute_claim_candidates:
+        - attribute_claim_id: claim.ifc.space-101.class
+          subject_ref: {entity_type: source_representation, entity_id: rep.ifc.space-101}
+          attribute_key: ifc.entity_class
+          value: {value_type: controlled_label, value: IfcSpace}
+          assertion_mode: observed
+          source_authority: project_working_document
+          proof_status: candidate
+          source_representation_refs: [rep.ifc.space-101]
+        - attribute_claim_id: claim.ifc.space-101.predefined-type
+          subject_ref: {entity_type: source_representation, entity_id: rep.ifc.space-101}
+          attribute_key: ifc.predefined_type
+          value: {value_type: controlled_label, value: INTERNAL}
+          assertion_mode: observed
+          source_authority: project_working_document
+          proof_status: candidate
+          source_representation_refs: [rep.ifc.space-101]
+      relation_claim_candidates: []
+      gaps: []
+      withheld: []
+      warnings: [{code: hierarchy.source_native_only}]
+      operational_outcome: success
+
+  - scenario_ids: [H54-IFC-FAILED]
+    title: Unsupported or corrupted IFC subset yields gaps without fabricated observations
+    expected_valid: true
+    invariants: [candidate_authority, failed_ifc_no_fabrication]
+    overrides:
+      observation_bundle_id: observation-bundle.h54.failed-ifc
+      task_contract_ref: task-contract.observe-ifc-failed.01
+      basis:
+        source_artifact_refs: [source.ifc.corrupted]
+        exact_digests: [{source_artifact_ref: source.ifc.corrupted, digest: sha256:ifc-corrupted}]
+      method:
+        capability_id: building_model.observe.ifc
+        binding_id: binding.synthetic.ifc
+        operation_id: ifc.observe.snapshot.v1
+        adapter_ref: pantheon.synthetic.ifc
+        adapter_version: 1.0.0
+        request_ref: request-h54-failed
+      observed_at: "2026-08-09T17:36:00Z"
+      scope: {document_refs: [ifc-document:corrupted], classes: [IfcDoor]}
+      coverage:
+        completeness: unknown
+        observed_scope: {document_refs: [ifc-document:corrupted]}
+        excluded_reasons: [ifc_parse_failed]
+        absence_inference_allowed: false
+      limitations: [IFC parser could not establish the requested bounded source scope.]
+      source_representations: []
+      attribute_claim_candidates: []
+      relation_claim_candidates: []
+      gaps: [{code: source.ifc_parse_failed, subject_refs: [ifc-document:corrupted]}]
+      withheld: []
+      warnings: []
+      operational_outcome: failed

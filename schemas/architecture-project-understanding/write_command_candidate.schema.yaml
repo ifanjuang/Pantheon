@@ -1,0 +1,100 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Architecture Project Understanding Write Command Candidate
+description: >-
+  Immutable preparation of one bounded APU write from a reviewed mapping. It is
+  not executable and does not itself confirm identity, mutate APU, admit Evidence
+  or authorize an external effect. Target revisions freeze the freshness posture
+  observed at preparation time; application must refuse stale revisions. The
+  operation carries the exact candidate source representation and identity
+  relation that the server may apply after separate authorization.
+type: object
+additionalProperties: false
+required:
+  - command_id
+  - operation
+  - project_ref
+  - source_execution_result_ref
+  - source_mapping_result_ref
+  - source_mapping_ref
+  - source_review_ref
+  - source_representation
+  - identity_relation_claim
+  - expected_owner_revision
+  - expected_object_revision
+  - payload_digest
+  - authority
+properties:
+  command_id: { type: string, minLength: 1 }
+  operation: { const: add_match_to_existing_object }
+  project_ref: { type: string, minLength: 1 }
+  source_execution_result_ref: { type: string, minLength: 1 }
+  source_mapping_result_ref: { type: string, minLength: 1 }
+  source_mapping_ref: { type: string, minLength: 1 }
+  source_review_ref: { type: string, minLength: 1 }
+  source_representation:
+    description: >-
+      Exact source occurrence selected for the bounded effect. Its candidate
+      posture records source reality without establishing stable identity.
+    allOf:
+      - $ref: "source_representation.schema.yaml"
+      - properties:
+          proof_status: { const: candidate }
+        required: [proof_status]
+  identity_relation_claim:
+    description: >-
+      Exact identity-alignment claim proposed by the reviewed mapping. The
+      application remains candidate-only and does not professionally validate it.
+    allOf:
+      - $ref: "relation_claim.schema.yaml"
+      - properties:
+          relation_type: { const: identity.represents }
+          assertion_mode: { const: proposed }
+          source_authority: { const: model_interpretation_candidate }
+          proof_status: { const: candidate }
+        required:
+          - relation_type
+          - assertion_mode
+          - source_authority
+          - proof_status
+  certainty: { $ref: "shared.schema.yaml#/$defs/certainty" }
+  match_axis: { $ref: "shared.schema.yaml#/$defs/match_axis" }
+  expected_owner_revision:
+    type: integer
+    minimum: 1
+    description: Project-scoped APU owner revision observed when the command was prepared.
+  expected_object_revision:
+    type: integer
+    minimum: 1
+    description: Target stable-object revision observed when the command was prepared.
+  rationale: { type: string, minLength: 3 }
+  payload_digest: { type: string, pattern: "^[a-f0-9]{64}$" }
+  prepared_by: { type: string, minLength: 1 }
+  prepared_at: { type: string, format: date-time }
+  limitations:
+    type: array
+    uniqueItems: true
+    items: { type: string, minLength: 1 }
+  authority:
+    type: object
+    additionalProperties: false
+    required:
+      - is_fact
+      - is_evidence
+      - is_decision
+      - is_memory
+      - is_apu_write
+      - authorizes_external_effect
+    properties:
+      is_fact: { const: false }
+      is_evidence: { const: false }
+      is_decision: { const: false }
+      is_memory: { const: false }
+      is_apu_write: { const: false }
+      authorizes_external_effect: { const: false }
+x-boundary:
+  runtime_execution: false
+  provider_routing: false
+  memory_promotion: false
+  automatic_apu_write: false
+  automatic_canonization: false
+  approval_engine: false

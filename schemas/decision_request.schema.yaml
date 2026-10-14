@@ -1,0 +1,445 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Decision Request
+description: >-
+  Human-attention Gate describing a question, validation, approval or arbitration
+  that requires human input. Resolving a question creates a separate HumanResponse;
+  resolving a validation, approval or arbitration creates a separate decision_record.
+  The request is not itself a Decision and cannot authorize or resume execution.
+  Optional scope_refs let the same request concern reviewed APU object identities
+  without creating an APU relation or transferring authority. A non-question request
+  may also bind one exact consequential effect before the human decides; those effect
+  bounds are descriptive decision context, not an execution permission.
+type: object
+required:
+  - request_id
+  - status
+  - decision_type
+  - question
+  - priority
+  - response_mode
+  - blocking
+  - candidate_ref
+  - candidate_digest
+  - decision_surface
+  - decision_owner
+  - created_by
+  - created_at
+  - revision
+properties:
+  request_id:
+    $ref: "#/$defs/governed_id"
+  status:
+    type: string
+    enum:
+      - pending
+      - resolved
+      - cancelled
+  decision_type:
+    type: string
+    enum:
+      - question
+      - validation
+      - approval
+      - arbitration
+  question:
+    type: string
+    minLength: 1
+    maxLength: 20000
+  priority:
+    type: string
+    enum:
+      - low
+      - normal
+      - high
+      - urgent
+  response_mode:
+    type: string
+    enum:
+      - decision_value
+      - single_option
+      - multiple_options
+      - free_text
+  options:
+    type: array
+    maxItems: 50
+    items:
+      $ref: "#/$defs/decision_option"
+  recommendation_candidate:
+    type: [string, "null"]
+    minLength: 1
+  blocking:
+    type: boolean
+  project_ref:
+    type: [string, "null"]
+    pattern: "^[a-z0-9][a-z0-9._-]*$"
+    description: >-
+      Project classification of this request. A null value means the request is
+      unclassified and may appear in the global Decisions attention space. A
+      non-null value places the same request identity only in the matching
+      Project projection; it does not create an agency-level Decision owner.
+  work_issue_ref:
+    type: [string, "null"]
+    pattern: "^[a-z0-9][a-z0-9._-]*$"
+  scope_refs:
+    type: array
+    maxItems: 50
+    uniqueItems: true
+    description: >-
+      Optional project-context references owned by this Decision Request. H3 admits
+      only reviewed APU stable-object identities. A scope reference is presentation
+      and retrieval context; it is not an APU domain relation, authorization,
+      Evidence or professional validation.
+    items:
+      $ref: "#/$defs/decision_scope_ref"
+  conversation_ref:
+    type: [string, "null"]
+    minLength: 1
+  candidate_ref:
+    type: string
+    minLength: 1
+    description: >-
+      Exact candidate or object the human is being asked to decide on. For an
+      effect-bound request this becomes the immutable Decision object_identity.
+  candidate_digest:
+    $ref: "#/$defs/sha256_digest"
+  approval_level:
+    type: [string, "null"]
+    pattern: "^C[0-5]$"
+    description: >-
+      Approval threshold at which this decision is presented to the human. It is
+      copied into the Decision record; the PDP independently derives the level
+      required by the attempted effect.
+  decision_scope:
+    oneOf:
+      - $ref: "#/$defs/decision_scope"
+      - type: "null"
+    description: >-
+      Exact governance scope the human decision covers. This is not scope_refs:
+      scope_refs are retrieval/context links, while decision_scope is one bounded
+      scope compared with a later EffectExpectation.
+  expires_at:
+    type: [string, "null"]
+    format: date-time
+    description: >-
+      Optional validity bound fixed before the human decides. Effect-bound requests
+      require it together with approval_level and decision_scope.
+  evidence_pack_ref:
+    type: [string, "null"]
+    minLength: 1
+  evidence_pack_digest:
+    oneOf:
+      - $ref: "#/$defs/sha256_digest"
+      - type: "null"
+  source_refs:
+    type: array
+    uniqueItems: true
+    items:
+      type: string
+      minLength: 1
+  evidence_gaps:
+    type: array
+    uniqueItems: true
+    items:
+      type: string
+      minLength: 1
+  blocked_action:
+    type: [string, "null"]
+    maxLength: 20000
+  next_safe_action:
+    type: [string, "null"]
+    maxLength: 20000
+  decision_surface:
+    type: string
+    minLength: 1
+  decision_owner:
+    type: string
+    minLength: 1
+  created_by:
+    type: string
+    minLength: 1
+  created_at:
+    type: string
+    format: date-time
+  revision:
+    type: integer
+    minimum: 1
+  resolved_decision_ref:
+    type: [string, "null"]
+    pattern: "^[a-z0-9][a-z0-9._-]*$"
+  resolved_response_ref:
+    type: [string, "null"]
+    pattern: "^[a-z0-9][a-z0-9._-]*$"
+  resolved_at:
+    type: [string, "null"]
+    format: date-time
+  cancelled_by:
+    type: [string, "null"]
+    minLength: 1
+  cancelled_at:
+    type: [string, "null"]
+    format: date-time
+additionalProperties: false
+allOf:
+  - if:
+      properties:
+        blocking:
+          const: true
+      required:
+        - blocking
+    then:
+      required:
+        - work_issue_ref
+      properties:
+        work_issue_ref:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9._-]*$"
+  - if:
+      properties:
+        scope_refs:
+          minItems: 1
+      required:
+        - scope_refs
+    then:
+      required:
+        - project_ref
+      properties:
+        project_ref:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9._-]*$"
+  - if:
+      properties:
+        response_mode:
+          enum:
+            - single_option
+            - multiple_options
+      required:
+        - response_mode
+    then:
+      required:
+        - options
+      properties:
+        options:
+          minItems: 2
+  - if:
+      properties:
+        response_mode:
+          enum:
+            - decision_value
+            - free_text
+      required:
+        - response_mode
+    then:
+      properties:
+        options:
+          maxItems: 0
+  - if:
+      properties:
+        decision_type:
+          const: question
+      required:
+        - decision_type
+    then:
+      properties:
+        approval_level:
+          type: "null"
+        decision_scope:
+          type: "null"
+        expires_at:
+          type: "null"
+  - if:
+      properties:
+        status:
+          const: resolved
+        decision_type:
+          const: question
+      required:
+        - status
+        - decision_type
+    then:
+      required:
+        - resolved_response_ref
+        - resolved_at
+      properties:
+        resolved_response_ref:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9._-]*$"
+        resolved_decision_ref:
+          type: "null"
+        resolved_at:
+          type: string
+          format: date-time
+  - if:
+      properties:
+        status:
+          const: resolved
+        decision_type:
+          enum:
+            - validation
+            - approval
+            - arbitration
+      required:
+        - status
+        - decision_type
+    then:
+      required:
+        - resolved_decision_ref
+        - resolved_at
+      properties:
+        resolved_decision_ref:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9._-]*$"
+        resolved_response_ref:
+          type: "null"
+        resolved_at:
+          type: string
+          format: date-time
+  - if:
+      properties:
+        status:
+          enum:
+            - pending
+            - cancelled
+      required:
+        - status
+    then:
+      properties:
+        resolved_decision_ref:
+          type: "null"
+        resolved_response_ref:
+          type: "null"
+        resolved_at:
+          type: "null"
+  - if:
+      properties:
+        status:
+          const: cancelled
+      required:
+        - status
+    then:
+      required:
+        - cancelled_by
+        - cancelled_at
+      properties:
+        cancelled_by:
+          type: string
+          minLength: 1
+        cancelled_at:
+          type: string
+          format: date-time
+    else:
+      properties:
+        cancelled_by:
+          type: "null"
+        cancelled_at:
+          type: "null"
+  - if:
+      required:
+        - evidence_pack_ref
+      properties:
+        evidence_pack_ref:
+          type: string
+    then:
+      required:
+        - evidence_pack_digest
+      properties:
+        evidence_pack_digest:
+          $ref: "#/$defs/sha256_digest"
+$defs:
+  governed_id:
+    type: string
+    pattern: "^[a-z0-9][a-z0-9._-]*$"
+  decision_scope:
+    type: object
+    required:
+      - scope_type
+      - scope_id
+    properties:
+      scope_type:
+        type: string
+        minLength: 1
+      scope_id:
+        type: string
+        minLength: 1
+    additionalProperties: false
+  decision_scope_ref:
+    type: object
+    required:
+      - entity_type
+      - entity_id
+    properties:
+      entity_type:
+        const: apu_object
+      entity_id:
+        $ref: "#/$defs/governed_id"
+    additionalProperties: false
+  sha256_digest:
+    type: object
+    required:
+      - algorithm
+      - value
+    properties:
+      algorithm:
+        const: sha256
+      value:
+        type: string
+        pattern: "^[a-f0-9]{64}$"
+    additionalProperties: false
+  decision_option:
+    type: object
+    required:
+      - option_id
+      - label
+      - consequence
+    properties:
+      option_id:
+        $ref: "#/$defs/governed_id"
+      label:
+        type: string
+        minLength: 1
+      consequence:
+        type: string
+        minLength: 1
+      limitations:
+        type: array
+        items:
+          type: string
+          minLength: 1
+    additionalProperties: false
+x-decision-request-rules:
+  one_active_blocking_request_per_work_issue: true
+  question_resolution_creates_human_response: true
+  decision_resolution_creates_separate_decision_record: true
+  resolution_reference_is_type_driven: true
+  pending_requests_are_attention_items: true
+  global_and_project_views_preserve_request_identity: true
+  global_decisions_view_contains_only_unclassified_requests: true
+  unclassified_request_has_null_project_ref: true
+  project_view_requires_matching_project_ref: true
+  resolved_request_retains_candidate_digest: true
+  work_issue_continuation_is_separate: true
+  apu_scope_requires_project_classification: true
+  scope_refs_remain_request_owned: true
+  effect_bound_fields_are_fixed_before_decision: true
+  effect_bound_fields_are_atomic: true
+x-boundary:
+  request_is_decision: false
+  request_is_approval: false
+  agency_decision_owner: false
+  human_response_is_decision: false
+  human_response_is_authorization: false
+  decision_scope_is_effect_authorization: false
+  approval_level_is_effect_authorization: false
+  decision_record_is_execution: false
+  decision_record_is_result_validation: false
+  scope_ref_is_semantic_relation: false
+  scope_ref_is_task_authorization: false
+  scope_ref_mutates_apu: false
+  automatic_work_issue_transition: false
+  automatic_runtime_continuation: false
+  runtime_execution: false
+  scheduler: false
+  queue_system: false
+  provider_routing: false
+  memory_promotion: false
+  evidence_admission: false
+  automatic_approval: false

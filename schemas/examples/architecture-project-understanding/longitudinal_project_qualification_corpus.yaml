@@ -1,0 +1,288 @@
+corpus_id: h5.8.longitudinal-representative-project
+status: qualification_only
+parent_issue: 640
+description: >-
+  One synthetic-but-realistic architecture project composed across T0 through T5.
+  This corpus does not define a ProjectTimeline owner or a new project-world model;
+  it composes stable identities and H5.2-H5.7 source/governance semantics over time.
+reuses:
+  - qualification_corpus.yaml
+  - document_visual_qualification_corpus.yaml
+  - multi_purpose_qualification_corpus.yaml
+project:
+  project_ref: project-h58-alpha
+  building_ref: OBJ-BLDG-001
+  levels: [OBJ-LVL-00, OBJ-LVL-01]
+  expected_room_count: 10
+  expected_significant_object_count: 40
+  explicit_stable_objects:
+    - {id: OBJ-BLDG-001, kind: building}
+    - {id: OBJ-LVL-00, kind: level}
+    - {id: OBJ-LVL-01, kind: level}
+    - {id: OBJ-ROOM-001, kind: room}
+    - {id: OBJ-ROOM-002, kind: room}
+    - {id: OBJ-ROOM-003, kind: room}
+    - {id: OBJ-ROOM-004, kind: room}
+    - {id: OBJ-ROOM-005, kind: room}
+    - {id: OBJ-OPENING-017, kind: opening}
+    - {id: OBJ-ROOF-001, kind: roof_assembly}
+    - {id: OBJ-HVAC-004, kind: hvac_equipment}
+    - {id: OBJ-VENT-001, kind: ventilation_system}
+    - {id: OBJ-ELEC-001, kind: electrical_equipment}
+    - {id: OBJ-SWALE-001, kind: landscape_drainage}
+    - {id: OBJ-TEMP-001, kind: temporary_work}
+    - {id: OBJ-RIDGE-001, kind: roof_component}
+  generated_families:
+    - {kind: room, count: 5, id_pattern: OBJ-ROOM-00X}
+    - {kind: opening, count: 12, id_pattern: OBJ-OPENING-1XX}
+    - {kind: wall, count: 6, id_pattern: OBJ-WALL-0XX}
+    - {kind: terminal, count: 4, id_pattern: OBJ-VENT-T0X}
+    - {kind: external_work, count: 3, id_pattern: OBJ-EXT-0XX}
+    - {kind: technical_component, count: 3, id_pattern: OBJ-TECH-0XX}
+  granularity_exercised: [project, building, level, room, system, assembly, object, component]
+
+moments:
+  - id: T0
+    phase: initial_design
+    occurred_at: "2026-01-10T09:00:00Z"
+    sources:
+      - source_ref: source.pdf.esq.a101
+        version_ref: drawing:a101:index-a
+        digest: sha256:h58-a101-a
+        source_kind: drawing
+        coverage: partial_for_declared_scope
+      - source_ref: source.manual.survey.001
+        version_ref: survey:2026-01-09
+        digest: sha256:h58-survey-001
+        source_kind: manual
+        coverage: partial_for_declared_scope
+    events:
+      - type: identity_candidate
+        representation_ref: rep.pdf.a101.p12
+        stable_object_ref: OBJ-OPENING-017
+        status: candidate
+      - type: attribute_claim
+        claim_ref: claim.t0.pdf.opening017.width
+        subject_ref: rep.pdf.a101.p12
+        attribute_key: geometry.width
+        value: {value: 0.90, unit: m}
+        source_ref: source.pdf.esq.a101
+      - type: attribute_claim
+        claim_ref: claim.t0.survey.room001.area
+        subject_ref: rep.survey.room001
+        attribute_key: space.area
+        value: {value: 20.9, unit: m2}
+        source_ref: source.manual.survey.001
+    invariants:
+      - source_id_not_stable_identity
+      - partial_coverage_no_absence
+
+  - id: T1
+    phase: apd
+    occurred_at: "2026-02-18T14:00:00Z"
+    sources:
+      - source_ref: source.pdf.apd.a101
+        version_ref: drawing:a101:index-c
+        digest: sha256:h58-a101-c
+        source_kind: drawing
+        coverage: complete_for_declared_scope
+      - source_ref: source.pdf.apd.a101.late-b
+        version_ref: drawing:a101:index-b
+        digest: sha256:h58-a101-b
+        source_kind: drawing
+        received_at: "2026-02-20T09:00:00Z"
+        issued_at: "2026-02-12T09:00:00Z"
+        coverage: complete_for_declared_scope
+    events:
+      - type: stable_identity_continuity
+        stable_object_ref: OBJ-OPENING-017
+        previous_representation_ref: rep.pdf.a101.p12
+        new_representation_ref: rep.pdf.a101.p12-renamed
+        native_label_change: {from: P12, to: PF-12}
+      - type: requirement_change
+        requirement_ref: requirement.program.room005.use
+        old_value: guest_room
+        new_value: office
+      - type: late_receipt
+        source_ref: source.pdf.apd.a101.late-b
+        does_not_become_universal_current: true
+    invariants:
+      - rename_preserves_reviewed_identity
+      - requirement_change_not_history_rewrite
+      - late_receipt_not_universal_current
+
+  - id: T2
+    phase: pro_dce
+    occurred_at: "2026-03-25T10:30:00Z"
+    sources:
+      - {source_ref: source.cctp.menuiseries, version_ref: cctp:index-d, digest: sha256:h58-cctp-d, source_kind: other, coverage: complete_for_declared_scope}
+      - {source_ref: source.dpgf.menuiseries, version_ref: dpgf:index-d, digest: sha256:h58-dpgf-d, source_kind: other, coverage: complete_for_declared_scope}
+      - {source_ref: source.ifc.pro, version_ref: ifc:snapshot-42, digest: sha256:h58-ifc-42, source_kind: ifc, coverage: complete_for_declared_scope}
+    events:
+      - type: requirement
+        requirement_ref: requirement.cctp.openings.finish
+        scope_ref: group:external_openings
+        value: aluminium_anthracite
+      - type: attribute_claim
+        claim_ref: claim.t2.ifc.opening017.width
+        subject_ref: rep.ifc.opening017
+        attribute_key: geometry.width
+        value: {value: 0.93, unit: m}
+        source_ref: source.ifc.pro
+      - type: quantity_statement
+        statement_ref: quantity.dpgf.openings
+        value: {value: 12, unit: item}
+        authority: contractual_document_candidate
+      - type: quantity_observation
+        claim_ref: claim.t2.ifc.opening.count
+        value: {value: 13, unit: item}
+        authority: source_observation
+    invariants:
+      - requirement_not_observation
+      - group_requirement_not_duplicated_to_members
+      - observed_quantity_not_payable_quantity
+      - multi_purpose_same_identity
+
+  - id: T3
+    phase: exe
+    occurred_at: "2026-05-14T08:45:00Z"
+    sources:
+      - {source_ref: source.revit.exe, version_ref: revit:model-save-118, digest: sha256:h58-revit-118, source_kind: revit, coverage: partial_for_declared_scope}
+      - {source_ref: source.ifc.exe, version_ref: ifc:snapshot-57, digest: sha256:h58-ifc-57, source_kind: ifc, coverage: complete_for_declared_scope}
+    events:
+      - type: identity_review
+        representation_ref: rep.revit.uid-8871
+        stable_object_ref: OBJ-OPENING-017
+        review_state: select_existing_object
+      - type: source_native_id_change
+        stable_object_ref: OBJ-OPENING-017
+        previous_native_id: revit:ElementId-387251
+        current_native_id: revit:UniqueId-8871
+        continuity_requires_review: true
+      - type: attribute_claim
+        claim_ref: claim.t3.revit.opening017.width
+        subject_ref: rep.revit.uid-8871
+        attribute_key: geometry.width
+        value: {value: 0.93, unit: m}
+        source_ref: source.revit.exe
+      - type: unresolved_missing_occurrence
+        stable_object_ref: OBJ-ROOM-005
+        reason: level_01_not_traversed
+        deletion_inferred: false
+    invariants:
+      - reviewed_identity_does_not_canonicalize_sibling_claims
+      - contradictory_values_remain_source_scoped
+      - partial_revit_no_deletion
+      - native_id_change_not_automatic_new_identity
+      - runtime_success_candidate_only
+
+  - id: T4
+    phase: construction
+    occurred_at: "2026-07-03T15:20:00Z"
+    sources:
+      - {source_ref: source.photo.ridge.before, version_ref: photo:2026-07-03-01, digest: sha256:h58-photo-ridge-before, source_kind: photo, coverage: partial_for_declared_scope}
+      - {source_ref: source.site-report.11, version_ref: site-report:11, digest: sha256:h58-cr11, source_kind: other, coverage: partial_for_declared_scope}
+      - {source_ref: source.contractor.declaration.44, version_ref: contractor-note:44, digest: sha256:h58-contractor44, source_kind: other, coverage: unknown}
+    events:
+      - type: attribute_claim
+        claim_ref: claim.t4.photo.ridge.apparent-condition
+        subject_ref: rep.photo.ridge.before
+        stable_object_ref: OBJ-RIDGE-001
+        attribute_key: physical.apparent_condition
+        value: apparent_discontinuity
+        authority: model_interpretation_candidate
+      - type: contractor_declaration
+        stable_object_ref: OBJ-RIDGE-001
+        value: repair_complete
+        authority_transfer: false
+      - type: repair_provenance
+        stable_object_ref: OBJ-RIDGE-001
+        original_actor_ref: contractor:A
+        repair_actor_ref: contractor:B
+        prior_history_preserved: true
+      - type: hidden_work
+        stable_object_ref: OBJ-VENT-001
+        prior_observation_ref: observation:ventilation-before-closure
+        current_visibility: inaccessible
+        prior_observation_retained: true
+      - type: temporary_state
+        stable_object_ref: OBJ-TEMP-001
+        physically_present: true
+        intended_final_state: false
+      - type: urgent_attention
+        stable_object_ref: OBJ-RIDGE-001
+        automatic_external_action_authorized: false
+    invariants:
+      - physical_not_contractual
+      - installed_not_verified
+      - apparent_not_nonconformity
+      - intervention_not_resolution
+      - hidden_work_history_preserved
+      - temporary_not_final
+      - contractor_takeover_preserves_provenance
+      - urgent_attention_no_automatic_effect
+
+  - id: T5
+    phase: reception_doe
+    occurred_at: "2026-08-01T11:00:00Z"
+    sources:
+      - {source_ref: source.doe.model, version_ref: doe:index-a, digest: sha256:h58-doe-a, source_kind: other, coverage: partial_for_declared_scope}
+      - {source_ref: source.photo.ridge.after, version_ref: photo:2026-08-01-22, digest: sha256:h58-photo-ridge-after, source_kind: photo, coverage: partial_for_declared_scope}
+      - {source_ref: source.photo.ridge.recurrence, version_ref: photo:2026-08-09-05, digest: sha256:h58-photo-ridge-recurrence, source_kind: photo, coverage: partial_for_declared_scope}
+    events:
+      - type: doe_assertion
+        stable_object_ref: OBJ-HVAC-004
+        value: installed_and_operational
+        becomes_observed_truth: false
+      - type: physical_completion
+        stable_object_ref: OBJ-HVAC-004
+        value: apparently_complete
+      - type: reception_reference
+        stable_object_ref: OBJ-HVAC-004
+        state_owned_elsewhere: true
+      - type: residual_unknown
+        stable_object_ref: OBJ-VENT-001
+        reason: concealed_after_closure
+      - type: recurrence
+        stable_object_ref: OBJ-RIDGE-001
+        prior_apparent_resolution_ref: source.photo.ridge.after
+        new_observation_ref: source.photo.ridge.recurrence
+        rewrites_prior_history: false
+      - type: post_reception_appendability
+        stable_object_ref: OBJ-OPENING-017
+        reception_era_history_mutable: false
+    invariants:
+      - doe_not_observed_truth
+      - physical_complete_not_received
+      - received_not_reservation_free
+      - residual_unknown_remains_explicit
+      - recurrence_appends_history
+      - reception_history_not_rewritten
+
+cross_time_assertions:
+  stable_identity_survivors:
+    - OBJ-OPENING-017
+    - OBJ-HVAC-004
+    - OBJ-VENT-001
+    - OBJ-RIDGE-001
+  contradictory_claim_sets:
+    - stable_object_ref: OBJ-OPENING-017
+      attribute_key: geometry.width
+      claims:
+        - {claim_ref: claim.t0.pdf.opening017.width, value: 0.90, unit: m, source_ref: source.pdf.esq.a101}
+        - {claim_ref: claim.t2.ifc.opening017.width, value: 0.93, unit: m, source_ref: source.ifc.pro}
+        - {claim_ref: claim.t3.revit.opening017.width, value: 0.93, unit: m, source_ref: source.revit.exe}
+      universal_winner: null
+  authority_boundaries:
+    evidence_inferred: false
+    approval_inferred: false
+    decision_inferred: false
+    reception_inferred: false
+    liability_inferred: false
+    payable_quantity_inferred: false
+  forbidden_architecture_additions:
+    - ProjectTimelineOwner
+    - PhaseEngine
+    - TruthEngine
+    - UniversalCurrentValueStore
+    - fifth_project_anatomy_primitive

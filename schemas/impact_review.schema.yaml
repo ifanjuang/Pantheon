@@ -1,0 +1,95 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Next Impact Review
+description: >-
+  Governance schema for a cascade impact review opened when a triggering
+  register entry changes. Records proposed consequences and human decisions;
+  it promotes, downgrades and archives nothing on its own.
+type: object
+required:
+  - impact_review_id
+  - trigger_id
+  - trigger_change
+  - created_at
+  - impacted
+  - status
+properties:
+  impact_review_id:
+    type: string
+    pattern: "^[a-z0-9._-]+$"
+  trigger_id:
+    type: string
+    minLength: 1
+    description: Register entry whose change opened the review.
+  trigger_change:
+    type: string
+    enum: [created, validated, superseded, revoked, archived, updated]
+  created_at:
+    type: string
+    format: date-time
+  created_by:
+    type: string
+  required_approval:
+    type: string
+    enum: [C0, C1, C2, C3, C4, C5]
+  impacted:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      required: [target_id, impact_status]
+      properties:
+        target_id:
+          type: string
+          minLength: 1
+        relation:
+          type: string
+          enum: [depends_on, impacts, valid_if, invalid_if, conflicts_with, derived_from]
+        impact_status:
+          type: string
+          enum:
+            - unaffected
+            - impact_detected
+            - obsolete_probable
+            - revalidate
+            - update_proposed
+            - critical_arbitration
+            - supersede
+            - archive
+            - revoke
+            - resolved
+        severity:
+          type: string
+          enum: [none, low, medium, high, critical]
+          default: none
+        recommended_action:
+          type: [string, "null"]
+        decision:
+          type: string
+          enum: [pending, accepted, refused, deferred]
+          default: pending
+        decided_by:
+          type: [string, "null"]
+        decided_at:
+          type: [string, "null"]
+          format: date-time
+      additionalProperties: false
+  status:
+    type: string
+    enum: [open, in_review, resolved, deferred]
+  governance_refs:
+    type: array
+    items:
+      type: string
+    default:
+      - docs/governance/EVIDENCE_MEMORY_CANONICALIZATION.md
+      - docs/governance/EVIDENCE_MEMORY_DEV_PLAN.md
+additionalProperties: false
+x-boundary:
+  runtime_execution: false
+  autonomous_loop: false
+  provider_routing: false
+  scheduler: false
+  queue_system: false
+  memory_promotion: false
+  automatic_canonization: false
+  automatic_cascade_resolution: false

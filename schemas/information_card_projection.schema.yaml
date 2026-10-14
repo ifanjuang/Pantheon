@@ -1,0 +1,171 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Information Card Projection
+description: >-
+  Governed projection contract for project content shown through the Information
+  visual family. The projection may be native, backed by one Document, or backed
+  by several Documents. It does not replace Document authority, create project
+  truth, admit Evidence or authorize a consequential effect.
+type: object
+required:
+  - information_id
+  - project_id
+  - title
+  - business_kind
+  - lifecycle_status
+  - professional_index
+  - backing_mode
+  - media_types
+properties:
+  information_id:
+    type: string
+    minLength: 1
+  project_id:
+    type: string
+    minLength: 1
+  series_id:
+    type: [string, "null"]
+  title:
+    type: string
+    minLength: 1
+  business_kind:
+    type: string
+    minLength: 1
+    description: User-facing professional kind, not a storage or MIME type.
+  summary:
+    type: string
+    default: ""
+  details:
+    type: string
+    default: ""
+  author_or_origin:
+    type: [string, "null"]
+  lifecycle_status:
+    type: string
+    enum: [draft, in_progress, acted, superseded]
+  professional_index:
+    type: string
+    minLength: 1
+  business_date:
+    type: [string, "null"]
+    format: date
+  dates:
+    type: object
+    properties:
+      source_date:
+        type: [string, "null"]
+        format: date
+      received_at:
+        type: [string, "null"]
+        format: date-time
+      issued_at:
+        type: [string, "null"]
+        format: date-time
+      updated_at:
+        type: [string, "null"]
+        format: date-time
+    additionalProperties: false
+  backing_mode:
+    type: string
+    enum: [native, single_document, multiple_documents]
+  document_refs:
+    type: array
+    items:
+      type: object
+      required: [document_id]
+      properties:
+        document_id:
+          type: string
+          minLength: 1
+        role:
+          type: string
+          enum: [primary, supporting, attachment]
+        observed_version:
+          type: [integer, "null"]
+          minimum: 1
+        observed_digest:
+          type: [string, "null"]
+      additionalProperties: false
+    default: []
+  source_refs:
+    type: array
+    items:
+      type: string
+    default: []
+  media_types:
+    type: array
+    items:
+      type: string
+      enum: [email, pdf, text, table, image, photo, audio, video, docx, xlsx, ifc, link, other]
+    minItems: 1
+    uniqueItems: true
+  limits:
+    type: array
+    items:
+      type: string
+    default: []
+  type_tags:
+    type: array
+    items:
+      type: string
+    default: []
+  subject_tags:
+    type: array
+    items:
+      type: string
+    default: []
+  contact_refs:
+    type: array
+    items:
+      type: object
+      required: [label]
+      properties:
+        label:
+          type: string
+          minLength: 1
+        person_id:
+          type: [string, "null"]
+        organization_id:
+          type: [string, "null"]
+        role:
+          type: [string, "null"]
+      additionalProperties: false
+    default: []
+  revision:
+    type: integer
+    minimum: 0
+    description: Zero is the initial projection state before any metadata or Document-link mutation.
+additionalProperties: false
+allOf:
+  - if:
+      properties:
+        backing_mode:
+          const: native
+    then:
+      properties:
+        document_refs:
+          maxItems: 0
+  - if:
+      properties:
+        backing_mode:
+          const: single_document
+    then:
+      properties:
+        document_refs:
+          minItems: 1
+          maxItems: 1
+  - if:
+      properties:
+        backing_mode:
+          const: multiple_documents
+    then:
+      properties:
+        document_refs:
+          minItems: 2
+x-boundary:
+  document_authority_replaced: false
+  project_truth_created: false
+  evidence_admission: false
+  automatic_relation_inference: false
+  automatic_project_mutation: false
+  runtime_execution: false
+  memory_promotion: false

@@ -1,0 +1,15 @@
+calibration_id: CAL-SRC042
+source_artifact_id: SRC-042
+from_frame: PAGE
+to_frame: PROJECT
+witnesses:
+  - kind: dimensioned_cote
+    mm_per_unit: 0.998
+  - kind: title_block_scale
+    mm_per_unit: 1.000
+  - kind: known_door_width
+    mm_per_unit: 1.012
+agreement: divergent
+divergence_threshold_pct: 1.0
+proof_status: requires_more_evidence
+notes: "Témoins divergents > seuil : mesures dérivées plafonnées (invariant 6)."

@@ -1,0 +1,99 @@
+vertical_id: I8-DOC-DOCILING
+representative:
+  resource: catalog/resources/docling.yaml
+  passport: schemas/examples/capability_passport.skill.example.yaml
+  binding: catalog/bindings/document-analysis-docling.yaml
+  activation: catalog/activations/document-analysis-docling-project.yaml
+  compatibility_observation: catalog/examples/i8-document-analysis-docling-compatibility.fixture.yaml
+  slot_id: document_structural_analysis
+  project_scope_id: project_demo
+
+scenarios:
+  - id: baseline_exact_chain
+    mutations: {}
+    expected_chain_errors: []
+    invariants:
+      - non_authorizing_chain
+      - compatibility_safety_independent
+      - activation_task_authorization_independent
+
+  - id: release_digest_drift
+    mutations:
+      passport.implementation_provenance.content_digest: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    expected_chain_errors:
+      - binding_anchor_mismatch
+    invariants:
+      - prior_observation_not_inherited
+
+  - id: binding_replacement_without_inheritance
+    mutations:
+      passport.implementation_provenance.content_digest: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      binding.metadata.id: capability_binding_document_analysis_docling_next
+      binding.spec.implementation_anchor.value: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      binding.spec.supersedes: capability_binding_document_analysis_docling
+    expected_chain_errors:
+      - activation_binding_mismatch
+      - observation_binding_mismatch
+      - observation_anchor_mismatch
+    invariants:
+      - replacement_inherits_nothing
+
+  - id: installed_available_but_not_admitted
+    mutations: {}
+    runtime_facts:
+      installation_state: installed
+      endpoint_health: healthy
+    expected_chain_errors: []
+    invariants:
+      - installed_not_admitted
+      - healthy_not_authorized
+
+  - id: healthy_but_not_safety_qualified
+    mutations:
+      observation.observation.health_status: healthy
+      observation.observation.compatibility_status: compatible
+      observation.observation.safety_status: not_qualified
+    expected_chain_errors: []
+    invariants:
+      - compatibility_safety_independent
+      - healthy_not_safe
+
+  - id: activated_but_task_unauthorized
+    mutations: {}
+    expected_chain_errors: []
+    invariants:
+      - activation_task_authorization_independent
+
+  - id: stale_observation
+    mutations:
+      observation.metadata.status: stale
+      observation.observation.freshness_status: stale
+    expected_chain_errors: []
+    invariants:
+      - stale_observation_non_authorizing
+
+  - id: unavailable_binding
+    mutations:
+      binding.metadata.status: unbound
+      binding.spec.binding_role: unbound
+      binding.spec.capability_passport_id: null
+      binding.spec.implementation_anchor: null
+      binding.spec.resource_id: null
+    expected_chain_errors:
+      - binding_unbound
+    invariants:
+      - unavailable_binding_fails_closed
+
+  - id: ui_projection_cannot_authorize
+    mutations: {}
+    expected_chain_errors: []
+    downstream_projection_fixture:
+      binding_id: capability_binding_document_analysis_docling
+      implementation_anchor: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      activation_state: project_enabled
+      activation_scope: project_demo
+      compatibility_status: compatible
+      safety_status: not_evaluated
+      freshness_status: fresh
+    invariants:
+      - ui_projection_non_authorizing

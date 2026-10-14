@@ -1,0 +1,224 @@
+# Vertical slice — architecture_devis_reprise (fictional; validation-only).
+workflow_id: vertical.devis-reprise
+title: Governed complementary-quote review (devis complémentaire)
+purpose: 'Forge and govern the end-to-end review of a complementary quote: task contract,
+  signed capability steps, two gates, evidence and a register candidate. Governance
+  structure only; Hermes executes outside.'
+scope:
+  scope_type: repository
+  included:
+  - schemas/
+  - docs/governance/
+  excluded:
+  - runtime implementation
+  - operations tooling
+  - tests until separately authorized
+  authority_limits:
+  - validation structure only
+  - no tool runtime
+  expected_inputs:
+  - active governance documents
+  - existing schema files
+  expected_outputs:
+  - reconciled schema candidates
+  - evidence notes
+entry_criteria:
+- User has authorized protected schema work.
+- Active governance documents have been reviewed.
+governed_phases:
+- phase_id: read-doctrine
+  purpose: Read active doctrine before schema edits.
+  role_viewpoint: ARGOS
+  expected_input:
+  - docs/governance/STATUS.md
+  expected_output:
+  - source reference list
+  evidence_expectation:
+  - cited governance documents
+  approval_expectation: C0
+  risk_condition: missing source or stale status
+- phase_id: reconcile-schema
+  purpose: Align schema fields with active doctrine.
+  role_viewpoint: HEPHAISTOS
+  expected_input:
+  - schema files
+  - doctrine references
+  expected_output:
+  - schema update candidate
+  evidence_expectation:
+  - changed files listed
+  - Evidence Topology boundary checked
+  approval_expectation: C3
+  risk_condition: runtime semantics accidentally introduced
+role_viewpoints:
+- ARGOS
+- THEMIS
+- APOLLO
+- HEPHAISTOS
+task_contract_requirements:
+- task scope must be declared
+- protected schema work must be authorized
+reasoning_topology_requirements:
+  allowed_topologies:
+  - single_primary_reasoning_context
+  - fanout_extract_then_single_synthesis
+  - persistent_role_team_handoff
+  default_topology: fanout_extract_then_single_synthesis
+  topology_selection_policy: Select the smallest safe topology that preserves the
+    proof chain.
+  evidence_policy: Evidence Items are required when source-linked claims affect schema
+    meaning.
+  handoff_policy: Handoff Artifacts are required when staged role-team work passes
+    bounded artifacts.
+  synthesis_policy: Final schema interpretation must remain consolidated under governance.
+  approval_policy: Protected schema changes require human authorization.
+  memory_policy: Schema examples do not promote memory.
+  forbidden_topologies:
+  - bounded_hermes_swarm_as_authority
+  - summary_only_supervisor_synthesis
+  topology_risks:
+  - topology metadata may be misread as runtime dispatch
+  - workflow manifest may be misread as executable workflow
+  required_governance_refs:
+  - docs/governance/EVIDENCE_TOPOLOGY.md
+evidence_item_requirements:
+  required_when:
+  - source-linked claims affect schema meaning
+  - external references support doctrine alignment
+  required_fields:
+  - evidence_id
+  - claim
+  - source_ref
+  - scope_of_support
+  - confidence
+  - limitations
+  minimum_items: 1
+  forbidden_substitutes:
+  - summary_only_handoff
+  - uncited_schema_claim
+  notes: Evidence Items support review; they do not approve schema changes.
+handoff_artifact_requirements:
+  required_when:
+  - staged role-team work passes bounded artifacts
+  - review lane receives a candidate from another lane
+  required_fields:
+  - handoff_id
+  - type
+  - from_role
+  - to_role
+  - scope
+  - artifact_ref
+  - approval_gap
+  allowed_artifact_types:
+  - schema_candidate_review_note
+  - evidence_sufficiency_note
+  - approval_gap_note
+  forbidden_substitutes:
+  - team_chat
+  - canvas_activity
+  - handoff_without_artifact
+  notes: Handoff Artifacts preserve continuity; they do not approve the next action.
+evidence_requirements:
+- governance documents reviewed
+- schema changes summarized
+- ai_log added
+approval_requirements:
+- C3
+allowed_outputs:
+- schema updates
+- examples
+- status note
+forbidden_outputs:
+- runtime workflow
+- scheduler
+- provider router
+memory_rules:
+  memory_candidates_allowed: false
+  automatic_promotion_allowed: false
+  notes: No memory output is expected from this example workflow.
+risk_notes:
+- Schema reconciliation may be mistaken for runtime implementation.
+- Workflow Manifest topology metadata may be mistaken for dispatch.
+completion_criteria:
+- schemas parse as YAML
+- examples remain fictional
+- boundaries remain explicit
+- topology_dispatch remains false
+forbidden_runtime_patterns:
+- execution_engine
+- scheduler
+- queue
+- message_bus
+- provider_router
+- autonomous_loop
+- automatic_memory_promotion
+- hidden_workflow_runtime
+governed_composition:
+  forged_by: HEPHAISTOS
+  forge_status: candidate
+  composition_loop:
+    retrieve_policy: Select capabilities and prior manifests by declared purpose and
+      dependencies, not free text.
+    reuse_policy: Reuse a prior governed manifest when one fits the cap.
+    revise_policy: A material change of cap is a governed Task Contract revision.
+    retain_policy: Keep only what review keeps; superseded manifests are archived,
+      not deleted.
+  capability_steps:
+  - capability_id: quote-variation-review
+    skill_manifest_ref: hermes.quote-variation-review
+    declared_scope:
+    - the complementary quote
+    - prior amendment
+    forbidden_scope:
+    - approve
+    - pay
+    - send
+    required_task_contract: task scope must be declared
+    evidence_pack_shape:
+    - source_ref
+    - date
+    approval_ceiling: C0
+    register_behavior: register_candidate_only
+    risk_class: high
+    refusal_tests:
+    - refuse use on client data before project-scoped admission
+  - capability_id: external-commitment-guard
+    skill_manifest_ref: hermes.external-commitment-guard
+    declared_scope:
+    - draft MOA email
+    forbidden_scope:
+    - send
+    - sign
+    - instruct enterprise
+    required_task_contract: protected fill work must be authorized
+    evidence_pack_shape:
+    - claim
+    - source_ref
+    - status
+    approval_ceiling: C3
+    register_behavior: register_candidate_only
+    risk_class: critical
+    refusal_tests:
+    - refuse submit or sign without human decision
+    depends_on:
+    - quote-variation-review
+  gates:
+    pre_execution_eligibility:
+      arbiter: ZEUS
+      decision: allow_with_gate
+      policy: Arbitrate scope, per-step authority, approval ceiling and responsibility
+        limit before any external execution.
+    post_execution_evidence:
+      required: true
+      answer_verification: V2
+      probative_certainty: E2
+      register_rule: Nothing becomes a Registre Probatoire entry on completion alone.
+      unsupported_claim_rule: An unsupported claim does not become truth; it is returned
+        as a point to verify.
+governance_refs:
+- docs/governance/WORKFLOW_SCHEMA.md
+- docs/governance/CAPABILITY_REGISTRY.md
+- docs/governance/REQUEST_ORCHESTRATION.md
+- docs/governance/TASK_CONTRACTS.md
+- docs/governance/EVIDENCE_PACK.md
+- docs/governance/EVIDENCE_TOPOLOGY.md

@@ -1,0 +1,134 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Architecture Project Understanding Requirement
+description: >-
+  V0.2 prescriptive project requirement. Requirements represent intent or
+  obligation and remain distinct from observed/proposed attribute claims. Sources
+  may include a programme, IDS, contract, CCTP/document, regulation, decision or
+  other admitted requirement source. Structure only; no automatic compliance.
+type: object
+additionalProperties: false
+required:
+  - requirement_id
+  - source
+  - requirement_kind
+  - target
+  - constraint
+  - source_authority
+  - proof_status
+properties:
+  requirement_id:
+    type: string
+    minLength: 1
+  human_ref:
+    $ref: "shared.schema.yaml#/$defs/human_ref"
+  source:
+    type: object
+    additionalProperties: false
+    required: [source_type, source_ref]
+    properties:
+      source_type:
+        type: string
+        enum: [program, document, ids, decision, contract, regulation, technical_brief, agency_standard, other]
+      source_ref:
+        type: string
+        minLength: 1
+      source_artifact_ref:
+        type: string
+        minLength: 1
+      source_version_ref:
+        type: string
+        minLength: 1
+  requirement_kind:
+    type: string
+    enum: [attribute, relation, count, existence, classification]
+  target:
+    $ref: "#/$defs/requirement_target"
+  constraint:
+    type: object
+    additionalProperties: false
+    required: [operator]
+    properties:
+      operator:
+        type: string
+        enum: [equals, not_equals, min, max, between, must_exist, must_not_exist, count_min, count_max, count_exact, must_relate_to, must_not_relate_to]
+      attribute_key:
+        type: string
+        minLength: 3
+        pattern: "^[a-z][a-z0-9_.-]*$"
+      relation_type:
+        $ref: "shared.schema.yaml#/$defs/relation_type"
+      expected_value:
+        $ref: "shared.schema.yaml#/$defs/claim_value"
+      related_target:
+        $ref: "#/$defs/requirement_target"
+  scope_type:
+    $ref: "shared.schema.yaml#/$defs/scope_type"
+  scope_id:
+    type: string
+    minLength: 1
+  tolerance:
+    type: object
+    additionalProperties: true
+  source_authority:
+    $ref: "shared.schema.yaml#/$defs/source_authority_level"
+  proof_status:
+    $ref: "shared.schema.yaml#/$defs/proof_status"
+  evidence_refs:
+    type: array
+    default: []
+    items:
+      $ref: "shared.schema.yaml#/$defs/evidence_ref"
+  validity:
+    type: object
+    additionalProperties: false
+    properties:
+      project_phase:
+        $ref: "shared.schema.yaml#/$defs/phase_code"
+      valid_from:
+        $ref: "shared.schema.yaml#/$defs/date_time"
+      valid_until:
+        $ref: "shared.schema.yaml#/$defs/date_time"
+      supersedes_requirement_ref:
+        type: string
+        minLength: 1
+  notes:
+    type: string
+  governance_refs:
+    type: array
+    items: { type: string }
+    default:
+      - docs/governance/PROGRAM_AND_CONFORMANCE.md
+      - docs/domain-packs/architecture/PROJECT_ANATOMY_MODEL.md
+      - schemas/architecture-project-understanding/shared.schema.yaml
+$defs:
+  requirement_target:
+    type: object
+    additionalProperties: false
+    properties:
+      entity_ref:
+        $ref: "shared.schema.yaml#/$defs/apu_entity_ref"
+      selector:
+        type: object
+        additionalProperties: false
+        properties:
+          object_family:
+            $ref: "shared.schema.yaml#/$defs/object_family"
+          classification_scheme:
+            type: string
+            minLength: 1
+          classification_value:
+            type: string
+            minLength: 1
+          attribute_key:
+            type: string
+            minLength: 3
+            pattern: "^[a-z][a-z0-9_.-]*$"
+    anyOf:
+      - required: [entity_ref]
+      - required: [selector]
+x-boundary:
+  runtime_execution: false
+  provider_routing: false
+  memory_promotion: false
+  automatic_canonization: false
+  approval_engine: false

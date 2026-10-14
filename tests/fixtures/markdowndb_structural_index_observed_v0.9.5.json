@@ -1,0 +1,202 @@
+{
+  "pilot_id": "obsidian-graph-health-001",
+  "qualification_id": "markdowndb-structural-index-q1",
+  "execution_status": "executed_real_upstream_not_accepted_for_direct_index",
+  "provider_acceptance": "not_accepted_for_direct_index",
+  "decision_class": "C",
+  "provider": {
+    "repository": "flowershow/markdowndb",
+    "package_version": "0.9.5",
+    "tested_ref": "f53cfef49ffcd267fc200d2dc451ed6f37b4523a",
+    "tested_ref_is_current_main_at_observation": true,
+    "latest_stable_release_observed": "v0.9.5"
+  },
+  "execution_scope": {
+    "included": [
+      "exact upstream checkout and npm build",
+      "caller-bounded projects/maison indexing",
+      "whole-vault negative control",
+      "direct processMarkdown parser observation",
+      "SQLite structural projection observation",
+      "provider-id versus content-digest probe",
+      "delete-index and full rebuild comparison",
+      "complete vault mutation check"
+    ],
+    "not_executed": [
+      "watch-mode incremental correctness",
+      "performance or scale benchmark",
+      "semantic duplicate detection",
+      "semantic contradiction detection",
+      "automatic repair",
+      "Pantheon runtime integration"
+    ],
+    "method": "GitHub Actions checked out the exact upstream ref, materialized the existing bounded Obsidian graph-health corpus into a disposable vault, ran the real MarkdownDB implementation from cache directories outside that vault, retained raw parser and SQLite observations, rebuilt the cache from scratch, and compared all tracked vault bytes before and after execution."
+  },
+  "execution_record": {
+    "pantheon_pr": 944,
+    "pantheon_execution_head": "53c8d675e9eaf5006df9fe622f7e47e266d20620",
+    "workflow": ".github/workflows/markdowndb-structural-index-q1.yml",
+    "workflow_run_id": 33793438268,
+    "artifact_id": 9908232836,
+    "artifact_name": "markdowndb-structural-index-q1-33793438268",
+    "artifact_sha256": "a0b12c8c0491b1d5ea8c3704a7d98c7a799307ada0b7eedd6c9f497a1d6765bb",
+    "artifact_expires_at": "2026-10-03T18:56:34Z",
+    "harness_status": "success"
+  },
+  "raw_observations": {
+    "scope": {
+      "scoped_file_count": 12,
+      "sentinel_path_in_scoped_db": false,
+      "sentinel_path_in_whole_vault_db": true,
+      "whole_vault_also_indexes_raw_staging": true,
+      "whole_vault_also_indexes_protected_source_and_evidence_material": true,
+      "finding": "The caller can bound the scan by passing projects/maison as the root, but MarkdownDB does not own or infer Pantheon authorization."
+    },
+    "markdown_graph": {
+      "programme_to_cctp_path": [
+        "projects/maison/programme.md",
+        "projects/maison/decisions.md",
+        "projects/maison/cctp.md"
+      ],
+      "question_ouverte_isolated": true,
+      "finding": "Ordinary Markdown-to-Markdown edges are usable on the bounded corpus."
+    },
+    "obsidian_link_parser": {
+      "liens_valides_parser_link_count": 10,
+      "observed_targets": [
+        "plan.pdf",
+        "perspective.png",
+        "planning.base",
+        "schema.canvas",
+        "cctp.md",
+        "cctp#Menuiseries",
+        "cctp alias target",
+        "chauffage escaped-alias target"
+      ],
+      "display_alias_text_preserved": false,
+      "missing_details_menuiseries_preserved_by_parser": true,
+      "finding": "The parser recognizes substantially more native Obsidian syntax than the previously qualified obsidian-wiki CLI, but target normalization is inconsistent and alias display text is not retained in this observation."
+    },
+    "sqlite_link_projection": {
+      "total_scoped_link_rows": 11,
+      "liens_valides_link_rows": 5,
+      "existing_pdf_embed_link_retained": false,
+      "existing_png_embed_link_retained": false,
+      "existing_base_link_retained": false,
+      "existing_canvas_link_retained": false,
+      "existing_heading_anchor_link_retained": false,
+      "missing_details_menuiseries_retained": false,
+      "finding": "The SQL links projection drops unresolved targets by design and does not faithfully retain all parser-observed existing Obsidian attachment/non-Markdown/heading-anchor links. Direct SQL graph or broken-link health is therefore not accepted."
+    },
+    "raw_metadata": {
+      "observed_tags": [
+        "béton",
+        "inline-tag",
+        "phase/dce",
+        "qualification",
+        "simple-tag",
+        "synthetic"
+      ],
+      "probe_frontmatter_type_projected_as_filetype": "probe-from-frontmatter",
+      "markdown_tasks_extracted": 2,
+      "finding": "These are useful raw observations only. Slash/Unicode tags are not Tag Registry admission, frontmatter type is not governed Document kind, and Markdown tasks are not WorkIssues."
+    },
+    "identity_and_digest": {
+      "before_rename_provider_id": "580eac2354705e0c6db176bd5a5c44097e1a0967",
+      "after_rename_provider_id": "604a418f8324bc9185cd3381e2d5eec4ffe0622d",
+      "same_bytes_sha256": "dfd8b48ff6e759a853a4e4a92d2aa723459540c32539314e12f7f3b70fbad509",
+      "after_content_change_sha256": "451c99e158b62a53d88e91cc6e60231b27db27a34e502096fb90de5312682dc0",
+      "rename_changes_provider_id": true,
+      "rename_preserves_content_sha256": true,
+      "same_path_byte_change_preserves_provider_id": true,
+      "same_path_byte_change_changes_sha256": true,
+      "finding": "MarkdownDB _id is a path-scoped cache-row identity and must never be promoted to governed identity or source digest."
+    },
+    "reconstruction": {
+      "delete_index_then_rebuild_same_structural_projection": true,
+      "professional_data_loss_if_index_deleted": false,
+      "cache_written_outside_vault": true
+    },
+    "write_check": {
+      "tracked_file_count": 17,
+      "changed": false,
+      "added_removed_or_modified": []
+    }
+  },
+  "case_results": {
+    "bounded_shortest_path": {
+      "status": "pass",
+      "reason": "The SQL graph resolves a bounded programme -> decisions -> cctp path for ordinary Markdown links."
+    },
+    "isolated_question": {
+      "status": "pass_with_scope_note",
+      "reason": "question-ouverte.md has no graph degree among the normal Markdown corpus; non-Markdown targets appear isolated because their valid links are not retained by the SQL projection."
+    },
+    "broken_menuiseries_link": {
+      "status": "fail_for_direct_sql_health",
+      "reason": "The parser observes details-menuiseries, but the SQL link table deliberately drops unresolved targets, so the index cannot report the missing target from its relational links surface."
+    },
+    "valid_obsidian_links_not_broken": {
+      "status": "fail_for_direct_sql_index",
+      "reason": "The parser sees the tested native Obsidian forms, but the SQL projection omits existing PDF/PNG/.base/.canvas and heading-anchor links."
+    },
+    "bounded_scope": {
+      "status": "conditional_pass",
+      "reason": "Passing projects/maison as the root excludes the sentinel. Whole-vault indexing includes the sentinel, raw staging, source and Evidence material. Scope is caller-owned."
+    },
+    "protected_material_no_mutation": {
+      "status": "pass",
+      "reason": "All 17 tracked files remained byte-identical and no files were added to or removed from the vault."
+    },
+    "heating_duplicate_candidate": {
+      "status": "not_demonstrated",
+      "reason": "No semantic duplicate/consolidation capability was exercised."
+    },
+    "heating_contradiction_candidate": {
+      "status": "not_demonstrated",
+      "reason": "No semantic contradiction capability was exercised."
+    }
+  },
+  "qualification_decision": {
+    "classification": "C",
+    "accepted_patterns": [
+      "bounded deterministic filesystem scan",
+      "reconstructible disposable local cache",
+      "raw frontmatter/tag/task observations",
+      "ordinary Markdown link observations",
+      "caller-enforced root scoping",
+      "cache deletion followed by exact rebuild"
+    ],
+    "not_accepted": [
+      "MarkdownDB as the direct Pantheon workspace structural index implementation",
+      "provider _id as governed identity",
+      "provider filetype as governed Document kind",
+      "raw tags as Tag Registry membership",
+      "Markdown tasks as WorkIssues",
+      "SQL links table as reliable Obsidian attachment/heading/broken-link health",
+      "provider-owned authorization or project scope",
+      "runtime dependency adoption"
+    ],
+    "blocking_observations": [
+      "unresolved links are preserved by the parser but dropped from the SQL links projection",
+      "existing PDF/PNG/.base/.canvas links and the tested heading-anchor link are omitted from the SQL projection",
+      "path-derived provider identity changes on rename and does not change when bytes change at the same path",
+      "whole-vault execution indexes material Pantheon deliberately keeps outside the bounded project analysis"
+    ],
+    "next_action": "Retain the provider-neutral reconstructible structural-index pattern already owned by the Workspace Manifest Inspector. Keep MarkdownDB unintegrated. Do not build a Pantheon compatibility adapter solely to compensate for these provider gaps. If a concrete Cockpit/Inspector workflow later requires the index, qualify the smallest deterministic implementation against this same corpus before choosing a dependency."
+  },
+  "invariants": [
+    "index row != source record",
+    "provider file id != governed identity",
+    "path hash != source digest",
+    "frontmatter type != governed Document kind",
+    "raw tag != Tag Registry tag",
+    "wikilink != governed relation",
+    "Markdown task != WorkIssue",
+    "index current != professionally current",
+    "cache persistence != professional persistence",
+    "caller-supplied scope != provider-owned authorization",
+    "rebuild success != authorization",
+    "Q1 success != dependency adopted"
+  ]
+}

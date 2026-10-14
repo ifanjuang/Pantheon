@@ -1,0 +1,61 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Next Answer Status
+description: Validation schema for answer verification and consequence status. It records status only and approves nothing by itself.
+type: object
+required:
+  - answer_id
+  - created_at
+  - verification_level
+  - consequence_level
+  - status
+  - governance_refs
+properties:
+  answer_id:
+    type: string
+    pattern: "^[a-z0-9._-]+$"
+  created_at:
+    type: string
+    format: date-time
+  verification_level:
+    type: string
+    enum: [V0, V1, V2, V3, V4]
+  consequence_level:
+    type: string
+    enum: [K0, K1, K2, K3, K4]
+  certainty_support:
+    type: string
+    enum: [E0, E1, E2, E3, E4]
+  required_approval:
+    type: string
+    enum: [C0, C1, C2, C3, C4, C5]
+  evidence_refs:
+    type: array
+    items:
+      type: string
+  register_refs:
+    type: array
+    items:
+      type: string
+  status:
+    type: string
+    enum: [free, memory_based, to_verify, evidence_verified, approved, blocked]
+  notes:
+    type: string
+  governance_refs:
+    type: array
+    items:
+      type: string
+    default:
+      - docs/governance/GLOSSARY.md
+      - docs/governance/EVIDENCE_PACK.md
+      - docs/governance/TARGET_ARCHITECTURE.md
+additionalProperties: false
+x-boundary:
+  runtime_execution: false
+  approves_nothing: true
+  autonomous_loop: false
+  provider_routing: false
+  scheduler: false
+  queue_system: false
+  memory_promotion: false
+  automatic_canonization: false

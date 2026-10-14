@@ -1,0 +1,19 @@
+api_version: pantheon.next/v0alpha1
+kind: Resource
+metadata:
+  id: langfuse
+  title: Langfuse
+  status: candidate
+spec:
+  resource_type: observability_surface
+  provides_roles:
+    - llm_trace_observability
+  lifecycle:
+    installable: true
+    connectable_existing_instance: true
+  interfaces:
+    - telemetry_export
+    - internal_http
+  boundaries:
+    evidence_authority: false
+    professional_validation_authority: false

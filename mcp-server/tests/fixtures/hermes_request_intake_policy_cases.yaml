@@ -1,0 +1,103 @@
+cases:
+  - id: harmless_rewrite
+    request:
+      intent: "Corrige les fautes et améliore la formulation de ce texte."
+      requested_transformation: wording
+      conditions: []
+    expected:
+      consequence_level: K0
+      disposition: PROCEED
+      topology: null
+
+  - id: harmless_formatting
+    request:
+      intent: "Mets ce passage en forme sans changer un seul mot."
+      requested_transformation: formatting
+      conditions: []
+    expected:
+      consequence_level: K0
+      disposition: PROCEED
+      topology: null
+
+  - id: current_comparison
+    request:
+      intent: "Compare trois produits actuels."
+      conditions: [factual_claim, external_reference, source_required, source_freshness_risk]
+      coordination:
+        independent: [[product_a, product_b, product_c]]
+        synthesize: true
+    expected:
+      disposition: CONSULT
+      topology: fanout_extract_then_single_synthesis
+
+  - id: repeat_until_tests_pass
+    request:
+      intent: "Corrige le programme jusqu'à ce que les tests passent."
+      conditions: [complex_task, multi_step_workflow, artifact_fabrication]
+      coordination:
+        repeat_until: [tests_pass]
+      completion_requirements: [tests_pass]
+    expected:
+      disposition: CONSULT
+      topology: null
+
+  - id: contradictory_sources
+    request:
+      intent: "Analyse les documents contradictoires."
+      conditions: [factual_claim, source_required, evidence_gap]
+      conflict_detected: true
+      coordination:
+        independent: [[source_a, source_b]]
+        synthesize: true
+    expected:
+      disposition: CONSULT
+      topology: fanout_extract_then_single_synthesis
+      rite_candidate: concordance_des_sources
+
+  - id: professional_source_review
+    request:
+      intent: "Vérifie la pièce avant préparation de la réponse."
+      conditions: [source_required, factual_claim, legal_or_professional_risk]
+      coordination:
+        requires: [[supporting_basis, consequence_review]]
+      completion_requirements: [requested_fact_resolved]
+    expected:
+      consequence_level: K4
+      disposition: CONSULT
+      topology: sequential_handoff
+
+  - id: prior_decision_recall
+    request:
+      intent: "Retrouve la décision précédente."
+      conditions: [memory_recall_requested, prior_decision_reuse, project_history_reuse]
+    expected:
+      disposition: CONSULT
+      topology: null
+
+  - id: external_send
+    request:
+      intent: "Envoie ce message."
+      conditions: [external_transmission, external_effect]
+    expected:
+      consequence_level: K4
+      disposition: GATE
+      topology: null
+
+  - id: conditional_branch
+    request:
+      intent: "Choisis la suite selon le résultat observé."
+      conditions: [multi_step_workflow]
+      coordination:
+        branch_on: [observed_result]
+    expected:
+      disposition: CONSULT
+      topology: router
+
+  - id: memory_promotion
+    request:
+      intent: "Conserve cette décision comme référence officielle."
+      conditions: [memory_candidate, memory_promotion, approval_required]
+    expected:
+      consequence_level: K4
+      disposition: GATE
+      topology: null

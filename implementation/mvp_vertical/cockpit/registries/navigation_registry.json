@@ -1,0 +1,33 @@
+{
+  "schema_id": "cockpit.navigation.registry",
+  "revision": 1,
+  "root_collection": {
+    "id": "primary-spaces",
+    "items": [
+      {
+        "id": "space:pantheon",
+        "sources": ["pending_change_candidates", "current_runs"]
+      },
+      {
+        "id": "space:affaires",
+        "sources": ["projects"]
+      },
+      {
+        "id": "space:connaissances",
+        "sources": ["category_roots"]
+      },
+      {
+        "id": "space:workspace",
+        "sources": ["workspace_roots"]
+      },
+      {
+        "id": "space:outils",
+        "sources": ["tools"]
+      },
+      {
+        "id": "space:decisions",
+        "sources": ["decision_requests"]
+      }
+    ]
+  }
+}

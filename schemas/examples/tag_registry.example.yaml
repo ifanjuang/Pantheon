@@ -1,0 +1,43 @@
+schema_id: cockpit.tag_registry
+revision: 1
+groups:
+  - id: type
+    title: Type de contenu
+    description: Décrit la forme professionnelle ou opérationnelle de l'objet projeté.
+    hermes_context_role: Oriente la lecture sans qualifier la véracité, l'autorité ou le statut d'Evidence.
+  - id: subject
+    title: Sujet
+    description: Décrit les thèmes métier principaux portés par la carte.
+    max_per_card: 5
+    hermes_context_role: Oriente les contrôles métier sans étendre le scope ni autoriser une tâche.
+tags:
+  - slug: compte-rendu
+    group: type
+    title: Compte rendu
+    description: Compte rendu fictif de réunion ou de chantier.
+    hermes_context: Identifier les participants, la date, les décisions actées et les réserves.
+    aliases:
+      - cr
+    applies_to:
+      - information
+      - document
+    presentation:
+      icon_provider: radix
+      icon_key: document
+      color: cyan
+  - slug: renovation
+    group: subject
+    title: Rénovation
+    description: Sujet fictif relatif à la transformation d'un bâtiment existant.
+    hermes_context: Distinguer l'existant observé, les hypothèses, les diagnostics et les reprises.
+    aliases:
+      - rénovation
+    applies_to:
+      - project
+      - information
+      - document
+      - work_issue
+    presentation:
+      icon_provider: material-symbols
+      icon_key: renovation
+      color: orange

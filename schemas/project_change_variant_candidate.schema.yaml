@@ -1,0 +1,188 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Project Change Variant Candidate
+description: >-
+  Immutable candidate alternative produced by one bounded execution for possible
+  projection into the existing Project ChangeCandidate review owner. Sibling
+  alternatives share request_ref and request_scope_digest. The candidate does not
+  create a branch object, select itself, apply a Project change, create a
+  ProjectClaim, adopt Project truth, decide, admit Evidence or authorize an effect.
+type: object
+required:
+  - candidate_kind
+  - request_ref
+  - request_scope_digest
+  - project_ref
+  - base_revision
+  - target_schema_id
+  - variant_label
+  - variant_title
+  - proposed_attributes
+  - rationale
+  - assumptions
+  - compatibility_findings
+  - open_questions
+  - basis_refs
+  - limitations
+  - authority
+properties:
+  candidate_kind:
+    const: project_change_variant
+  request_ref:
+    $ref: "#/$defs/governed_id"
+  request_scope_digest:
+    $ref: "#/$defs/sha256"
+  project_ref:
+    $ref: "#/$defs/governed_id"
+  base_revision:
+    type: integer
+    minimum: 1
+  target_schema_id:
+    type: string
+    minLength: 1
+    maxLength: 200
+    description: >-
+      Exact Project schema identity observed by the producing execution. The
+      receiving binding remains responsible for verifying that this schema is
+      current and that each proposed field is mutable in the governed target view.
+  variant_label:
+    type: string
+    minLength: 1
+    maxLength: 64
+    pattern: "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+  variant_title:
+    type: string
+    minLength: 1
+    maxLength: 200
+  proposed_attributes:
+    type: object
+    minProperties: 1
+    maxProperties: 50
+    propertyNames:
+      pattern: "^[a-z][a-z0-9_]*$"
+    additionalProperties:
+      $ref: "#/$defs/json_value"
+    description: >-
+      Proposed descriptive Project attributes only. The binding must validate
+      field posture against the exact target schema and must refuse ProjectClaim,
+      system, immutable or otherwise non-editable fields.
+  rationale:
+    type: string
+    minLength: 1
+    maxLength: 10000
+  assumptions:
+    type: array
+    uniqueItems: true
+    maxItems: 100
+    items:
+      type: string
+      minLength: 1
+      maxLength: 2000
+  compatibility_findings:
+    type: array
+    maxItems: 100
+    items:
+      $ref: "#/$defs/compatibility_finding"
+  open_questions:
+    type: array
+    uniqueItems: true
+    maxItems: 100
+    items:
+      type: string
+      minLength: 1
+      maxLength: 2000
+  basis_refs:
+    type: array
+    minItems: 1
+    maxItems: 500
+    uniqueItems: true
+    items:
+      $ref: "#/$defs/entity_ref"
+  limitations:
+    type: array
+    uniqueItems: true
+    maxItems: 100
+    items:
+      type: string
+      minLength: 1
+      maxLength: 2000
+  authority:
+    type: object
+    required:
+      - creates_change_candidate
+      - selects_variant
+      - applies_project_change
+      - creates_project_claim
+      - adopts_project_truth
+      - creates_decision
+      - admits_evidence
+      - authorizes_effect
+    properties:
+      creates_change_candidate: { const: false }
+      selects_variant: { const: false }
+      applies_project_change: { const: false }
+      creates_project_claim: { const: false }
+      adopts_project_truth: { const: false }
+      creates_decision: { const: false }
+      admits_evidence: { const: false }
+      authorizes_effect: { const: false }
+    additionalProperties: false
+additionalProperties: false
+$defs:
+  governed_id:
+    type: string
+    pattern: "^[a-z0-9][a-z0-9._-]*$"
+  sha256:
+    type: string
+    pattern: "^sha256:[a-f0-9]{64}$"
+  json_value:
+    oneOf:
+      - type: [string, number, boolean, "null"]
+      - type: array
+        items:
+          $ref: "#/$defs/json_value"
+      - type: object
+        additionalProperties:
+          $ref: "#/$defs/json_value"
+  entity_ref:
+    type: object
+    required: [entity_type, entity_id]
+    properties:
+      entity_type:
+        type: string
+        minLength: 1
+      entity_id:
+        $ref: "#/$defs/governed_id"
+      observed_revision:
+        type: [integer, "null"]
+        minimum: 0
+      observed_status:
+        type: [string, "null"]
+    additionalProperties: false
+  compatibility_finding:
+    type: object
+    required: [status, subject, detail]
+    properties:
+      status:
+        type: string
+        enum: [compatible, incompatible, uncertain, not_checked]
+      subject:
+        type: string
+        minLength: 1
+        maxLength: 500
+      detail:
+        type: string
+        minLength: 1
+        maxLength: 5000
+    additionalProperties: false
+x-boundary:
+  runtime_execution: false
+  persistence_execution: false
+  branch_object_creation: false
+  change_candidate_creation: false
+  variant_selection: false
+  project_mutation: false
+  project_claim_creation: false
+  project_truth_adoption: false
+  automatic_decision: false
+  evidence_admission: false
+  external_effect_authorization: false

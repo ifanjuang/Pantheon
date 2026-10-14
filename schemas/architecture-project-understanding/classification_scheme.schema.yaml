@@ -1,0 +1,46 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Architecture Project Understanding Classification Scheme
+description: >-
+  A registered, extensible classification scheme (housing typology, fire/ERP,
+  medical/ISO, activity, facade system, door property...). Values are an open,
+  extensible list. If regulatory is true, classifications under this scheme that
+  ground a conclusion require the regulatory_claim use type (L5). See
+  PROGRAM_AND_CONFORMANCE.md. Structure only.
+type: object
+additionalProperties: false
+required: [scheme_id, name, schema_status]
+properties:
+  scheme_id: { type: string, minLength: 1 }
+  name: { type: string, minLength: 1 }
+  description: { type: string }
+  schema_status: { $ref: "shared.schema.yaml#/$defs/schema_status" }
+  regulatory: { type: boolean, default: false }
+  applies_to_kinds:
+    type: array
+    default: []
+    items: { type: string, enum: [space, boundary, opening, path, level, grid, vertical_connection, group] }
+  values:
+    type: array
+    default: []
+    items:
+      type: object
+      additionalProperties: false
+      required: [value]
+      properties:
+        value: { type: string, minLength: 1 }
+        label: { type: string }
+        notes: { type: string }
+  extensible: { type: boolean, default: true }
+  notes: { type: string }
+  governance_refs:
+    type: array
+    items: { type: string }
+    default:
+      - docs/governance/PROGRAM_AND_CONFORMANCE.md
+      - schemas/architecture-project-understanding/shared.schema.yaml
+x-boundary:
+  runtime_execution: false
+  provider_routing: false
+  memory_promotion: false
+  automatic_canonization: false
+  approval_engine: false

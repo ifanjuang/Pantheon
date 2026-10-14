@@ -1,0 +1,270 @@
+name: Governance CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  # `edited` is required, not cosmetic: check_roles_rites_spaces_change.py reads
+  # PR_BODY, and rerun_failed_jobs replays the original event payload, so a body
+  # that is corrected after the fact can only be re-read by a fresh event.
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+
+jobs:
+  governance:
+    name: Read-only governance checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Mandatory governance files exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            "README.md"
+            "CLAUDE.md"
+            "LICENSE"
+            "VERSION"
+            "CHANGELOG.md"
+            "docs/governance/README.md"
+            "docs/governance/STATUS.md"
+            "docs/governance/ROADMAP.md"
+            "docs/governance/AGENTS.md"
+            "docs/governance/ARCHITECTURE.md"
+            "docs/governance/MODULES.md"
+            "docs/governance/GLOSSARY.md"
+            "docs/governance/MEMORY.md"
+            "docs/governance/APPROVALS.md"
+            "docs/governance/TASK_CONTRACTS.md"
+            "docs/governance/TASK_CONTRACT_REVISIONS.md"
+            "docs/governance/EXECUTION_DISCIPLINE.md"
+            "docs/governance/EVIDENCE_PACK.md"
+            "docs/governance/HERMES_INTEGRATION.md"
+            "docs/governance/EXTERNAL_TOOLS_POLICY.md"
+            "docs/governance/KNOWLEDGE_TAXONOMY.md"
+            "docs/governance/CODE_AUDIT_POST_PIVOT.md"
+          )
+          fail=0
+          for f in "${required[@]}"; do
+            if [ ! -f "$f" ]; then
+              echo "FAIL: mandatory governance file missing: $f"
+              fail=1
+            fi
+          done
+          if [ $fail -ne 0 ]; then
+            echo ""
+            echo "Required governance baseline is incomplete."
+            exit 1
+          fi
+          echo "OK: all mandatory governance files are present."
+
+      - name: Governance files do not suggest Pantheon executes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/check_runtime_boundary_language.py
+
+      - name: Governance doctor read-only checks
+        shell: bash
+        env:
+          GOVERNANCE_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/check_status_headers.py
+          python3 .github/scripts/check_internal_links.py
+          python3 .github/scripts/check_asset_references.py
+          python3 .github/scripts/check_index_coverage.py
+          python3 .github/scripts/check_axis_vocabulary.py
+          python3 .github/scripts/check_no_truncation.py
+          python3 .github/scripts/check_no_net_truncation.py
+          python3 .github/scripts/check_no_predecessor_dependency.py
+
+      - name: Asserted properties name a control
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/check_asserted_properties.py
+
+      - name: Candidacy aging signal
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/check_candidacy_aging.py
+
+      - name: Role, Rite and governed-Space change context
+        if: github.event_name == 'pull_request'
+        shell: bash
+        env:
+          GOVERNANCE_BASE_REF: ${{ github.event.pull_request.base.sha }}
+          PR_BODY: ${{ github.event.pull_request.body || '' }}
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/check_roles_rites_spaces_change.py
+
+      - name: No new Registre Probatoire vocabulary regressions
+        if: github.event_name == 'pull_request'
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          mb=$(git merge-base "$BASE_SHA" HEAD)
+          violations=$(git diff --no-color "$mb" HEAD -- docs \
+            | grep -E '^[+]' | grep -vE '^[+][+][+]' \
+            | grep -nE 'Canonical Memory|Memory Candidate' \
+            | grep -viE 'formerly|former name|in place of|replaces the former|the former term' \
+            || true)
+          if [ -n "$violations" ]; then
+            echo "FAIL: this PR adds retired vocabulary under docs/."
+            echo "Use 'Registre Probatoire entry' / 'Register Candidate' (see GLOSSARY.md):"
+            printf '%s\n' "$violations"
+            echo ""
+            echo "Only the object terms 'Canonical Memory' and 'Memory Candidate' are retired."
+            echo "Boundary phrases such as 'automatic memory promotion' are unaffected."
+            echo "Deliberate 'formerly Canonical Memory' notes are allowed."
+            exit 1
+          fi
+          echo "OK: no Canonical Memory / Memory Candidate introduced under docs/."
+
+      - name: Install governance CI Python dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet --upgrade -r .github/requirements/governance-ci.txt
+          python3 -c "import jsonschema, referencing, yaml"
+
+      - name: Canonical schema vocabulary consistency
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/check_schema_vocabulary.py
+
+      - name: Register instance + cascade rule validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/check_register_instances.py
+
+      - name: Vertical slice validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/check_vertical_slice.py
+
+      - name: Architecture project understanding referential integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/check_apu_referential_integrity.py
+
+  mcp-server:
+    name: mcp-server module tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Install the bounded mcp-server module (with test extra)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -e "mcp-server/.[test]"
+
+      - name: Run mcp-server tests (unit + end-to-end vertical over real MCP stdio)
+        shell: bash
+        env:
+          PANTHEON_REPO_PATH: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s mcp-server/tests -v
+
+  packaging-contract:
+    name: Packaging and release contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Verify root and version contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/check_packaging_contract.py
+
+      - name: Verify the root rejects accidental packaging
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet --upgrade build
+          if python3 -m build . --outdir root-dist 2>&1 | tee /tmp/root-build.log; then
+            echo "FAIL: repository root unexpectedly produced a distribution"
+            exit 1
+          fi
+          grep -F "root is non-distributable" /tmp/root-build.log
+          echo "OK: repository root clearly rejects packaging"
+
+      - name: Run the documented root validation command
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet --upgrade \
+            -r requirements-dev.txt
+          python3 -m pytest -q
+
+      - name: Build and inspect the only claimed wheel
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m build mcp-server --outdir dist
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile
+
+          wheels = list(Path("dist").glob("*.whl"))
+          assert len(wheels) == 1, wheels
+          with zipfile.ZipFile(wheels[0]) as archive:
+              roots = {name.split("/", 1)[0] for name in archive.namelist()}
+          unexpected = {
+              item
+              for item in roots
+              if item != "pantheon_mcp" and not item.endswith(".dist-info")
+          }
+          assert not unexpected, f"unexpected wheel roots: {sorted(roots)}"
+          print(f"OK: wheel roots are explicit: {sorted(roots)}")
+          PY
+
+      - name: Install wheel in a clean environment and verify runtime metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv /tmp/pantheon-mcp-wheel-smoke
+          /tmp/pantheon-mcp-wheel-smoke/bin/python -m pip install --quiet dist/*.whl
+          EXPECTED_VERSION="$(tr -d '\n' < VERSION)" \
+            /tmp/pantheon-mcp-wheel-smoke/bin/python - <<'PY'
+          from importlib.metadata import version
+          import os
+          import pantheon_mcp
+
+          expected = os.environ["EXPECTED_VERSION"]
+          metadata_version = version("pantheon-mcp-server")
+          assert metadata_version == expected
+          assert pantheon_mcp.__version__ == metadata_version
+          print(f"OK: installed runtime and metadata report {metadata_version}")
+          PY

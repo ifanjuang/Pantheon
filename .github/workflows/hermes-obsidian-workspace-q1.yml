@@ -1,0 +1,157 @@
+name: Hermes Obsidian Workspace Q1
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/hermes-obsidian-workspace-q1.yml"
+      - "implementation/qualification/external-pins.json"
+      - "implementation/tools/export_external_qualification_pins.py"
+      - "tests/test_hermes_obsidian_workspace_q1_contract.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pytest
+      - run: pytest -q tests/test_hermes_obsidian_workspace_q1_contract.py
+
+  upstream-file-tools:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout current Pantheon candidate
+        uses: actions/checkout@v4
+        with:
+          path: monorepo
+
+      - name: Load canonical Hermes qualification pin
+        shell: bash
+        run: python3 monorepo/implementation/tools/export_external_qualification_pins.py --github-env "$GITHUB_ENV" hermes-agent
+
+      - name: Checkout exact Hermes revision
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.HERMES_REPOSITORY }}
+          ref: ${{ env.HERMES_REF }}
+          path: hermes-agent
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify bundled Obsidian skill identity from qualified Hermes source
+        shell: bash
+        run: |
+          test "$(git -C hermes-agent rev-parse HEAD)" = "$HERMES_REF"
+          SKILL_BLOB="$(git -C hermes-agent hash-object skills/note-taking/obsidian/SKILL.md)"
+          test -n "$SKILL_BLOB"
+          echo "HERMES_OBSIDIAN_SKILL_BLOB=$SKILL_BLOB" >> "$GITHUB_ENV"
+          grep -F 'version: 1.0.0' hermes-agent/skills/note-taking/obsidian/SKILL.md
+          grep -F 'OBSIDIAN_VAULT_PATH' hermes-agent/skills/note-taking/obsidian/SKILL.md
+          grep -F '~/Documents/Obsidian Vault' hermes-agent/skills/note-taking/obsidian/SKILL.md
+
+      - name: Install Hermes runtime dependencies
+        working-directory: hermes-agent
+        shell: bash
+        run: python -m pip install -e . pytest
+
+      - name: Exercise real Hermes file tools against synthetic workspace
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import sys
+          import tempfile
+          from pathlib import Path
+
+          root = Path(tempfile.mkdtemp(prefix="pantheon-hermes-obsidian-q1-"))
+          workspace = root / "workspace"
+          workspace.mkdir()
+          os.environ["OBSIDIAN_VAULT_PATH"] = str(workspace)
+          os.environ["TERMINAL_CWD"] = str(workspace)
+          sys.path.insert(0, str(Path("hermes-agent").resolve()))
+
+          from tools.file_tools import patch_tool, read_file_tool, write_file_tool
+
+          note = workspace / "Affaires" / "Alpha" / "note.md"
+          created = "# Alpha\n\nPANTHEON_HERMES_OBSIDIAN_CREATE\n\nStatus: draft\n"
+          create_result = write_file_tool(str(note), created)
+          assert note.read_text(encoding="utf-8") == created, create_result
+
+          read_result = read_file_tool(str(note))
+          assert "PANTHEON_HERMES_OBSIDIAN_CREATE" in read_result, read_result
+
+          patch_result = patch_tool(
+              mode="replace",
+              path=str(note),
+              old_string="Status: draft",
+              new_string="Status: PANTHEON_HERMES_OBSIDIAN_PATCH",
+          )
+          final = note.read_text(encoding="utf-8")
+          assert "Status: PANTHEON_HERMES_OBSIDIAN_PATCH" in final, patch_result
+          assert "Status: draft" not in final
+
+          # Negative observation: raw Hermes file tools are not workspace-root confined.
+          # Production containment must therefore come from OS/container isolation.
+          outside = root / "outside.md"
+          outside_result = write_file_tool(str(outside), "synthetic outside write\n")
+          assert outside.exists(), outside_result
+
+          # Negative observation: whole-file write has overwrite semantics and no
+          # Pantheon expected-digest/revision precondition.
+          note.write_text(final + "NATIVE_CONCURRENT_EDIT\n", encoding="utf-8")
+          overwrite = "# Alpha\n\nWHOLE_FILE_REWRITE\n"
+          overwrite_result = write_file_tool(str(note), overwrite)
+          assert note.read_text(encoding="utf-8") == overwrite, overwrite_result
+          assert "NATIVE_CONCURRENT_EDIT" not in note.read_text(encoding="utf-8")
+
+          observation = {
+              "hermes_commit": os.environ["HERMES_REF"],
+              "hermes_version": os.environ["HERMES_VERSION"],
+              "skill_blob": os.environ["HERMES_OBSIDIAN_SKILL_BLOB"],
+              "read_verified": True,
+              "create_verified": True,
+              "patch_verified": True,
+              "raw_tool_root_enforcement": False,
+              "whole_file_overwrite_without_pantheon_revision_gate": True,
+              "couchdb_direct_write": False,
+              "hindsight_direct_write": False,
+              "pantheon_state_mutated": False,
+              "evidence_admitted": False,
+              "delete_qualified": False,
+              "move_rename_qualified": False,
+          }
+          out = Path(os.environ.get("RUNNER_TEMP", "/tmp")) / "hermes-obsidian-q1"
+          out.mkdir(parents=True, exist_ok=True)
+          (out / "observation.json").write_text(json.dumps(observation, indent=2) + "\n", encoding="utf-8")
+          print(json.dumps(observation, sort_keys=True))
+          PY
+
+      - name: Run focused upstream file-tool safety tests
+        working-directory: hermes-agent
+        shell: bash
+        run: |
+          python -m pytest -q \
+            tests/tools/test_file_tools.py \
+            tests/tools/test_write_verification.py \
+            tests/tools/test_file_staleness.py \
+            tests/tools/test_file_write_safety.py
+
+      - name: Upload bounded observation
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hermes-obsidian-workspace-q1-${{ github.run_id }}
+          path: ${{ runner.temp }}/hermes-obsidian-q1/observation.json
+          if-no-files-found: warn
+          retention-days: 14

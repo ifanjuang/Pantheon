@@ -1,0 +1,183 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: https://pantheon.local/schemas/category_classification.schema.yaml
+title: Pantheon Agency Category Classification Projection
+description: >-
+  Validation-only contract for hierarchical Agency Data Category records and
+  explicit N:N CategoryAssignment links consumed by pantheon-mvp and Cockpit
+  projections. It does not make Categories a Registry, authorization surface,
+  Evidence state or source owner.
+type: object
+additionalProperties: false
+required:
+  - schema_id
+  - revision
+  - governance_refs
+  - categories
+  - assignments
+properties:
+  schema_id:
+    type: string
+    const: agency.category_classification
+  revision:
+    type: integer
+    minimum: 1
+  governance_refs:
+    type: array
+    minItems: 2
+    uniqueItems: true
+    items:
+      type: string
+      minLength: 1
+  categories:
+    type: array
+    items:
+      $ref: '#/$defs/category'
+  assignments:
+    type: array
+    items:
+      $ref: '#/$defs/assignment'
+  x-boundary:
+    $ref: '#/$defs/boundary'
+$defs:
+  stable_id:
+    type: string
+    pattern: '^[a-z0-9][a-z0-9._:-]*$'
+  entity_type:
+    type: string
+    pattern: '^[a-z][a-z0-9_]*$'
+  timestamp_or_null:
+    oneOf:
+      - type: string
+        format: date-time
+      - type: 'null'
+  category:
+    type: object
+    additionalProperties: false
+    required:
+      - category_id
+      - title
+      - parent_category_id
+      - applies_to
+      - sort_order
+      - revision
+      - created_by
+      - updated_by
+      - created_at
+      - updated_at
+      - archived_at
+    properties:
+      category_id:
+        $ref: '#/$defs/stable_id'
+      title:
+        type: string
+        minLength: 1
+        maxLength: 300
+      description:
+        type: string
+        maxLength: 4000
+        default: ''
+      parent_category_id:
+        oneOf:
+          - $ref: '#/$defs/stable_id'
+          - type: 'null'
+      applies_to:
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items:
+          $ref: '#/$defs/entity_type'
+      sort_order:
+        type: integer
+        minimum: 0
+      revision:
+        type: integer
+        minimum: 1
+      created_by:
+        type: string
+        minLength: 1
+      updated_by:
+        type: string
+        minLength: 1
+      created_at:
+        type: string
+        format: date-time
+      updated_at:
+        type: string
+        format: date-time
+      archived_at:
+        $ref: '#/$defs/timestamp_or_null'
+  assignment:
+    type: object
+    additionalProperties: false
+    required:
+      - assignment_id
+      - category_id
+      - entity_type
+      - entity_id
+      - assigned_by
+      - assigned_at
+      - revision
+      - retired_at
+      - retired_by
+    properties:
+      assignment_id:
+        $ref: '#/$defs/stable_id'
+      category_id:
+        $ref: '#/$defs/stable_id'
+      entity_type:
+        $ref: '#/$defs/entity_type'
+      entity_id:
+        $ref: '#/$defs/stable_id'
+      assigned_by:
+        type: string
+        minLength: 1
+      assigned_at:
+        type: string
+        format: date-time
+      rationale:
+        type: string
+        maxLength: 4000
+      revision:
+        type: integer
+        minimum: 1
+      retired_at:
+        $ref: '#/$defs/timestamp_or_null'
+      retired_by:
+        oneOf:
+          - type: string
+            minLength: 1
+          - type: 'null'
+  boundary:
+    type: object
+    additionalProperties: false
+    default:
+      runtime_execution: false
+      provider_routing: false
+      task_authorization: false
+      approval: false
+      evidence_promotion: false
+      memory_promotion: false
+      ownership_transfer: false
+    properties:
+      runtime_execution:
+        const: false
+      provider_routing:
+        const: false
+      task_authorization:
+        const: false
+      approval:
+        const: false
+      evidence_promotion:
+        const: false
+      memory_promotion:
+        const: false
+      ownership_transfer:
+        const: false
+x-boundary:
+  runtime_execution: false
+  provider_routing: false
+  task_authorization: false
+  approval: false
+  evidence_promotion: false
+  memory_promotion: false
+  ownership_transfer: false

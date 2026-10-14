@@ -1,0 +1,17 @@
+name: pantheon-context-bridge
+version: "0.3.0"
+description: Exact admitted Pantheon context plus deterministic data-only gateway attachment framing
+provides_tools:
+  - pantheon_context_manifest
+  - pantheon_context_entity
+# The plugin no longer only provides tools: it registers one gateway hook that
+# reframes model-bound message text as data. Declared here so the manifest
+# states the same surface the plugin actually registers.
+provides_hooks:
+  - pre_gateway_dispatch
+requires_env:
+  - name: PANTHEON_HERMES_API_BASE
+    description: Base URL of the bounded Pantheon Hermes execution API
+  - name: PANTHEON_HERMES_API_KEY
+    description: Hermes-side credential for the bounded Pantheon execution API
+    secret: true

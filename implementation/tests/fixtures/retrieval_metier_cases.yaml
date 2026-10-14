@@ -1,0 +1,65 @@
+# Small labelled retrieval set over the synthetic devis_reprise dossier.
+# This is an executable acceptance fixture, not a production benchmark.
+# Quality expectations are deliberately limited to exact lexical cases while
+# the active vector embedder remains a deterministic local placeholder.
+
+- case_id: email_deadline_exact
+  category: exact_phrase
+  query: "lundi prochain"
+  expected_source: dossiers/devis_reprise/sources/client_email_2026-07-05.md
+  lexical_max_rank: 1
+  hybrid_max_rank: 1
+
+- case_id: quote_payment_exact
+  category: exact_terms
+  query: "acompte commande"
+  expected_source: dossiers/devis_reprise/sources/quote_Q-2026-041.md
+  lexical_max_rank: 1
+  hybrid_max_rank: 1
+
+- case_id: quote_membrane_variant_exact
+  category: technical_terms
+  query: "variante SBS renforcée"
+  expected_source: dossiers/devis_reprise/sources/quote_Q-2026-041.md
+  lexical_max_rank: 1
+  hybrid_max_rank: 1
+
+- case_id: quote_vapour_barrier_scope_exact
+  category: technical_identifier
+  query: "T2 T3 pare vapeur"
+  expected_source: dossiers/devis_reprise/sources/quote_Q-2026-041.md
+  lexical_max_rank: 1
+  hybrid_max_rank: 1
+
+- case_id: cctp_change_decision_exact
+  category: governance_terms
+  query: "décision modificative"
+  expected_source: dossiers/devis_reprise/sources/cctp_excerpt_lot06.md
+  lexical_max_rank: 1
+  hybrid_max_rank: 1
+
+- case_id: cctp_degradation_observation_exact
+  category: technical_terms
+  query: "isolation existante conservée constat contradictoire"
+  expected_source: dossiers/devis_reprise/sources/cctp_excerpt_lot06.md
+  lexical_max_rank: 1
+  hybrid_max_rank: 1
+
+- case_id: dpgf_bordereau_exact
+  category: document_type
+  query: "bordereau quantitatif synthétique"
+  expected_source: dossiers/devis_reprise/sources/dpgf_lot06.md
+  lexical_max_rank: 1
+  hybrid_max_rank: 1
+
+- case_id: accentless_technical_query
+  category: lexical_observation
+  query: "etancheite terrasse"
+  observation_only: true
+  known_limit: "The current simple text-search configuration does not normalize accents."
+
+- case_id: semantic_paraphrase_placeholder
+  category: vector_observation
+  query: "Peut-on démarrer le chantier la semaine prochaine ?"
+  observation_only: true
+  known_limit: "The active feature-hashing embedder is not a production semantic model."

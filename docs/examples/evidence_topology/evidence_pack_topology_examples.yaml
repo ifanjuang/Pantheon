@@ -1,0 +1,212 @@
+# Fictional Evidence Pack example.
+# Educational support only.
+# This is not a schema, not a runtime log and not hidden chain-of-thought.
+
+identity:
+  evidence_pack_id: ep-example-evidence-topology-001
+  status: fictional_example
+  created_for: evidence_topology_gate_demo
+  doctrine_refs:
+    - docs/governance/EVIDENCE_TOPOLOGY.md
+    - docs/governance/EVIDENCE_PACK.md
+    - docs/governance/KNOWLEDGE_TAXONOMY.md
+    - docs/governance/MEMORY.md
+
+linked_contracts:
+  - tc-example-single-primary-reasoning-context-001
+  - tc-example-fanout-extract-single-synthesis-001
+  - tc-example-persistent-role-team-handoff-001
+
+purpose:
+  summary: Show how an Evidence Pack can preserve topology choice, Evidence Items, Handoff Artifacts, limitations and approval gaps.
+  boundary: This pack is illustrative only and does not report real execution.
+
+reasoning_topology_records:
+  - topology: single_primary_reasoning_context
+    selected_for: fictitious enterprise ticket analysis
+    reason: decisive inference required connecting Jira, Java and XML configuration in one consolidated context
+    rejected_topologies:
+      - specialist_agents_with_summary_only_handoffs
+      - unbounded_multi_agent_supervisor
+    review_note: The proof chain would likely break if each source domain produced only a prose summary.
+
+  - topology: fanout_extract_then_single_synthesis
+    selected_for: fictitious recovery quote dossier review
+    reason: several source documents could be extracted independently, but final risk assessment required centralized comparison
+    rejected_topologies:
+      - final_worker_conclusions
+      - client_validation_email_from_worker_summary
+    review_note: Workers may extract Evidence Items but may not conclude quote validity.
+
+  - topology: persistent_role_team_handoff
+    selected_for: fictitious product/content staged workflow
+    reason: staged artifact ownership reduced dispatch burden while preserving review gates
+    rejected_topologies:
+      - team_chat_as_evidence_pack
+      - role_memory_as_canonical_memory
+      - direct_publication_after_agent_handoff
+    review_note: Role-team continuity is useful only when every handoff carries a bounded artifact and approval gap.
+
+evidence_items:
+  - evidence_id: ei-ticket-jira-001
+    related_contract: tc-example-single-primary-reasoning-context-001
+    claim: Jira comment identifies the intended behavior change as limited to billing summary display.
+    source_type: jira_comment
+    source_ref: fictional-jira://OPS-1842#comment-17
+    source_location: comment 17, lines 3-8 in fictional export
+    supports: ticket_intention_trace
+    scope_of_support: Supports intended behavior only for OPS-1842, not similarly named tickets.
+    # legacy field superseded by the certainty axis; kept for compatibility
+    confidence: medium
+    limitations:
+      - Jira comment is not a design approval.
+      - Comment date must be checked against later design note.
+    open_questions:
+      - Was the comment superseded by a later product decision?
+    scope_warnings:
+      - Do not apply to OPS-1842A or OPS-1843.
+
+  - evidence_id: ei-code-java-001
+    related_contract: tc-example-single-primary-reasoning-context-001
+    claim: Java class BillingSummaryService reads the process-flow flag before rendering the summary.
+    source_type: java_source
+    source_ref: fictional-repo://src/billing/BillingSummaryService.java:L120-L156
+    source_location: method renderSummary, conditional branch around processFlowFlag
+    supports: code_path_trace
+    scope_of_support: Supports existence of a code path; does not prove runtime behavior.
+    # legacy field superseded by the certainty axis; kept for compatibility
+    confidence: medium
+    limitations:
+      - No runtime test was executed.
+      - The referenced XML file must still be checked.
+    open_questions:
+      - Does the process-flow XML define the flag for the requested customer segment?
+    scope_warnings:
+      - Do not infer frontend behavior from backend code alone.
+
+  - evidence_id: ei-xml-config-001
+    related_contract: tc-example-single-primary-reasoning-context-001
+    claim: XML configuration appears to gate the billing summary under condition billing.summary.enabled.
+    source_type: process_flow_xml
+    source_ref: fictional-repo://config/process-flow/billing-summary.xml:L44-L61
+    source_location: condition block billing.summary.enabled
+    supports: configuration_gate_trace
+    scope_of_support: Supports existence of a configuration gate; does not prove it is enabled in production.
+    # legacy field superseded by the certainty axis; kept for compatibility
+    confidence: low_medium
+    limitations:
+      - Environment-specific override not checked.
+      - Production configuration is outside authorized scope.
+    open_questions:
+      - Which environment owns the active value for this flag?
+    scope_warnings:
+      - Do not request production access without revised approval.
+
+  - evidence_id: ei-cctp-quote-001
+    related_contract: tc-example-fanout-extract-single-synthesis-001
+    claim: Quote line item 4 appears broader than the fictitious CCTP excerpt.
+    source_type: quote_and_cctp_comparison
+    source_ref:
+      quote: fictional-doc://quote-Q-2026-041#item-4
+      cctp: fictional-doc://cctp-excerpt#section-3.2
+    source_location: quote item 4 and CCTP section 3.2
+    supports: contradiction_candidate
+    scope_of_support: Supports need for clarification; does not prove the quote is invalid.
+    # legacy field superseded by the certainty axis; kept for compatibility
+    confidence: medium
+    limitations:
+      - Full CCTP was not in scope.
+      - Meeting notes may contain later clarification.
+    open_questions:
+      - Was item 4 requested in a later instruction?
+    scope_warnings:
+      - Do not draft a validation email from this evidence alone.
+
+handoff_artifacts:
+  - handoff_id: ha-api-contract-001
+    related_contract: tc-example-persistent-role-team-handoff-001
+    type: api_contract_note
+    from_role: backend
+    to_role: frontend
+    scope: New billing endpoint for dashboard display only.
+    artifact_ref: fictional-repo://docs/contracts/billing-api-draft.md
+    changed_surface:
+      - GET /api/billing/summary
+    assumptions:
+      - Authentication middleware unchanged.
+      - Pagination behavior not part of this contract.
+    blockers:
+      - Response pagination not validated.
+    evidence_refs:
+      - ei-code-java-001
+    approval_gap: Frontend may prepare an adaptation candidate, but deployment remains blocked pending review.
+
+  - handoff_id: ha-editorial-review-001
+    related_contract: tc-example-persistent-role-team-handoff-001
+    type: editorial_review_note
+    from_role: editor
+    to_role: seo
+    scope: Candidate article metadata after editorial review.
+    artifact_ref: fictional-doc://drafts/release-article-editorial-review.md
+    changed_surface:
+      - title candidate
+      - excerpt candidate
+      - section headings
+    assumptions:
+      - Brand voice memory is runtime-side only.
+      - Style guide excerpt has not been promoted to a Registre Probatoire entry.
+    blockers:
+      - Final publication approval missing.
+    evidence_refs:
+      - fictional-doc://style-guide-excerpt#voice-section
+    approval_gap: SEO may prepare metadata candidate, but public publication is blocked pending approval.
+
+contradictions:
+  - contradiction_id: c-quote-cctp-001
+    related_evidence:
+      - ei-cctp-quote-001
+    conflict_type: scope_conflict
+    severity: medium_high
+    summary: Quote item appears broader than current CCTP excerpt.
+    resolution_status: unresolved
+    required_next_action: request_missing_source_or_user_decision
+    impact_on_output: internal_review_note_only
+    impact_on_memory: no_memory_candidate
+
+approval_state:
+  current: not_approved
+  delivery_status: candidate_only
+  external_effects_blocked:
+    - client_email
+    - public_publication
+    - repository_merge
+    - production_deployment
+    - memory_promotion
+  required_before_external_effect:
+    - human_review
+    - approval_level_confirmation
+    - evidence_gap_resolution
+
+memory_candidates:
+  proposed: []
+  blocked_memory_notes:
+    - note: Role-team voice memory remains runtime-side and is not a Registre Probatoire entry.
+      reason: No Evidence Pack review or approval for style-guide memory promotion.
+    - note: Ticket intention must not become project memory from a single Jira comment.
+      reason: Source is medium confidence and possibly superseded.
+
+user_decision_gate:
+  required: true
+  reason: Quote/CCTP contradiction and publication/deployment approval gaps remain unresolved in the examples.
+  suggested_options:
+    - continue_as_internal_draft
+    - request_missing_source
+    - narrow_scope
+    - block_external_transmission
+    - prepare_variants_for_review
+
+final_status:
+  evidence_pack_status: fictional_example_only
+  execution_status: not_executed
+  approval_status: not_requested
+  memory_status: no_memory_promotion

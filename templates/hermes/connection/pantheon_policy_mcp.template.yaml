@@ -1,0 +1,57 @@
+# Candidate only — merge this fragment into ~/.hermes/config.yaml on the
+# external Hermes host after reviewing paths and the pinned Pantheon version.
+#
+# Presence in Pantheon Next does not mean installed, reachable, registered,
+# approved or used.
+#
+# The executable and repository paths are deliberately versioned placeholders.
+# Keep a previous working executable and checkout available for rollback.
+
+mcp_servers:
+  pantheon-policy:
+    enabled: true
+    command: "/opt/data/pantheon-mcp/<PANTHEON_VERSION>/venv/bin/pantheon-mcp-server"
+    args: []
+
+    env:
+      # Mount the audited Pantheon checkout read-only at this path.
+      PANTHEON_REPO_PATH: "/opt/pantheon-next-<COMMIT_SHORT>"
+
+    # This exact surface combines the bounded governance wiki with the
+    # read-only request-handling helpers required by the governed Hermes flow.
+    # Candidate skeleton preparation and validation never execute work, mutate
+    # Pantheon, authorize an effect or turn retrieved material into Evidence.
+    # The Hermes dashboard plugin remains the live observation producer; this
+    # MCP does not probe Hermes or infer approval from dashboard labels.
+    tools:
+      include:
+        - route_governed_request
+        - read_doctrine
+        - explain_governance_structure
+        - get_consultation_catalog
+        - explain_architecture
+        - get_capability_status
+        - evaluate_preflight
+        - prepare_task_contract_skeleton
+        - prepare_evidence_pack_skeleton
+        - plan_context_pack
+        - validate_context_pack
+      prompts: false
+      resources: false
+
+    # The policy/wiki server never needs to request model inference from Hermes.
+    sampling:
+      enabled: false
+
+    # Conservative common-baseline default. All eleven tools are read-only, but
+    # serialized calls simplify trace review and avoid claiming concurrency need.
+    supports_parallel_tool_calls: false
+
+# Restrict the OpenAI-compatible API platform to this enabled MCP server.
+# Omitting this block restores Hermes' broad native API-server toolset.
+# Hermes 0.18.2 may emit a static unknown-toolset warning because validation
+# runs before dynamic MCP registration. Runtime acceptance must still prove
+# that no native API toolsets are enabled and pantheon-policy is callable.
+platform_toolsets:
+  api_server:
+    - pantheon-policy

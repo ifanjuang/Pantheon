@@ -1,0 +1,183 @@
+services:
+  workspace-producer:
+    build:
+      context: ../../implementation
+      dockerfile: workspace_cockpit/Dockerfile
+      args:
+        HERMES_IMAGE: ${RELEASE_HERMES_IMAGE:?load deployment/ubuntu/release.env}
+    image: pantheon/workspace-cockpit:local
+    container_name: pantheon-workspace-producer
+    restart: unless-stopped
+    network_mode: host
+    ports: !reset []
+    extra_hosts: !reset []
+    entrypoint: ["/opt/hermes/.venv/bin/python", "/app/producer_daemon.py"]
+    command:
+      - --max-depth
+      - "8"
+      - --root
+      - Affaires=/workspace/affaires
+    read_only: true
+    cap_drop:
+      - ALL
+    group_add:
+      - "${AFFAIRES_GID:?set AFFAIRES_GID to the Linux-mounted NAS AFFAIRES group id}"
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    environment:
+      WORKSPACE_INDEX_DB: /state/index.sqlite3
+      WORKSPACE_RECONCILE_SECONDS: ${WORKSPACE_RECONCILE_SECONDS:-3600}
+      WORKSPACE_WATCH_DEBOUNCE_MS: ${WORKSPACE_WATCH_DEBOUNCE_MS:-500}
+      WORKSPACE_EXCLUDED_FOLDERS: ${WORKSPACE_EXCLUDED_FOLDERS:-Archive,Archives,RATP,AGENCY_RATP}
+      WORKSPACE_HINDSIGHT_URL: ${WORKSPACE_HINDSIGHT_URL:-http://127.0.0.1:8888}
+      WORKSPACE_HINDSIGHT_BANK_ID: ${WORKSPACE_HINDSIGHT_BANK_ID:-AGENCY_PROJECTS}
+      WORKSPACE_HINDSIGHT_PARSER: ${WORKSPACE_HINDSIGHT_PARSER:-markitdown}
+      WORKSPACE_HINDSIGHT_MAX_SUBMITS_PER_RECONCILE: ${WORKSPACE_HINDSIGHT_MAX_SUBMITS_PER_RECONCILE:-100}
+      WORKSPACE_HINDSIGHT_MAX_FILE_MB: ${WORKSPACE_HINDSIGHT_MAX_FILE_MB:-100}
+      WORKSPACE_HINDSIGHT_SETTLE_OBSERVATIONS: ${WORKSPACE_HINDSIGHT_SETTLE_OBSERVATIONS:-2}
+      WORKSPACE_HINDSIGHT_SOURCE_KIND: ${WORKSPACE_HINDSIGHT_SOURCE_KIND:-project-sync}
+      WORKSPACE_HINDSIGHT_AUTHORIZATION: ${WORKSPACE_HINDSIGHT_AUTHORIZATION:-}
+    volumes:
+      - ${AFFAIRES_ROOT:?set AFFAIRES_ROOT to the Linux-mounted NAS AFFAIRES path}:/workspace/affaires:ro
+      - workspace-cockpit-state:/state
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          /opt/hermes/.venv/bin/python -c "import os,sqlite3;
+          p=os.environ.get('WORKSPACE_INDEX_DB','/state/index.sqlite3');
+          c=sqlite3.connect('file:'+p+'?mode=ro',uri=True,timeout=2);
+          r=c.execute(\"select value from workspace_meta where key='last_reconcile_at'\").fetchone();
+          assert r and r[0]"
+      interval: 30s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  workspace-cockpit:
+    image: pantheon/workspace-cockpit:local
+    container_name: pantheon-workspace-cockpit
+    restart: unless-stopped
+    network_mode: host
+    ports: !reset []
+    extra_hosts: !reset []
+    command:
+      - --host
+      - ${WORKSPACE_COCKPIT_BIND:-127.0.0.1}
+      - --port
+      - ${WORKSPACE_COCKPIT_PORT:-8189}
+      - --max-depth
+      - "8"
+      - --projection-only
+      - --root
+      - Affaires=/workspace/affaires
+    read_only: true
+    cap_drop:
+      - ALL
+    group_add:
+      - "${AFFAIRES_GID:?set AFFAIRES_GID to the Linux-mounted NAS AFFAIRES group id}"
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    environment:
+      WORKSPACE_COCKPIT_BIND: ${WORKSPACE_COCKPIT_BIND:-127.0.0.1}
+      WORKSPACE_COCKPIT_PORT: ${WORKSPACE_COCKPIT_PORT:-8189}
+      # Optional navigation only. The Cockpit never proxies these surfaces and
+      # hides each unset entry.
+      WORKSPACE_COCKPIT_HERMES_URL: ${WORKSPACE_COCKPIT_HERMES_URL:-}
+      WORKSPACE_COCKPIT_HINDSIGHT_URL: ${WORKSPACE_COCKPIT_HINDSIGHT_URL:-}
+      WORKSPACE_COCKPIT_MNEMOSYNE_URL: ${WORKSPACE_COCKPIT_MNEMOSYNE_URL:-}
+      WORKSPACE_ROLE_TRACE_URL: http://127.0.0.1:${ROLE_TRACE_ATTACH_PORT:-8190}
+      WORKSPACE_ROLE_TRACE_KEY: ${ROLE_TRACE_READ_KEY:?set ROLE_TRACE_READ_KEY outside the repository}
+      WORKSPACE_INDEX_DB: /state/index.sqlite3
+      WORKSPACE_HINDSIGHT_URL: ${WORKSPACE_HINDSIGHT_URL:-http://127.0.0.1:8888}
+      WORKSPACE_HINDSIGHT_BANK_ID: ${WORKSPACE_HINDSIGHT_BANK_ID:-AGENCY_PROJECTS}
+      WORKSPACE_HINDSIGHT_PARSER: ${WORKSPACE_HINDSIGHT_PARSER:-markitdown}
+      WORKSPACE_HINDSIGHT_MAX_FILE_MB: ${WORKSPACE_HINDSIGHT_MAX_FILE_MB:-100}
+      WORKSPACE_HINDSIGHT_AUTHORIZATION: ${WORKSPACE_HINDSIGHT_AUTHORIZATION:-}
+      WORKSPACE_RECONCILE_HERMES_URL: ${WORKSPACE_RECONCILE_HERMES_URL:-}
+      WORKSPACE_RECONCILE_HERMES_KEY: ${WORKSPACE_RECONCILE_HERMES_KEY:-}
+      WORKSPACE_RECONCILE_HERMES_TIMEOUT_SECONDS: ${WORKSPACE_RECONCILE_HERMES_TIMEOUT_SECONDS:-120}
+      WORKSPACE_RECONCILE_MAX_CONTEXT_CHARS: ${WORKSPACE_RECONCILE_MAX_CONTEXT_CHARS:-48000}
+    depends_on:
+      role-trace:
+        condition: service_healthy
+    volumes:
+      - ${AFFAIRES_ROOT:?set AFFAIRES_ROOT to the Linux-mounted NAS AFFAIRES path}:/workspace/affaires:ro
+      - workspace-cockpit-state:/state:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          /opt/hermes/.venv/bin/python -c "import os,urllib.request;
+          urllib.request.urlopen('http://' + os.environ.get('WORKSPACE_COCKPIT_BIND','127.0.0.1')
+          + ':' + os.environ.get('WORKSPACE_COCKPIT_PORT','8189') + '/api/health', timeout=2)"
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  role-trace:
+    image: pantheon/workspace-cockpit:local
+    container_name: pantheon-role-trace
+    restart: unless-stopped
+    entrypoint: ["/opt/hermes/.venv/bin/python", "/app/role_server.py"]
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    environment:
+      HERMES_ROLE_TRACE_BASE_URL: ${HERMES_ROLE_TRACE_BASE_URL:?set the exact governed Hermes profile URL}
+      HERMES_ROLE_TRACE_API_KEY: ${HERMES_ROLE_TRACE_API_KEY:?set the governed Hermes Runs API key}
+      ROLE_TRACE_ATTACH_KEY: ${ROLE_TRACE_ATTACH_KEY:?set ROLE_TRACE_ATTACH_KEY outside the repository}
+      ROLE_TRACE_READ_KEY: ${ROLE_TRACE_READ_KEY:?set ROLE_TRACE_READ_KEY outside the repository}
+    ports:
+      - "127.0.0.1:${ROLE_TRACE_ATTACH_PORT:-8190}:8190"
+    healthcheck:
+      test:
+        - CMD
+        - /opt/hermes/.venv/bin/python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8190/health', timeout=2)
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  hindsight-enrichment-hook:
+    profiles: ["enrichment"]
+    image: pantheon/workspace-cockpit:local
+    container_name: pantheon-hindsight-enrichment-hook
+    restart: unless-stopped
+    network_mode: host
+    ports: !reset []
+    extra_hosts: !reset []
+    entrypoint: ["/opt/hermes/.venv/bin/python", "/app/hindsight_enrichment_hook.py"]
+    command: ["--host", "127.0.0.1", "--port", "8191", "--state-db", "/state/index.sqlite3"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp:size=16m,mode=1777]
+    # Created by configure-hindsight-enrichment-hook; it is deliberately
+    # outside the repository and contains only the HMAC signing secret.
+    env_file:
+      - /etc/pantheon-hindsight-enrichment-hook.env
+    environment:
+      HINDSIGHT_ENRICHMENT_BANK_ID: ${WORKSPACE_HINDSIGHT_BANK_ID:-AGENCY_PROJECTS}
+    volumes:
+      - workspace-cockpit-state:/state
+    healthcheck:
+      test: ["CMD", "/opt/hermes/.venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8191/health', timeout=2)"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  workspace-cockpit-state:

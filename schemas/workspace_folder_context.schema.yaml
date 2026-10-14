@@ -1,0 +1,38 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Workspace Folder Context Frontmatter
+description: >-
+  Machine-readable contract for the reserved frontmatter fields of optional
+  _folder.md context. Folder context improves navigation and retrieval hints but
+  does not create governed Project identity, professional status, Evidence or
+  authorization.
+type: object
+required: [schema]
+properties:
+  schema:
+    const: pantheon/folder-context/v1
+  title:
+    type: string
+    minLength: 1
+  project:
+    type: string
+    minLength: 1
+    description: Descriptive project hint only; folder context is not governed Project identity.
+  phase:
+    type: string
+    minLength: 1
+  tags:
+    oneOf:
+      - type: string
+        minLength: 1
+      - type: array
+        uniqueItems: true
+        items:
+          type: [string, number]
+additionalProperties: true
+x-pantheon-schema-id: pantheon/folder-context/v1
+x-boundary:
+  governed_project_identity: false
+  professional_status: false
+  evidence_admission: false
+  memory_promotion: false
+  authorization: false

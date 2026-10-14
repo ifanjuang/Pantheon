@@ -1,0 +1,121 @@
+{
+  "installation_candidate": {
+    "api_version": "pantheon.next/v0alpha1",
+    "kind": "InstallationCandidate",
+    "metadata": {
+      "id": "installation_candidate_docling_cpu_internal_history",
+      "created_at": "2026-07-12T13:55:00Z",
+      "status": "prepared"
+    },
+    "spec": {
+      "capability": "document_analysis",
+      "resource": "docling",
+      "configuration": {"execution_profile": "cpu", "exposure": "internal_only"},
+      "bindings": [{"from": "hermes", "to": "docling", "mode": "internal_http"}],
+      "allowed_provisioners": ["docker_compose"],
+      "health": {"kind": "http"},
+      "rollback": {"strategy": "previous_image_candidate"}
+    },
+    "governance": {
+      "installation_authorized": false,
+      "execution_started": false,
+      "activation_authorized": false,
+      "human_approval_required": true
+    }
+  },
+  "handoff_candidate": {
+    "api_version": "pantheon.next/v0alpha1",
+    "kind": "ProvisionerHandoffCandidate",
+    "metadata": {
+      "id": "handoff_candidate_docling_cpu_internal_history",
+      "created_at": "2026-07-12T14:00:00Z",
+      "status": "prepared",
+      "installation_candidate_id": "installation_candidate_docling_cpu_internal_history"
+    },
+    "spec": {
+      "selected_provisioner": "docker_compose",
+      "install_mode": "compose_stack",
+      "artifact": {
+        "type": "compose_candidate",
+        "reference": "local://docling-compose-history-candidate",
+        "digest_required": true
+      },
+      "expected_changes": ["create internal service candidate"],
+      "preflight": ["rollback path reviewed"],
+      "rollback": ["remove candidate service"],
+      "secret_references": []
+    },
+    "governance": {
+      "handoff_authorized": false,
+      "execution_authorized": false,
+      "execution_started": false,
+      "human_approval_required": true
+    }
+  },
+  "approval_first": {
+    "api_version": "pantheon.next/v0alpha1",
+    "kind": "HandoffDecision",
+    "metadata": {
+      "id": "handoff_decision_docling_history_first",
+      "created_at": "2026-07-12T14:10:00Z",
+      "status": "approved"
+    },
+    "spec": {
+      "handoff_candidate": "handoff_candidate_docling_cpu_internal_history",
+      "decision": "approve",
+      "decided_by": "human_operator_example",
+      "decision_level": "C4",
+      "authorized_scope": {
+        "environment": "sandbox",
+        "resource": "docling",
+        "configuration_ref": "installation_candidate_docling_cpu_internal_history",
+        "provisioner": "docker_compose",
+        "one_time": true
+      },
+      "effective_at": "2026-07-12T14:10:00Z",
+      "expires_at": "2026-07-12T15:10:00Z",
+      "reason": "Synthetic first bounded approval window.",
+      "evidence_references": [],
+      "supersedes": null
+    },
+    "governance": {
+      "approval_is_execution": false,
+      "automatic_approval": false,
+      "runtime_callback": false,
+      "activation_authorized": false
+    }
+  },
+  "approval_second": {
+    "api_version": "pantheon.next/v0alpha1",
+    "kind": "HandoffDecision",
+    "metadata": {
+      "id": "handoff_decision_docling_history_second",
+      "created_at": "2026-07-12T16:00:00Z",
+      "status": "approved"
+    },
+    "spec": {
+      "handoff_candidate": "handoff_candidate_docling_cpu_internal_history",
+      "decision": "approve",
+      "decided_by": "human_operator_example",
+      "decision_level": "C4",
+      "authorized_scope": {
+        "environment": "sandbox",
+        "resource": "docling",
+        "configuration_ref": "installation_candidate_docling_cpu_internal_history",
+        "provisioner": "docker_compose",
+        "one_time": true
+      },
+      "effective_at": "2026-07-12T16:00:00Z",
+      "expires_at": "2026-07-12T17:00:00Z",
+      "reason": "Synthetic later bounded approval window after the first expired.",
+      "evidence_references": [],
+      "supersedes": null
+    },
+    "governance": {
+      "approval_is_execution": false,
+      "automatic_approval": false,
+      "runtime_callback": false,
+      "activation_authorized": false
+    }
+  }
+}

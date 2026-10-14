@@ -1,0 +1,99 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Architecture Proof Register Proof Entry
+description: Relation saying evidence supports a claim, status or professional object. It records support; it does not decide truth alone.
+type: object
+additionalProperties: false
+required: [proof_entry_id, scope_id, professional_object_type, claim_or_status, proof_status, approval_state]
+properties:
+  proof_entry_id: { $ref: "#/$defs/uuid" }
+  human_ref: { type: string, minLength: 1, maxLength: 160 }
+  scope_id: { $ref: "#/$defs/uuid" }
+  scope_type: { type: string, enum: [project, phase, lot, agency_library, global_reference, external_project_subset] }
+  scope_notes: { type: string }
+  professional_object_type: { type: string, minLength: 1 }
+  professional_object_ref: { type: string }
+  professional_object_label: { type: string }
+  claim_or_status: { type: string, minLength: 1 }
+  evidence_refs:
+    type: array
+    items: { $ref: "#/$defs/evidence_ref" }
+    default: []
+  source_document_family_id: { $ref: "#/$defs/uuid" }
+  source_document_family_label: { type: string }
+  source_document_version_id: { $ref: "#/$defs/uuid" }
+  source_index_label: { type: string }
+  source_authority_level:
+    type: string
+    enum: [law_or_regulation, operation_contract, signed_market_document, approved_phase_decision, signed_or_contradictory_site_evidence, approved_client_decision, contractor_signed_response, approved_technical_report, agency_standard, project_working_document, derived_text, semantic_search_result, model_interpretation_candidate]
+  phase_code: { type: string, enum: [DIAG, APS, APD, PRO, DCE, ACT, EXE, VISA, DET, OPC, AOR, DOE, GPA, AGENCY_LIBRARY, GLOBAL_REFERENCE] }
+  lot_id: { $ref: "#/$defs/uuid" }
+  lot_label: { type: string }
+  proof_status:
+    type: string
+    enum: [candidate, source_missing, source_incomplete, source_complete_for_task, source_superseded, contradictory_evidence, authority_too_low, requires_more_evidence, accepted_as_support, rejected, obsolete, superseded]
+  proof_notes: { type: string }
+  approval_state:
+    type: string
+    enum: [candidate, requires_human_review, requires_more_evidence, approved_for_internal_use, approved_for_meeting_preparation, approved_for_transmission_draft, approved_for_contractual_action, rejected, obsolete, superseded]
+  approval_notes: { type: string }
+  allowed_use:
+    type: array
+    items: { $ref: "#/$defs/use_type" }
+    uniqueItems: true
+  forbidden_use:
+    type: array
+    items: { $ref: "#/$defs/use_type" }
+    uniqueItems: true
+  requested_use:
+    type: array
+    items: { $ref: "#/$defs/use_type" }
+    uniqueItems: true
+  produced_by: { type: string }
+  reviewed_by: { type: string }
+  supersedes_proof_entry_id: { $ref: "#/$defs/uuid" }
+  superseded_by_proof_entry_id: { $ref: "#/$defs/uuid" }
+  created_at: { type: string, format: date }
+  metadata: { type: object }
+  governance_refs:
+    type: array
+    items: { type: string }
+    default:
+      - docs/domain-packs/architecture/PROOF_REGISTER.md
+      - docs/governance/EVIDENCE_PACK.md
+      - docs/governance/ANSWER_VERIFICATION_GATE.md
+      - docs/governance/GLOSSARY.md
+      - schemas/shared_axes.schema.yaml
+$defs:
+  uuid: { type: string, format: uuid }
+  use_type:
+    type: string
+    enum: [internal_review, meeting_preparation, client_review, external_transmission, consultation, contract_preparation, contractual_action, execution_use, site_record, reserve_followup, doe_handover, gpa_followup, memory_promotion, administrative_filing, payment_or_financial]
+  evidence_ref:
+    type: object
+    additionalProperties: false
+    required: [evidence_id]
+    properties:
+      evidence_id: { $ref: "#/$defs/uuid" }
+      evidence_type: { type: string }
+      evidence_label: { type: string }
+      source_version_id: { $ref: "#/$defs/uuid" }
+allOf:
+  - if:
+      anyOf:
+        - properties: { proof_status: { const: accepted_as_support } }
+          required: [proof_status]
+        - properties: { approval_state: { enum: [approved_for_internal_use, approved_for_meeting_preparation, approved_for_transmission_draft, approved_for_contractual_action] } }
+          required: [approval_state]
+    then:
+      required: [source_document_version_id, evidence_refs]
+      properties:
+        evidence_refs:
+          minItems: 1
+x-boundary:
+  runtime_execution: false
+  provider_routing: false
+  scheduler: false
+  queue_system: false
+  memory_promotion: false
+  automatic_canonization: false
+  approval_engine: false

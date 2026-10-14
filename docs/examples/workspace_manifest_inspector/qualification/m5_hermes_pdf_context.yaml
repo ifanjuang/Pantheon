@@ -1,0 +1,69 @@
+fixture_status: synthetic_candidate
+qualification:
+  purpose: >-
+    Prove the smallest bounded path by which Hermes can know that an exact PDF
+    source exists and inspect its document metadata without requiring Hindsight,
+    a global workspace listing, source-binary inclusion, or a new workspace authority.
+  baseline_main: 3dc6473ef68f4347749df7727397917a31c3d7dd
+  production_sidecar_schema: not_adopted
+  runtime_change_required: false
+
+workspace_observation:
+  path: Affaires/Verger/Etudes/Etude-G2.pdf
+  filename: Etude-G2.pdf
+  media_type: application/pdf
+  digest_sha256: 6f0d815c3f763193900cc7420d84218f23b9db5fb12ab0cba4ad9d2ee24ee906
+  byte_size: 2457600
+  manifest_present: true
+  manifest_role: candidate_source_metadata
+  admitted_document_ref: document:22222222-2222-4222-8222-222222222222
+
+context_pack:
+  included_entities:
+    - entity_type: document
+      entity_id: document:22222222-2222-4222-8222-222222222222
+  source_refs:
+    - source:verger-etude-g2-pdf
+  admission_rule: exact_identity_only
+  global_listing_available: false
+
+expected_hermes_manifest:
+  document_entity_materializable: true
+  source_refs_visible_as_provenance: true
+  source_dereference_available: false
+  global_search_available: false
+  global_listing_available: false
+
+expected_hermes_document_projection:
+  record_owner_system: postgres_document_projection
+  record_fields:
+    document_id: 22222222-2222-4222-8222-222222222222
+    title: Etude G2
+    source_ref: source:verger-etude-g2-pdf
+    source_digest: sha256:6f0d815c3f763193900cc7420d84218f23b9db5fb12ab0cba4ad9d2ee24ee906
+    media_type: application/pdf
+    byte_size: 2457600
+    analysis_status: available
+  optional_representation:
+    kind: derived_markdown
+    source_binary_included: false
+    may_be_absent: true
+
+unmanifested_or_unadmitted_pdf:
+  path: Affaires/Verger/Plans/Plan-RDC-D.pdf
+  observable_through_bounded_workspace_filesystem: true
+  automatically_admitted_to_context_pack: false
+  automatically_materializable_as_governed_document: false
+  requires_hindsight_to_know_file_exists: false
+
+boundaries:
+  manifest_present_is_not_document_admission: true
+  workspace_path_is_not_governed_identity: true
+  pdf_observed_is_not_pdf_content_understood: true
+  source_ref_is_not_source_dereference_authority: true
+  context_pack_inclusion_is_not_evidence: true
+  document_projection_is_not_source_binary: true
+  derived_markdown_is_not_exact_source: true
+  hindsight_is_not_required_for_file_existence: true
+  global_listing_is_not_implicitly_authorized: true
+  projection_is_not_persistence: true

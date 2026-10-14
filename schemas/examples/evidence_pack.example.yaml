@@ -1,0 +1,127 @@
+evidence_pack_id: example.evidence-pack
+task_contract_id: example.task-contract
+created_at: "2026-05-17T20:20:00Z"
+summary: Evidence pack for a governance-only schema reconciliation example.
+scope:
+  scope_type: repository
+  scope_id: pantheon-next
+  scope_label: Pantheon Next repository
+sources:
+  - type: source_reference
+    reference: docs/governance/TASK_CONTRACTS.md
+    status: selected_evidence
+    supports: Task Contract fields and non-runtime boundary.
+    limitations:
+      - Does not define runtime execution.
+    notes: Used as canonical doctrine reference.
+  - type: source_reference
+    reference: docs/governance/EVIDENCE_PACK.md
+    status: selected_evidence
+    supports: Evidence Pack structure and review boundaries.
+    limitations:
+      - Does not define observability backend semantics.
+  - type: source_reference
+    reference: docs/governance/EVIDENCE_TOPOLOGY.md
+    status: selected_evidence
+    supports: Reasoning topology, proof-chain and handoff boundary doctrine.
+    limitations:
+      - Does not define runtime dispatch.
+  - type: user_input
+    reference: User selected schema option B.
+    status: selected_evidence
+    supports: Explicit authorization to modify protected Task Contract and Evidence Pack schema files for this task.
+evidence_items:
+  - evidence_id: ei.schema-topology-doctrine
+    claim: Evidence Topology Gate supports recording topology metadata without creating runtime dispatch.
+    source_type: governance_document
+    source_ref: docs/governance/EVIDENCE_TOPOLOGY.md
+    source_location: Core rule and Task Contract expectation sections
+    supports: reasoning_topology_schema_update
+    claim_status: supported
+    scope_of_support: Supports optional governance metadata only, not runtime behavior.
+    # legacy field superseded by the certainty axis; kept for compatibility
+    confidence: high
+    limitations:
+      - Does not validate implementation behavior.
+    open_questions:
+      - Should future tests require topology fields for high-risk examples?
+    scope_warnings:
+      - Do not treat topology metadata as execution routing.
+handoff_artifacts:
+  - handoff_id: ha.schema-candidate-review
+    type: schema_candidate_review_note
+    from_role: HEPHAISTOS
+    to_role: APOLLO
+    scope: Review optional schema fields for clarity and non-runtime boundary.
+    artifact_ref: schemas/task_contract.schema.yaml and schemas/evidence_pack.schema.yaml
+    changed_surface:
+      - reasoning_topology
+      - evidence_items
+      - handoff_artifacts
+      - reasoning_topology_record
+    assumptions:
+      - Fields remain optional in this pass.
+      - Tests are not modified in option B.
+    blockers:
+      - Full validation test update remains separate protected work.
+    evidence_refs:
+      - ei.schema-topology-doctrine
+    approval_gap: Schema examples are candidates until reviewed and tested.
+reasoning_topology_record:
+  selected: fanout_extract_then_single_synthesis
+  reason: Schema and examples can be reviewed separately, but final schema interpretation remains consolidated under governance.
+  rejected_topologies:
+    - bounded_hermes_swarm_as_authority
+    - runtime_dispatch_from_schema
+  worker_outputs_used:
+    - ei.schema-topology-doctrine
+  handoff_artifacts_used:
+    - ha.schema-candidate-review
+  contradictions_preserved: []
+  unresolved_gaps:
+    - tests_not_updated_in_this_pass
+  approval_impact: protected schema update requires human authorization and later validation.
+  memory_impact: no memory promotion.
+  notes: This record documents schema review topology only; it is not a runtime trace.
+assumptions:
+  - Pantheon Next remains governance-only.
+  - Schemas validate structure only.
+  - Topology fields are governance metadata, not dispatch instructions.
+actions:
+  - Reconciled schema vocabulary with active governance documents.
+  - Preserved explicit non-runtime boundary flags.
+  - Added optional topology metadata to Task Contract and Evidence Pack schemas.
+risks:
+  - description: Schema presence may be mistaken for tested validation coverage.
+    severity: medium
+    mitigation: Keep tests listed as not modified until added separately.
+  - description: Schema fields may be misread as execution semantics.
+    severity: medium
+    mitigation: Preserve x-boundary flags and documentation notes.
+outputs:
+  - output_id: example.schema-updates
+    output_type: schema update
+    status: candidate
+    reference: schemas/
+  - output_id: example.documentation-update
+    output_type: documentation update
+    status: candidate
+    reference: docs/governance/STATUS.md
+reviews:
+  - reviewer: APOLLO
+    status: pending
+    notes: Example remains fictional and requires review before use as a fixture.
+memory_candidates: []
+approval_state:
+  level: C3
+  status: pending
+  notes: Example documents expected approval state but does not approve itself.
+user_decision_gate:
+  status: none
+  decision_effects: []
+governance_refs:
+  - docs/governance/EVIDENCE_PACK.md
+  - docs/governance/APPROVALS.md
+  - docs/governance/USER_DECISION_GATE.md
+  - docs/governance/KNOWLEDGE_TAXONOMY.md
+  - docs/governance/EVIDENCE_TOPOLOGY.md

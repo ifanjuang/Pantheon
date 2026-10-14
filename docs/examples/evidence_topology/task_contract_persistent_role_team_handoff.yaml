@@ -1,0 +1,142 @@
+# Fictional Task Contract example.
+# Educational support only.
+# This is not a schema, not runtime configuration and not a Hermes dispatch file.
+
+identity:
+  contract_id: tc-example-persistent-role-team-handoff-001
+  status: fictional_example
+  created_for: evidence_topology_gate_demo
+  doctrine_refs:
+    - docs/governance/EVIDENCE_TOPOLOGY.md
+    - docs/governance/TASK_CONTRACTS.md
+    - docs/governance/HERMES_INTEGRATION.md
+    - docs/governance/MEMORY.md
+
+intent:
+  summary: Coordinate a fictitious product/content workflow where several persistent Hermes-side roles pass bounded artifacts between stages.
+  professional_risk: medium
+  reason_for_governance: Role continuity is useful, but role memory, team chat and direct handoff must not become authority.
+
+scope:
+  included:
+    - fictitious product release note
+    - fictitious API contract draft
+    - fictitious campaign angle brief
+    - fictitious article draft
+    - fictitious editorial style guide excerpt
+  excluded:
+    - public publication
+    - production deployment
+    - SEO publication push
+    - client or user notification
+    - canonical memory promotion
+  scope_warning: This example concerns bounded artifact handoff only. It does not approve publication, deployment or memory retention.
+
+reasoning_topology:
+  selected: persistent_role_team_handoff
+  reason: artifact_bound_stage_work
+  handoff_policy: bounded_artifact_required
+  memory_policy: role_memory_is_not_canonical_memory
+  approval_policy: external_effect_requires_gate
+  why_not_single_context_only: Persistent roles reduce operational copy-paste for staged artifact work where each lane owns a distinct artifact.
+  why_not_unbounded_multi_agent: The role team must not decide final truth, publish, deploy or promote memory without approval.
+
+role_team_lanes:
+  engineering:
+    - arch: produces architecture decision note and blocks unsafe implementation assumptions
+    - backend: produces API contract candidate and backend patch candidate
+    - frontend: produces UI adaptation candidate after API contract is stable
+    - review: produces review verdict and blocker list
+  content:
+    - research: produces source-linked research digest
+    - strategist: produces campaign brief and angle constraints
+    - writer: produces draft article candidate
+    - editor: produces editorial review note and voice corrections
+    - seo: produces metadata package candidate after editorial approval
+
+handoff_artifacts_required:
+  - architecture_decision_note
+  - api_contract_note
+  - patch_candidate_reference
+  - review_verdict
+  - research_digest
+  - campaign_brief
+  - draft_article_candidate
+  - editorial_review_note
+  - metadata_package_candidate
+
+constraints:
+  - Every handoff must identify sender lane, receiver lane, artifact reference, scope, blockers and approval gap.
+  - Role memory may inform tone or local procedure but must not be treated as a Pantheon Registre Probatoire entry.
+  - Team chat is not an Evidence Pack.
+  - Canvas visibility is not approval.
+  - Public publishing, deployment, notification or memory promotion requires explicit approval.
+  - If a role expands scope, the task must be revised or escalated.
+
+expected_evidence:
+  handoff_artifact_fields:
+    - type
+    - from_role
+    - to_role
+    - scope
+    - artifact_ref
+    - changed_surface
+    - assumptions
+    - blockers
+    - evidence_refs
+    - approval_gap
+  evidence_pack_should_record:
+    - topology_selected
+    - handoff_artifacts_used
+    - review_blockers
+    - external_effect_gates
+    - memory_boundary
+    - publication_or_deployment_status
+
+allowed_outputs:
+  - handoff_artifact_candidate
+  - draft_article_candidate
+  - api_contract_candidate
+  - patch_candidate_reference
+  - editorial_review_note
+  - seo_metadata_candidate
+  - evidence_pack_candidate
+  - user_decision_gate_request
+
+forbidden_outputs:
+  - public_post
+  - deployment_action
+  - sent_notification
+  - final_release_approval
+  - canonical_memory
+  - hidden_agent_decision
+
+approvals:
+  expected_level: C2
+  escalates_to: C4_if_publication_or_deployment_is_requested
+  human_review_required_before:
+    - public_publication
+    - repository_merge
+    - production_deployment
+    - external_notification
+    - memory_candidate_review
+
+memory_rules:
+  default: runtime_role_memory_only
+  allowed: memory_candidate_after_evidence_pack_and_user_review
+  forbidden:
+    - role_memory_as_canonical_memory
+    - team_chat_as_memory
+    - auto_captured_knowledge_as_doctrine
+    - style_guide_update_without_review
+
+open_questions:
+  - Which artifacts are internal drafts and which may become external-facing?
+  - Is the API contract stable enough for frontend adaptation?
+  - Does the editor's voice memory require review before becoming a reusable style rule?
+  - Should the SEO package remain candidate until publication approval?
+
+final_status:
+  task_contract_status: example_only
+  execution_status: not_executed
+  approval_status: not_requested

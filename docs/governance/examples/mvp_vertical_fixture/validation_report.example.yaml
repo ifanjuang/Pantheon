@@ -1,0 +1,90 @@
+# MVP validation report example — expected output shape only
+# Documentation only. This report is not produced by a validator yet.
+report_id: mvp.devis-reprise.validation-report-001
+status: reviewable
+fixture_target: docs/governance/examples/mvp_vertical_fixture/fixture.schema_targets.yaml
+schema_ref: schemas/mvp_governed_loop_objects.schema.yaml
+created_by: documentation_example
+created_at: '2026-07-08T00:00:00Z'
+
+summary:
+  schema_status: pass
+  reference_status: pass_with_warnings
+  governance_status: pass_with_warnings
+  overall_meaning: structurally coherent enough for the next implementation step
+  does_not_mean:
+    - truth_validated
+    - approval_granted
+    - memory_admitted
+    - external_action_authorized
+    - runtime_accepted
+
+schema_validation:
+  status: pass
+  documents_checked: 7
+  expected_object_counts:
+    task_contract: 1
+    result_candidate: 2
+    evidence_pack_candidate: 1
+    decision_record: 2
+    register_candidate: 1
+  errors: []
+  warnings:
+    - status strings are not enum-validated yet
+    - additionalProperties remains permissive
+
+reference_validation:
+  status: pass_with_warnings
+  objects_indexed: 7
+  missing_refs: []
+  warnings:
+    - alias equality is not enforced by schema
+    - source_ref values are not resolved against a canonical source registry yet
+  checked_refs:
+    - from: mvp.devis-reprise.evidence-001
+      field: applies_to
+      to: mvp.devis-reprise.result-001
+      status: pass
+    - from: mvp.devis-reprise.decision-001
+      field: applies_to
+      to: mvp.devis-reprise.result-001
+      status: pass
+    - from: mvp.devis-reprise.result-002
+      field: revision_of
+      to: mvp.devis-reprise.result-001
+      status: pass
+    - from: mvp.devis-reprise.decision-002
+      field: applies_to
+      to: mvp.devis-reprise.result-002
+      status: pass
+    - from: mvp.devis-reprise.register-candidate-001
+      field: created_because_of
+      to: mvp.devis-reprise.decision-002
+      status: pass
+
+governance_invariants:
+  status: pass_with_warnings
+  invariant_failures: []
+  warnings:
+    - approve_for_internal_draft is present but send_authorization remains not_granted
+    - register_candidate remains pending_register_admission
+  checked_invariants:
+    - id: no_external_action_from_draft
+      status: pass
+      detail: both result candidates keep external_action_authorized false
+    - id: internal_draft_does_not_authorize_send
+      status: pass
+      detail: decision_002 approves internal draft only and keeps send_authorization not_granted
+    - id: register_candidate_is_not_memory
+      status: pass
+      detail: register candidate keeps not_memory_until_admitted true
+    - id: human_decision_required
+      status: pass
+      detail: decision records name human_practitioner
+
+next_actions:
+  - keep validation manual/local first
+  - add one deliberate failing fixture before CI
+  - decide status vocabulary before enum hardening
+  - decide Source Manifest and Retrieval Trace placement
+  - decide alias equality policy

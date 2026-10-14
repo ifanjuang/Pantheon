@@ -1,0 +1,123 @@
+{
+  "template_name": "hermes_loop_result_candidate",
+  "template_status": "candidate_runtime_adapter_template",
+  "repo_state": "documented_non_implemented",
+  "authority": {
+    "governance_source": [
+      "docs/governance/LOOP_GOVERNANCE_MODEL.md",
+      "docs/governance/CAPABILITY_PLACEMENT.md",
+      "docs/governance/MODULAR_DOMAIN_REORIENTATION.md"
+    ],
+    "not_executable_schema": true,
+    "not_runtime_status_authority": true,
+    "not_approval": true,
+    "not_memory_promotion": true,
+    "not_external_action": true
+  },
+  "loop_result_candidate": {
+    "loop_id": "loop:<task-or-project>:<YYYYMMDD>:<short-id>",
+    "linked_loop_contract_ref": "templates/hermes/handoffs/loop_contract_candidate.json or runtime contract ref",
+    "runtime_task_status": "partial",
+    "checker_status": "not_run",
+    "governance_result_status": "candidate",
+    "result_candidate": {
+      "result_type": "<candidate kind>",
+      "summary": "<what Hermes produced>",
+      "candidate_payload": {},
+      "confidence_note": null,
+      "known_limits": [],
+      "open_questions": []
+    },
+    "evidence_pack_candidate": {
+      "evidence_refs": [],
+      "source_refs": [],
+      "trace_refs": [],
+      "missing_evidence": [],
+      "evidence_status": "candidate",
+      "trace_is_not_proof": true
+    },
+    "event_summary": {
+      "events_total": 0,
+      "iterations_run": 0,
+      "last_event_type": "not_started",
+      "notable_events": []
+    },
+    "event_candidates": [
+      {
+        "event_id": "event:<loop-id>:<step-id>:<n>",
+        "step_id": "step:<n>",
+        "event_type": "started",
+        "process_status": "processing",
+        "governance_signal": "none",
+        "affected_object": null,
+        "changed_objects": [],
+        "unchanged_objects": [],
+        "evidence_refs": [],
+        "trace_refs": [],
+        "human_attention_required": false
+      }
+    ],
+    "blocked_items": [
+      {
+        "blocker_class": "blocking_source_gap",
+        "blocked_object": "<object or branch>",
+        "reason": "<why blocked>",
+        "required_resolution": "<source, scope, approval, capability or human input required>",
+        "branch_can_resume": true,
+        "independent_work_continued": false
+      }
+    ],
+    "changed_objects": [],
+    "unchanged_objects": [],
+    "skipped_objects": [],
+    "approval_still_required": true,
+    "human_decision_required": true,
+    "zeus_gate_required": true,
+    "trace_refs": [],
+    "idempotency_key": "idem:<task-or-loop>:<short-id>",
+    "final_runtime_note": "Hermes done does not mean Pantheon validated."
+  },
+  "status_vocabulary": {
+    "runtime_task_status_allowed_examples": [
+      "not_started",
+      "success",
+      "partial",
+      "failed",
+      "blocked",
+      "unknown"
+    ],
+    "checker_status_allowed_examples": [
+      "not_run",
+      "passed",
+      "failed",
+      "partial",
+      "not_applicable"
+    ],
+    "governance_result_status_allowed_examples": [
+      "candidate",
+      "to_verify",
+      "gate_open",
+      "approved_only_if_prior_explicit_approval_ref_exists",
+      "rejected",
+      "blocked"
+    ],
+    "default_governance_result_status": "candidate"
+  },
+  "runtime_boundary": {
+    "result_may_support": [
+      "review",
+      "decision_gate",
+      "evidence_pack_candidate",
+      "future_adapter_validation"
+    ],
+    "result_must_not_claim_by_itself": [
+      "professional_truth",
+      "legal_validity",
+      "architectural_validity",
+      "approval",
+      "external_transmission_authorization",
+      "Registre_Probatoire_promotion",
+      "doctrine_promotion"
+    ]
+  }
+}

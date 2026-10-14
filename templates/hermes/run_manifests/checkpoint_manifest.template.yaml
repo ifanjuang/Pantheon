@@ -1,0 +1,48 @@
+# Non-executable checkpoint manifest template.
+# This is not a scheduler, queue or workflow runtime.
+
+template_id: checkpoint_manifest
+owner_layer: hermes
+status: candidate_template_only
+purpose: >
+  Preserve compact durable status for a governed execution run without bloating chat context.
+
+required_fields:
+  - run_id
+  - task_contract_id
+  - context_pack_id
+  - current_checkpoint
+  - last_completed
+  - next_authorized_step
+  - blockers
+  - evidence_status
+  - approval_status
+  - memory_status
+  - last_updated_at
+  - timezone
+
+optional_fields:
+  - idle_duration
+  - stale_relative_terms
+  - pending_approvals
+  - capability_gaps
+  - trace_reference
+
+allowed_status:
+  - active
+  - blocked
+  - waiting_for_human_decision
+  - checkpoint_complete
+  - returned_candidate
+  - superseded
+
+forbidden_behaviors:
+  - schedule_next_task
+  - execute_next_step_without_scope
+  - approve_output
+  - promote_memory
+  - mutate_governance
+
+notes:
+  - The manifest preserves run state for visibility.
+  - It does not authorize continuation by itself.

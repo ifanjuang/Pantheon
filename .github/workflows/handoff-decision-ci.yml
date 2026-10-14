@@ -1,0 +1,32 @@
+name: Handoff Decision CI
+
+on:
+  pull_request:
+    paths:
+      - "catalog/schemas/handoff-decision.schema.json"
+      - "catalog/examples/docling-handoff-decision.json"
+      - ".github/scripts/check_handoff_decisions.py"
+      - ".github/workflows/handoff-decision-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "catalog/schemas/handoff-decision.schema.json"
+      - "catalog/examples/docling-handoff-decision.json"
+      - ".github/scripts/check_handoff_decisions.py"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate handoff human decisions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Install validation dependency
+        run: python3 -m pip install --quiet jsonschema
+      - name: Validate decision contracts
+        run: python3 .github/scripts/check_handoff_decisions.py

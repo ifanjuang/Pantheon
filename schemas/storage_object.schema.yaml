@@ -1,0 +1,140 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Next Storage Object
+description: >-
+  Transport-neutral identity for exact retained byte content and its replaceable
+  physical storage locations. A Storage Object is not a Source, professional
+  document, Evidence item, approval or storage-provider adoption decision.
+type: object
+additionalProperties: false
+required:
+  - storage_object_id
+  - content_sha256
+  - byte_size
+  - created_at
+  - locations
+properties:
+  storage_object_id:
+    type: string
+    minLength: 1
+    maxLength: 200
+    description: >-
+      Opaque stable identity for this exact-content object. It is not required
+      to equal the content digest; content-addressed identifiers remain an
+      implementation choice.
+  content_sha256:
+    type: string
+    pattern: "^[A-Fa-f0-9]{64}$"
+    description: SHA-256 of the exact retained bytes represented by this object.
+  byte_size:
+    type: integer
+    minimum: 0
+  media_type:
+    type: [string, "null"]
+    minLength: 1
+  created_at:
+    type: string
+    format: date-time
+  locations:
+    type: array
+    minItems: 1
+    items:
+      $ref: "#/$defs/location"
+  metadata:
+    type: object
+    default: {}
+    description: Non-authoritative storage metadata only.
+  governance_refs:
+    type: array
+    items:
+      type: string
+    default:
+      - docs/governance/DATA_PLATFORM_STORAGE_OBJECT_RETENTION.md
+      - docs/governance/DATA_PLATFORM_ARCHITECTURE.md
+      - docs/governance/RAW_DERIVED_GOVERNED_RECORDS.md
+$defs:
+  location:
+    type: object
+    additionalProperties: false
+    required:
+      - location_id
+      - storage_provider_ref
+      - locator
+      - retention_guarantee
+      - location_status
+    properties:
+      location_id:
+        type: string
+        minLength: 1
+        maxLength: 200
+      storage_provider_ref:
+        type: string
+        minLength: 1
+        maxLength: 300
+        description: >-
+          Opaque identity of the external/local storage binding. This contract
+          does not enumerate or route providers.
+      locator:
+        type: string
+        minLength: 1
+        maxLength: 4000
+        description: Opaque provider-specific locator for the exact content.
+      retention_guarantee:
+        type: string
+        enum:
+          - content_addressed
+          - provider_version
+          - immutable_object
+          - unknown
+      location_status:
+        type: string
+        enum:
+          - verified
+          - unverified
+          - unavailable
+      verification:
+        type: [object, "null"]
+        additionalProperties: false
+        required:
+          - method
+          - verified_at
+        properties:
+          method:
+            type: string
+            enum:
+              - full_sha256
+          verified_at:
+            type: string
+            format: date-time
+      metadata:
+        type: object
+        default: {}
+    allOf:
+      - if:
+          properties:
+            location_status:
+              const: verified
+          required: [location_status]
+        then:
+          required: [verification]
+          properties:
+            verification:
+              type: object
+      - if:
+          properties:
+            location_status:
+              enum: [unverified, unavailable]
+          required: [location_status]
+        then:
+          properties:
+            verification:
+              type: [object, "null"]
+x-boundary:
+  runtime_execution: false
+  provider_routing: false
+  provider_adoption: false
+  upload_runtime: false
+  evidence_admission: false
+  approval_engine: false
+  professional_validation: false
+  access_authorization: false
+  automatic_canonization: false

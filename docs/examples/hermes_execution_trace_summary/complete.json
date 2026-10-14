@@ -1,0 +1,81 @@
+{
+  "outcome": "result_candidate",
+  "summary": "Synthetic governed Hermes run completed with bounded context reads.",
+  "trace_refs": [
+    "hermes://runs/run-synthetic-1"
+  ],
+  "result_refs": [
+    "hermes-result-candidate://result-synthetic-1"
+  ],
+  "evidence_candidate_refs": [],
+  "execution_trace_summary": {
+    "schema_version": "hermes-execution-trace-summary-v1",
+    "correlation": {
+      "admission_id": "admission-synthetic-1",
+      "launch_reservation_id": "launch-reservation-synthetic-1",
+      "snapshot_id": "launch-snapshot-synthetic-1",
+      "snapshot_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "run_id": "run-synthetic-1"
+    },
+    "runtime": {
+      "implementation": "hermes-agent",
+      "version": "0.20.0",
+      "profile": "pantheon-governed"
+    },
+    "execution": {
+      "started_at": "2026-08-07T00:00:00Z",
+      "ended_at": "2026-08-07T00:00:05Z",
+      "terminal_status": "completed",
+      "step_count": 3,
+      "tool_call_count": 2,
+      "retry_count": 0,
+      "repair_count": 0
+    },
+    "tools": [
+      {
+        "tool_id": "pantheon_context_manifest",
+        "call_count": 1,
+        "terminal_status": "completed"
+      },
+      {
+        "tool_id": "pantheon_context_entity",
+        "call_count": 1,
+        "terminal_status": "completed"
+      }
+    ],
+    "limits": {
+      "max_steps": 12,
+      "observed_steps": 3,
+      "timeout_seconds": 180,
+      "timed_out": false
+    },
+    "refusals": [
+      {
+        "code": "context_entity_not_admitted",
+        "count": 1
+      }
+    ],
+    "trace_refs": [
+      "hermes://runs/run-synthetic-1"
+    ],
+    "provenance": {
+      "pantheon_observed": [
+        "correlation.admission_id",
+        "correlation.launch_reservation_id",
+        "correlation.snapshot_id",
+        "correlation.snapshot_digest",
+        "correlation.run_id"
+      ],
+      "binding_observed": [
+        "execution.started_at",
+        "execution.ended_at",
+        "execution.retry_count"
+      ],
+      "runtime_reported": [
+        "execution.step_count",
+        "execution.tool_call_count",
+        "tools"
+      ]
+    }
+  }
+}

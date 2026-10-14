@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 1270" role="img" aria-labelledby="title desc">
+  <title id="title">Qui fait quoi dans Pantheon</title>
+  <desc id="desc">Vous posez la demande. Hermès l’exécute et charge ses skills à la demande. La méthode gouvernée choisit une posture de travail, les mortels Ulysse, Nestor, Dédale et Cassandre. Si la situation le justifie, un rite structure la relecture et convoque quelques points de vue de jugement, les dieux Athéna, Argos, Thémis, Apollon, Héphaïstos, Iris et Mnémosyne. Zeus statue sur le statut et la procédure. Vous décidez. Une question simple passe directement d’Hermès à la réponse, sans rite ni dieu. Les lieux, espace projet, Agora et référentiel, bornent l’ensemble du parcours.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#858e9c"/></marker>
+    <marker id="arrow-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#f0b95b"/></marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#56d6a0"/></marker>
+    <style>
+      text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;fill:#f5f7fa}
+      .eyebrow{font-size:11px;font-weight:800;letter-spacing:.11em;fill:#8db7ff}
+      .eyebrow-amber{fill:#f0b95b}
+      .eyebrow-violet{fill:#ad8cff}
+      .eyebrow-green{fill:#56d6a0}
+      .headline{font-size:21px;font-weight:720;letter-spacing:-.03em}
+      .title{font-size:16px;font-weight:700}
+      .chip-title{font-size:13.5px;font-weight:700}
+      .body{font-size:13px;fill:#c4cad3}
+      .note{font-size:11.5px;fill:#858e9c}
+      .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9.5px;letter-spacing:.09em;fill:#858e9c}
+      .node{fill:#101216;stroke:#303641;stroke-width:1.5}
+      .human{fill:#201a11;stroke:#f0b95b}
+      .runtime{fill:#0f1920;stroke:#56c7d6}
+      .method{fill:#101722;stroke:#8db7ff}
+      .rite{fill:#171326;stroke:#ad8cff;stroke-dasharray:7 5}
+      .role{fill:#14233b;stroke:#8db7ff}
+      .zeus{fill:#14233b;stroke:#8db7ff;stroke-width:2.2}
+      .place{fill:#10201e;stroke:#56d6a0}
+      .chip{fill:#0d1015;stroke:#303641;stroke-width:1}
+      .edge{fill:none;stroke:#858e9c;stroke-width:1.6;marker-end:url(#arrow)}
+      .edge-dashed{stroke-dasharray:5 5}
+      .edge-amber{stroke:#f0b95b;marker-end:url(#arrow-amber)}
+      .bypass{fill:none;stroke:#56d6a0;stroke-width:1.6;stroke-dasharray:6 5;marker-end:url(#arrow-green)}
+    </style>
+  </defs>
+
+  <rect x="1" y="1" width="398" height="1268" rx="20" fill="#0d1015" stroke="#262b33" stroke-width="2"/>
+  <text x="24" y="36" class="eyebrow">ORGANISATION</text>
+  <text x="24" y="66" class="headline">Qui fait quoi dans Pantheon.</text>
+  <text x="24" y="92" class="body">Des responsabilités, pas des agents :</text>
+  <text x="24" y="110" class="body">seul ce que la situation exige est mobilisé.</text>
+
+  <!-- Vous demandez -->
+  <rect x="44" y="130" width="334" height="62" rx="14" class="node human"/>
+  <text x="62" y="154" class="eyebrow eyebrow-amber">VOUS</text>
+  <text x="62" y="178" class="title">Posez la demande</text>
+
+  <path d="M211 192V214" class="edge"/>
+
+  <!-- Hermès -->
+  <rect x="44" y="216" width="334" height="86" rx="14" class="node runtime"/>
+  <text x="62" y="240" class="eyebrow" style="fill:#56c7d6">HERMÈS · EXÉCUTION</text>
+  <text x="62" y="264" class="title">Lit les sources, produit, rend la main</text>
+  <text x="62" y="286" class="body">Skills chargés à la demande, pas tous.</text>
+
+  <path d="M211 302V324" class="edge"/>
+
+  <!-- Méthode gouvernée et mortels -->
+  <rect x="44" y="326" width="334" height="176" rx="14" class="node method"/>
+  <text x="62" y="350" class="eyebrow">LES MORTELS · POSTURES DE TRAVAIL</text>
+  <text x="62" y="372" class="body">La méthode gouvernée en choisit une ;</text>
+  <text x="62" y="390" class="body">au plus 1 méthode, 1 garde-fou, 1 contrôle.</text>
+  <rect x="58" y="404" width="153" height="40" rx="9" class="chip"/>
+  <text x="70" y="429" class="chip-title">Ulysse</text><text x="122" y="429" class="note">coordonne</text>
+  <rect x="215" y="404" width="149" height="40" rx="9" class="chip"/>
+  <text x="227" y="429" class="chip-title">Nestor</text><text x="281" y="429" class="note">enquête</text>
+  <rect x="58" y="450" width="153" height="40" rx="9" class="chip"/>
+  <text x="70" y="475" class="chip-title">Dédale</text><text x="124" y="475" class="note">produit</text>
+  <rect x="215" y="450" width="149" height="40" rx="9" class="chip"/>
+  <text x="227" y="475" class="chip-title">Cassandre</text><text x="303" y="475" class="note">contredit</text>
+
+  <path d="M211 502V536" class="edge edge-dashed"/>
+  <text x="222" y="524" class="note">si la situation le justifie</text>
+
+  <!-- Rites -->
+  <rect x="44" y="538" width="334" height="150" rx="14" class="node rite"/>
+  <text x="62" y="562" class="eyebrow eyebrow-violet">LES RITES · MÉTHODES DE RELECTURE</text>
+  <text x="62" y="588" class="chip-title">Prémisses cachées</text>
+  <text x="62" y="610" class="chip-title">Concordance des sources</text>
+  <text x="62" y="632" class="chip-title">Autocritique contradictoire</text>
+  <text x="62" y="654" class="chip-title">Divergence contrôlée</text>
+  <text x="62" y="676" class="note">Un rite convoque quelques points de vue, dans l’ordre.</text>
+
+  <path d="M211 688V710" class="edge"/>
+
+  <!-- Dieux -->
+  <rect x="44" y="712" width="334" height="214" rx="14" class="node role"/>
+  <text x="62" y="736" class="eyebrow">LES DIEUX · POINTS DE VUE DE JUGEMENT</text>
+  <text x="62" y="764" class="chip-title">Athéna</text><text x="160" y="764" class="note">structure</text>
+  <text x="62" y="788" class="chip-title">Argos</text><text x="160" y="788" class="note">sources, traçabilité</text>
+  <text x="62" y="812" class="chip-title">Thémis</text><text x="160" y="812" class="note">risque, conformité</text>
+  <text x="62" y="836" class="chip-title">Apollon</text><text x="160" y="836" class="note">clarté, complétude</text>
+  <text x="62" y="860" class="chip-title">Héphaïstos</text><text x="160" y="860" class="note">fabrication</text>
+  <text x="62" y="884" class="chip-title">Iris</text><text x="160" y="884" class="note">transmission</text>
+  <text x="62" y="908" class="chip-title">Mnémosyne</text><text x="160" y="908" class="note">continuité, versions</text>
+
+  <path d="M211 926V948" class="edge"/>
+
+  <!-- Zeus -->
+  <rect x="44" y="950" width="334" height="88" rx="14" class="node zeus"/>
+  <text x="62" y="974" class="eyebrow">ZEUS · STATUT ET PROCÉDURE</text>
+  <text x="62" y="998" class="title">Prêt · à compléter · à escalader</text>
+  <text x="62" y="1022" class="body">Arbitre la procédure, ne décide pas à votre place.</text>
+
+  <path d="M211 1038V1060" class="edge edge-amber"/>
+
+  <!-- Vous décidez -->
+  <rect x="44" y="1062" width="334" height="62" rx="14" class="node human"/>
+  <text x="62" y="1086" class="eyebrow eyebrow-amber">VOUS</text>
+  <text x="62" y="1110" class="title">Décidez ce qui engage</text>
+
+  <!-- Question simple : contournement -->
+  <path d="M44 260H26V1090H38" class="bypass"/>
+  <text transform="translate(20 700) rotate(-90)" text-anchor="middle" class="mono" style="fill:#56d6a0">QUESTION SIMPLE : NI RITE NI DIEU</text>
+
+  <!-- Lieux -->
+  <rect x="22" y="1146" width="356" height="78" rx="14" class="node place"/>
+  <text x="40" y="1170" class="eyebrow eyebrow-green">LES LIEUX · LE CADRE DU PARCOURS</text>
+  <text x="40" y="1192" class="body">Espace projet · Agora · Référentiel</text>
+  <text x="40" y="1212" class="note">Une affaire ne déborde pas sur une autre.</text>
+
+  <text x="200" y="1250" text-anchor="middle" class="mono">RÔLES JUGENT · RITES COORDONNENT · HUMAIN DÉCIDE</text>
+</svg>

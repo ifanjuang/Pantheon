@@ -1,0 +1,43 @@
+# Non-executable Hermes return template.
+# This is not a runtime return schema.
+
+template_id: evidence_pack_candidate_return
+owner_layer: hermes
+status: candidate_template_only
+purpose: >
+  Describe the governed envelope Hermes may return after external execution.
+
+required_fields:
+  - linked_task_contract_id
+  - linked_context_pack_id
+  - executor_profile
+  - executor_skill_candidate
+  - sources_used
+  - assumptions
+  - actions_summary
+  - risks
+  - limitations
+  - outputs
+  - capability_gaps
+  - memory_candidates
+  - approval_needed
+
+forbidden_fields:
+  - hidden_chain_of_thought
+  - raw_scratchpad
+  - autonomous_role_debate
+  - approval_final
+  - canonical_memory
+  - runtime_queue_state
+  - provider_secret
+
+status_values:
+  - candidate
+  - returned_with_risk
+  - evidence_incomplete
+  - capability_gap
+  - human_decision_required
+
+notes:
+  - This is a candidate return envelope.
+  - Evidence Pack validation remains Pantheon governance.

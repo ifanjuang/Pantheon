@@ -1,0 +1,341 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+TOOL_VERSION="0.1.0"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+RELEASE_LOCK="$SCRIPT_DIR/release.env"
+if [[ ! -f "$RELEASE_LOCK" ]]; then
+  printf '[pantheon-node] ERROR: reviewed deployment lock is missing: %s\n' "$RELEASE_LOCK" >&2
+  exit 1
+fi
+# shellcheck disable=SC1091
+source "$RELEASE_LOCK"
+TARGET_UBUNTU="${RELEASE_UBUNTU:?release.env missing RELEASE_UBUNTU}"
+PANTHEON_REPOSITORY="${PANTHEON_REPOSITORY:-}"
+OLLAMA_VERSION="${RELEASE_OLLAMA_VERSION:?release.env missing RELEASE_OLLAMA_VERSION}"
+UV_VERSION="${RELEASE_UV_VERSION:?release.env missing RELEASE_UV_VERSION}"
+POLICY_PYTHON="${RELEASE_POLICY_PYTHON:?release.env missing RELEASE_POLICY_PYTHON}"
+
+STATE_ROOT="/srv/pantheon"
+AI_ROOT="/srv/ai"
+APP_ROOT="/opt/pantheon-node"
+CONFIG_ROOT="/etc/pantheon-node"
+PANTHEON_ROOT="/opt/pantheon"
+UV_PYTHON_INSTALL_DIR="$APP_ROOT/python"
+export UV_PYTHON_INSTALL_DIR
+
+APPLY=1
+ASSUME_YES=0
+INSTALL_NVIDIA_DRIVER=1
+ENABLE_HINDSIGHT=0
+NODE_BIND_ADDRESS="127.0.0.1"
+
+log() { printf '[pantheon-node] %s\n' "$*"; }
+warn() { printf '[pantheon-node] WARNING: %s\n' "$*" >&2; }
+die() { printf '[pantheon-node] ERROR: %s\n' "$*" >&2; exit 1; }
+have() { command -v "$1" >/dev/null 2>&1; }
+usage() {
+  cat <<'USAGE'
+Usage:
+  ./install-node --doctor
+  sudo ./install-node [--yes]
+
+Options:
+  --doctor                 Read-only preflight only.
+  --apply                  Apply installation (default; kept for explicit automation).
+  --yes                    Do not ask for final confirmation.
+  --bind ADDRESS           Bind the Ollama API to this host address (default 127.0.0.1).
+  --with-hindsight         Require the native Hindsight service to be active.
+  --without-nvidia-driver  Do not attempt Ubuntu's NVIDIA driver installation when missing.
+  -h, --help               Show this help.
+
+Hermes is a native prerequisite and is never installed or activated by this script.
+The script installs technical components only. Installed != activated != task-authorized.
+USAGE
+}
+
+while (($#)); do
+  case "$1" in
+    --doctor) APPLY=0; ASSUME_YES=1 ;;
+    --apply) APPLY=1 ;;
+    --yes) ASSUME_YES=1 ;;
+    --bind) shift; NODE_BIND_ADDRESS="${1:?missing address}" ;;
+    --with-hindsight) ENABLE_HINDSIGHT=1 ;;
+    --without-nvidia-driver) INSTALL_NVIDIA_DRIVER=0 ;;
+    -h|--help) usage; exit 0 ;;
+    *) die "unknown argument: $1" ;;
+  esac
+  shift
+done
+
+if [[ ${EUID:-$(id -u)} -eq 0 && -z ${SUDO_USER:-} ]]; then
+  OPERATOR_USER="root"
+else
+  OPERATOR_USER="${SUDO_USER:-${USER:-root}}"
+fi
+
+read_os() {
+  [[ -r /etc/os-release ]] || die "/etc/os-release is missing"
+  # shellcheck disable=SC1091
+  source /etc/os-release
+  [[ "${ID:-}" == "ubuntu" ]] || die "Ubuntu is required; detected ${ID:-unknown}"
+  OS_VERSION="${VERSION_ID:-unknown}"
+}
+
+resolve_pantheon_commit() {
+  local repo_root
+  repo_root="$(cd "$SCRIPT_DIR/../.." 2>/dev/null && pwd || true)"
+  if [[ -n "$repo_root" ]] && git -C "$repo_root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    if [[ -z "$PANTHEON_REPOSITORY" ]]; then
+      PANTHEON_REPOSITORY="$(git -C "$repo_root" remote get-url origin 2>/dev/null || true)"
+    fi
+    RESOLVED_PANTHEON_COMMIT="${PANTHEON_COMMIT:-$(git -C "$repo_root" rev-parse HEAD)}"
+    return
+  fi
+  RESOLVED_PANTHEON_COMMIT="${PANTHEON_COMMIT:-}"
+}
+
+preflight() {
+  read_os
+  resolve_pantheon_commit
+  log "installer $TOOL_VERSION"
+  log "OS: Ubuntu $OS_VERSION (target $TARGET_UBUNTU LTS)"
+  [[ "$OS_VERSION" == "$TARGET_UBUNTU"* ]] || warn "this candidate is reviewed for Ubuntu $TARGET_UBUNTU; --apply will refuse this host"
+
+  local arch mem_kb disk_kb
+  arch="$(uname -m)"
+  log "architecture: $arch"
+  [[ "$arch" == "x86_64" ]] || warn "the intended RTX/NVIDIA profile is x86_64; this host is $arch"
+
+  mem_kb="$(awk '/MemTotal/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)"
+  disk_kb="$(df -Pk / | awk 'NR==2 {print $4}')"
+  log "RAM: $((mem_kb / 1024 / 1024)) GiB"
+  log "free root filesystem: $((disk_kb / 1024 / 1024)) GiB"
+  ((mem_kb >= 16 * 1024 * 1024)) || warn "less than 16 GiB RAM detected"
+  ((disk_kb >= 80 * 1024 * 1024)) || warn "less than 80 GiB free on root filesystem; models should live on a dedicated NVMe"
+
+  if have lspci && lspci | grep -qi nvidia; then
+    log "NVIDIA hardware detected"
+  else
+    warn "no NVIDIA PCI device detected"
+  fi
+
+  if have nvidia-smi; then
+    nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv,noheader || true
+  else
+    warn "nvidia-smi is not available"
+  fi
+
+  if have mokutil; then
+    mokutil --sb-state 2>/dev/null || true
+  fi
+
+  if [[ -n "$RESOLVED_PANTHEON_COMMIT" ]]; then
+    log "Pantheon checkout pin: $RESOLVED_PANTHEON_COMMIT"
+  else
+    warn "no Pantheon commit pin resolved; set PANTHEON_COMMIT=<full sha> before --apply"
+  fi
+
+  log "defaults: Ollama API bind=$NODE_BIND_ADDRESS"
+  log "Hindsight=$ENABLE_HINDSIGHT"
+}
+
+confirm_apply() {
+  ((APPLY == 1)) || return 1
+  [[ "$OS_VERSION" == "$TARGET_UBUNTU"* ]] || die "--apply is reviewed only for Ubuntu $TARGET_UBUNTU; detected $OS_VERSION"
+  [[ -n "$RESOLVED_PANTHEON_COMMIT" ]] || die "PANTHEON_COMMIT is required when install-node is not run from a Pantheon Git checkout"
+  [[ "$RESOLVED_PANTHEON_COMMIT" =~ ^[0-9a-f]{40}$ ]] || die "PANTHEON_COMMIT must resolve to a full 40-character lowercase commit SHA"
+  [[ -n "$PANTHEON_REPOSITORY" ]] || die "PANTHEON_REPOSITORY is required when no Git remote can be resolved from the current checkout"
+  if ((ASSUME_YES == 1)); then return 0; fi
+  [[ -t 0 ]] || die "non-interactive install requires --yes"
+  require_native_runtimes
+  printf '\nThis will modify packages, systemd, /opt, /srv and /etc. Continue? [y/N] '
+  read -r answer
+  [[ "$answer" =~ ^[Yy]$ ]] || exit 0
+}
+
+apt_base() {
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update
+  apt-get install -y --no-install-recommends \
+    ca-certificates curl gnupg git jq openssl rsync zstd unzip \
+    pciutils mokutil ubuntu-drivers-common python3 python3-venv
+}
+
+ensure_nvidia() {
+  if have nvidia-smi; then return 0; fi
+  ((INSTALL_NVIDIA_DRIVER == 1)) || { warn "NVIDIA driver installation skipped"; return 0; }
+  if ! lspci | grep -qi nvidia; then return 0; fi
+  log "installing Ubuntu-recommended NVIDIA driver"
+  ubuntu-drivers install
+  warn "NVIDIA driver changed. Reboot, then rerun install-node. GPU-dependent installation is deferred until nvidia-smi works."
+  touch "$CONFIG_ROOT/reboot-required"
+  exit 20
+}
+
+require_native_runtimes() {
+  systemctl is-active --quiet pantheon-hermes-native.service \
+    || die "native Hermes is required and must be active (pantheon-hermes-native.service)"
+  systemctl is-active --quiet pantheon-hermes-dashboard-native.service \
+    || die "native Hermes dashboard is required and must be active"
+  if ((ENABLE_HINDSIGHT == 1)); then
+    systemctl is-active --quiet pantheon-hindsight-native.service \
+      || die "--with-hindsight requires active pantheon-hindsight-native.service"
+  fi
+}
+
+prepare_layout() {
+  install -d -m 0750 "$CONFIG_ROOT" "$PANTHEON_ROOT"
+  # Service users must be able to traverse APP_ROOT without being able to list it.
+  install -d -m 0711 "$APP_ROOT"
+  install -d -m 0755 "$STATE_ROOT" "$AI_ROOT"
+  install -d -m 0750 \
+    "$STATE_ROOT/hermes" "$STATE_ROOT/backups"
+  # Service-owned children remain private; these parents only need traversal.
+  install -d -m 0711 "$AI_ROOT/models" "$AI_ROOT/cache"
+  install -d -m 0755 "$UV_PYTHON_INSTALL_DIR"
+}
+
+write_node_config() {
+  cat > "$CONFIG_ROOT/node.env" <<EOF_CONFIG
+NODE_BIND_ADDRESS=$NODE_BIND_ADDRESS
+ENABLE_HINDSIGHT=$ENABLE_HINDSIGHT
+EOF_CONFIG
+  chmod 640 "$CONFIG_ROOT/node.env"
+
+  cat > "$CONFIG_ROOT/versions.env" <<EOF_VERSIONS
+# Operational deployment candidate. This is not Pantheon qualification or authorization truth.
+PANTHEON_COMMIT=$RESOLVED_PANTHEON_COMMIT
+OLLAMA_VERSION=$OLLAMA_VERSION
+UV_VERSION=$UV_VERSION
+POLICY_PYTHON=$POLICY_PYTHON
+EOF_VERSIONS
+  chmod 640 "$CONFIG_ROOT/versions.env"
+}
+
+install_ollama() {
+  log "installing Ollama $OLLAMA_VERSION"
+  curl -fsSL https://ollama.com/install.sh | OLLAMA_VERSION="$OLLAMA_VERSION" sh
+  install -d -m 0755 /etc/systemd/system/ollama.service.d
+  # Use a late-sorting managed drop-in so an older generic override.conf cannot
+  # silently lower the context window required by Hermes Agent. One model is
+  # shared by Hermes and Hindsight; a 27B model takes 12-20 s to reload, so keep
+  # it resident between bursts instead of unloading it after one idle minute.
+  cat > /etc/systemd/system/ollama.service.d/zz-pantheon-node.conf <<EOF_OLLAMA
+[Service]
+Environment="OLLAMA_HOST=$NODE_BIND_ADDRESS:11434"
+Environment="OLLAMA_MODELS=$AI_ROOT/models/ollama"
+Environment="OLLAMA_KEEP_ALIVE=30m"
+Environment="OLLAMA_NUM_PARALLEL=1"
+Environment="OLLAMA_MAX_LOADED_MODELS=1"
+Environment="OLLAMA_CONTEXT_LENGTH=32768"
+EOF_OLLAMA
+  install -d -m 0755 "$AI_ROOT/models/ollama"
+  if id -u ollama >/dev/null 2>&1; then chown -R ollama:ollama "$AI_ROOT/models/ollama"; fi
+  systemctl daemon-reload
+  systemctl enable --now ollama
+}
+
+install_uv() {
+  if [[ -x "$APP_ROOT/uv/bin/uv" ]]; then return; fi
+  install -d -m 0755 "$UV_PYTHON_INSTALL_DIR"
+  python3 -m venv "$APP_ROOT/uv"
+  "$APP_ROOT/uv/bin/python" -m pip install --upgrade pip
+  "$APP_ROOT/uv/bin/python" -m pip install "uv==$UV_VERSION"
+}
+
+# The policy entry point locates the repository before anything else and then
+# serves stdio MCP (it ignores --help), so validate the installed package by
+# importing it against one explicit checkout instead of launching it.
+validate_policy_package() {
+  PANTHEON_REPO_PATH="$1" "$STATE_ROOT/policy-venv/bin/python" -c \
+    'from pantheon_mcp.repo import find_repo_root; import pantheon_mcp.server; find_repo_root()' \
+    </dev/null >/dev/null
+}
+
+# Root cannot authenticate to a private remote, so an operator-owned local
+# checkout may be the reviewed source. Git refuses repositories owned by
+# another user; trust one only for reads of that local source.
+source_git() {
+  local source="$1"; shift
+  if [[ -d "$source" ]]; then git -c safe.directory='*' "$@"; else git "$@"; fi
+}
+
+make_managed_python_executable() {
+  # uv may preserve restrictive ownership/modes from its managed-Python
+  # archive. Virtual environments link to that interpreter, so service users
+  # need read/traverse access throughout the managed runtime tree.
+  chmod -R a+rX "$UV_PYTHON_INSTALL_DIR"
+}
+
+install_pantheon_checkout() {
+  local short target managed_python
+  short="${RESOLVED_PANTHEON_COMMIT:0:12}"
+  target="$PANTHEON_ROOT/Pantheon-Next-$short"
+  if [[ ! -d "$target/.git" ]]; then
+    source_git "$PANTHEON_REPOSITORY" clone "$PANTHEON_REPOSITORY" "$target"
+  fi
+  source_git "$PANTHEON_REPOSITORY" -C "$target" fetch origin "$RESOLVED_PANTHEON_COMMIT"
+  git -C "$target" checkout --detach "$RESOLVED_PANTHEON_COMMIT"
+  ln -sfn "$target" "$PANTHEON_ROOT/current"
+
+  install_uv
+  "$APP_ROOT/uv/bin/uv" python install "$POLICY_PYTHON"
+  make_managed_python_executable
+  managed_python="$("$APP_ROOT/uv/bin/uv" python find --managed-python "$POLICY_PYTHON")"
+  [[ "$managed_python" == "$UV_PYTHON_INSTALL_DIR/"* ]] \
+    || die "uv resolved policy Python outside $UV_PYTHON_INSTALL_DIR: $managed_python"
+  rm -rf "$STATE_ROOT/policy-venv"
+  "$APP_ROOT/uv/bin/uv" venv --python "$managed_python" "$STATE_ROOT/policy-venv"
+  "$APP_ROOT/uv/bin/uv" pip install --python "$STATE_ROOT/policy-venv/bin/python" "$target/mcp-server"
+  validate_policy_package "$target"
+}
+
+write_operator_record() {
+  cat > "$CONFIG_ROOT/installation-record.txt" <<EOF_RECORD
+installed_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+installer_version=$TOOL_VERSION
+pantheon_commit=$RESOLVED_PANTHEON_COMMIT
+governed_skills=$RELEASE_HERMES_GOVERNED_SKILLS
+node_bind_address=$NODE_BIND_ADDRESS
+hindsight_prepared=$ENABLE_HINDSIGHT
+
+installed != activated
+activated != task-authorized
+runtime success != Evidence
+projection != persistence
+EOF_RECORD
+  chmod 640 "$CONFIG_ROOT/installation-record.txt"
+}
+
+summary() {
+  printf '\nInstallation observation\n'
+  printf '%-24s %s\n' "Pantheon checkout" "$PANTHEON_ROOT/current"
+  printf '%-24s %s\n' "Hermes" "native gateway and dashboard left unchanged"
+  printf '%-24s %s\n' "Ollama" "http://$NODE_BIND_ADDRESS:11434"
+  if ((ENABLE_HINDSIGHT == 1)); then
+    printf '%-24s %s\n' "Hindsight" "native service active; left unchanged"
+  fi
+  printf '\nFor LAN/Tailscale exposure, change bind addresses deliberately and keep firewall/authentication bounded.\n'
+}
+
+preflight
+if ! confirm_apply; then
+  log "doctor complete; no changes applied"
+  exit 0
+fi
+
+[[ ${EUID:-$(id -u)} -eq 0 ]] || die "--apply must run as root (sudo)"
+require_native_runtimes
+mkdir -p "$CONFIG_ROOT"
+apt_base
+prepare_layout
+ensure_nvidia
+write_node_config
+install_ollama
+install_pantheon_checkout
+bash "$SCRIPT_DIR/sync-hermes-governed-skills" "$PANTHEON_ROOT/current"
+require_native_runtimes
+write_operator_record
+rm -f "$CONFIG_ROOT/reboot-required"
+summary

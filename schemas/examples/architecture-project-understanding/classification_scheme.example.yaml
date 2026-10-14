@@ -1,0 +1,22 @@
+scheme_id: housing_typology
+name: "Housing typology"
+description: "Dwelling typologies used by the program and conformance checks."
+schema_status: candidate
+regulatory: false
+applies_to_kinds: [group, space]
+extensible: true
+values:
+  - { value: studio, label: "Studio" }
+  - { value: T1, label: "T1" }
+  - { value: T2, label: "T2" }
+  - { value: T3, label: "T3" }
+  - { value: T4, label: "T4" }
+  - { value: T5, label: "T5" }
+  - { value: duplex, label: "Duplex" }
+  - { value: simplex, label: "Simplex" }
+  - { value: PLAI, label: "Logement PLAI" }
+  - { value: PLUS, label: "Logement PLUS" }
+  - { value: PLS, label: "Logement PLS" }
+  - { value: accessible, label: "Logement accessible PMR" }
+  - { value: adaptable, label: "Logement adaptable" }
+notes: "Starter scheme; values are extensible. Other schemes: fire_erp, medical, activity, facade_system, door_property."

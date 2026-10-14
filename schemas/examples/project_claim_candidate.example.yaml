@@ -1,0 +1,31 @@
+project_ref: project.tilleul
+claim_type: surface_habitable
+proposed_value: 305.33
+unit: m2
+certainty: E2
+observed_at: "2026-08-06T16:00:00Z"
+effective_at: "2026-08-06T00:00:00Z"
+basis_refs:
+  - entity_type: information
+    entity_id: information.surface-table-r3
+    observed_revision: 3
+    observed_status: issued
+  - entity_type: document
+    entity_id: document.plan-set-index-c
+    observed_revision: 5
+    observed_status: current
+supersedes_claim_ref: null
+rationale: >-
+  Sum of the room areas retained in the issued surface table, cross-checked against
+  the current plan set. The execution proposes the value only; a human must create
+  the governed ProjectClaim.
+limitations:
+  - The IFC model was not used for this candidate.
+  - The measurement method still requires professional review.
+authority:
+  creates_project_claim: false
+  adopts_project_truth: false
+  admits_evidence: false
+  creates_decision: false
+  creates_work_issue: false
+  authorizes_effect: false

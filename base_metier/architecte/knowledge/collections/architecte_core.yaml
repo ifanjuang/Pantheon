@@ -1,0 +1,18 @@
+id: architecte_core
+label: Référentiel complet architecte
+description: Collection globale regroupant les connaissances métier architecte validées ou en cours de validation.
+include:
+  paths:
+    - base_metier/architecte/knowledge/chunks
+  domains:
+    - architecte
+priority:
+  validated: 1.0
+  reviewed: 0.85
+  extracted: 0.55
+  draft: 0.35
+retrieval:
+  default_top_k: 8
+  rerank: true
+  require_source_pages: true
+visibility: internal

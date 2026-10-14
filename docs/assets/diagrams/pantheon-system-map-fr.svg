@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 980" role="img" aria-labelledby="title desc">
+  <title id="title">Carte du système Pantheon Next</title>
+  <desc id="desc">Les clients Hermes et le Cockpit portent les surfaces de travail. Les fichiers professionnels restent sur NAS AFFAIRES, un unique producteur Workspace alimente Hindsight comme retrieval dérivé, Pantheon porte la politique et la gouvernance, Hermes exécute le travail admis, l’implémentation co-localisée porte des services candidats et l’humain décide lorsque la conséquence l’exige.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#858e9c"/></marker>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8db7ff"/></marker>
+    <marker id="arrow-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#f0b95b"/></marker>
+    <style>
+      text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;fill:#f5f7fa}
+      .eyebrow{font-size:11px;font-weight:800;letter-spacing:.11em;fill:#8db7ff}
+      .headline{font-size:21px;font-weight:720;letter-spacing:-.03em}
+      .title{font-size:17px;font-weight:700}
+      .body{font-size:13px;fill:#c4cad3}
+      .note{font-size:11.5px;fill:#858e9c}
+      .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9.5px;letter-spacing:.09em;fill:#858e9c}
+      .node{fill:#101216;stroke:#303641;stroke-width:1.5}
+      .surface{fill:#101722;stroke:#8db7ff}
+      .retrieval{fill:#10201e;stroke:#56d6a0}
+      .direct{fill:#0f1920;stroke:#56c7d6}
+      .assisted{fill:#171326;stroke:#ad8cff;stroke-dasharray:7 5}
+      .governance{fill:#14233b;stroke:#8db7ff}
+      .human{fill:#201a11;stroke:#f0b95b}
+      .server{fill:#10231d;stroke:#56d6a0;stroke-width:2}
+      .projection{fill:#101722;stroke:#8db7ff}
+      .edge{fill:none;stroke:#858e9c;stroke-width:1.6;marker-end:url(#arrow)}
+      .edge-blue{stroke:#8db7ff;marker-end:url(#arrow-blue)}
+      .edge-amber{stroke:#f0b95b;marker-end:url(#arrow-amber);stroke-dasharray:6 5}
+      .rail{fill:none;stroke:#858e9c;stroke-width:1.4}
+    </style>
+  </defs>
+
+  <rect x="1" y="1" width="398" height="978" rx="20" fill="#0d1015" stroke="#262b33" stroke-width="2"/>
+  <text x="24" y="36" class="eyebrow">CARTE DU SYSTÈME</text>
+  <text x="24" y="66" class="headline">Des responsabilités distinctes,</text>
+  <text x="24" y="92" class="headline">une gouvernance explicite.</text>
+
+  <rect x="22" y="112" width="356" height="84" rx="14" class="node surface"/>
+  <text x="42" y="138" class="eyebrow">SURFACES DE TRAVAIL</text>
+  <text x="42" y="164" class="title">Clients Hermes · Pantheon Cockpit</text>
+  <text x="42" y="184" class="body">interaction runtime · exploration / projection</text>
+
+  <path d="M200 196V212M200 212H108V220M200 212H292V220" class="rail"/>
+
+  <rect x="22" y="222" width="172" height="126" rx="14" class="node retrieval"/>
+  <text x="36" y="246" class="eyebrow" style="fill:#56d6a0;font-size:9.2px">SOURCES · RETRIEVAL</text>
+  <text x="36" y="272" class="title" style="font-size:15px">NAS / AFFAIRES</text>
+  <text x="36" y="294" class="body" style="font-size:11.7px">Workspace → Hindsight</text>
+  <text x="36" y="316" class="note">source durable → dérivé</text>
+  <text x="36" y="334" class="note">mémoire ≠ Evidence</text>
+
+  <rect x="206" y="222" width="172" height="126" rx="14" class="node direct"/>
+  <text x="220" y="246" class="eyebrow" style="fill:#56c7d6;font-size:9.2px">POLITIQUE · PANTHEON</text>
+  <text x="220" y="272" class="title" style="font-size:15px">Preflight</text>
+  <text x="220" y="294" class="body" style="font-size:11.7px">décision en données</text>
+  <text x="220" y="316" class="note">scope · vérification</text>
+  <text x="220" y="334" class="note">n’exécute pas l’effet</text>
+
+  <path d="M108 348V364H200M292 348V364H200V378" class="edge"/>
+
+  <rect x="22" y="384" width="356" height="100" rx="14" class="node assisted"/>
+  <text x="42" y="410" class="eyebrow" style="fill:#c1a9ff">EXÉCUTION EXTERNE · HERMES</text>
+  <text x="42" y="438" class="title">Hermes exécute le travail admis</text>
+  <text x="42" y="458" class="body">modèles · skills · outils remplaçables</text>
+  <text x="42" y="476" class="body">retrieval borné · observations · candidats</text>
+
+  <path d="M200 484V500" class="edge"/>
+
+  <rect x="22" y="506" width="356" height="96" rx="14" class="node governance"/>
+  <text x="42" y="532" class="eyebrow">PANTHEON NEXT</text>
+  <text x="42" y="558" class="title">gouverne règles et statuts</text>
+  <text x="42" y="578" class="body">mission · périmètre · Evidence · approbation</text>
+  <text x="42" y="596" class="body">autorité ≠ exécution ≠ mémoire runtime</text>
+
+  <path d="M200 602V624" class="edge edge-blue"/>
+  <text x="212" y="620" class="mono" style="fill:#8db7ff">CONTRATS</text>
+
+  <rect x="22" y="630" width="356" height="112" rx="16" class="node server"/>
+  <text x="42" y="656" class="eyebrow" style="fill:#56d6a0">IMPLEMENTATION/ · CANDIDAT CO-LOCALISÉ</text>
+  <text x="358" y="656" text-anchor="end" class="mono" style="fill:#56d6a0">NON ADOPTÉ</text>
+  <text x="42" y="684" class="title">services et persistance candidates</text>
+  <text x="42" y="704" class="body">API · PostgreSQL · relations · Cockpit</text>
+  <text x="42" y="722" class="body">co-localisation ≠ autorité ni activation</text>
+
+  <path d="M200 742V768" class="edge edge-amber"/>
+  <text x="212" y="760" class="mono" style="fill:#f0b95b">DÉCISION</text>
+
+  <rect x="22" y="774" width="356" height="96" rx="14" class="node human"/>
+  <text x="42" y="800" class="eyebrow" style="fill:#f0b95b">HUMAIN · SI NÉCESSAIRE</text>
+  <text x="42" y="826" class="title">décide ce qui engage</text>
+  <text x="42" y="846" class="body">valider · refuser · demander correction</text>
+  <text x="42" y="864" class="body">succès technique ≠ approbation</text>
+
+  <path d="M200 870V894" class="edge edge-blue"/>
+  <rect x="22" y="900" width="356" height="36" rx="10" class="node projection"/>
+  <text x="42" y="923" class="body">état gouverné projeté aux surfaces</text>
+  <text x="358" y="923" text-anchor="end" class="mono">PROJECTED ≠ PERSISTED</text>
+
+  <text x="24" y="962" class="mono">RETRIEVED ≠ TRUTH · MEMORY ≠ EVIDENCE · RUNTIME_SUCCESS ≠ AUTHORIZATION</text>
+</svg>

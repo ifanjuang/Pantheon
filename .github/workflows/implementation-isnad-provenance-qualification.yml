@@ -1,0 +1,56 @@
+name: ISNAD Provenance Qualification
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/implementation-isnad-provenance-qualification.yml"
+      - "implementation/qualification/external-pins.json"
+      - "implementation/tools/export_external_qualification_pins.py"
+      - "implementation/labs/isnad_provenance/**"
+      - "implementation/tests/test_isnad_bounded_provenance_lab.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bounded-provenance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Pantheon qualification harness
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Load canonical ISNAD qualification pin
+        shell: bash
+        run: python3 implementation/tools/export_external_qualification_pins.py --github-env "$GITHUB_ENV" isnad
+
+      - name: Install bounded implementation test dependencies and exact ISNAD package
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e "implementation[test]"
+          python -m pip install "${ISNAD_PACKAGE}==${ISNAD_VERSION}"
+
+      - name: Verify exported pin shape and installed package version
+        shell: bash
+        run: |
+          python - <<'PY'
+          import importlib.metadata
+          import os
+          import re
+
+          expected = os.environ["ISNAD_VERSION"]
+          observed = importlib.metadata.version("isnad")
+          assert observed == expected, (observed, expected)
+          assert os.environ["ISNAD_REPOSITORY"] == "alizahidraja/isnad"
+          assert re.fullmatch(r"[0-9a-f]{40}", os.environ["ISNAD_REF"])
+          PY
+
+      - name: Run bounded ISNAD qualification
+        working-directory: implementation
+        run: pytest -q tests/test_isnad_bounded_provenance_lab.py

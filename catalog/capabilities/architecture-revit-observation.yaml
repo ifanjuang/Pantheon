@@ -1,0 +1,31 @@
+api_version: pantheon.next/v0alpha1
+kind: Capability
+metadata:
+  id: architecture_revit_observation
+  title: Observation Revit architecturale
+  status: candidate
+spec:
+  outcome: Observer un contexte Revit local avec couverture et fraîcheur explicites sans autorité de modification du modèle.
+  required_roles:
+    - revit_observation
+  optional_roles:
+    - revit_query
+  acceptance:
+    - active_document_identity_preserved
+    - runtime_version_preserved
+    - declared_scope_preserved
+    - observed_coverage_exposed
+    - source_native_ids_preserved
+    - write_surface_excluded
+    - explicit_instance_targeting_available
+  candidate_resources:
+    preferred:
+      - rvt_mcp
+    alternatives:
+      - horizun_revit_mcp
+  boundaries:
+    - source_observation_is_not_project_fact
+    - revit_element_id_is_not_stable_object_id
+    - runtime_success_is_not_evidence
+    - runtime_installation_is_not_effect_authorization
+    - runtime_history_is_not_pantheon_memory

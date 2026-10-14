@@ -1,0 +1,27 @@
+impact_review_id: example.impact-erp-basement
+trigger_id: P-202
+trigger_change: validated
+created_at: "2026-06-14T09:05:00Z"
+created_by: HEPHAISTOS
+required_approval: C4
+impacted:
+  - target_id: P-150
+    relation: impacts
+    impact_status: supersede
+    severity: high
+    recommended_action: Recompute the ERP classification.
+    decision: pending
+    decided_by: null
+    decided_at: null
+  - target_id: ev.issues-secours
+    relation: depends_on
+    impact_status: critical_arbitration
+    severity: critical
+    recommended_action: Route to the governance path before any change.
+    decision: pending
+    decided_by: null
+    decided_at: null
+status: open
+governance_refs:
+  - docs/governance/EVIDENCE_MEMORY_CANONICALIZATION.md
+  - docs/governance/EVIDENCE_MEMORY_DEV_PLAN.md

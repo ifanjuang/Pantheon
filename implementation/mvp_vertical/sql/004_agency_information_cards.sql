@@ -1,0 +1,4 @@
+-- Compatibility shim.
+-- The canonical Agency Information schema is now owned by 002_agency_data.sql
+-- so Agency Data startup has one idempotent schema path. This file remains only
+-- for callers that still import agency_information.MIGRATION during transition.

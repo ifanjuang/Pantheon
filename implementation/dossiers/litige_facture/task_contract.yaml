@@ -1,0 +1,51 @@
+# Task Contract fictif litige_facture — scénario C3 (anonymisé).
+# Inspiré d'un litige de règlement d'honoraires. Aucune donnée réelle.
+# Le runner restitue les positions des deux parties ; il ne tranche pas le
+# litige et n'envoie aucune relance. decision_recorded != consequence_executed.
+
+object_type: task_contract
+object_id: mvp.litige-facture.tc-001
+contract_id: mvp.litige-facture.tc-001
+status: candidate
+created_at: "2026-07-06T09:00:00Z"
+requested_by: practitioner
+exposure_surface: openwebui_capture
+
+intent:
+  summary: >
+    Restituer, à l'appui d'une décision humaine, les positions respectives de
+    l'agence et du client sur le règlement de la facture d'honoraires en litige.
+    Le runner ne décide pas qui a raison et n'émet ni relance ni courrier.
+
+scope:
+  dossier: litige_facture
+  declared_sources:
+    - source_ref: dossiers/litige_facture/sources/facture.md
+    - source_ref: dossiers/litige_facture/sources/relance.md
+    - source_ref: dossiers/litige_facture/sources/reponse_client.md
+  operations:
+    - read_selected_sources
+    - retrieve_scoped_passages
+    - draft_synthesis_candidate
+    - prepare_evidence_pack_candidate
+
+forbidden_scope:
+  - external_send          # relancer/répondre au client est une décision humaine
+  - source_outside_declared_perimeter
+  - register_write
+  - approval_of_any_kind   # trancher le litige n'est pas au runner
+
+expected_outputs:
+  - result_candidate
+  - evidence_pack_candidate
+
+consequence_class: K3
+approval_ceiling: C3
+
+retrieval_boundary:
+  store: pgvector
+  boundary: retrieval_only
+
+governance_refs:
+  - docs/governance/MVP_GOVERNED_TASK_LOOP.md
+  - docs/governance/USER_DECISION_GATE.md

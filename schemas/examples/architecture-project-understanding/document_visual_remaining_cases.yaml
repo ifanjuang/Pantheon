@@ -1,0 +1,253 @@
+corpus_id: h5.3.document-visual-remaining
+status: qualification_only
+parent_issue: 613
+base_example: observation_bundle.example.yaml
+scenarios:
+  - scenario_ids: [H53-CLOSE-REQ-DRAWING]
+    title: CCTP prescription and drawing observation disagree without semantic collapse
+    expected_valid: true
+    invariants: [candidate_authority, prescription_not_collapsed_into_observation]
+    overrides:
+      observation_bundle_id: observation-bundle.h53.req-drawing-conflict
+      task_contract_ref: task-contract.compare-prescription-drawing.01
+      basis:
+        source_artifact_refs: [source.cctp.menuiseries, source.pdf.plan-rdc]
+        exact_digests:
+          - {source_artifact_ref: source.cctp.menuiseries, digest: sha256:cctp-menuiseries}
+          - {source_artifact_ref: source.pdf.plan-rdc, digest: sha256:plan-rdc}
+      method:
+        capability_id: project_understanding.compare.prescription_observation
+        binding_id: binding.synthetic.cross-source
+        operation_id: compare.prescription_observation.v1
+        adapter_ref: pantheon.synthetic.cross-source
+        adapter_version: 1.0.0
+        request_ref: request-h53-close-req-drawing
+      observed_at: "2026-08-09T17:00:00Z"
+      freshness_token: sha256:req-drawing-conflict
+      scope: {document_refs: [document:cctp, document:plan-rdc], categories: [external_door]}
+      coverage:
+        completeness: complete_for_declared_scope
+        observed_scope: {document_refs: [document:cctp, document:plan-rdc], categories: [external_door]}
+        excluded_reasons: []
+        absence_inference_allowed: false
+      limitations: [CCTP text is prescriptive intent; drawing geometry is an observation candidate.]
+      source_representations:
+        - representation_id: rep.cctp.door-p12-prescription
+          project_ref: project-a
+          source_artifact_ref: source.cctp.menuiseries
+          source_kind: other
+          identifiers: [{scheme: document.section, value: door-p12}]
+          observed_at: "2026-08-09T17:00:00Z"
+          binding_ref: binding.synthetic.cross-source
+          adapter_version: 1.0.0
+          freshness_token: sha256:cctp-menuiseries
+          proof_status: candidate
+        - representation_id: rep.pdf.door-p12-width
+          project_ref: project-a
+          source_artifact_ref: source.pdf.plan-rdc
+          source_kind: drawing
+          identifiers: [{scheme: drawing.local_label, value: P12}]
+          observed_at: "2026-08-09T17:00:00Z"
+          binding_ref: binding.synthetic.cross-source
+          adapter_version: 1.0.0
+          freshness_token: sha256:plan-rdc
+          proof_status: candidate
+      attribute_claim_candidates:
+        - attribute_claim_id: claim.pdf.p12.observed-width
+          subject_ref: {entity_type: source_representation, entity_id: rep.pdf.door-p12-width}
+          attribute_key: geometry.observed_width
+          value: {value_type: number, value: 0.93, unit: m}
+          assertion_mode: derived
+          source_authority: model_interpretation_candidate
+          proof_status: candidate
+          source_representation_refs: [rep.pdf.door-p12-width]
+      relation_claim_candidates: []
+      gaps: []
+      withheld:
+        - code: requirement.separate_path
+          subject_refs: [rep.cctp.door-p12-prescription]
+      warnings:
+        - code: comparison.prescription_observation_diverge
+      operational_outcome: withheld
+
+  - scenario_ids: [H53-CLOSE-QTY-TRIPLE]
+    title: DPGF, PDF takeoff and physical photo quantity remain three provenance chains
+    expected_valid: true
+    invariants: [candidate_authority, triple_quantity_provenance]
+    overrides:
+      observation_bundle_id: observation-bundle.h53.quantity-triple
+      task_contract_ref: task-contract.compare-quantity-triple.01
+      basis:
+        source_artifact_refs: [source.dpgf.menuiseries, source.pdf.plan-rdc, source.photo.facade]
+        exact_digests:
+          - {source_artifact_ref: source.dpgf.menuiseries, digest: sha256:dpgf-menuiseries}
+          - {source_artifact_ref: source.pdf.plan-rdc, digest: sha256:plan-rdc}
+          - {source_artifact_ref: source.photo.facade, digest: sha256:photo-facade}
+      method:
+        capability_id: project_understanding.compare.source_quantities
+        binding_id: binding.synthetic.cross-source
+        operation_id: compare.quantity_triple.v1
+        adapter_ref: pantheon.synthetic.cross-source
+        adapter_version: 1.0.0
+        request_ref: request-h53-close-qty-triple
+      observed_at: "2026-08-09T17:05:00Z"
+      freshness_token: sha256:quantity-triple
+      scope: {document_refs: [document:dpgf, document:plan-rdc, photo-set:facade], categories: [external_doors]}
+      coverage:
+        completeness: partial_for_declared_scope
+        observed_scope: {document_refs: [document:dpgf, document:plan-rdc, photo-set:facade], categories: [external_doors]}
+        excluded_reasons: [photo_only_one_facade]
+        absence_inference_allowed: false
+      limitations: [Photo count covers one visible facade only and cannot establish project total.]
+      source_representations:
+        - representation_id: rep.dpgf.external-doors
+          project_ref: project-a
+          source_artifact_ref: source.dpgf.menuiseries
+          source_kind: other
+          identifiers: [{scheme: dpgf.line, value: LOT-05-P01}]
+          observed_at: "2026-08-09T17:05:00Z"
+          binding_ref: binding.synthetic.cross-source
+          adapter_version: 1.0.0
+          freshness_token: sha256:dpgf-menuiseries
+          proof_status: candidate
+        - representation_id: rep.pdf.external-doors
+          project_ref: project-a
+          source_artifact_ref: source.pdf.plan-rdc
+          source_kind: drawing_takeoff
+          identifiers: [{scheme: drawing.takeoff_group, value: external-doors}]
+          observed_at: "2026-08-09T17:05:00Z"
+          binding_ref: binding.synthetic.cross-source
+          adapter_version: 1.0.0
+          freshness_token: sha256:plan-rdc
+          proof_status: candidate
+        - representation_id: rep.photo.visible-external-doors
+          project_ref: project-a
+          source_artifact_ref: source.photo.facade
+          source_kind: photo
+          identifiers: [{scheme: image.region, value: south-facade}]
+          observed_at: "2026-08-09T17:05:00Z"
+          binding_ref: binding.synthetic.cross-source
+          adapter_version: 1.0.0
+          freshness_token: sha256:photo-facade
+          proof_status: candidate
+      attribute_claim_candidates:
+        - attribute_claim_id: claim.dpgf.qty
+          subject_ref: {entity_type: source_representation, entity_id: rep.dpgf.external-doors}
+          attribute_key: economy.stated_quantity
+          value: {value_type: number, value: 8, unit: unit}
+          assertion_mode: observed
+          source_authority: signed_market_document
+          proof_status: candidate
+          source_representation_refs: [rep.dpgf.external-doors]
+        - attribute_claim_id: claim.pdf.qty
+          subject_ref: {entity_type: source_representation, entity_id: rep.pdf.external-doors}
+          attribute_key: geometry.measured_count
+          value: {value_type: number, value: 7, unit: unit}
+          assertion_mode: derived
+          source_authority: model_interpretation_candidate
+          proof_status: candidate
+          source_representation_refs: [rep.pdf.external-doors]
+        - attribute_claim_id: claim.photo.qty
+          subject_ref: {entity_type: source_representation, entity_id: rep.photo.visible-external-doors}
+          attribute_key: physical.visible_count
+          value: {value_type: number, value: 3, unit: unit}
+          assertion_mode: derived
+          source_authority: model_interpretation_candidate
+          proof_status: candidate
+          source_representation_refs: [rep.photo.visible-external-doors]
+      relation_claim_candidates: []
+      gaps: [{code: coverage.other_facades_not_observed}]
+      withheld: []
+      warnings: [{code: economy.payable_quantity_not_established}]
+      operational_outcome: success
+
+  - scenario_ids: [H53-CLOSE-RECURRENCE]
+    title: Defect may reappear after an apparent visual improvement without rewriting history
+    expected_valid: true
+    invariants: [candidate_authority, recurrence_appends_history]
+    overrides:
+      observation_bundle_id: observation-bundle.h53.defect-recurrence
+      task_contract_ref: task-contract.observe-defect-recurrence.01
+      basis:
+        source_artifact_refs: [source.photo.t0, source.photo.t1, source.photo.t2]
+        exact_digests:
+          - {source_artifact_ref: source.photo.t0, digest: sha256:photo-t0}
+          - {source_artifact_ref: source.photo.t1, digest: sha256:photo-t1}
+          - {source_artifact_ref: source.photo.t2, digest: sha256:photo-t2}
+      method:
+        capability_id: image.observe.site_condition
+        binding_id: binding.synthetic.image
+        operation_id: image.compare.observation_sequence.v1
+        adapter_ref: pantheon.synthetic.image
+        adapter_version: 1.0.0
+        request_ref: request-h53-close-recurrence
+      observed_at: "2026-08-09T17:10:00Z"
+      freshness_token: sha256:defect-sequence
+      scope: {document_refs: [photo-set:defect-sequence], region_refs: [region:affected-area]}
+      coverage:
+        completeness: partial_for_declared_scope
+        observed_scope: {document_refs: [photo-set:defect-sequence], region_refs: [region:affected-area]}
+        excluded_reasons: [state_between_photos_not_observed]
+        absence_inference_allowed: false
+      limitations: [Discrete visual observations do not establish continuous state or contractual reserve posture.]
+      source_representations:
+        - representation_id: rep.photo.t0
+          project_ref: project-a
+          source_artifact_ref: source.photo.t0
+          source_kind: photo
+          identifiers: [{scheme: image.region, value: affected-area}]
+          observed_at: "2026-07-01T08:00:00Z"
+          binding_ref: binding.synthetic.image
+          adapter_version: 1.0.0
+          freshness_token: sha256:photo-t0
+          proof_status: candidate
+        - representation_id: rep.photo.t1
+          project_ref: project-a
+          source_artifact_ref: source.photo.t1
+          source_kind: photo
+          identifiers: [{scheme: image.region, value: affected-area}]
+          observed_at: "2026-07-10T08:00:00Z"
+          binding_ref: binding.synthetic.image
+          adapter_version: 1.0.0
+          freshness_token: sha256:photo-t1
+          proof_status: candidate
+        - representation_id: rep.photo.t2
+          project_ref: project-a
+          source_artifact_ref: source.photo.t2
+          source_kind: photo
+          identifiers: [{scheme: image.region, value: affected-area}]
+          observed_at: "2026-08-01T08:00:00Z"
+          binding_ref: binding.synthetic.image
+          adapter_version: 1.0.0
+          freshness_token: sha256:photo-t2
+          proof_status: candidate
+      attribute_claim_candidates:
+        - attribute_claim_id: claim.photo.t0.condition
+          subject_ref: {entity_type: source_representation, entity_id: rep.photo.t0}
+          attribute_key: physical.apparent_condition
+          value: {value_type: controlled_label, value: apparent_defect}
+          assertion_mode: derived
+          source_authority: model_interpretation_candidate
+          proof_status: candidate
+          source_representation_refs: [rep.photo.t0]
+        - attribute_claim_id: claim.photo.t1.condition
+          subject_ref: {entity_type: source_representation, entity_id: rep.photo.t1}
+          attribute_key: physical.apparent_condition
+          value: {value_type: controlled_label, value: no_visible_defect_in_observed_region}
+          assertion_mode: derived
+          source_authority: model_interpretation_candidate
+          proof_status: candidate
+          source_representation_refs: [rep.photo.t1]
+        - attribute_claim_id: claim.photo.t2.condition
+          subject_ref: {entity_type: source_representation, entity_id: rep.photo.t2}
+          attribute_key: physical.apparent_condition
+          value: {value_type: controlled_label, value: apparent_defect_reobserved}
+          assertion_mode: derived
+          source_authority: model_interpretation_candidate
+          proof_status: candidate
+          source_representation_refs: [rep.photo.t2]
+      relation_claim_candidates: []
+      gaps: [{code: temporal.continuity_not_observed}]
+      withheld: []
+      warnings: [{code: review.no_reservation_inference}]
+      operational_outcome: success

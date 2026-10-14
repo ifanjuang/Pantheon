@@ -1,0 +1,24 @@
+api_version: pantheon.next/v0alpha1
+kind: Resource
+metadata:
+  id: docuseal
+  title: DocuSeal OSS
+  status: candidate
+spec:
+  resource_type: external_connection
+  provides_roles:
+    - external_signature_provider
+  lifecycle:
+    installable: true
+    connectable_existing_instance: true
+  interfaces:
+    - rest_api
+    - signed_webhook
+    - smtp_delivery
+  boundaries:
+    default_mode: consequential_send_gated
+    direct_hermes_credentials: false
+    direct_affaires_write: false
+    direct_hindsight_write: false
+    automatic_evidence_admission: false
+    activation: false

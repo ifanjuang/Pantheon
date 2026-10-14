@@ -1,0 +1,27 @@
+:root {
+  --toolbar-bg-color: #151618;
+  --toolbar-bg-color-dark: #101114;
+  --button-hover-color: #343941;
+  --field-bg-color: #25272b;
+  --field-border-color: #555a63;
+  --toggled-btn-bg-color: #315d9c;
+  --doorhanger-bg-color: #fffefa;
+}
+
+#toolbarContainer {
+  border-bottom: 3px solid #315d9c;
+}
+
+#viewerContainer {
+  background: #e9e7e0;
+}
+
+#sidebarContainer,
+#secondaryToolbar {
+  background: #202226;
+}
+
+#viewerContainer .page {
+  border-color: #d9d5ca;
+  box-shadow: 0 8px 28px rgb(21 22 24 / 15%);
+}

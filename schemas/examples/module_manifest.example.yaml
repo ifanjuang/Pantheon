@@ -1,0 +1,60 @@
+module_id: architecture.source-audit
+title: Architecture Source Audit Module
+purpose: Declare a bounded source-audit capability that may produce candidates and evidence, but cannot validate or act externally.
+owner_layer: execution_runtime
+type: skill
+status: candidate
+activation:
+  state: sandbox_enabled
+  scope: repository
+  scope_id: pantheon-next
+  scope_label: Pantheon Next repository
+task_authorization:
+  state: unauthorized
+  task_contract_ref: null
+  authorization_notes: No task-specific authorization has been granted by this manifest.
+interface:
+  allowed_inputs:
+    - task_contract
+    - context_pack
+    - source_reference
+  allowed_outputs:
+    - result_candidate
+    - evidence_pack_candidate
+    - capability_gap
+  forbidden_outputs:
+    - approved_truth
+    - external_transmission
+    - register_entry
+    - memory_promotion
+  envelope: task_contract_in__candidate_out__evidence_pack_out
+governance:
+  consequential: true
+  risk_level: medium
+  approval_behavior: C3
+  memory_behavior: candidate_only
+  scope_behavior: Must stay inside the task or repository scope declared by the Task Contract.
+  policy_check_required: true
+  evidence_expectation:
+    - Source references and limitations must be returned with every claim.
+    - Any contradiction must remain visible in the Evidence Pack Candidate.
+dependencies:
+  requires:
+    - task_contract.schema.yaml
+    - evidence_pack.schema.yaml
+  optional:
+    - context_pack.schema.yaml
+composition:
+  talks_only_via_envelope: true
+  direct_module_calls_allowed: false
+  notes: The capability can only exchange Task Contract input and candidate outputs.
+provenance:
+  source: docs/governance/MODULAR_DOMAIN_REORIENTATION.md
+  author: Pantheon Next governance track
+  reviewed_by: ZEUS
+  review_status: to_verify
+governance_refs:
+  - docs/governance/MODULAR_DOMAIN_REORIENTATION.md
+  - docs/governance/MODULE_ACTIVATION.md
+  - docs/governance/CAPABILITY_PLACEMENT.md
+  - docs/governance/UNIFORM_CAPABILITY_GOVERNANCE.md

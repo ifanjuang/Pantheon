@@ -1,0 +1,13 @@
+{
+  "context_pack_id": "ctx_example",
+  "timestamp": "2026-07-05T00:00:00+02:00",
+  "document": {
+    "title": "example.rvt",
+    "path_hash": "redacted"
+  },
+  "active_view": {
+    "id": 123,
+    "name": "Level 0"
+  },
+  "selection": []
+}

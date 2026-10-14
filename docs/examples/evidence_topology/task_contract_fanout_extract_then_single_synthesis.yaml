@@ -1,0 +1,126 @@
+# Fictional Task Contract example.
+# Educational support only.
+# This is not a schema, not runtime configuration and not a Hermes dispatch file.
+
+identity:
+  contract_id: tc-example-fanout-extract-single-synthesis-001
+  status: fictional_example
+  created_for: evidence_topology_gate_demo
+  doctrine_refs:
+    - docs/governance/EVIDENCE_TOPOLOGY.md
+    - docs/governance/TASK_CONTRACTS.md
+    - docs/governance/EVIDENCE_PACK.md
+    - docs/governance/SCOPE_ISOLATION.md
+
+intent:
+  summary: Compare a fictitious recovery quote against several professional dossier sources before drafting a neutral internal review note.
+  professional_risk: medium_high
+  reason_for_governance: Several sources can be extracted in parallel, but the final risk reasoning must stay centralized.
+
+scope:
+  included:
+    - fictitious recovery quote Q-2026-041
+    - fictitious CCTP excerpt
+    - fictitious site report excerpt
+    - fictitious meeting note excerpt
+    - fictitious client email excerpt
+  excluded:
+    - direct client-facing email
+    - final validation of quote
+    - reception decision
+    - legal conclusion
+    - memory promotion
+  scope_warning: This example illustrates dossier review only. It does not validate works, quote acceptance or professional liability.
+
+reasoning_topology:
+  selected: fanout_extract_then_single_synthesis
+  reason: many_sources_need_bounded_extraction_but_final_reasoning_must_be_unified
+  handoff_policy: evidence_items_only
+  synthesis_policy: single_primary_reasoning_context_after_extraction
+  why_not_full_multi_agent: Independent extraction is useful, but final judgment depends on comparing all evidence in one context.
+  allowed_worker_lanes:
+    - quote_extraction
+    - cctp_extraction
+    - site_report_extraction
+    - meeting_note_extraction
+    - email_extraction
+  forbidden_worker_outputs:
+    - final_risk_conclusion
+    - validation_recommendation
+    - client_transmission_draft
+    - summary_without_source_locator
+
+roles:
+  requested_viewpoints:
+    - ATHENA: structure comparison axes
+    - ARGOS: verify source locators and missing documents
+    - THEMIS: identify contractual and transmission risks
+    - APOLLO: check note clarity and reserve wording
+    - ZEUS: arbitrate whether output stays internal or needs User Decision Gate
+  role_boundary: Roles review consolidated evidence after extraction. They do not become worker agents.
+
+constraints:
+  - Workers may extract only from their assigned source.
+  - Workers must return Evidence Items, not conclusions.
+  - The synthesis must compare all Evidence Items in one consolidated reasoning context.
+  - Missing source must be marked as a blocker or limitation.
+  - No external communication may be drafted as a validation email.
+
+expected_evidence:
+  worker_outputs:
+    quote_extraction:
+      expected: line items, amounts, assumptions, exclusions, uncertain terms
+    cctp_extraction:
+      expected: relevant clauses, missing clauses, contradiction candidates
+    site_report_extraction:
+      expected: observed site facts and dated limitations
+    meeting_note_extraction:
+      expected: user or stakeholder statements with status as non-proof unless corroborated
+    email_extraction:
+      expected: client request scope and transmission risk indicators
+  synthesis_requires:
+    - contradiction_ledger
+    - missing_source_list
+    - internal_note_candidate
+    - delivery_status
+
+allowed_outputs:
+  - internal_review_note_candidate
+  - evidence_pack_candidate
+  - contradiction_ledger_candidate
+  - source_gap_list
+  - user_decision_gate_request
+
+forbidden_outputs:
+  - client_validation_email
+  - final_quote_approval
+  - reception_status_decision
+  - memory_promotion
+  - external_transmission
+
+approvals:
+  expected_level: C2
+  escalates_to: C3_if_doctrine_or_memory_claim_is_requested
+  human_review_required_before:
+    - sending_any_client_facing_text
+    - marking_quote_as_validated
+    - creating_memory_candidate
+
+memory_rules:
+  default: no_memory_output
+  allowed: narrow_memory_candidate_after_user_review_only
+  forbidden:
+    - broad_domain_rule_from_one_dossier
+    - canonical_memory
+    - project_memory_from_uncorroborated_meeting_note
+
+open_questions:
+  - Does the quote include items outside the CCTP scope?
+  - Are site observations dated and attributable?
+  - Is the client request asking for technical validation or only clarification?
+  - Should the safe output remain an internal note?
+
+final_status:
+  task_contract_status: example_only
+  execution_status: not_executed
+  approval_status: not_requested

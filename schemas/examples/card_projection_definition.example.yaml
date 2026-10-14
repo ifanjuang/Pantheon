@@ -1,0 +1,36 @@
+schema_id: cockpit.card_projection_definition
+revision: 1
+definition_id: navigation_space_project
+entity_types:
+  - cockpit_space
+card_role: container
+presentation_family: project
+identity:
+  id_field: entity_id
+  title:
+    static: Affaires
+  category:
+    static: Projets
+summary:
+  static: Projets, informations, contacts et travaux.
+tags:
+  subject_limit: 5
+detail:
+  static_rows:
+    - label: Source
+      value: PostgreSQL Agency Data reste le system of record.
+actions:
+  source: server_projection
+relations:
+  children_source: navigation_registry
+governance_refs:
+  - docs/governance/CARD_STACK_MODEL.md
+  - docs/governance/CARD_PROJECTION_DEFINITION_MODEL.md
+  - registries/README.md
+x-boundary:
+  object_schema: false
+  lifecycle: false
+  authorization: false
+  evidence_qualification: false
+  runtime_execution: false
+  provider_routing: false

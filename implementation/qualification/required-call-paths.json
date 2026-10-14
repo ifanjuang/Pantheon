@@ -1,0 +1,63 @@
+{
+  "schema_id": "pantheon.required_call_paths",
+  "revision": 1,
+  "purpose": "Pin the call-reachability state of the paths that are supposed to carry consequential effects, so a path that stops being taken fails a check instead of disappearing from view.",
+  "how_to_read": [
+    "expected_state is compared against the symbol layer of implementation/tools/audit_module_usage.py.",
+    "Divergence fails in both directions: a path that was supposed to be taken and is not, and a path declared dead that has come alive without anyone updating this file.",
+    "An entry expecting anything other than entry_reachable must name what blocks it, so a known dead path stays declared rather than becoming invisible again.",
+    "entry_reachable is a weak claim. Call edges resolve by bare symbol name, so it means a chain of names reaches the symbol, not that a deployed run takes the path, and not that the call supplies real arguments. The semantic complement is the assembly and inventory tests under implementation/tests/."
+  ],
+  "paths": [
+    {
+      "id": "cockpit-app-factory",
+      "symbol": "mvp_vertical.cockpit_shell:create_cockpit_app",
+      "expected_state": "entry_reachable",
+      "why": "The Cockpit application factory is the assembly point for every consequential API surface. If nothing reaches it, no surface is assembled at all."
+    },
+    {
+      "id": "policy-chokepoint",
+      "symbol": "mvp_vertical.policy_gate:enforce_consequential",
+      "expected_state": "entry_reachable",
+      "why": "The governance check itself. Reaching it is the floor, not the goal: assembly and mutation-inventory tests separately verify that the first Knowledge write is supplied a decision client under the required posture."
+    },
+    {
+      "id": "policy-decision-client",
+      "symbol": "mvp_vertical.policy_gate:HttpPolicyClient",
+      "expected_state": "entry_reachable",
+      "why": "The Cockpit factory now constructs the real PDP client when both MVP_POLICY_API_URL and MVP_POLICY_API_KEY are configured. Assembly tests also require an unconfigured consequential Knowledge write to fail closed by default. Entry reachability is still not a claim that a selected deployment has configured or exercised the client."
+    },
+    {
+      "id": "governed-effect-wrapper",
+      "symbol": "mvp_vertical.policy_gate:governed_effect",
+      "expected_state": "test_called_only",
+      "blocked_by": "No runtime caller wraps an effect in the generic gate helper; the first real Knowledge path binds the shared enforce_consequential seam directly so its existing persistence owner remains authoritative.",
+      "why": "A generic convenience wrapper is not required for the owner-specific write. Keeping its actual state explicit prevents a helper that exists only in tests from being mistaken for the application boundary."
+    },
+    {
+      "id": "governed-capability-execution",
+      "symbol": "mvp_vertical.capability_manager:governed_execute",
+      "expected_state": "test_called_only",
+      "blocked_by": "No runtime caller routes a capability execution through the governed path.",
+      "why": "Capability execution is consequential by definition. Declaring the current state keeps 'the governed path exists' from being read as 'the governed path is used'."
+    },
+    {
+      "id": "knowledge-update-apply",
+      "symbol": "mvp_vertical.knowledge_update:apply_knowledge_update",
+      "expected_state": "entry_reachable",
+      "why": "The first owner-specific Knowledge mutation. The Cockpit now supplies its decision client under a fail-closed default posture, while the owner binds the decision expectation to the exact signed UPDATE effect."
+    },
+    {
+      "id": "handoff-admission",
+      "symbol": "mvp_vertical.hermes_execution:admit_handoff",
+      "expected_state": "entry_reachable",
+      "why": "Admission of an external execution handoff. An admission path that is no longer reachable would silently stop being an admission path."
+    },
+    {
+      "id": "authorized-write-command",
+      "symbol": "mvp_vertical.apu_write_preparation:apply_authorized_write_command",
+      "expected_state": "entry_reachable",
+      "why": "The other mutation entry point with a real local guard chain."
+    }
+  ]
+}

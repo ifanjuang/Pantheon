@@ -1,0 +1,25 @@
+api_version: pantheon.next/v0alpha1
+kind: Capability
+metadata:
+  id: e_signature_workflow
+  title: Signature électronique externe gouvernée
+  status: candidate
+spec:
+  outcome: Envoyer un document exact à des signataires explicites et observer son état de signature sans transférer l'autorité au fournisseur.
+  required_roles:
+    - external_signature_provider
+  acceptance:
+    - exact_document_digest_bound
+    - exact_recipient_scope_bound
+    - consequential_send_authorization_required
+    - authenticated_completion_events_supported
+    - signed_document_retrieval_supported
+  candidate_resources:
+    preferred:
+      - docuseal
+    alternatives: []
+  boundaries:
+    - provider_status_is_not_evidence
+    - provider_completion_is_not_governed_truth
+    - runtime_success_is_not_authorization
+    - signed_artifact_ref_is_not_affaires_persistence

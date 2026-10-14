@@ -1,0 +1,140 @@
+.role-trace-tabs {
+  display: inline-flex;
+  width: max-content;
+  margin-top: .8rem;
+  padding: .18rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #eceae4;
+}
+
+.role-trace-tab {
+  min-height: 2rem;
+  padding: .3rem .75rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: .76rem;
+  font-weight: 800;
+}
+
+.role-trace-tab[aria-selected="true"] {
+  background: var(--ink);
+  color: #fff;
+}
+
+.role-graph {
+  display: grid;
+  gap: .6rem;
+  margin-top: .85rem;
+}
+
+.role-graph-boundary,
+.role-graph-empty,
+.role-graph-detail-empty,
+.role-graph-detail-summary,
+.role-graph-detail-origin {
+  margin: 0;
+  color: var(--muted);
+  font-size: .76rem;
+  line-height: 1.4;
+}
+
+.role-graph-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  padding: .3rem 0 .4rem;
+  scrollbar-width: thin;
+}
+
+.role-graph-lanes {
+  display: grid;
+  gap: .45rem;
+  width: max-content;
+  min-width: 100%;
+}
+
+.role-graph-lane {
+  display: grid;
+  grid-template-columns: 7.5rem auto;
+  align-items: center;
+  gap: .5rem;
+  min-height: 2.7rem;
+}
+
+.role-graph-label {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: .42rem;
+  min-height: 2.3rem;
+  padding: .3rem .5rem;
+  border-right: 1px solid var(--line);
+  background: rgb(255 254 250 / 97%);
+  font-size: .78rem;
+}
+
+.role-graph-label span { font-size: 1.02rem; }
+
+.role-graph-rail {
+  position: relative;
+  display: grid;
+  align-items: center;
+  min-height: 2.3rem;
+  padding: .12rem .5rem;
+}
+
+.role-graph-rail::before {
+  content: "";
+  position: absolute;
+  inset: 50% .5rem auto;
+  height: 1px;
+  background: var(--line);
+  transform: translateY(-50%);
+}
+
+.role-graph-node {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 2.05rem;
+  height: 2.05rem;
+  justify-self: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: .92rem;
+}
+
+.role-graph-node[data-phase="started"],
+.role-graph-node[data-phase="updated"] { border-color: rgb(49 93 156 / 68%); }
+.role-graph-node[data-projection="derived_transient"] { border-style: dashed; }
+.role-graph-node.is-selected { outline: .15rem solid var(--ink); outline-offset: .16rem; }
+
+.role-graph-detail {
+  display: grid;
+  gap: .4rem;
+  padding: .7rem .8rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--surface);
+}
+
+.role-graph-detail:empty { display: none; }
+.role-graph-detail-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; font-size: .82rem; }
+.role-graph-detail-head span { color: var(--muted); font-size: .7rem; font-weight: 800; text-transform: uppercase; }
+.role-graph-detail dl { display: grid; grid-template-columns: auto 1fr; gap: .2rem .55rem; margin: .2rem 0 0; font-size: .75rem; }
+.role-graph-detail dt { color: var(--muted); }
+.role-graph-detail dd { margin: 0; overflow-wrap: anywhere; }
+
+@media (max-width: 36rem) {
+  .role-graph-lane { grid-template-columns: 5.8rem auto; }
+  .role-graph-label { font-size: .7rem; }
+}

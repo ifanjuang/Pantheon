@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pantheon-next.local/catalog/schemas/health-observation.schema.json",
+  "title": "Pantheon Health Observation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["api_version", "kind", "metadata", "spec", "governance"],
+  "properties": {
+    "api_version": {"const": "pantheon.next/v0alpha1"},
+    "kind": {"const": "HealthObservation"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "observed_at", "execution_result_candidate_id"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^health_observation_[a-z0-9_-]+$"},
+        "observed_at": {"type": "string", "format": "date-time"},
+        "execution_result_candidate_id": {"type": "string", "pattern": "^execution_result_candidate_[a-z0-9_-]+$"}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resource", "status", "checks", "version_observed", "endpoint_scope"],
+      "properties": {
+        "resource": {"type": "string", "minLength": 1},
+        "status": {"enum": ["healthy", "degraded", "failed", "unknown"]},
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "result"],
+            "properties": {
+              "name": {"type": "string"},
+              "result": {"enum": ["pass", "fail", "unknown"]},
+              "detail": {"type": "string"}
+            }
+          }
+        },
+        "version_observed": {"type": "string"},
+        "endpoint_scope": {"enum": ["internal_only", "private_network", "public", "not_applicable"]}
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["health_is_safety_claim", "health_is_admission", "activation_authorized", "human_review_required"],
+      "properties": {
+        "health_is_safety_claim": {"const": false},
+        "health_is_admission": {"const": false},
+        "activation_authorized": {"const": false},
+        "human_review_required": {"const": true}
+      }
+    }
+  }
+}

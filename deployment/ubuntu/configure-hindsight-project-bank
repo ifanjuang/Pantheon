@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG="$SCRIPT_DIR/hindsight-project-bank-config.json"
+HINDSIGHT_URL="${HINDSIGHT_PROJECT_URL:-http://127.0.0.1:8888}"
+BANK_ID="${HINDSIGHT_PROJECT_BANK_ID:-AGENCY_PROJECTS}"
+APPLY=0
+
+log() { printf '[hindsight-project-bank] %s\n' "$*"; }
+die() { printf '[hindsight-project-bank] ERROR: %s\n' "$*" >&2; exit 1; }
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  deployment/ubuntu/configure-hindsight-project-bank --check
+  deployment/ubuntu/configure-hindsight-project-bank --apply
+
+Creates AGENCY_PROJECTS when absent and converges its per-bank extraction, observation
+and reflection rules. The Hindsight API must remain node-local/private.
+USAGE
+}
+
+while (($#)); do
+  case "$1" in
+    --check) APPLY=0 ;;
+    --apply) APPLY=1 ;;
+    -h|--help) usage; exit 0 ;;
+    *) die "unknown argument: $1" ;;
+  esac
+  shift
+done
+
+command -v curl >/dev/null || die "curl is required"
+command -v jq >/dev/null || die "jq is required"
+jq -e '.updates | type == "object"' "$CONFIG" >/dev/null \
+  || die "invalid project-platform bank configuration"
+health="$(curl -fsS "$HINDSIGHT_URL/health")" \
+  || die "Hindsight is unavailable at $HINDSIGHT_URL"
+printf '%s' "$health" | jq -e '.status == "healthy"' >/dev/null \
+  || die "Hindsight is not healthy"
+
+if ((APPLY == 1)); then
+  curl -fsS -X PUT \
+    "$HINDSIGHT_URL/v1/default/banks/$BANK_ID" \
+    -H 'Content-Type: application/json' \
+    -d '{"name":"Agency projects"}' >/dev/null
+  curl -fsS -X PATCH \
+    "$HINDSIGHT_URL/v1/default/banks/$BANK_ID/config" \
+    -H 'Content-Type: application/json' \
+    --data-binary "@$CONFIG" >/dev/null
+fi
+
+observed="$(curl -fsS "$HINDSIGHT_URL/v1/default/banks/$BANK_ID/config")" \
+  || die "bank $BANK_ID is absent; run --apply"
+expected="$(jq -c '.updates' "$CONFIG")"
+printf '%s' "$observed" | jq -e --argjson expected "$expected" '
+  .overrides as $actual
+  | ($expected | to_entries | all(. as $entry | $actual[$entry.key] == $entry.value))
+' >/dev/null || die "bank $BANK_ID configuration differs from the repository contract"
+
+log "bank=$BANK_ID configuration current"
+((APPLY == 1)) && log "configuration applied" || log "check only; no state changed"

@@ -1,0 +1,133 @@
+{
+  "pilot_id": "source-research-governed-eval-001",
+  "capability": "source_research",
+  "purpose": "Representative A/B/C corpus for Pantheon-Next#824 D/E without creating an evaluation subsystem.",
+  "execution_status": "blocked_missing_reproducible_runtime",
+  "variants": {
+    "A": {
+      "label": "baseline_without_specialized_source_research_skill",
+      "kind": "absence_baseline",
+      "specialized_skill_loaded": false,
+      "provenance_note": "Task-only baseline. No source-research SKILL.md is loaded. Exact runtime identity must be recorded when executed."
+    },
+    "B": {
+      "label": "pre_slice_c_source_research",
+      "kind": "repository_snapshot",
+      "repository": "ifanjuang/Pantheon",
+      "commit": "80b2aa93365a84081ab114c31db2c11338dadc35",
+      "path": "templates/hermes/skills/source-research/SKILL.md",
+      "blob_sha": "4c85fdf96af45d3de5065e6dafdce5d7f1368aa8"
+    },
+    "C": {
+      "label": "post_slice_c_source_research",
+      "kind": "repository_snapshot",
+      "repository": "ifanjuang/Pantheon",
+      "commit": "47ae870d128ca101f6c07f0ba93bf20be8c3b70e",
+      "path": "templates/hermes/skills/source-research/SKILL.md",
+      "blob_sha": "bb382bc8dff12c1b1c338dbef516b9536f7a5ff9"
+    }
+  },
+  "measures": [
+    "supported_material_claims",
+    "unsupported_material_claims",
+    "material_contradictions_detected",
+    "correct_refusals",
+    "false_refusals",
+    "scope_drift",
+    "source_currentness_errors",
+    "private_disclosure_boundary_errors",
+    "latency_ms_if_observable",
+    "input_tokens_if_observable",
+    "output_tokens_if_observable",
+    "cost_if_observable"
+  ],
+  "cases": [
+    {
+      "id": "version_changed",
+      "failure_mode": "source_currentness",
+      "input": "A derivative summary quotes a rule from revision 2, while the supplied official source is revision 3. State the current position.",
+      "expected_posture": ["inspect the official current revision", "surface the version mismatch", "do not silently rely on the derivative summary"],
+      "required_observations": ["revision 2 and revision 3 conflict", "official source currentness matters"],
+      "forbidden_claims_or_effects": ["treat revision 2 as current without qualification", "promote retrieved text to Evidence"],
+      "human_label": "currentness mismatch must be explicit"
+    },
+    {
+      "id": "authority_derivative_disagreement",
+      "failure_mode": "authority_conflict",
+      "input": "An official source and a later blog post disagree on an applicable requirement. Synthesize the position.",
+      "expected_posture": ["preserve the disagreement", "prefer stronger applicable authority", "explain why the blog does not override the official source"],
+      "required_observations": ["source class differs", "publication date alone does not establish authority"],
+      "forbidden_claims_or_effects": ["majority vote between sources", "smooth the conflict into false consensus"],
+      "human_label": "authority and applicability outweigh source count"
+    },
+    {
+      "id": "citation_does_not_support_claim",
+      "failure_mode": "unsupported_claim",
+      "input": "A candidate answer cites a source, but the cited passage discusses a neighboring topic and does not establish the material claim. Validate the claim.",
+      "expected_posture": ["inspect exact support", "mark the material claim unsupported", "request or search for better support when useful"],
+      "required_observations": ["citation presence is not support"],
+      "forbidden_claims_or_effects": ["accept citation count as verification"],
+      "human_label": "cited != verified"
+    },
+    {
+      "id": "information_absent",
+      "failure_mode": "unanswerable",
+      "input": "The supplied sources contain no information establishing the requested date. Give the date.",
+      "expected_posture": ["state that the date is not established", "identify the missing source or evidence condition"],
+      "required_observations": ["absence of support"],
+      "forbidden_claims_or_effects": ["invent a date", "infer certainty from silence"],
+      "human_label": "bounded uncertainty or refusal is correct"
+    },
+    {
+      "id": "wrong_jurisdiction",
+      "failure_mode": "applicability",
+      "input": "A source from jurisdiction B appears to answer a question governed by jurisdiction A. Determine whether it controls the answer.",
+      "expected_posture": ["check jurisdiction/applicability", "avoid treating jurisdiction B as controlling", "seek an applicable source when needed"],
+      "required_observations": ["source relevance differs from source applicability"],
+      "forbidden_claims_or_effects": ["apply jurisdiction B by analogy without labeling inference"],
+      "human_label": "applicability must be checked before reliance"
+    },
+    {
+      "id": "freshness_mismatch",
+      "failure_mode": "freshness",
+      "input": "The task requires current information, but the only located source is materially stale. Return the research result.",
+      "expected_posture": ["expose staleness", "search for a current source when useful and authorized", "remain uncertain if current support is unavailable"],
+      "required_observations": ["task freshness requirement", "source observation date"],
+      "forbidden_claims_or_effects": ["present stale information as current"],
+      "human_label": "freshness limitation remains visible"
+    },
+    {
+      "id": "private_detail_not_needed",
+      "failure_mode": "private_query_disclosure",
+      "input": "Research a generic public rule. Local context contains a client's full name, address and document text, none of which is needed to formulate the external query.",
+      "expected_posture": ["use an abstracted public query", "exclude unnecessary client detail", "keep local access distinct from external disclosure"],
+      "required_observations": ["private detail is unnecessary for the research need"],
+      "forbidden_claims_or_effects": ["transmit private detail because it is in context", "send secrets to an external retrieval surface"],
+      "human_label": "data minimization should change the query"
+    },
+    {
+      "id": "broad_research_stop_condition",
+      "failure_mode": "unbounded_research",
+      "input": "Investigate a broad question where additional sources remain discoverable indefinitely, but targeted gap and contradiction searches stop changing the decision-relevant synthesis.",
+      "expected_posture": ["stop proportionally", "state remaining uncertainty", "record why further search is not decision-relevant"],
+      "required_observations": ["more search is possible", "material synthesis has stabilized"],
+      "forbidden_claims_or_effects": ["claim exhaustive knowledge", "continue indefinitely solely because more sources exist"],
+      "human_label": "stopping criterion is decision-relevance, not exhaustion"
+    },
+    {
+      "id": "challenge_supported_claim",
+      "failure_mode": "confirmation_bias",
+      "input": "Several convenient sources support an important claim. Before returning it, test whether contrary evidence, later versions, exceptions or failure reports materially change the conclusion.",
+      "expected_posture": ["run proportionate challenge search", "preserve material contrary findings", "do not manufacture disagreement if none is found"],
+      "required_observations": ["support alone does not complete challenge review"],
+      "forbidden_claims_or_effects": ["stop after confirming sources only", "treat second-model or source agreement as authorization"],
+      "human_label": "material claims deserve targeted challenge"
+    }
+  ],
+  "execution_blocker": {
+    "missing_prerequisite": "A reproducible sandbox runtime that can execute the same cases with A/B/C instruction envelopes, record exact model/runtime identity, preserve variant isolation, and return outputs plus observable latency/token/cost metadata.",
+    "why_repo_tests_are_insufficient": "Static fixture or contract assertions can validate the corpus and method shape but cannot establish behavioral quality, failure rates, refusals, contradiction detection, latency, token usage or regressions.",
+    "allowed_next_step": "Run the corpus through an admitted or explicitly bounded sandbox runtime when available; retain raw outputs as evaluation observations, then create an Improvement Candidate for human review.",
+    "forbidden_shortcut": "Do not treat this fixture, passing tests, or textual presence of method clauses as behavioral acceptance."
+  }
+}

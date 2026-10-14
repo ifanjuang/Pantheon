@@ -1,0 +1,36 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "shared_defs.schema.yaml"
+title: Pantheon Next Shared Schema Definitions
+description: Shared non-runtime vocabulary fragments for governance validation schemas. This seed defines canonical vocabulary only; consumers may still repeat values inline until shared reference resolution is generalized.
+type: object
+$defs:
+  scope_type:
+    type: string
+    enum:
+      - session
+      - task
+      - dossier
+      - project
+      - domain
+      - user
+      - organization
+      - repository
+      - governance
+      - system
+  pantheon_role:
+    type: string
+    description: Canonical Pantheon governance roles from docs/governance/AGENTS.md. Roles are governance viewpoints, not runtime identities.
+    enum:
+      - ATHENA
+      - ARGOS
+      - THEMIS
+      - APOLLO
+      - ZEUS
+      - IRIS
+      - HEPHAISTOS
+      - MNEMOSYNE
+additionalProperties: false
+x-boundary:
+  runtime_execution: false
+  provider_routing: false
+  memory_promotion: false

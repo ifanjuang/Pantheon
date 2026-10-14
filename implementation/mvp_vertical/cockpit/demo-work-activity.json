@@ -1,0 +1,252 @@
+{
+  "schema_id": "cockpit.demo_work_activity",
+  "revision": 1,
+  "items": {
+    "vallons-arbitrage-budget": {
+      "work_issue": {
+        "issue_id": "vallons-arbitrage-budget",
+        "case_ref": "demo-vallons",
+        "title": "Arbitrer les options différables",
+        "description": "Distinguer le socle du projet et les options différables.",
+        "origin": "human",
+        "issue_type": "decision",
+        "priority": "high",
+        "assigned_to": "hermes",
+        "requested_effect": "read_only",
+        "status": "review",
+        "task_contract_ref": "task-contract:demo-vallons-budget",
+        "context_pack_ref": "context-pack:demo-vallons-budget",
+        "version": 3,
+        "created_by": "Atelier Sillage",
+        "created_at": "2026-07-27T08:30:00Z",
+        "updated_at": "2026-07-28T10:20:00Z",
+        "objective": "Séparer le socle contractuel des options différables.",
+        "milestones": ["Classer les options", "Mesurer les incidences", "Présenter l’arbitrage"],
+        "responsibilities": ["Économiste", "Architecte"],
+        "skills": ["analyse économique"],
+        "functions": ["comparaison de scénarios"],
+        "tools": [],
+        "type_tags": ["decision"],
+        "subject_tags": ["budget", "options", "maison-neuve", "re2020"],
+        "tags": ["budget", "options", "maison-neuve", "re2020"],
+        "limits": ["Résultat candidat soumis à revue humaine"]
+      },
+      "comments": [],
+      "hermes_runs": [
+        {
+          "run_id": "run-vallons-budget-1",
+          "issue_ref": "vallons-arbitrage-budget",
+          "task_contract_ref": "task-contract:demo-vallons-budget",
+          "context_pack_ref": "context-pack:demo-vallons-budget",
+          "status": "returned",
+          "requested_effect": "read_only",
+          "started_at": "2026-07-28T10:00:00Z",
+          "returned_at": "2026-07-28T10:18:00Z",
+          "normalized_return": {
+            "outcome": "result_candidate",
+            "summary": "Trois options différables sont isolées sans modifier le socle du projet.",
+            "result_refs": ["result://demo-vallons/options-comparison"],
+            "evidence_candidate_refs": [],
+            "trace_refs": ["trace://demo-vallons/run-vallons-budget-1"]
+          },
+          "created_at": "2026-07-28T10:00:00Z",
+          "updated_at": "2026-07-28T10:18:00Z"
+        }
+      ],
+      "events": [
+        {"event_type":"issue_created","label":"Travail demandé","occurred_at":"2026-07-27T08:30:00Z","actor":"Atelier Sillage","actor_kind":"human","run_ref":null,"detail":null},
+        {"event_type":"hermes_started","label":"Hermès a pris en charge le Travail","occurred_at":"2026-07-28T10:00:00Z","actor":"hermes","actor_kind":"hermes","run_ref":"run-vallons-budget-1","detail":null},
+        {"event_type":"hermes_returned","label":"Hermès a retourné un résultat","occurred_at":"2026-07-28T10:18:00Z","actor":"hermes","actor_kind":"hermes","run_ref":"run-vallons-budget-1","detail":null},
+        {"event_type":"review_requested","label":"Revue humaine demandée","occurred_at":"2026-07-28T10:20:00Z","actor":"hermes","actor_kind":"hermes","run_ref":"run-vallons-budget-1","detail":null}
+      ],
+      "work_activity": {
+        "schema": {"id":"cockpit.work_activity","revision":1},
+        "issue": {"issue_id":"vallons-arbitrage-budget","status":"review","status_label":"À examiner","assigned_to":"hermes","version":3,"task_contract_ref":"task-contract:demo-vallons-budget","context_pack_ref":"context-pack:demo-vallons-budget"},
+        "latest_run": {"run_id":"run-vallons-budget-1","status":"returned","status_label":"Résultat retourné","requested_effect":"read_only","started_at":"2026-07-28T10:00:00Z","returned_at":"2026-07-28T10:18:00Z","updated_at":"2026-07-28T10:18:00Z"},
+        "activity": [
+          {"event_type":"issue_created","label":"Travail demandé","occurred_at":"2026-07-27T08:30:00Z","actor":"Atelier Sillage","actor_kind":"human","run_ref":null,"detail":null},
+          {"event_type":"hermes_started","label":"Hermès a pris en charge le Travail","occurred_at":"2026-07-28T10:00:00Z","actor":"hermes","actor_kind":"hermes","run_ref":"run-vallons-budget-1","detail":null},
+          {"event_type":"hermes_returned","label":"Hermès a retourné un résultat","occurred_at":"2026-07-28T10:18:00Z","actor":"hermes","actor_kind":"hermes","run_ref":"run-vallons-budget-1","detail":null},
+          {"event_type":"review_requested","label":"Revue humaine demandée","occurred_at":"2026-07-28T10:20:00Z","actor":"hermes","actor_kind":"hermes","run_ref":"run-vallons-budget-1","detail":null}
+        ],
+        "latest_event": {"event_type":"review_requested","label":"Revue humaine demandée","occurred_at":"2026-07-28T10:20:00Z","actor":"hermes","actor_kind":"hermes","run_ref":"run-vallons-budget-1","detail":null},
+        "result_candidate": {"outcome":"result_candidate","outcome_label":"Résultat candidat produit","summary":"Trois options différables sont isolées sans modifier le socle du projet.","result_refs":["result://demo-vallons/options-comparison"],"evidence_candidate_refs":[],"trace_refs":["trace://demo-vallons/run-vallons-budget-1"]},
+        "trace_refs": ["trace://demo-vallons/run-vallons-budget-1"],
+        "review_required": true,
+        "limits": ["runtime_success != Evidence", "Trace != proof", "UI status != authorization"]
+      }
+    },
+    "falaises-clos-couvert": {
+      "work_issue": {
+        "issue_id": "falaises-clos-couvert",
+        "case_ref": "demo-falaises",
+        "title": "Figer le clos-couvert",
+        "description": "Établir un état contradictoire avant la reprise des travaux.",
+        "origin": "human",
+        "issue_type": "verification",
+        "priority": "high",
+        "assigned_to": null,
+        "requested_effect": "draft",
+        "status": "review",
+        "task_contract_ref": null,
+        "context_pack_ref": null,
+        "version": 2,
+        "created_by": "Atelier Sillage",
+        "created_at": "2026-07-25T09:00:00Z",
+        "updated_at": "2026-07-28T08:45:00Z",
+        "objective": "Consolider l’état des ouvrages sans valider les reprises.",
+        "milestones": ["Croiser le constat", "Lister les écarts", "Préparer la revue"],
+        "responsibilities": ["Architecte", "Expert construction"],
+        "skills": ["constat contradictoire"],
+        "functions": ["qualification des écarts"],
+        "tools": [],
+        "type_tags": ["verification"],
+        "subject_tags": ["clos-couvert", "chantier", "assurance", "reprise"],
+        "tags": ["clos-couvert", "chantier", "assurance", "reprise"],
+        "limits": ["Constat projeté sans validation technique automatique"]
+      },
+      "comments": [],
+      "hermes_runs": [],
+      "events": [
+        {"event_type":"issue_created","label":"Travail demandé","occurred_at":"2026-07-25T09:00:00Z","actor":"Atelier Sillage","actor_kind":"human","run_ref":null,"detail":null},
+        {"event_type":"status_changed","label":"État modifié","occurred_at":"2026-07-28T08:45:00Z","actor":"Atelier Sillage","actor_kind":"human","run_ref":null,"detail":"À faire → À examiner"}
+      ],
+      "work_activity": {
+        "schema": {"id":"cockpit.work_activity","revision":1},
+        "issue": {"issue_id":"falaises-clos-couvert","status":"review","status_label":"À examiner","assigned_to":null,"version":2,"task_contract_ref":null,"context_pack_ref":null},
+        "latest_run": null,
+        "activity": [
+          {"event_type":"issue_created","label":"Travail demandé","occurred_at":"2026-07-25T09:00:00Z","actor":"Atelier Sillage","actor_kind":"human","run_ref":null,"detail":null},
+          {"event_type":"status_changed","label":"État modifié","occurred_at":"2026-07-28T08:45:00Z","actor":"Atelier Sillage","actor_kind":"human","run_ref":null,"detail":"À faire → À examiner"}
+        ],
+        "latest_event": {"event_type":"status_changed","label":"État modifié","occurred_at":"2026-07-28T08:45:00Z","actor":"Atelier Sillage","actor_kind":"human","run_ref":null,"detail":"À faire → À examiner"},
+        "result_candidate": null,
+        "trace_refs": [],
+        "review_required": true,
+        "limits": ["runtime_success != Evidence", "Trace != proof", "UI status != authorization"]
+      }
+    },
+    "horizon-desenfumage": {
+      "work_issue": {
+        "issue_id": "horizon-desenfumage",
+        "case_ref": "demo-horizon",
+        "title": "Valider le désenfumage",
+        "description": "Comparer les variantes avec le bureau de contrôle.",
+        "origin": "human",
+        "issue_type": "verification",
+        "priority": "normal",
+        "assigned_to": null,
+        "requested_effect": "draft",
+        "status": "open",
+        "task_contract_ref": null,
+        "context_pack_ref": null,
+        "version": 1,
+        "created_by": "Bureau Delta",
+        "created_at": "2026-07-28T08:00:00Z",
+        "updated_at": "2026-07-28T08:00:00Z",
+        "objective": "Comparer les variantes sans produire d’avis réglementaire automatique.",
+        "milestones": ["Rassembler les hypothèses", "Comparer les variantes", "Préparer la réunion"],
+        "responsibilities": ["Bureau de contrôle", "Coordinateur SSI"],
+        "skills": ["analyse réglementaire"],
+        "functions": ["comparaison de variantes"],
+        "tools": [],
+        "type_tags": ["verification"],
+        "subject_tags": ["desenfumage", "ssi", "erp", "accessibilite"],
+        "tags": ["desenfumage", "ssi", "erp", "accessibilite"],
+        "limits": ["La projection ne remplace pas l’avis du bureau de contrôle"]
+      },
+      "comments": [],
+      "hermes_runs": [],
+      "events": [
+        {"event_type":"issue_created","label":"Travail demandé","occurred_at":"2026-07-28T08:00:00Z","actor":"Bureau Delta","actor_kind":"human","run_ref":null,"detail":null}
+      ],
+      "work_activity": {
+        "schema": {"id":"cockpit.work_activity","revision":1},
+        "issue": {"issue_id":"horizon-desenfumage","status":"open","status_label":"À faire","assigned_to":null,"version":1,"task_contract_ref":null,"context_pack_ref":null},
+        "latest_run": null,
+        "activity": [
+          {"event_type":"issue_created","label":"Travail demandé","occurred_at":"2026-07-28T08:00:00Z","actor":"Bureau Delta","actor_kind":"human","run_ref":null,"detail":null}
+        ],
+        "latest_event": {"event_type":"issue_created","label":"Travail demandé","occurred_at":"2026-07-28T08:00:00Z","actor":"Bureau Delta","actor_kind":"human","run_ref":null,"detail":null},
+        "result_candidate": null,
+        "trace_refs": [],
+        "review_required": false,
+        "limits": ["runtime_success != Evidence", "Trace != proof", "UI status != authorization"]
+      }
+    },
+    "tilleuls-phasage": {
+      "work_issue": {
+        "issue_id": "tilleuls-phasage",
+        "case_ref": "demo-tilleuls",
+        "title": "Valider le phasage en site occupé",
+        "description": "Confirmer les accès séparés et les périodes bruyantes.",
+        "origin": "human",
+        "issue_type": "decision",
+        "priority": "high",
+        "assigned_to": "hermes",
+        "requested_effect": "read_only",
+        "status": "review",
+        "task_contract_ref": "task-contract:demo-tilleuls-phasage",
+        "context_pack_ref": "context-pack:demo-tilleuls-phasage",
+        "version": 3,
+        "created_by": "SIVOS des Tilleuls",
+        "created_at": "2026-07-27T12:00:00Z",
+        "updated_at": "2026-07-28T09:12:00Z",
+        "objective": "Comparer les séquences de travaux en site occupé.",
+        "milestones": ["Qualifier les contraintes", "Comparer les séquences", "Présenter la variante"],
+        "responsibilities": ["Architecte", "Coordonnateur SPS", "Maîtrise d’ouvrage"],
+        "skills": ["phasage de chantier"],
+        "functions": ["comparaison de scénarios"],
+        "tools": [],
+        "type_tags": ["decision"],
+        "subject_tags": ["planning", "site-occupe", "securite", "ecole", "chantier"],
+        "tags": ["planning", "site-occupe", "securite", "ecole", "chantier"],
+        "limits": ["Le résultat ne constitue pas une validation de sécurité"]
+      },
+      "comments": [],
+      "hermes_runs": [
+        {
+          "run_id": "run-tilleuls-phasage-1",
+          "issue_ref": "tilleuls-phasage",
+          "task_contract_ref": "task-contract:demo-tilleuls-phasage",
+          "context_pack_ref": "context-pack:demo-tilleuls-phasage",
+          "status": "partial",
+          "requested_effect": "read_only",
+          "started_at": "2026-07-28T09:00:00Z",
+          "returned_at": "2026-07-28T09:10:00Z",
+          "normalized_return": {
+            "outcome": "partial",
+            "summary": "Deux séquences sont comparées ; la validation des accès reste à réaliser avec les intervenants.",
+            "result_refs": ["result://demo-tilleuls/phasing-comparison"],
+            "evidence_candidate_refs": [],
+            "trace_refs": ["trace://demo-tilleuls/run-tilleuls-phasage-1"]
+          },
+          "created_at": "2026-07-28T09:00:00Z",
+          "updated_at": "2026-07-28T09:10:00Z"
+        }
+      ],
+      "events": [
+        {"event_type":"issue_created","label":"Travail demandé","occurred_at":"2026-07-27T12:00:00Z","actor":"SIVOS des Tilleuls","actor_kind":"human","run_ref":null,"detail":null},
+        {"event_type":"hermes_started","label":"Hermès a pris en charge le Travail","occurred_at":"2026-07-28T09:00:00Z","actor":"hermes","actor_kind":"hermes","run_ref":"run-tilleuls-phasage-1","detail":null},
+        {"event_type":"hermes_returned","label":"Hermès a retourné un résultat","occurred_at":"2026-07-28T09:10:00Z","actor":"hermes","actor_kind":"hermes","run_ref":"run-tilleuls-phasage-1","detail":null},
+        {"event_type":"review_requested","label":"Revue humaine demandée","occurred_at":"2026-07-28T09:12:00Z","actor":"hermes","actor_kind":"hermes","run_ref":"run-tilleuls-phasage-1","detail":null}
+      ],
+      "work_activity": {
+        "schema": {"id":"cockpit.work_activity","revision":1},
+        "issue": {"issue_id":"tilleuls-phasage","status":"review","status_label":"À examiner","assigned_to":"hermes","version":3,"task_contract_ref":"task-contract:demo-tilleuls-phasage","context_pack_ref":"context-pack:demo-tilleuls-phasage"},
+        "latest_run": {"run_id":"run-tilleuls-phasage-1","status":"partial","status_label":"Partiel","requested_effect":"read_only","started_at":"2026-07-28T09:00:00Z","returned_at":"2026-07-28T09:10:00Z","updated_at":"2026-07-28T09:10:00Z"},
+        "activity": [
+          {"event_type":"issue_created","label":"Travail demandé","occurred_at":"2026-07-27T12:00:00Z","actor":"SIVOS des Tilleuls","actor_kind":"human","run_ref":null,"detail":null},
+          {"event_type":"hermes_started","label":"Hermès a pris en charge le Travail","occurred_at":"2026-07-28T09:00:00Z","actor":"hermes","actor_kind":"hermes","run_ref":"run-tilleuls-phasage-1","detail":null},
+          {"event_type":"hermes_returned","label":"Hermès a retourné un résultat","occurred_at":"2026-07-28T09:10:00Z","actor":"hermes","actor_kind":"hermes","run_ref":"run-tilleuls-phasage-1","detail":null},
+          {"event_type":"review_requested","label":"Revue humaine demandée","occurred_at":"2026-07-28T09:12:00Z","actor":"hermes","actor_kind":"hermes","run_ref":"run-tilleuls-phasage-1","detail":null}
+        ],
+        "latest_event": {"event_type":"review_requested","label":"Revue humaine demandée","occurred_at":"2026-07-28T09:12:00Z","actor":"hermes","actor_kind":"hermes","run_ref":"run-tilleuls-phasage-1","detail":null},
+        "result_candidate": {"outcome":"partial","outcome_label":"Résultat partiel","summary":"Deux séquences sont comparées ; la validation des accès reste à réaliser avec les intervenants.","result_refs":["result://demo-tilleuls/phasing-comparison"],"evidence_candidate_refs":[],"trace_refs":["trace://demo-tilleuls/run-tilleuls-phasage-1"]},
+        "trace_refs": ["trace://demo-tilleuls/run-tilleuls-phasage-1"],
+        "review_required": true,
+        "limits": ["runtime_success != Evidence", "Trace != proof", "UI status != authorization"]
+      }
+    }
+  }
+}

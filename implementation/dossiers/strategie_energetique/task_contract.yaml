@@ -1,0 +1,51 @@
+# Task Contract fictif strategie_energetique — scénario C4 (anonymisé).
+# Inspiré d'une note de stratégie énergétique (PAC vs gaz, plusieurs scénarios
+# chiffrés) pour un équipement public. Aucune donnée réelle.
+# Le runner présente les scénarios depuis les sources ; il n'en élit aucun.
+# retrieved != truth : l'arbitrage budgétaire/énergétique reste au maître d'ouvrage.
+
+object_type: task_contract
+object_id: mvp.strategie-energetique.tc-001
+contract_id: mvp.strategie-energetique.tc-001
+status: candidate
+created_at: "2026-07-01T09:00:00Z"
+requested_by: practitioner
+exposure_surface: openwebui_capture
+
+intent:
+  summary: >
+    Restituer les scénarios énergétiques chiffrés déclarés au dossier, à l'appui
+    d'une décision du maître d'ouvrage. Le runner ne recommande ni n'élit un
+    scénario ; il n'affirme aucune conclusion à la place du décideur.
+
+scope:
+  dossier: strategie_energetique
+  declared_sources:
+    - source_ref: dossiers/strategie_energetique/sources/note_scenarios.md
+    - source_ref: dossiers/strategie_energetique/sources/contraintes_programme.md
+  operations:
+    - read_selected_sources
+    - retrieve_scoped_passages
+    - draft_synthesis_candidate
+    - prepare_evidence_pack_candidate
+
+forbidden_scope:
+  - external_send
+  - source_outside_declared_perimeter
+  - register_write
+  - approval_of_any_kind   # élire un scénario est une décision du maître d'ouvrage
+
+expected_outputs:
+  - result_candidate
+  - evidence_pack_candidate
+
+consequence_class: K3
+approval_ceiling: C3
+
+retrieval_boundary:
+  store: pgvector
+  boundary: retrieval_only
+
+governance_refs:
+  - docs/governance/MVP_GOVERNED_TASK_LOOP.md
+  - docs/governance/USER_DECISION_GATE.md

@@ -1,0 +1,176 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SOURCE_ROOT="$(cd "$SCRIPT_DIR/../../implementation/workspace_cockpit" && pwd)"
+INSTALL_ROOT="/opt/pantheon-workspace-cockpit"
+PRODUCER_UNIT_PATH="/etc/systemd/system/pantheon-affaires-producer.service"
+COCKPIT_UNIT_PATH="/etc/systemd/system/pantheon-workspace-cockpit.service"
+SERVICE_USER="${SUDO_USER:-${USER:-}}"
+BIND_ADDRESS="127.0.0.1"
+PORT="8189"
+ENABLE_PRODUCER=0
+ENABLE_COCKPIT=0
+DOCTOR=0
+AFFAIRES_ROOT="${AFFAIRES_ROOT:-}"
+
+usage() {
+  cat <<'EOF'
+Usage: configure-workspace-cockpit-local [options]
+
+Install the standalone AFFAIRES/Hindsight producer and optional read-only Cockpit over the Linux-mounted NAS AFFAIRES root.
+
+Options:
+  --bind ADDRESS   Bind address (default 127.0.0.1)
+  --port PORT      HTTP port (default 8189)
+  --user USER      Unprivileged service user (default invoking sudo user)
+  --affaires-root PATH
+                   Linux-mounted NAS AFFAIRES root (or set AFFAIRES_ROOT)
+  --enable-producer
+                   Enable and start only the standalone Hindsight producer
+  --enable-cockpit Enable and start the optional read-only Cockpit (also starts
+                   its required producer)
+  --enable         Backward-compatible alias for --enable-producer --enable-cockpit
+  --doctor         Read-only prerequisite check
+  -h, --help       Show this help
+EOF
+}
+
+die() { printf 'workspace-cockpit: %s\n' "$*" >&2; exit 1; }
+
+while (($#)); do
+  case "$1" in
+    --bind) BIND_ADDRESS="${2:?missing bind address}"; shift 2 ;;
+    --port) PORT="${2:?missing port}"; shift 2 ;;
+    --user) SERVICE_USER="${2:?missing service user}"; shift 2 ;;
+    --affaires-root) AFFAIRES_ROOT="${2:?missing AFFAIRES root}"; shift 2 ;;
+    --enable-producer) ENABLE_PRODUCER=1; shift ;;
+    --enable-cockpit) ENABLE_COCKPIT=1; shift ;;
+    --enable) ENABLE_PRODUCER=1; ENABLE_COCKPIT=1; shift ;;
+    --doctor) DOCTOR=1; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) die "unknown option: $1" ;;
+  esac
+done
+
+[[ "$PORT" =~ ^[0-9]+$ ]] && ((PORT > 0 && PORT < 65536)) || die "invalid port: $PORT"
+[[ -f "$SOURCE_ROOT/server.py" && -f "$SOURCE_ROOT/producer_daemon.py" && -f "$SOURCE_ROOT/hindsight_producer.py" && -f "$SOURCE_ROOT/memory_reconciliation.py" && -f "$SOURCE_ROOT/worker_observability.py" && -f "$SOURCE_ROOT/static/index.html" ]] || die "workspace producer/cockpit source is incomplete"
+[[ -f "$SOURCE_ROOT/static/styles.css" && -f "$SOURCE_ROOT/static/app.js" && -f "$SOURCE_ROOT/static/role_trace_graph.css" && -f "$SOURCE_ROOT/static/vendor/swiper-14.3.0-bundle.min.js" && -f "$SOURCE_ROOT/static/vendor/swiper-14.3.0-bundle.min.css" && -f "$SOURCE_ROOT/static/vendor/swiper-14.3.0-LICENSE" && -f "$SOURCE_ROOT/static/vendor/pdfjs/LICENSE" && -f "$SOURCE_ROOT/static/vendor/pdfjs/web/viewer.html" ]] || die "workspace cockpit static assets are incomplete"
+command -v python3 >/dev/null || die "python3 is required"
+python3 -c 'import yaml' >/dev/null 2>&1 || die "python3-yaml is required"
+[[ -n "$AFFAIRES_ROOT" ]] || die "set --affaires-root PATH or AFFAIRES_ROOT"
+[[ "$AFFAIRES_ROOT" = /* ]] || die "AFFAIRES root must be an absolute Linux mount path"
+[[ -d "$AFFAIRES_ROOT" ]] || die "AFFAIRES mount is missing: $AFFAIRES_ROOT"
+if ((DOCTOR)); then
+  printf 'workspace-cockpit: prerequisites ready; bind=%s:%s; user=%s; affaires=%s\n' "$BIND_ADDRESS" "$PORT" "$SERVICE_USER" "$AFFAIRES_ROOT"
+  exit 0
+fi
+
+((EUID == 0)) || die "installation requires root"
+[[ -n "$SERVICE_USER" && "$SERVICE_USER" != root ]] || die "pass --user with an unprivileged Linux user"
+id "$SERVICE_USER" >/dev/null 2>&1 || die "unknown service user: $SERVICE_USER"
+if ! runuser -u "$SERVICE_USER" -- test -r "$AFFAIRES_ROOT"; then
+  die "service user cannot read AFFAIRES mount: $AFFAIRES_ROOT"
+fi
+if ! runuser -u "$SERVICE_USER" -- test -x "$AFFAIRES_ROOT"; then
+  die "service user cannot traverse AFFAIRES mount: $AFFAIRES_ROOT"
+fi
+if [[ -d "$INSTALL_ROOT" ]]; then
+  backup="${INSTALL_ROOT}.backup.$(date -u +%Y%m%dT%H%M%SZ)"
+  cp -a "$INSTALL_ROOT" "$backup"
+fi
+install -d -m 0755 "$INSTALL_ROOT/static"
+install -m 0755 "$SOURCE_ROOT/server.py" "$INSTALL_ROOT/server.py"
+install -m 0755 "$SOURCE_ROOT/producer_daemon.py" "$INSTALL_ROOT/producer_daemon.py"
+install -m 0644 "$SOURCE_ROOT/hindsight_producer.py" "$INSTALL_ROOT/hindsight_producer.py"
+install -m 0644 "$SOURCE_ROOT/memory_reconciliation.py" "$INSTALL_ROOT/memory_reconciliation.py"
+install -m 0644 "$SOURCE_ROOT/worker_observability.py" "$INSTALL_ROOT/worker_observability.py"
+install -m 0644 "$SOURCE_ROOT/static/index.html" "$INSTALL_ROOT/static/index.html"
+install -m 0644 "$SOURCE_ROOT/static/styles.css" "$INSTALL_ROOT/static/styles.css"
+install -m 0644 "$SOURCE_ROOT/static/app.js" "$INSTALL_ROOT/static/app.js"
+install -m 0644 "$SOURCE_ROOT/static/role_trace_graph.css" "$INSTALL_ROOT/static/role_trace_graph.css"
+install -d -m 0755 "$INSTALL_ROOT/static/vendor"
+install -m 0644 "$SOURCE_ROOT/static/vendor/swiper-14.3.0-bundle.min.js" "$INSTALL_ROOT/static/vendor/swiper-14.3.0-bundle.min.js"
+install -m 0644 "$SOURCE_ROOT/static/vendor/swiper-14.3.0-bundle.min.css" "$INSTALL_ROOT/static/vendor/swiper-14.3.0-bundle.min.css"
+install -m 0644 "$SOURCE_ROOT/static/vendor/swiper-14.3.0-LICENSE" "$INSTALL_ROOT/static/vendor/swiper-14.3.0-LICENSE"
+install -d -m 0755 "$INSTALL_ROOT/static/vendor/pdfjs"
+cp -a "$SOURCE_ROOT/static/vendor/pdfjs/." "$INSTALL_ROOT/static/vendor/pdfjs/"
+
+# The installer never rewrites NAS ACLs. Access is owned by the host mount configuration.
+
+producer_unit_tmp="$(mktemp)"
+cockpit_unit_tmp="$(mktemp)"
+trap 'rm -f "$producer_unit_tmp" "$cockpit_unit_tmp"' EXIT
+
+{
+  printf '%s\n' '[Unit]'
+  printf '%s\n' 'Description=Pantheon AFFAIRES Hindsight producer'
+  printf '%s\n' 'After=network.target'
+  printf 'RequiresMountsFor=%s\n' "$AFFAIRES_ROOT"
+  printf '\n%s\n' '[Service]'
+  printf 'User=%s\n' "$SERVICE_USER"
+  printf 'WorkingDirectory=%s\n' "$INSTALL_ROOT"
+  printf '%s\n' 'EnvironmentFile=-/etc/pantheon-workspace-cockpit.env'
+  printf 'ExecStart=/usr/bin/python3 %s/producer_daemon.py --max-depth 8 --state-db /var/lib/pantheon-workspace-cockpit/index.sqlite3 --reconcile-seconds 60 --watch-debounce-ms 500 --root Affaires=%s\n' "$INSTALL_ROOT" "$AFFAIRES_ROOT"
+  printf '%s\n' 'Restart=on-failure' 'RestartSec=3' 'UMask=0077'
+  printf '%s\n' 'StateDirectory=pantheon-workspace-cockpit' 'StateDirectoryMode=0700'
+  printf '%s\n' 'NoNewPrivileges=true' 'PrivateDevices=true' 'PrivateTmp=true'
+  printf '%s\n' 'ProtectControlGroups=true' 'ProtectHome=true' 'ProtectKernelModules=true' 'ProtectKernelTunables=true' 'ProtectSystem=strict'
+  printf '%s\n' 'RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX' 'RestrictNamespaces=true' 'RestrictRealtime=true' 'RestrictSUIDSGID=true'
+  printf '\n%s\n' '[Install]'
+  printf '%s\n' 'WantedBy=multi-user.target'
+} > "$producer_unit_tmp"
+
+{
+  printf '%s\n' '[Unit]'
+  printf '%s\n' 'Description=Pantheon optional read-only Workspace Cockpit'
+  printf '%s\n' 'Requires=pantheon-affaires-producer.service'
+  printf '%s\n' 'After=network.target pantheon-affaires-producer.service'
+  printf 'RequiresMountsFor=%s\n' "$AFFAIRES_ROOT"
+  printf '\n%s\n' '[Service]'
+  printf 'User=%s\n' "$SERVICE_USER"
+  printf 'WorkingDirectory=%s\n' "$INSTALL_ROOT"
+  printf '%s\n' 'EnvironmentFile=-/etc/pantheon-workspace-cockpit.env'
+  printf 'ExecStart=/usr/bin/python3 %s/server.py --projection-only --host %s --port %s --max-depth 8 --state-db /var/lib/pantheon-workspace-cockpit/index.sqlite3 --root Affaires=%s\n' "$INSTALL_ROOT" "$BIND_ADDRESS" "$PORT" "$AFFAIRES_ROOT"
+  printf '%s\n' 'Restart=on-failure' 'RestartSec=3' 'UMask=0077'
+  printf '%s\n' 'StateDirectory=pantheon-workspace-cockpit' 'StateDirectoryMode=0700'
+  printf '%s\n' 'NoNewPrivileges=true' 'PrivateDevices=true' 'PrivateTmp=true'
+  printf '%s\n' 'ProtectControlGroups=true' 'ProtectHome=true' 'ProtectKernelModules=true' 'ProtectKernelTunables=true' 'ProtectSystem=strict'
+  printf '%s\n' 'RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX' 'RestrictNamespaces=true' 'RestrictRealtime=true' 'RestrictSUIDSGID=true'
+  printf '\n%s\n' '[Install]'
+  printf '%s\n' 'WantedBy=multi-user.target'
+} > "$cockpit_unit_tmp"
+
+install -m 0644 "$producer_unit_tmp" "$PRODUCER_UNIT_PATH"
+install -m 0644 "$cockpit_unit_tmp" "$COCKPIT_UNIT_PATH"
+systemctl daemon-reload
+
+if ((ENABLE_PRODUCER)); then
+  systemctl enable --now pantheon-affaires-producer.service
+  systemctl is-active --quiet pantheon-affaires-producer.service || {
+    systemctl --no-pager --full status pantheon-affaires-producer.service || true
+    die "producer did not become active"
+  }
+  printf '%s\n' 'workspace-producer: active'
+fi
+
+if ((ENABLE_COCKPIT)); then
+  systemctl enable pantheon-workspace-cockpit.service
+  systemctl restart pantheon-workspace-cockpit.service
+  for _ in $(seq 1 30); do
+    if python3 -c "import urllib.request; urllib.request.urlopen('http://$BIND_ADDRESS:$PORT/api/health', timeout=1)" >/dev/null 2>&1; then
+      printf 'workspace-producer: active; cockpit ready at http://%s:%s\n' "$BIND_ADDRESS" "$PORT"
+      exit 0
+    fi
+    sleep 1
+  done
+  systemctl --no-pager --full status pantheon-affaires-producer.service || true
+  systemctl --no-pager --full status pantheon-workspace-cockpit.service || true
+  die "services did not become healthy"
+fi
+
+if ((!ENABLE_PRODUCER && !ENABLE_COCKPIT)); then
+  systemctl disable pantheon-affaires-producer.service >/dev/null 2>&1 || true
+  systemctl disable pantheon-workspace-cockpit.service >/dev/null 2>&1 || true
+  printf '%s\n' 'workspace producer/cockpit installed but inactive; rerun with --enable-producer to start the producer, then optionally --enable-cockpit'
+fi

@@ -1,0 +1,287 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+CONFIG_ROOT="${CONFIG_ROOT:-/etc/pantheon-node}"
+STATE_ROOT="${STATE_ROOT:-/srv/pantheon}"
+PROFILE="${HERMES_PROFILE:-pantheon-governed}"
+HERMES_USER="${HERMES_USER:-pantheon-hermes}"
+HERMES_USER_HOME="${HERMES_USER_HOME:-/home/$HERMES_USER}"
+HERMES_HOME="${HERMES_HOME:-$STATE_ROOT/hermes}"
+HERMES_BIN="${HERMES_BIN:-$HERMES_USER_HOME/.local/bin/hermes}"
+HERMES_SERVICE="${HERMES_SERVICE:-pantheon-hermes-native.service}"
+PROFILE_ROOT="$HERMES_HOME/profiles/$PROFILE"
+VERSIONS_FILE="$CONFIG_ROOT/versions.env"
+CAPABILITY_PROBE=0
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  deployment/ubuntu/observe-hermes-runtime [--capabilities]
+
+Emit a bounded, read-only observation of the native Hermes systemd service,
+runtime version and selected host profile snapshot. The receipt contains only
+service metadata, hashes and local skill names; it never prints config values
+or environment variables.
+
+--capabilities adds bounded read-only probes to the native Hermes CLI. The
+receipt reports only selected configuration labels and command availability,
+never raw config, tool listings, bundles or credentials.
+
+The command changes nothing. It never starts/restarts a service, changes Hermes
+configuration, installs a skill, launches a run, approves an effect or promotes
+the receipt to Evidence.
+USAGE
+}
+
+die() { printf '[pantheon-hermes-observe] ERROR: %s\n' "$*" >&2; exit 1; }
+have() { command -v "$1" >/dev/null 2>&1; }
+
+while (($#)); do
+  case "$1" in
+    -h|--help) usage; exit 0 ;;
+    --capabilities) CAPABILITY_PROBE=1 ;;
+    *) die "unknown argument: $1" ;;
+  esac
+  shift
+done
+
+[[ "$PROFILE" =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]] || die "invalid Hermes profile name"
+[[ "$HERMES_SERVICE" =~ ^[A-Za-z0-9_.@:-]+\.service$ ]] || die "invalid Hermes service name"
+have systemctl || die "systemctl is required"
+have jq || die "jq is required"
+have sha256sum || die "sha256sum is required"
+have id || die "id is required"
+if ((CAPABILITY_PROBE)); then have timeout || die "timeout is required for capability probes"; fi
+[[ -x "$HERMES_BIN" ]] || die "native Hermes CLI is not executable: $HERMES_BIN"
+
+run_hermes() {
+  local current_user
+  current_user="$(id -un)"
+  if [[ "$current_user" == "$HERMES_USER" ]]; then
+    env HOME="$HERMES_USER_HOME" HERMES_HOME="$HERMES_HOME" \
+      PATH="$HERMES_USER_HOME/.local/bin:/usr/local/bin:/usr/bin:/bin" \
+      "$HERMES_BIN" "$@"
+  elif [[ ${EUID:-$(id -u)} -eq 0 ]] && have runuser; then
+    runuser -u "$HERMES_USER" -- env \
+      HOME="$HERMES_USER_HOME" HERMES_HOME="$HERMES_HOME" \
+      PATH="$HERMES_USER_HOME/.local/bin:/usr/local/bin:/usr/bin:/bin" \
+      "$HERMES_BIN" "$@"
+  else
+    die "run as $HERMES_USER or root to observe the native Hermes runtime"
+  fi
+}
+
+run_hermes_bounded() {
+  local current_user
+  current_user="$(id -un)"
+  if [[ "$current_user" == "$HERMES_USER" ]]; then
+    timeout 12s env HOME="$HERMES_USER_HOME" HERMES_HOME="$HERMES_HOME" \
+      PATH="$HERMES_USER_HOME/.local/bin:/usr/local/bin:/usr/bin:/bin" \
+      "$HERMES_BIN" "$@"
+  elif [[ ${EUID:-$(id -u)} -eq 0 ]] && have runuser; then
+    runuser -u "$HERMES_USER" -- timeout 12s env \
+      HOME="$HERMES_USER_HOME" HERMES_HOME="$HERMES_HOME" \
+      PATH="$HERMES_USER_HOME/.local/bin:/usr/local/bin:/usr/bin:/bin" \
+      "$HERMES_BIN" "$@"
+  else
+    die "run as $HERMES_USER or root to observe the native Hermes runtime"
+  fi
+}
+
+unit_property() {
+  systemctl show "$HERMES_SERVICE" --property="$1" --value 2>/dev/null
+}
+
+service_active_state="$(unit_property ActiveState || printf 'unknown')"
+service_sub_state="$(unit_property SubState || printf 'unknown')"
+service_started_at="$(unit_property ExecMainStartTimestamp || true)"
+service_active=false
+[[ "$service_active_state" == "active" ]] && service_active=true
+
+observed_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+profile_host_observation="not_observable"
+profile_root_present=null
+config_digest=""
+soul_digest=""
+no_bundled_skills_marker=false
+profile_skills='[]'
+if [[ -d "$PROFILE_ROOT" ]]; then
+  profile_host_observation="observed_present"
+  profile_root_present=true
+  [[ -f "$PROFILE_ROOT/config.yaml" ]] && config_digest="sha256:$(sha256sum "$PROFILE_ROOT/config.yaml" | awk '{print $1}')"
+  [[ -f "$PROFILE_ROOT/SOUL.md" ]] && soul_digest="sha256:$(sha256sum "$PROFILE_ROOT/SOUL.md" | awk '{print $1}')"
+  [[ -e "$PROFILE_ROOT/skills/.no-bundled-skills" ]] && no_bundled_skills_marker=true
+  if [[ -d "$PROFILE_ROOT/skills" ]]; then
+    while IFS= read -r skill_dir; do
+      [[ -n "$skill_dir" ]] || continue
+      name="$(basename "$skill_dir")"
+      [[ "$name" =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]] || continue
+      skill_file="$skill_dir/SKILL.md"
+      [[ -f "$skill_file" ]] || continue
+      digest="sha256:$(sha256sum "$skill_file" | awk '{print $1}')"
+      profile_skills="$(printf '%s' "$profile_skills" | jq -c --arg name "$name" --arg digest "$digest" '. + [{name:$name, skill_md_digest:$digest}] | sort_by(.name)')"
+    done < <(find "$PROFILE_ROOT/skills" -mindepth 1 -maxdepth 1 -type d -print | sort)
+  fi
+elif [[ -e "$PROFILE_ROOT" ]]; then
+  profile_host_observation="observed_non_directory"
+  profile_root_present=false
+elif [[ -x "$(dirname "$PROFILE_ROOT")" ]]; then
+  profile_host_observation="observed_absent"
+  profile_root_present=false
+elif [[ ! -e "$STATE_ROOT" ]] && [[ -x "$(dirname "$STATE_ROOT")" ]]; then
+  profile_host_observation="observed_absent"
+  profile_root_present=false
+fi
+
+profile_snapshot_digest=""
+if [[ "$profile_root_present" == "true" ]]; then
+  profile_snapshot="$(jq -nc \
+    --arg config_digest "$config_digest" \
+    --arg soul_digest "$soul_digest" \
+    --argjson no_bundled "$no_bundled_skills_marker" \
+    --argjson skills "$profile_skills" \
+    '{config_digest:(if $config_digest == "" then null else $config_digest end), soul_digest:(if $soul_digest == "" then null else $soul_digest end), no_bundled_skills_marker:$no_bundled, skills:$skills}')"
+  profile_snapshot_digest="sha256:$(printf '%s' "$profile_snapshot" | sha256sum | awk '{print $1}')"
+fi
+
+profile_visible_to_service=false
+if [[ "$service_active" == "true" ]]; then
+  if [[ "$(id -un)" == "$HERMES_USER" ]]; then
+    [[ -r "$PROFILE_ROOT/config.yaml" ]] && profile_visible_to_service=true
+  elif [[ ${EUID:-$(id -u)} -eq 0 ]] && have runuser; then
+    runuser -u "$HERMES_USER" -- test -r "$PROFILE_ROOT/config.yaml" \
+      && profile_visible_to_service=true
+  fi
+fi
+
+runtime_version_status="not_observed"
+runtime_version=""
+set +e
+version_raw="$(run_hermes --version 2>/dev/null)"
+version_rc=$?
+set -e
+if ((version_rc == 0)) && [[ -n "${version_raw//[[:space:]]/}" ]]; then
+  runtime_version="$(printf '%s' "$version_raw" | tr '\r\n' ' ' | sed 's/[[:space:]]\+/ /g; s/^ //; s/ $//')"
+  runtime_version_status="observed"
+else
+runtime_version_status="unsupported_or_error"
+fi
+
+native_probe_status="not_requested"
+tool_search_mode=""
+native_toolsets='{}'
+native_bundle_listing="not_requested"
+if ((CAPABILITY_PROBE)); then
+  native_probe_status="not_observed"
+  native_bundle_listing="not_observed"
+  if [[ "$service_active" == "true" && "$profile_visible_to_service" == "true" ]]; then
+    native_probe_status="attempted"
+    set +e
+    ts_raw="$(run_hermes_bounded -p "$PROFILE" config get tools.tool_search.enabled --json 2>/dev/null)"
+    ts_rc=$?
+    tools_raw="$(run_hermes_bounded -p "$PROFILE" tools list --platform cli 2>/dev/null)"
+    tools_rc=$?
+    run_hermes_bounded -p "$PROFILE" bundles list >/dev/null 2>&1
+    bundles_rc=$?
+    set -e
+
+    if ((ts_rc == 0)); then
+      tool_search_mode="$(printf '%s' "$ts_raw" | jq -er '
+        if type == "boolean" then tostring
+        elif type == "string" and (ascii_downcase == "auto" or ascii_downcase == "on" or ascii_downcase == "off" or ascii_downcase == "true" or ascii_downcase == "false")
+          then ascii_downcase
+        else empty end
+      ' 2>/dev/null || true)"
+    fi
+    if ((tools_rc == 0)); then
+      for toolset in skills clarify code_execution delegation cronjob; do
+        toolset_status="unknown"
+        if printf '%s\n' "$tools_raw" | grep -Eq "enabled[[:space:]]+${toolset}([[:space:]]|$)"; then
+          toolset_status="configured_enabled"
+        elif printf '%s\n' "$tools_raw" | grep -Eq "disabled[[:space:]]+${toolset}([[:space:]]|$)"; then
+          toolset_status="configured_disabled"
+        fi
+        native_toolsets="$(printf '%s' "$native_toolsets" | jq -c --arg key "$toolset" --arg status "$toolset_status" '. + {($key):$status}')"
+      done
+    fi
+    if ((bundles_rc == 0)); then native_bundle_listing="command_available"
+    else native_bundle_listing="unsupported_or_error"; fi
+  fi
+fi
+
+recorded_version=""
+if [[ -r "$VERSIONS_FILE" ]]; then
+  recorded_version="$(awk -F= '$1=="HERMES_VERSION" {sub(/^[^=]*=/, ""); print; exit}' "$VERSIONS_FILE")"
+fi
+
+jq -n \
+  --arg observed_at "$observed_at" \
+  --arg service "$HERMES_SERVICE" \
+  --arg active_state "$service_active_state" \
+  --arg sub_state "$service_sub_state" \
+  --arg started_at "$service_started_at" \
+  --arg recorded_version "$recorded_version" \
+  --arg profile "$PROFILE" \
+  --arg profile_host_observation "$profile_host_observation" \
+  --arg config_digest "$config_digest" \
+  --arg soul_digest "$soul_digest" \
+  --arg profile_snapshot_digest "$profile_snapshot_digest" \
+  --arg runtime_version_status "$runtime_version_status" \
+  --arg runtime_version "$runtime_version" \
+  --arg native_probe_status "$native_probe_status" \
+  --arg tool_search_mode "$tool_search_mode" \
+  --arg native_bundle_listing "$native_bundle_listing" \
+  --argjson service_active "$service_active" \
+  --argjson profile_root_present "$profile_root_present" \
+  --argjson profile_visible_to_service "$profile_visible_to_service" \
+  --argjson no_bundled_skills_marker "$no_bundled_skills_marker" \
+  --argjson profile_skills "$profile_skills" \
+  --argjson capability_probe_requested "$CAPABILITY_PROBE" \
+  --argjson native_toolsets "$native_toolsets" \
+  '{
+    kind:"hermes_ubuntu_runtime_observation",
+    observation_source:"native_systemd_and_profile_snapshot",
+    observed_at:$observed_at,
+    native_service:{
+      name:$service,
+      active:$service_active,
+      active_state:$active_state,
+      sub_state:$sub_state,
+      started_at:(if $started_at == "" then null else $started_at end)
+    },
+    deployment:{
+      recorded_version:(if $recorded_version == "" then null else $recorded_version end),
+      recorded_version_matches_runtime:(if $recorded_version == "" or $runtime_version == "" then null else $recorded_version == $runtime_version end)
+    },
+    profile:{
+      name:$profile,
+      host_observation:$profile_host_observation,
+      host_root_present:$profile_root_present,
+      visible_to_service:$profile_visible_to_service,
+      config_digest:(if $config_digest == "" then null else $config_digest end),
+      soul_digest:(if $soul_digest == "" then null else $soul_digest end),
+      snapshot_digest:(if $profile_snapshot_digest == "" then null else $profile_snapshot_digest end),
+      no_bundled_skills_marker:$no_bundled_skills_marker,
+      local_skills:$profile_skills
+    },
+    runtime_version:{status:$runtime_version_status, value:(if $runtime_version == "" then null else $runtime_version end)},
+    native_capabilities:{
+      requested:($capability_probe_requested == 1),
+      status:$native_probe_status,
+      tool_search_mode:(if $tool_search_mode == "" then null else $tool_search_mode end),
+      configured_cli_toolsets:$native_toolsets,
+      bundles_list:$native_bundle_listing
+    },
+    write_effect:false,
+    activation_changed:false,
+    authority_effect:"none",
+    technical_receipt_is_evidence:false,
+    non_equivalences:[
+      "recorded Hermes version != observed runtime version",
+      "profile snapshot != profile route active for a run",
+      "profile-local skill != skill used",
+      "runtime version observed != effective model/provider settings observed",
+      "runtime reachable != task authorized",
+      "runtime observation != Evidence"
+    ]
+  }'

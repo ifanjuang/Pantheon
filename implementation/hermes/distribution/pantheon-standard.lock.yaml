@@ -1,0 +1,113 @@
+schema_id: pantheon.hermes_distribution_lock
+revision: 3
+distribution_id: pantheon-hermes-standard
+status: candidate
+source_pins:
+  pantheon_repository:
+    repository: ifanjuang/Pantheon
+    ref: "fea7d9e5be87adfb8d222deac856fb767b25af0f"
+  # Materialized candidate snapshot of qualification pin `hermes-agent`.
+  # test_external_qualification_pins.py rejects drift from the canonical registry.
+  hermes_runtime:
+    runtime_id: nousresearch-hermes-agent
+    version: "0.21.3"
+    artifact_digest: null
+    observation_ref: docs/governance/HERMES_RUNTIME_SURFACE_REVIEW.md
+components:
+  - component_id: run-binding
+    kind: run_binding
+    path: implementation/mvp_vertical/hermes_run_binding.py
+    digest_mode: file
+    content_digest: sha256:291a5e8bb6241b5c3e1b17743b20264b14a7376b5be8549640d51468d2ac2c92
+    required: true
+    enabled_by_default: false
+    capabilities:
+      - reserve-admitted-launch
+      - submit-one-external-run
+      - materialize-bounded-ephemeral-context
+      - record-runtime-start
+      - record-runtime-return
+      - record-typed-project-variant-return
+      - notify-role-trace-attachment
+    notes: Stateless one-shot external binding; after one exact launch reservation it may materialize already-bound ephemeral context before the single runtime submission. The optional Role trace notification is display-only, and a structured Project variant return remains unselected candidate material. None adds a queue, scheduler, retry worker, durable memory, provider router, run control or approval authority.
+  - component_id: context-bridge
+    kind: context_bridge
+    path: implementation/hermes/plugins/pantheon-context-bridge
+    digest_mode: tree
+    content_digest: sha256:2746224ff0df5139053bdcc25eba0dd8e77a2d1d6e5453b9836bf560e9ed7f0a
+    required: true
+    enabled_by_default: false
+    capabilities:
+      - read-admitted-context
+      - read-admitted-entity
+      - protect-model-bound-context
+      - protect-gateway-attachments
+    notes: Reads only the exact active Context Pack identified by the Hermes host session; model-bound Pantheon context and adapter-inlined gateway document attachments are deterministically framed as data with no instruction authority.
+  - component_id: runtime-observer
+    kind: runtime_observer
+    path: implementation/mvp_vertical/hermes_runs_observer.py
+    digest_mode: file
+    content_digest: sha256:d8e22444cd647a8b943beacffad9e60d28d9fd41a49d97ad2396ad79525d93cb
+    required: true
+    enabled_by_default: false
+    capabilities:
+      - observe-runs-api
+      - qualify-profile-route
+      - qualify-tool-surface
+      - capture-memory-posture
+      - qualify-memory-posture
+      - capture-presentation-config
+      - qualify-presentation-config
+    notes: One-shot observation only; route, tool, memory and presentation configuration receipts do not activate the binding, authorize a task, prove user-visible reasoning behavior or create Evidence.
+required_checks:
+  - check_id: distribution-schema-and-paths
+    kind: static_structure
+    required: true
+    command: pantheon-hermes verify-distribution
+    expected: The lock validates and every component resolves inside the canonical Pantheon monorepo root.
+  - check_id: component-content-digests
+    kind: artifact_integrity
+    required: true
+    command: pantheon-hermes verify-distribution
+    expected: Every required file and tree digest matches the deterministic distribution contract.
+  - check_id: bounded-route-contract
+    kind: route_contract
+    required: true
+    expected: Internal Pantheon routes are stable and the external Hermes Runs API keeps its upstream versioned protocol.
+  - check_id: context-plugin-contract
+    kind: plugin_contract
+    required: true
+    expected: The context bridge derives admission identity from host context, exposes only bounded reads and binds deterministic data-only Context Admission to registered model-bound context handlers and gateway document attachments.
+  - check_id: composed-read-only-run
+    kind: end_to_end
+    required: true
+    command: pytest -q tests/test_hermes_distribution_acceptance.py
+    expected: One admitted read-only run can launch, read exact context and return a candidate without automatic mutation or Evidence admission.
+  - check_id: no-authority-collapse
+    kind: no_authority
+    required: true
+    expected: Composition, installation observation and acceptance cannot activate a binding or authorize a task.
+state:
+  installation_state: not_observed
+  activation_state: not_activated
+  task_authorization_state: not_authorized
+  acceptance_state: not_run
+  observation_refs: []
+authority:
+  installs_components: false
+  activates_binding: false
+  authorizes_tasks: false
+  dispatches_runs: false
+  accepts_results: false
+  admits_evidence: false
+governance_refs:
+  - templates/hermes/DESIGN.md
+  - templates/hermes/distribution/README.md
+  - docs/governance/HERMES_RUNTIME_SURFACE_REVIEW.md
+  - docs/install/HERMES_EXECUTION_BRIDGE_RUNBOOK.md
+  - docs/governance/NEXT_MVP_REPOSITORY_PLACEMENT.md
+  - docs/governance/HERMES_INTEGRATION.md
+  - docs/governance/TASK_CONTRACTS.md
+  - docs/governance/CONTEXT_PACKS.md
+  - docs/governance/APPROVALS.md
+  - implementation/docs/architecture/2026-09-05-context-admission-boundary.md

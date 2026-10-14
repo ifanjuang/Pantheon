@@ -1,0 +1,259 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Next Project Claim
+description: >-
+  Governance schema for a typed, status-qualified assertion projected on a Project.
+  A ProjectClaim is a semantic linking seam and a governed project assertion, not a
+  visible Cockpit card family, an Execution Result, Evidence, a Decision or an
+  approved/opposable truth. Source-backed states reference a governed semantic
+  entity through backing_ref. A Claim created from an execution candidate retains
+  the exact candidate and human review identities in provenance; the candidate
+  itself is never promoted or mutated into a Claim. Observation time, explicit
+  business-effective time and implementation recording time are distinct axes;
+  implementation recording metadata does not become part of this semantic payload.
+type: object
+required:
+  - claim_id
+  - project_id
+  - claim_type
+  - value
+  - provenance
+  - status
+  - certainty
+  - observed_at
+properties:
+  claim_id:
+    type: string
+    pattern: "^[a-z0-9._-]+$"
+  project_id:
+    type: string
+    minLength: 1
+    description: Agency Data project/affaire identity on which this claim may be projected.
+  claim_type:
+    type: string
+    minLength: 1
+    description: >-
+      Open semantic vocabulary such as zone_plu, surface_project, permit_number,
+      market_amount or reception_date. It is not a UX family and not a Project column.
+  value:
+    type: [string, number, boolean, "null"]
+    description: Displayable assertion value. Authority and professional reliance are qualified separately.
+  unit:
+    type: [string, "null"]
+    description: Optional unit for numeric claims, for example m2 or EUR.
+  backing_ref:
+    type: [object, "null"]
+    description: >-
+      Optional governed semantic entity supporting the claim. Required by
+      source_backed and verified states. It identifies support, not the runtime
+      candidate from which a human may have created the Claim.
+    required: [entity_type, entity_id]
+    properties:
+      entity_type:
+        type: string
+        minLength: 1
+        description: Semantic entity type, for example information, evidence, knowledge, decision or document.
+      entity_id:
+        type: string
+        minLength: 1
+      observed_status:
+        type: [string, "null"]
+        description: Status observed on the backing entity when cited. Not an approval.
+    additionalProperties: false
+  provenance:
+    type: object
+    required: [source_kind]
+    properties:
+      source_kind:
+        type: string
+        enum:
+          - information
+          - document
+          - human_assertion
+          - derived
+          - execution_result
+          - external_projection
+      source_ref:
+        type: [string, "null"]
+        description: Optional pointer to the originating source or external projection.
+      candidate_ref:
+        type: [object, "null"]
+        description: >-
+          Exact immutable Execution Result item and human review disposition checked
+          before this separate Claim was created. It records provenance and grants
+          no authority.
+        required: [execution_id, result_id, review_disposition_id]
+        properties:
+          execution_id:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9._-]*$"
+          result_id:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9._-]*$"
+          review_disposition_id:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9._-]*$"
+        additionalProperties: false
+      basis_refs:
+        type: array
+        uniqueItems: true
+        default: []
+        description: >-
+          Structured governed-entity references used as the basis of an
+          execution-backed assertion. For newly created Claims from an Execution
+          Result candidate, the implementation preserves the exact reviewed
+          candidate basis array. Historical execution-backed Claims created before
+          this provenance field may expose an empty array. Other source kinds do
+          not admit non-empty basis_refs in this slice. A basis reference is
+          provenance/support metadata only: it is not Evidence admission, truth,
+          verification or approval.
+        items:
+          type: object
+          required: [entity_type, entity_id]
+          properties:
+            entity_type:
+              type: string
+              minLength: 1
+            entity_id:
+              type: string
+              pattern: "^[a-z0-9][a-z0-9._-]*$"
+            observed_revision:
+              type: [integer, "null"]
+              minimum: 0
+            observed_status:
+              type: [string, "null"]
+          additionalProperties: false
+      asserted_by:
+        type: [string, "null"]
+      derivation_note:
+        type: [string, "null"]
+        description: For derived claims, how the value was computed from governed material.
+    additionalProperties: false
+  status:
+    type: string
+    enum:
+      - asserted
+      - source_backed
+      - verified
+      - contested
+      - retired
+    description: >-
+      Claim lifecycle. asserted != source_backed != verified; none implies approval,
+      Evidence admission, certainty or legal opposability.
+  certainty:
+    type: string
+    enum: [E0, E1, E2, E3, E4]
+    description: Canonical certainty axis; not a truth probability, status or approval level.
+  observed_at:
+    type: string
+    format: date-time
+    description: >-
+      Time at which the assertion or its supporting material was observed.
+      Observation time is not the implementation recording/admission time and does
+      not by itself establish when the assertion is applicable in the project world.
+  effective_at:
+    type: [string, "null"]
+    format: date-time
+    description: >-
+      Optional explicit business-effective start, distinct from observation and
+      implementation recording time. Null means that this Claim asserts no
+      business-applicability start; temporal readers must not substitute
+      observed_at or recording time.
+  revision:
+    type: integer
+    minimum: 0
+    default: 0
+    description: Optimistic-concurrency marker; not an approval state.
+  supersedes:
+    type: [string, "null"]
+    description: >-
+      claim_id of a prior append-only Claim replaced by this separate Claim.
+      Supersession records lineage and never mutates the predecessor. In a
+      business-time view the predecessor is displaced only when the superseding
+      Claim is itself explicitly applicable under that temporal perspective.
+  note:
+    type: [string, "null"]
+  governance_refs:
+    type: array
+    items:
+      type: string
+    default:
+      - docs/domain-packs/architecture/PROJECT_CARD_DECK_COMPOSITION.md
+      - docs/governance/AGENCY_DATA_SYSTEM_OF_RECORD.md
+      - docs/governance/CARD_STACK_MODEL.md
+additionalProperties: false
+allOf:
+  - if:
+      properties:
+        status:
+          enum: [source_backed, verified]
+      required: [status]
+    then:
+      required: [backing_ref]
+      properties:
+        backing_ref:
+          type: object
+  - if:
+      properties:
+        status:
+          const: asserted
+      required: [status]
+    then:
+      description: Asserted claims may exist without a backing_ref; they are not source-backed.
+  - if:
+      properties:
+        provenance:
+          properties:
+            source_kind:
+              const: execution_result
+          required: [source_kind]
+      required: [provenance]
+    then:
+      properties:
+        provenance:
+          required: [candidate_ref]
+          properties:
+            candidate_ref:
+              type: object
+  - if:
+      properties:
+        provenance:
+          properties:
+            source_kind:
+              enum:
+                - information
+                - document
+                - human_assertion
+                - derived
+                - external_projection
+          required: [source_kind]
+      required: [provenance]
+    then:
+      properties:
+        provenance:
+          properties:
+            basis_refs:
+              maxItems: 0
+  - if:
+      properties:
+        provenance:
+          properties:
+            source_kind:
+              const: derived
+          required: [source_kind]
+      required: [provenance]
+    then:
+      properties:
+        provenance:
+          required: [derivation_note]
+x-boundary:
+  runtime_execution: false
+  autonomous_loop: false
+  provider_routing: false
+  scheduler: false
+  queue_system: false
+  memory_promotion: false
+  automatic_canonization: false
+  evidence_admission: false
+  automatic_ingestion: false
+  system_of_record_mutation: false
+  execution_result_promotion: false

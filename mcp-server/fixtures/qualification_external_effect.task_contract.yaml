@@ -1,0 +1,47 @@
+contract_id: tc.qualification.external-effect.v1
+title: Synthetic external-effect qualification fixture
+intent: Prove one bounded external effect through the existing Pantheon PDP and operational PEP.
+scope:
+  scope_type: project
+  scope_id: qualification-sandbox
+  included:
+    - synthetic qualification effect only
+  excluded:
+    - production resources
+    - professional project mutations
+    - external transmission
+    - memory promotion
+  authority_limits:
+    - fixture does not authorize production effects
+    - runtime success does not become Evidence or approval
+  expected_domain: policy-qualification
+owner_role: THEMIS
+role_viewpoints:
+  - THEMIS
+constraints:
+  - one signed human decision may be consumed once
+  - canonical effects remain forbidden
+  - no production adapter may use this fixture identity
+approval_level: C3
+requested_by: architecture-qualification
+created_at: "2026-08-16T20:00:00Z"
+expected_evidence:
+  - epc.qualification.external-effect.v1
+allowed_outputs:
+  - synthetic qualification trace
+forbidden_outputs:
+  - production mutation
+  - professional approval
+  - Pantheon Evidence admission
+  - memory promotion
+memory_rules:
+  memory_behavior: no_memory_output
+  promotion_allowed: false
+  notes: Qualification fixture carries no memory authority.
+risk_notes:
+  - This fixture exists only to qualify issue 664 and is not a production capability.
+evidence_required: true
+governance_refs:
+  - docs/governance/TASK_CONTRACTS.md
+  - docs/governance/APPROVALS.md
+  - docs/governance/EVIDENCE_PACK.md

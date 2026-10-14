@@ -1,0 +1,19 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.coverage
+htmlcov/
+.env
+.env.*
+!.env.example
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+out/
+build/
+dist/
+*.egg-info/
+# Generated at package build time from the monorepo-root canonical schemas.
+# Distribution copy only; never commit it as another contract authority.
+mvp_vertical/_generated_contracts/

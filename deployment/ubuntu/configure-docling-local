@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+RELEASE_LOCK="$SCRIPT_DIR/release.env"
+[[ -f "$RELEASE_LOCK" ]] || { printf '[pantheon-docling] ERROR: missing %s\n' "$RELEASE_LOCK" >&2; exit 1; }
+# shellcheck disable=SC1091
+source "$RELEASE_LOCK"
+
+DOCLING_VERSION="${RELEASE_DOCLING_VERSION:?release.env missing RELEASE_DOCLING_VERSION}"
+DOCLING_MCP_VERSION="${RELEASE_DOCLING_MCP_VERSION:?release.env missing RELEASE_DOCLING_MCP_VERSION}"
+DOCLING_PYTHON="${RELEASE_DOCLING_PYTHON:?release.env missing RELEASE_DOCLING_PYTHON}"
+APP_ROOT="/opt/pantheon-node"
+UV_PYTHON_INSTALL_DIR="$APP_ROOT/python"
+export UV_PYTHON_INSTALL_DIR
+STATE_ROOT="/srv/pantheon"
+AI_ROOT="/srv/ai"
+CONFIG_ROOT="/etc/pantheon-node"
+DOCLING_ROOT="$APP_ROOT/docling"
+DOCLING_STATE="$STATE_ROOT/docling"
+DOCLING_CACHE="$AI_ROOT/cache/docling"
+DOCLING_USER="pantheon-docling"
+UV="$APP_ROOT/uv/bin/uv"
+ENABLE=0
+
+log() { printf '[pantheon-docling] %s\n' "$*"; }
+die() { printf '[pantheon-docling] ERROR: %s\n' "$*" >&2; exit 1; }
+usage() {
+  cat <<'USAGE'
+Usage: sudo ./configure-docling-local [--enable]
+
+Installs pinned Docling and Docling MCP, then prepares a loopback-only
+streamable HTTP MCP service for Hermes. Activation is explicit.
+USAGE
+}
+while (($#)); do
+  case "$1" in
+    --enable) ENABLE=1 ;;
+    -h|--help) usage; exit 0 ;;
+    *) die "unknown argument: $1" ;;
+  esac
+  shift
+done
+
+[[ ${EUID:-$(id -u)} -eq 0 ]] || die "run this command as root (sudo)"
+[[ -x "$UV" ]] || die "managed uv is missing: $UV"
+id -u "$DOCLING_USER" >/dev/null 2>&1 \
+  || useradd --system --home-dir "$DOCLING_STATE" --shell /usr/sbin/nologin "$DOCLING_USER"
+install -d -m 0755 "$DOCLING_ROOT"
+install -d -o "$DOCLING_USER" -g "$DOCLING_USER" -m 0750 "$DOCLING_STATE" "$DOCLING_CACHE"
+"$UV" python install --force "$DOCLING_PYTHON"
+managed_python="$("$UV" python find --managed-python "$DOCLING_PYTHON")"
+[[ "$managed_python" == "$APP_ROOT/python/"* ]] \
+  || die "uv resolved Docling Python outside $APP_ROOT/python: $managed_python"
+chmod -R a+rX "$APP_ROOT/python"
+"$UV" venv --clear --python "$managed_python" "$DOCLING_ROOT/.venv"
+"$UV" pip install --python "$DOCLING_ROOT/.venv/bin/python" \
+  "docling==$DOCLING_VERSION" "docling-mcp[local]==$DOCLING_MCP_VERSION"
+chmod -R a+rX "$DOCLING_ROOT"
+"$DOCLING_ROOT/.venv/bin/docling" --help >/dev/null
+"$DOCLING_ROOT/.venv/bin/docling-mcp-server" --help >/dev/null
+
+cat > "$CONFIG_ROOT/docling.env" <<EOF_ENV
+HOME=$DOCLING_STATE
+DOCLING_MCP_CONVERSION_MODE=local
+HF_HOME=$DOCLING_CACHE/huggingface
+TORCH_HOME=$DOCLING_CACHE/torch
+XDG_CACHE_HOME=$DOCLING_CACHE
+EOF_ENV
+chmod 0640 "$CONFIG_ROOT/docling.env"
+
+cat > /etc/systemd/system/pantheon-docling-mcp.service <<EOF_SERVICE
+[Unit]
+Description=Local Docling MCP server for Hermes
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=$DOCLING_USER
+Group=$DOCLING_USER
+SupplementaryGroups=pantheon-marker
+EnvironmentFile=$CONFIG_ROOT/docling.env
+WorkingDirectory=$DOCLING_STATE
+ExecStart=$DOCLING_ROOT/.venv/bin/docling-mcp-server --transport streamable-http --host 127.0.0.1 --port 8020
+Restart=on-failure
+RestartSec=10
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=$DOCLING_STATE $DOCLING_CACHE $STATE_ROOT/obsidian-documentaires /tmp
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
+EOF_SERVICE
+
+install -d -m 0755 /usr/local/bin
+cat > /usr/local/bin/pantheon-docling <<EOF_WRAPPER
+#!/bin/sh
+exec $DOCLING_ROOT/.venv/bin/docling "\$@"
+EOF_WRAPPER
+chmod 0755 /usr/local/bin/pantheon-docling
+
+install -d -m 0750 "$STATE_ROOT/hermes"
+cat > "$STATE_ROOT/hermes/docling-mcp.yaml" <<'EOF_HERMES'
+# Candidate Hermes MCP fragment. Merge into the active Hermes config after review.
+mcp_servers:
+  docling:
+    url: http://127.0.0.1:8020/mcp
+EOF_HERMES
+chmod 0640 "$STATE_ROOT/hermes/docling-mcp.yaml"
+
+systemctl daemon-reload
+if ((ENABLE == 1)); then
+  systemctl enable --now pantheon-docling-mcp.service
+  log "Docling MCP enabled on http://127.0.0.1:8020/mcp"
+else
+  systemctl disable pantheon-docling-mcp.service >/dev/null 2>&1 || true
+  log "installed but inactive; rerun with --enable to activate"
+fi
+log "Hermes fragment: $STATE_ROOT/hermes/docling-mcp.yaml"

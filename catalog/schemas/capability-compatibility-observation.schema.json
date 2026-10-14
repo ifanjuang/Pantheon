@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pantheon-next.local/catalog/schemas/capability-compatibility-observation.schema.json",
+  "title": "Pantheon Capability Compatibility Observation candidate",
+  "description": "Normalized reference to an externally produced compatibility observation for one exact Capability Binding/release. It performs no probe and grants no safety, activation, Evidence or task authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["api_version", "kind", "metadata", "subject", "observation", "governance"],
+  "properties": {
+    "api_version": {"const": "pantheon.next/v0alpha1"},
+    "kind": {"const": "CapabilityCompatibilityObservation"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^capability_compatibility_[a-z0-9_]+$"},
+        "status": {"enum": ["observed", "stale", "superseded", "rejected"]}
+      }
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["binding_id", "implementation_anchor"],
+      "properties": {
+        "binding_id": {
+          "type": "string",
+          "pattern": "^capability_binding_[a-z0-9_]+$"
+        },
+        "implementation_anchor": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {"enum": ["commit_ref", "content_digest", "package_digest"]},
+            "value": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_kind",
+        "source_observation_ref",
+        "observed_at",
+        "compatibility_status",
+        "safety_status",
+        "health_status",
+        "freshness_status",
+        "environment",
+        "findings"
+      ],
+      "properties": {
+        "source_kind": {
+          "enum": [
+            "runtime_observation",
+            "agent_plugin_observation",
+            "source_adapter_qualification",
+            "manual_review_observation",
+            "other"
+          ]
+        },
+        "source_observation_ref": {"type": "string", "minLength": 1},
+        "observed_at": {"type": "string", "format": "date-time"},
+        "compatibility_status": {
+          "enum": ["compatible", "incompatible", "incomplete", "not_evaluated"]
+        },
+        "safety_status": {
+          "enum": ["qualified", "not_qualified", "not_evaluated"]
+        },
+        "health_status": {"type": "string", "minLength": 1},
+        "freshness_status": {"enum": ["fresh", "stale", "unknown"]},
+        "environment": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "runtime": {"type": ["string", "null"]},
+            "profile": {"type": ["string", "null"]},
+            "platform": {"type": ["string", "null"]},
+            "version": {"type": ["string", "null"]}
+          }
+        },
+        "source_qualification_ref": {
+          "type": ["string", "null"],
+          "description": "Optional reference to an H/source-adapter qualification. The referenced qualification remains owned by its source domain."
+        },
+        "findings": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "supersedes": {
+      "type": ["string", "null"],
+      "pattern": "^capability_compatibility_[a-z0-9_]+$"
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "probe_performed_by_pantheon",
+        "authorization_effect",
+        "activation_effect",
+        "evidence_effect",
+        "professional_approval_effect",
+        "release_replacement_inherits_observation"
+      ],
+      "properties": {
+        "probe_performed_by_pantheon": {"const": false},
+        "authorization_effect": {"const": "none"},
+        "activation_effect": {"const": "none"},
+        "evidence_effect": {"const": "none"},
+        "professional_approval_effect": {"const": "none"},
+        "release_replacement_inherits_observation": {"const": false}
+      }
+    }
+  }
+}

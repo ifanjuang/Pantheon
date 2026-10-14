@@ -1,0 +1,19 @@
+id: architecte_contentieux
+label: Contentieux / preuves
+description: Mise en demeure, litiges, impayés, preuves écrites, chronologies et dossiers assureur.
+include:
+  risk_tags:
+    - contentieux
+    - mise_en_demeure
+    - litige
+    - impaye
+    - preuve
+priority:
+  validated: 1.0
+  reviewed: 0.85
+  extracted: 0.55
+  draft: 0.35
+retrieval:
+  default_top_k: 8
+  rerank: true
+visibility: internal

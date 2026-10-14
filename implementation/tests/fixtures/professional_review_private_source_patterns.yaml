@@ -1,0 +1,150 @@
+# Sanitized private-source-derived qualification patterns for Pantheon-Next#827.
+# This file is not source content, Evidence, model output or professional approval.
+fixture_id: professional-review.private-source-patterns.v1
+status: sanitized_private_source_derived
+role: companion_to_synthetic_oracle
+companion_oracle_ref: implementation/tests/fixtures/professional_quote_review_cases.yaml
+
+source_posture:
+  private_sources_retained: false
+  source_content_retained: false
+  raw_extraction_retained: false
+  identifying_metadata_retained: false
+  original_file_names_retained: false
+  exact_digests_retained: false
+  original_dates_retained: false
+  original_amounts_retained: false
+  original_geometry_retained: false
+  sufficient_to_reconstruct_private_source: false
+
+authority_note: >-
+  These patterns preserve only structural professional-review situations observed
+  in privately supplied project documents. They do not establish project identity,
+  currentness, contractual applicability, Evidence, approval or professional truth.
+
+boundaries:
+  - private_pattern != private_source
+  - retrieved_match != governed_identity
+  - later_revision_marker != currentness
+  - selected_context != truth
+  - semantic_similarity != technical_equivalence
+  - missing_reference_quantity != quantity_mismatch
+  - benchmark_intent != same_project_applicability
+  - runtime_success != professional_validation
+
+authority:
+  is_fact: false
+  is_evidence: false
+  is_decision: false
+  is_memory: false
+  authorizes_external_effect: false
+
+patterns:
+  - pattern_id: stale_foreign_project_marker_in_primary_document
+    failure_layer: identity
+    observed_shape:
+      primary_document_self_identifies_target_project: true
+      stale_foreign_project_marker_present: true
+      marker_role: residual_template_or_header_text
+    existing_owner_route:
+      - project_documents
+      - project_document_currentness
+      - retrieval_scope
+    expected_system_posture:
+      - preserve the governed target-document identity unless stronger governed information changes it
+      - report the foreign marker as a source-local contamination observation
+      - keep the contamination observation separate from project identity
+    forbidden_inferences:
+      - one retrieved project marker establishes governed identity
+      - contamination proves that the document belongs to the foreign project
+
+  - pattern_id: cross_document_revision_conflict
+    failure_layer: currentness
+    observed_shape:
+      earlier_technical_document_state: structural_system_a
+      later_pricing_document_state: structural_system_b
+      later_document_explicitly_marks_change: true
+      authority_between_documents_resolved: false
+    existing_owner_route:
+      - project_document_currentness
+      - retrieval_scope
+    expected_system_posture:
+      - detect and preserve the contradiction between source-local states
+      - resolve purpose-specific currentness and authority before a contractual conclusion
+      - keep both source/version references attached to the observation
+    forbidden_inferences:
+      - a later revision label alone establishes contractual truth
+      - either source is automatically noncompliant because the other differs
+
+  - pattern_id: foreign_quote_semantic_near_match
+    failure_layer: scope_and_intent
+    observed_shape:
+      source_self_identifies_other_project: true
+      technical_vocabulary_overlap_with_target_scope: high
+    existing_owner_route:
+      - human_access
+      - project_documents
+      - retrieval_scope
+    intent_cases:
+      accidental_same_project_review:
+        treatment: exclude_foreign_source_from_same_project_review
+      explicit_cross_project_benchmark:
+        treatment: allow_bounded_comparison_without_relabeling_source
+    expected_system_posture:
+      - preserve the foreign source identity in every comparison
+      - require explicit authorized benchmark intent before cross-project comparison
+      - never promote a benchmark source into the target project's contractual perimeter
+    forbidden_inferences:
+      - high semantic similarity makes the source part of the target project
+      - an explicit benchmark request changes the source's governed identity
+
+  - pattern_id: prescribed_item_without_reference_quantity
+    failure_layer: evidence_sufficiency
+    observed_shape:
+      prescribed_item_identifiable: true
+      reference_quantity_defined: false
+      quote_quantity_present: true
+    expected_posture: requires_more_evidence
+    expected_system_posture:
+      - report that the item is prescribed and the quote contains a quantity
+      - state that the available reference set does not establish the comparison quantity
+      - request or identify the missing metric source before asserting a mismatch
+    forbidden_inferences:
+      - the quoted quantity is too high
+      - the quoted quantity is too low
+      - presence of a prescribed item establishes its contractual quantity
+
+  - pattern_id: similar_product_without_equivalence_evidence
+    failure_layer: professional_judgment
+    observed_shape:
+      offered_system_functionally_similar: true
+      exact_equivalence_evidence_available: false
+    expected_posture: requires_more_evidence
+    expected_system_posture:
+      - identify the offered system as a possible functional correspondence
+      - preserve the need for technical or regulatory equivalence evidence
+      - avoid acceptance or rejection without the required evidence
+    forbidden_inferences:
+      - semantic similarity proves technical conformity
+      - a named product is automatically equivalent to the prescribed system
+      - the offered system is accepted
+      - the offered system is rejected
+
+  - pattern_id: unresolved_pricing_statuses
+    failure_layer: status_interpretation
+    observed_shape:
+      status_vocabulary:
+        - base
+        - option
+        - to_confirm
+        - to_verify
+        - to_measure
+      unresolved_statuses_present: true
+    expected_system_posture:
+      - preserve each source status instead of flattening all rows into one priced base
+      - keep options outside the base unless explicitly selected
+      - surface confirm verify and measure statuses as unresolved review points
+    forbidden_inferences:
+      - every row is contractually settled
+      - every unresolved status is an automatic blocker
+      - an option belongs to the base price by default

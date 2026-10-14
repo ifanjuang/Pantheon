@@ -1,0 +1,9 @@
+axes_id: example.shared-axes
+certainty: E3
+verification: V2
+consequence: K3
+approval: C3
+governance_refs:
+  - docs/governance/GLOSSARY.md
+  - docs/governance/APPROVALS.md
+  - docs/governance/SPINE_HARDENING_PROPOSAL.md

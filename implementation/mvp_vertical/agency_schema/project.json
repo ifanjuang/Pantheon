@@ -1,0 +1,67 @@
+{
+  "schema_id": "agency.project.v2",
+  "entity_type": "project",
+  "version": 2,
+  "authority": {
+    "system_of_record": "postgres",
+    "field_posture_is_authorization": false,
+    "note": "Fields and named views describe storage, semantics and projection only. Server routes and Pantheon gates remain authoritative; ProjectClaim is not Evidence or approval."
+  },
+  "fields": [
+    {"key":"project_id","label":"Identifiant","storage":"core","semantics":"identity","type":"string","required":true,"mutable":false,"hermes_mode":"no","group":"identity"},
+    {"key":"code","label":"Code affaire","storage":"core","semantics":"identity","type":"string","required":true,"mutable":true,"hermes_mode":"candidate","group":"identity"},
+    {"key":"display_name","label":"Nom du projet","storage":"core","semantics":"identity","type":"string","required":true,"mutable":true,"hermes_mode":"candidate","group":"identity"},
+    {"key":"description","label":"Description","storage":"core","semantics":"descriptive","type":"string","required":false,"mutable":true,"hermes_mode":"candidate","group":"business","editor":{"widget":"textarea"}},
+    {"key":"status","label":"Statut","storage":"core","semantics":"state","type":"string","required":false,"mutable":true,"hermes_mode":"candidate","group":"business"},
+    {"key":"phase","label":"Phase","storage":"core","semantics":"state","type":"enum","values":["ESQ","APS","APD","PRO","DCE","ACT","DET","AOR"],"required":false,"mutable":true,"hermes_mode":"candidate","group":"business"},
+    {"key":"location","label":"Lieu","storage":"core","semantics":"identity","type":"string","required":false,"mutable":true,"hermes_mode":"candidate","group":"business"},
+    {"key":"tags","label":"Sujets","storage":"core","semantics":"classification","type":"string_list","required":false,"mutable":true,"hermes_mode":"candidate","group":"classification"},
+    {"key":"contacts","label":"Contacts","storage":"core","semantics":"descriptive","type":"object_list","required":false,"mutable":true,"hermes_mode":"candidate","group":"business"},
+
+    {"key":"programme_summary","label":"Programme synthétique","storage":"attributes","semantics":"descriptive","type":"string","required":false,"nullable":true,"mutable":true,"hermes_mode":"candidate","group":"programme","order":10,"editor":{"widget":"textarea"}},
+    {"key":"architectural_style","label":"Style / intention architecturale","storage":"attributes","semantics":"descriptive","type":"string","required":false,"nullable":true,"mutable":true,"hermes_mode":"candidate","group":"programme","order":20},
+    {"key":"agency_notes","label":"Observations agence","storage":"attributes","semantics":"descriptive","type":"string","required":false,"nullable":true,"mutable":true,"hermes_mode":"candidate","group":"programme","order":30,"editor":{"widget":"textarea"}},
+
+    {"key":"budget","label":"Budget travaux","storage":"projection","semantics":"claim","claim_type":"budget","backing_required":false,"type":"number","unit":"EUR","required":false,"nullable":true,"mutable":false,"hermes_mode":"candidate","group":"programme","order":100},
+    {"key":"montant_marche","label":"Montant marché","storage":"projection","semantics":"claim","claim_type":"montant_marche","backing_required":false,"type":"number","unit":"EUR","required":false,"nullable":true,"mutable":false,"hermes_mode":"candidate","group":"programme","order":105},
+    {"key":"surface_terrain","label":"Surface terrain","storage":"projection","semantics":"claim","claim_type":"surface_terrain","backing_required":false,"type":"number","unit":"m²","required":false,"nullable":true,"mutable":false,"hermes_mode":"candidate","group":"programme","order":110},
+    {"key":"surface_existante","label":"Surface existante","storage":"projection","semantics":"claim","claim_type":"surface_existante","backing_required":false,"type":"number","unit":"m²","required":false,"nullable":true,"mutable":false,"hermes_mode":"candidate","group":"programme","order":120},
+    {"key":"surface_projet","label":"Surface projet","storage":"projection","semantics":"claim","claim_type":"surface_projet","backing_required":false,"type":"number","unit":"m²","required":false,"nullable":true,"mutable":false,"hermes_mode":"candidate","group":"programme","order":130},
+    {"key":"emprise","label":"Emprise au sol","storage":"projection","semantics":"claim","claim_type":"emprise","backing_required":false,"type":"number","unit":"m²","required":false,"nullable":true,"mutable":false,"hermes_mode":"candidate","group":"programme","order":140},
+    {"key":"parcelles","label":"Parcelles","storage":"projection","semantics":"claim","claim_type":"parcelle","aggregation":"list","backing_required":false,"type":"string_list","required":false,"nullable":true,"mutable":false,"hermes_mode":"candidate","group":"urbanisme","order":150},
+    {"key":"plu_zone","label":"Zone PLU / PLUi","storage":"projection","semantics":"claim","claim_type":"plu_zone","backing_required":false,"type":"string","required":false,"nullable":true,"mutable":false,"hermes_mode":"candidate","group":"urbanisme","order":160},
+    {"key":"permit_number","label":"Numéro d’autorisation","storage":"projection","semantics":"claim","claim_type":"permit_number","backing_required":false,"type":"string","required":false,"nullable":true,"mutable":false,"hermes_mode":"candidate","group":"urbanisme","order":170},
+    {"key":"permit_date","label":"Date de dépôt","storage":"projection","semantics":"claim","claim_type":"permit_date","backing_required":false,"type":"date","required":false,"nullable":true,"mutable":false,"hermes_mode":"candidate","group":"urbanisme","order":180},
+    {"key":"reception_date","label":"Date de réception","storage":"projection","semantics":"claim","claim_type":"reception_date","backing_required":false,"type":"date","required":false,"nullable":true,"mutable":false,"hermes_mode":"candidate","group":"chantier","order":190},
+    {"key":"erp_type","label":"Type ERP","storage":"projection","semantics":"claim","claim_type":"erp_type","backing_required":false,"type":"string","required":false,"nullable":true,"mutable":false,"hermes_mode":"candidate","group":"reglementaire","order":200},
+
+    {"key":"owner_system","label":"Système propriétaire","storage":"system","semantics":"system","type":"string","required":true,"mutable":false,"hermes_mode":"system","group":"audit"},
+    {"key":"revision","label":"Révision technique","storage":"system","semantics":"system","type":"integer","required":true,"mutable":false,"hermes_mode":"system","group":"audit"},
+    {"key":"created_by","label":"Créé par","storage":"system","semantics":"system","type":"string","required":true,"mutable":false,"hermes_mode":"system","group":"audit"},
+    {"key":"updated_by","label":"Mis à jour par","storage":"system","semantics":"system","type":"string","required":true,"mutable":false,"hermes_mode":"system","group":"audit"},
+    {"key":"created_at","label":"Créé le","storage":"system","semantics":"system","type":"datetime","required":true,"mutable":false,"hermes_mode":"system","group":"audit"},
+    {"key":"updated_at","label":"Mis à jour le","storage":"system","semantics":"system","type":"datetime","required":true,"mutable":false,"hermes_mode":"system","group":"audit"}
+  ],
+  "views": {
+    "cockpit_front": {
+      "purpose": "Compact Project identity used on the card recto.",
+      "fields": ["code","display_name","phase","location","status","tags"]
+    },
+    "cockpit_back": {
+      "purpose": "Business information shown on the Project card verso. Consequential values are ProjectClaim projections.",
+      "fields": ["code","phase","location","programme_summary","architectural_style","budget","montant_marche","surface_terrain","surface_existante","surface_projet","emprise","parcelles","plu_zone","permit_number","permit_date","reception_date","erp_type"]
+    },
+    "edit": {
+      "purpose": "Generic human Project editor. Source-backed claim projections are not editable as plain Project attributes; Contacts use their dedicated editor.",
+      "fields": ["code","display_name","description","status","phase","location","tags","programme_summary","architectural_style","agency_notes"]
+    },
+    "notion": {
+      "purpose": "Definitive collaborative projection plus PostgreSQL revision for sync conflict detection. Claims may be projected read-only; archives and ChangeCandidates stay outside Notion.",
+      "fields": ["code","display_name","status","phase","location","contacts","tags","programme_summary","architectural_style","budget","montant_marche","surface_terrain","surface_existante","surface_projet","emprise","parcelles","plu_zone","permit_number","permit_date","reception_date","erp_type","revision"]
+    },
+    "hermes_context": {
+      "purpose": "Project identity, descriptive attributes and claim projections eligible for scoped runtime materialization; inclusion is not mutation authority.",
+      "fields": ["project_id","code","display_name","description","status","phase","location","contacts","tags","programme_summary","architectural_style","agency_notes","budget","montant_marche","surface_terrain","surface_existante","surface_projet","emprise","parcelles","plu_zone","permit_number","permit_date","reception_date","erp_type","revision"]
+    }
+  }
+}

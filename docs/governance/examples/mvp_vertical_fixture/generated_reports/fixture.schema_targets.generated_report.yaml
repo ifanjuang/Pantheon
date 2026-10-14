@@ -1,0 +1,105 @@
+report_id: mvp.devis-reprise.generated-validation-report-001
+status: reviewable
+fixture_target: docs/governance/examples/mvp_vertical_fixture/fixture.schema_targets.yaml
+schema_ref: schemas/mvp_governed_loop_objects.schema.yaml
+created_by: scripts/validate_mvp_fixture.py
+created_at: '2026-07-13T00:00:00Z'
+summary:
+  schema_status: pass
+  reference_status: pass_with_warnings
+  governance_status: pass_with_warnings
+  overall_meaning: structurally coherent enough for the next implementation step
+  does_not_mean:
+    - truth_validated
+    - approval_granted
+    - memory_admitted
+    - external_action_authorized
+    - runtime_accepted
+schema_validation:
+  status: pass
+  documents_checked: 7
+  object_counts:
+    decision_record: 2
+    evidence_pack_candidate: 1
+    register_candidate: 1
+    result_candidate: 2
+    task_contract: 1
+  errors: []
+  warnings:
+    - schema validation is structural only
+    - status strings are not enum-validated yet
+    - additionalProperties remains permissive
+reference_validation:
+  status: pass_with_warnings
+  objects_indexed: 7
+  missing_refs: []
+  warnings:
+    - source_ref values are not resolved against a canonical source registry yet
+  checked_refs:
+    - from: mvp.devis-reprise.evidence-001
+      field: applies_to
+      to: mvp.devis-reprise.result-001
+      status: pass
+    - from: mvp.devis-reprise.evidence-001
+      field: evidence_items.source_ref
+      to: src.client_email.001
+      status: pass
+    - from: mvp.devis-reprise.evidence-001
+      field: evidence_items.source_ref
+      to: src.quote.041
+      status: pass
+    - from: mvp.devis-reprise.evidence-001
+      field: evidence_items.source_ref
+      to: src.cctp.lot06
+      status: pass
+    - from: mvp.devis-reprise.decision-001
+      field: applies_to
+      to: mvp.devis-reprise.result-001
+      status: pass
+    - from: mvp.devis-reprise.decision-001
+      field: related_evidence_pack
+      to: mvp.devis-reprise.evidence-001
+      status: pass
+    - from: mvp.devis-reprise.result-002
+      field: revision_of
+      to: mvp.devis-reprise.result-001
+      status: pass
+    - from: mvp.devis-reprise.decision-002
+      field: applies_to
+      to: mvp.devis-reprise.result-002
+      status: pass
+    - from: mvp.devis-reprise.decision-002
+      field: related_evidence_pack
+      to: mvp.devis-reprise.evidence-001
+      status: pass
+    - from: mvp.devis-reprise.register-candidate-001
+      field: created_because_of
+      to: mvp.devis-reprise.decision-002
+      status: pass
+    - from: mvp.devis-reprise.register-candidate-001
+      field: basis
+      to: mvp.devis-reprise.evidence-001
+      status: pass
+    - from: mvp.devis-reprise.register-candidate-001
+      field: basis
+      to: mvp.devis-reprise.decision-002
+      status: pass
+governance_invariants:
+  status: pass_with_warnings
+  invariant_failures: []
+  warnings:
+    - approve is present but external action and retention remain separately governed
+    - register_candidate remains pending_register_admission
+  checked_invariants:
+    - id: no_external_action_from_draft
+      status: pass
+    - id: approve_does_not_authorize_send
+      status: pass
+    - id: register_candidate_creation_is_not_memory_admission
+      status: pass
+    - id: register_candidate_must_remain_pending
+      status: pass
+    - id: human_decision_required
+      status: pass
+    - id: retrieval_is_not_evidence
+      status: pass

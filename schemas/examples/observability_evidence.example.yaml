@@ -1,0 +1,18 @@
+# Example observability evidence (observable verdict). Provided to
+# verify_observability, which classifies it; it queries nothing and decides nothing.
+component: hermes
+signals:
+  - name: logs
+    present: true
+    detail: structured json logs flowing
+  - name: metrics
+    present: true
+expected_signals:
+  - logs
+  - metrics
+freshness:
+  last_event_age_s: 12
+  max_age_s: 60
+errors:
+  count: 0
+  threshold: 5

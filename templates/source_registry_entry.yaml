@@ -1,0 +1,69 @@
+# Source Registry Entry Template
+# Status: template — non-executable.
+# Repo state: documented non-implemented.
+# Authority: support scaffold only.
+# This template records a governed source route candidate.
+# It is not a source database, whitelist engine, crawler, validator, evidence engine, approval engine or memory engine.
+# Registration does not make retrieved material true or evidential by itself.
+
+source_registry_entry:
+  source_id: ""
+  status: "proposed" # proposed | accepted | to_verify | refused | deprecated | obsolete
+  added_at: ""
+  added_by: "" # user | pantheon_proposed | imported | argos | zeus | unknown
+
+  identity:
+    label: ""
+    description: ""
+    family: "unknown" # project_source | external_official_source | professional_method_source | agency_method_source | technical_competence_source | stable_knowledge_source | volatile_source | memory_or_recall_source | database | unknown
+    scope: "unknown" # global | country | region | commune | agency | case | project | subject | unknown
+    access: "unknown" # website | api | local_file | notion | repository | database | memory | manual | unknown
+    reference: "" # url, repository path, database ref, local ref or human-readable pointer
+
+  authority:
+    authority_class: "unknown" # official | professional_reference | agency_reference | technical_doc | user_supplied | candidate | register | unknown
+    authority_claim: ""
+    scope_of_applicability: ""
+    known_limitations: []
+    risk_if_wrong: "unknown" # low | medium | high | critical | unknown
+
+  freshness:
+    freshness_policy: "unknown" # invariant | versioned | verify_each_use | verify_on_project_date | verify_on_change | stale_after_duration | obsolete | unknown
+    source_date: ""
+    version_or_index: ""
+    access_date_required: true
+    stale_after: ""
+    freshness_notes: ""
+
+  allowed_uses:
+    - "context"
+    - "source_candidate"
+  forbidden_uses:
+    - "final_truth_by_itself"
+    - "approval"
+    - "memory_promotion_without_gate"
+    - "external_action_without_gate"
+
+  required_metadata:
+    - "reference"
+    - "access_date"
+    - "source_date_or_version_when_available"
+    - "scope_of_applicability"
+
+  review:
+    argos_review: "required" # not_required | required | completed | blocked
+    themis_review: "conditional" # not_required | conditional | required | completed | blocked
+    zeus_decision: "to_arbitrate" # accepted | refused | to_verify | to_arbitrate | non_applicable
+    human_decision_required: false
+    accepted: []
+    refused: []
+    to_verify: []
+    to_arbitrate: []
+
+  boundary:
+    registry_entry_only: true
+    evidence_by_registration: false
+    canonical_effect: false
+    external_action: false
+    memory_promotion: false
+    statement: "A registered source is a governed route, not evidence by itself."

@@ -1,0 +1,62 @@
+work_issue:
+  issue_id: work-issue-001
+  case_ref: case-fictional-renovation
+  title: Verify the contractor quote against the CCTP
+  description: Compare the declared lot 06 scope and return discrepancies for review.
+  origin: human
+  issue_type: verification
+  priority: normal
+  assigned_to: hermes
+  requested_effect: draft
+  status: review
+  task_contract_ref: tc-work-issue-001
+  context_pack_ref: cp-work-issue-001
+  version: 3
+  created_by: user-fictional
+  created_at: "2026-07-19T14:00:00Z"
+  updated_at: "2026-07-19T14:12:00Z"
+comments:
+  - comment_id: comment-001
+    issue_ref: work-issue-001
+    body: Check the option items separately from the base scope.
+    author: user-fictional
+    created_at: "2026-07-19T14:02:00Z"
+hermes_runs:
+  - run_id: hermes-run-001
+    issue_ref: work-issue-001
+    task_contract_ref: tc-work-issue-001
+    context_pack_ref: cp-work-issue-001
+    status: returned
+    requested_effect: draft
+    started_at: "2026-07-19T14:05:00Z"
+    returned_at: "2026-07-19T14:12:00Z"
+    normalized_return:
+      outcome: result_candidate
+      summary: One scope discrepancy was found and preserved for human review.
+      result_refs:
+        - result-candidate-001
+      evidence_candidate_refs:
+        - evidence-pack-candidate-001
+      trace_refs:
+        - trace-fictional-001
+    created_at: "2026-07-19T14:04:00Z"
+    updated_at: "2026-07-19T14:12:00Z"
+events:
+  - event_id: event-001
+    issue_ref: work-issue-001
+    event_type: status_changed
+    actor: hermes-runner-fictional
+    actor_kind: hermes
+    transition:
+      from_status: in_progress
+      to_status: review
+      actor_kind: hermes
+    expected_version: 2
+    resulting_version: 3
+    idempotency_key: work-issue-001-return-001
+    occurred_at: "2026-07-19T14:12:00Z"
+governance_refs:
+  - docs/governance/WORK_ISSUE_AND_DELEGATED_MERGE_MODEL.md
+  - docs/governance/TASK_CONTRACTS.md
+  - docs/governance/CONTEXT_PACKS.md
+  - docs/governance/APPROVALS.md

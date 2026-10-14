@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pantheon-next.local/catalog/schemas/current-decision-projection.schema.json",
+  "title": "Pantheon Current Decision Projection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["api_version", "kind", "metadata", "spec", "governance"],
+  "properties": {
+    "api_version": {"const": "pantheon.next/v0alpha1"},
+    "kind": {"const": "CurrentDecisionProjection"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "created_at", "status"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^current_decision_projection_[a-z0-9_-]+$"},
+        "created_at": {"type": "string", "format": "date-time"},
+        "status": {"enum": ["derived"]}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subject", "scope", "evaluation_time", "outcome", "decision_type", "applicable_record_id", "considered_record_ids", "excluded_records", "reasons", "warnings"],
+      "properties": {
+        "subject": {"type": "string", "pattern": "^handoff_candidate_[a-z0-9_-]+$"},
+        "scope": {"$ref": "handoff-decision.schema.json#/$defs/scope"},
+        "evaluation_time": {"type": "string", "format": "date-time"},
+        "outcome": {"enum": ["none", "current", "blocked", "ambiguous", "invalid-record-set"]},
+        "decision_type": {"type": ["string", "null"], "enum": ["approve", "refuse", "revoke", "expire", null]},
+        "applicable_record_id": {"type": ["string", "null"], "pattern": "^handoff_decision_[a-z0-9_-]+$"},
+        "considered_record_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^handoff_decision_[a-z0-9_-]+$"}
+        },
+        "excluded_records": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["record_id", "reason"],
+            "properties": {
+              "record_id": {"type": "string", "pattern": "^handoff_decision_[a-z0-9_-]+$"},
+              "reason": {"enum": ["subject-mismatch", "scope-mismatch", "not-yet-effective", "naturally-expired", "superseded", "not-current"]}
+            }
+          }
+        },
+        "reasons": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "warnings": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["read_only", "execution_authorized", "activation_authorized", "permission_token"],
+      "properties": {
+        "read_only": {"const": true},
+        "execution_authorized": {"const": false},
+        "activation_authorized": {"const": false},
+        "permission_token": {"const": false}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"spec": {"properties": {"outcome": {"const": "current"}}}}},
+      "then": {"properties": {"spec": {"properties": {"decision_type": {"const": "approve"}, "applicable_record_id": {"type": "string"}}}}}
+    },
+    {
+      "if": {"properties": {"spec": {"properties": {"outcome": {"const": "blocked"}}}}},
+      "then": {"properties": {"spec": {"properties": {"decision_type": {"enum": ["refuse", "revoke", "expire"]}, "applicable_record_id": {"type": "string"}}}}}
+    },
+    {
+      "if": {"properties": {"spec": {"properties": {"outcome": {"enum": ["none", "ambiguous", "invalid-record-set"]}}}}},
+      "then": {"properties": {"spec": {"properties": {"decision_type": {"type": "null"}, "applicable_record_id": {"type": "null"}}}}}
+    }
+  ]
+}

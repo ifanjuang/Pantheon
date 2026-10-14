@@ -1,0 +1,68 @@
+# Source Need Candidate Template
+# Status: template — non-executable.
+# Repo state: documented non-implemented.
+# Authority: support scaffold only.
+# This template records missing source needs before any search or retrieval handoff.
+# It is not a schema, source database, search engine, crawler, validator, approval engine or memory engine.
+
+source_need_candidate:
+  need_id: ""
+  status: "candidate" # candidate | to_verify | accepted | refused | blocked | resolved | obsolete
+  created_at: ""
+  created_by: "" # user | pantheon | hestia | argos | themis | zeus | adapter | unknown
+
+  request_context:
+    request_ref: ""
+    cap_ref: ""
+    situation_ref: ""
+    case_or_project_ref: ""
+    output_intent_ref: ""
+    target_output_status: "unknown" # orientation | draft | source_backed_claim | external_action | memory_promotion | canonical_status | unknown
+
+  missing_information:
+    description: ""
+    why_needed: ""
+    needed_for_output: ""
+    risk_if_missing: "unknown" # low | medium | high | critical | unknown
+    can_continue_without_it: "unknown" # yes | draft_only | orientation_only | no | unknown
+
+  source_requirement:
+    source_family_needed: "unknown" # project_source | external_official_source | professional_method_source | agency_method_source | technical_competence_source | stable_knowledge_source | volatile_source | memory_or_recall_source | registered_source | unknown
+    preferred_source_routes: [] # project_corpus | source_registry | official_web_route | professional_method_reference | agency_method_reference | technical_competence_documentation | memory_or_register_review | ask_user
+    authority_class_required: "unknown" # official | professional_reference | agency_reference | technical_doc | user_supplied | register | unknown
+    freshness_requirement: "unknown" # invariant | versioned | verify_each_use | verify_on_project_date | verify_on_change | stale_after_duration | obsolete | unknown
+    scope_of_applicability_required: ""
+
+  if_not_found:
+    allowed_fallbacks:
+      - "mark_missing"
+      - "ask_user"
+      - "allow_draft_only"
+    forbidden_fallbacks:
+      - "guess"
+      - "final_truth"
+      - "external_action_without_gate"
+      - "memory_promotion_without_gate"
+
+  role_requests:
+    hestia: []
+    argos: []
+    themis: []
+    zeus: []
+    human: []
+
+  review:
+    accepted: []
+    refused: []
+    to_verify: []
+    to_arbitrate: []
+    zeus_status: "to_verify" # accepted | refused | to_verify | to_arbitrate | blocked | non_applicable
+    human_decision_required: false
+
+  boundary:
+    candidate_only: true
+    search_authorized_by_itself: false
+    canonical_effect: false
+    external_action: false
+    memory_promotion: false
+    statement: "A missing source creates a need, not a permission to guess."

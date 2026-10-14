@@ -1,0 +1,354 @@
+corpus_id: h5.3.document-pdf-image
+status: qualification_only
+parent_issue: 613
+base_example: observation_bundle.example.yaml
+scenarios:
+  - scenario_ids: [H53-DOC-REQ]
+    title: CCTP prescription remains outside observational claims
+    expected_valid: true
+    invariants: [candidate_authority, requirement_not_observation]
+    overrides:
+      observation_bundle_id: observation-bundle.h53.cctp-requirement
+      task_contract_ref: task-contract.observe-cctp.01
+      basis:
+        source_artifact_refs: [source.cctp.lot-menuiseries]
+        source_version_refs: [document-revision:cctp-index-c]
+        exact_digests:
+          - source_artifact_ref: source.cctp.lot-menuiseries
+            source_version_ref: document-revision:cctp-index-c
+            digest: sha256:cctp-index-c
+      method:
+        capability_id: document.observe.structured_text
+        binding_id: binding.synthetic.document
+        operation_id: document.observe.sections.v1
+        adapter_ref: pantheon.synthetic.document
+        adapter_version: 1.0.0
+        request_ref: request-h53-doc-req
+      observed_at: "2026-08-09T14:00:00Z"
+      freshness_token: sha256:cctp-index-c
+      scope:
+        document_refs: [document:cctp]
+        pages: [42]
+        region_refs: [section:menuiseries-exterieures]
+      coverage:
+        completeness: complete_for_declared_scope
+        observed_scope:
+          document_refs: [document:cctp]
+          pages: [42]
+          region_refs: [section:menuiseries-exterieures]
+        excluded_reasons: []
+        absence_inference_allowed: false
+      limitations: [Prescriptive material follows the separate requirement path.]
+      source_representations:
+        - representation_id: rep.cctp.menuiseries.section
+          project_ref: project-a
+          source_artifact_ref: source.cctp.lot-menuiseries
+          source_version_ref: document-revision:cctp-index-c
+          source_kind: other
+          identifiers: [{scheme: document.section, value: menuiseries-exterieures}]
+          locators: [{type: other, value: section:menuiseries-exterieures, page: 42}]
+          observed_at: "2026-08-09T14:00:00Z"
+          binding_ref: binding.synthetic.document
+          adapter_version: 1.0.0
+          freshness_token: sha256:cctp-index-c
+          content_digest: sha256:cctp-index-c
+          context:
+            document_ref: document:cctp
+            page: 42
+            native_context: {semantic_role: prescription}
+          proof_status: candidate
+      attribute_claim_candidates: []
+      relation_claim_candidates: []
+      gaps: []
+      withheld:
+        - code: requirement.separate_path
+          subject_refs: [rep.cctp.menuiseries.section]
+      warnings: []
+      operational_outcome: withheld
+
+  - scenario_ids: [H53-PDF-PARTIAL]
+    title: Partial PDF page observation cannot establish absence
+    expected_valid: true
+    invariants: [candidate_authority, partial_absence_refused, pdf_local_identity]
+    overrides:
+      observation_bundle_id: observation-bundle.h53.pdf-partial
+      task_contract_ref: task-contract.observe-pdf-sheet.01
+      basis:
+        source_artifact_refs: [source.pdf.plan-rdc]
+        source_version_refs: [document-revision:plan-rdc-index-d]
+        exact_digests:
+          - source_artifact_ref: source.pdf.plan-rdc
+            source_version_ref: document-revision:plan-rdc-index-d
+            digest: sha256:plan-rdc-index-d
+      method:
+        capability_id: drawing_takeoff.observe.sheet
+        binding_id: binding.synthetic.drawing
+        operation_id: drawing.observe.region.v1
+        adapter_ref: pantheon.synthetic.drawing
+        adapter_version: 1.0.0
+        request_ref: request-h53-pdf-partial
+      observed_at: "2026-08-09T14:10:00Z"
+      freshness_token: sha256:plan-rdc-index-d
+      scope:
+        document_refs: [document:plan-rdc]
+        sheet_refs: [A-101]
+        region_refs: [region:whole-sheet]
+      coverage:
+        completeness: partial_for_declared_scope
+        observed_scope:
+          document_refs: [document:plan-rdc]
+          sheet_refs: [A-101]
+          region_refs: [region:north-half]
+        excluded_reasons: [south_half_not_traversed]
+        absence_inference_allowed: false
+      limitations: [Only the north half of the sheet was traversed.]
+      source_representations:
+        - representation_id: rep.pdf.a101.door-p12
+          project_ref: project-a
+          source_artifact_ref: source.pdf.plan-rdc
+          source_version_ref: document-revision:plan-rdc-index-d
+          source_kind: drawing
+          identifiers: [{scheme: drawing.local_label, value: P12}]
+          locators: [{type: page_bbox, value: page-1:north-half:p12, page: 1, bbox: [120, 80, 160, 145]}]
+          observed_at: "2026-08-09T14:10:00Z"
+          binding_ref: binding.synthetic.drawing
+          adapter_version: 1.0.0
+          freshness_token: sha256:plan-rdc-index-d
+          content_digest: sha256:pdf-occurrence-p12
+          coordinate_frame: PAGE
+          proof_status: candidate
+      attribute_claim_candidates: []
+      relation_claim_candidates: []
+      gaps: [{code: coverage.region_not_traversed, subject_refs: [region:south-half]}]
+      withheld: []
+      warnings: [{code: absence.inference_forbidden}]
+      operational_outcome: success
+
+  - scenario_ids: [H53-PDF-SCALE]
+    title: Raster PDF with unknown scale withholds real-world measurement
+    expected_valid: true
+    invariants: [candidate_authority, scale_uncertainty_withheld]
+    overrides:
+      observation_bundle_id: observation-bundle.h53.pdf-scale
+      task_contract_ref: task-contract.measure-pdf-area.01
+      basis:
+        source_artifact_refs: [source.scan.plan-existing]
+        source_version_refs: [document-revision:scan-existing]
+        exact_digests:
+          - source_artifact_ref: source.scan.plan-existing
+            source_version_ref: document-revision:scan-existing
+            digest: sha256:scan-existing
+      method:
+        capability_id: drawing_takeoff.measure.area
+        binding_id: binding.synthetic.drawing
+        operation_id: drawing.measure.area.v1
+        adapter_ref: pantheon.synthetic.drawing
+        adapter_version: 1.0.0
+        request_ref: request-h53-pdf-scale
+      observed_at: "2026-08-09T14:20:00Z"
+      freshness_token: sha256:scan-existing
+      scope:
+        document_refs: [document:scan-existing]
+        region_refs: [region:room-outline]
+        measurement_modes: [area]
+      coverage:
+        completeness: partial_for_declared_scope
+        observed_scope:
+          document_refs: [document:scan-existing]
+          region_refs: [region:room-outline]
+        excluded_reasons: [real_world_scale_unresolved]
+        absence_inference_allowed: false
+      limitations: [Scale unresolved; no metric area claim emitted.]
+      source_representations:
+        - representation_id: rep.scan.room-outline
+          project_ref: project-a
+          source_artifact_ref: source.scan.plan-existing
+          source_version_ref: document-revision:scan-existing
+          source_kind: scan
+          identifiers: [{scheme: drawing.local_region, value: room-outline-01}]
+          locators: [{type: page_bbox, value: page-1:room-outline-01, page: 1, bbox: [40, 60, 280, 330]}]
+          observed_at: "2026-08-09T14:20:00Z"
+          binding_ref: binding.synthetic.drawing
+          adapter_version: 1.0.0
+          freshness_token: sha256:scan-existing
+          content_digest: sha256:scan-room-outline
+          coordinate_frame: PIXEL
+          proof_status: candidate
+      attribute_claim_candidates: []
+      relation_claim_candidates: []
+      gaps: [{code: measurement.scale_unresolved, subject_refs: [rep.scan.room-outline]}]
+      withheld: [{code: measurement.real_world_area_withheld, subject_refs: [rep.scan.room-outline]}]
+      warnings: []
+      operational_outcome: withheld
+
+  - scenario_ids: [H53-PHOTO-DEFECT]
+    title: Apparent visual defect is not contractual non-conformity
+    expected_valid: true
+    invariants: [candidate_authority, apparent_not_contractual, photo_field_not_absence]
+    overrides:
+      observation_bundle_id: observation-bundle.h53.photo-defect
+      task_contract_ref: task-contract.observe-site-photo.01
+      basis:
+        source_artifact_refs: [source.photo.site-17]
+        source_version_refs: [photo-receipt:17]
+        exact_digests:
+          - source_artifact_ref: source.photo.site-17
+            source_version_ref: photo-receipt:17
+            digest: sha256:site-photo-17
+      method:
+        capability_id: image.observe.site_condition
+        binding_id: binding.synthetic.image
+        operation_id: image.observe.region.v1
+        adapter_ref: pantheon.synthetic.image
+        adapter_version: 1.0.0
+        request_ref: request-h53-photo-defect
+      observed_at: "2026-08-01T09:15:00Z"
+      freshness_token: sha256:site-photo-17
+      scope:
+        document_refs: [photo-set:site]
+        region_refs: [region:roof-ridge-visible]
+      coverage:
+        completeness: partial_for_declared_scope
+        observed_scope:
+          document_refs: [photo-set:site]
+          region_refs: [region:roof-ridge-visible]
+        excluded_reasons: [hidden_faces_not_visible, concealed_fixings_not_visible]
+        absence_inference_allowed: false
+      limitations: [Only visible condition is represented.]
+      source_representations:
+        - representation_id: rep.photo.roof-ridge-visible
+          project_ref: project-a
+          source_artifact_ref: source.photo.site-17
+          source_version_ref: photo-receipt:17
+          source_kind: photo
+          identifiers: [{scheme: image.region, value: roof-ridge-visible}]
+          locators: [{type: other, value: image:roof-ridge-visible}]
+          observed_at: "2026-08-01T09:15:00Z"
+          binding_ref: binding.synthetic.image
+          adapter_version: 1.0.0
+          freshness_token: sha256:site-photo-17
+          content_digest: sha256:photo-region-roof-ridge
+          coordinate_frame: PIXEL
+          proof_status: candidate
+      attribute_claim_candidates:
+        - attribute_claim_id: claim.photo.roof-ridge.apparent-condition
+          subject_ref: {entity_type: source_representation, entity_id: rep.photo.roof-ridge-visible}
+          attribute_key: physical.apparent_condition
+          value: {value_type: controlled_label, value: apparent_discontinuity}
+          assertion_mode: derived
+          source_authority: model_interpretation_candidate
+          proof_status: candidate
+          certainty: E1
+          source_representation_refs: [rep.photo.roof-ridge-visible]
+      relation_claim_candidates: []
+      gaps: [{code: visibility.hidden_work_unobserved, subject_refs: [rep.photo.roof-ridge-visible]}]
+      withheld: []
+      warnings: [{code: interpretation.not_nonconformity}]
+      operational_outcome: success
+
+  - scenario_ids: [H53-PHOTO-HISTORY]
+    title: Before and after photographs preserve separate observations
+    expected_valid: true
+    invariants: [candidate_authority, photo_history_preserved]
+    overrides:
+      observation_bundle_id: observation-bundle.h53.photo-history
+      task_contract_ref: task-contract.compare-site-photos.01
+      basis:
+        source_artifact_refs: [source.photo.before, source.photo.after]
+        exact_digests:
+          - {source_artifact_ref: source.photo.before, digest: sha256:photo-before}
+          - {source_artifact_ref: source.photo.after, digest: sha256:photo-after}
+      method:
+        capability_id: image.observe.site_condition
+        binding_id: binding.synthetic.image
+        operation_id: image.compare.observations.v1
+        adapter_ref: pantheon.synthetic.image
+        adapter_version: 1.0.0
+        request_ref: request-h53-photo-history
+      observed_at: "2026-08-09T15:00:00Z"
+      freshness_token: sha256:photo-history-set
+      scope: {document_refs: [photo-set:repair-history], region_refs: [region:affected-area]}
+      coverage:
+        completeness: partial_for_declared_scope
+        observed_scope: {document_refs: [photo-set:repair-history], region_refs: [region:affected-area]}
+        excluded_reasons: [intermediate_period_not_continuously_observed]
+        absence_inference_allowed: false
+      limitations: [Discrete photographs do not prove continuous state.]
+      source_representations:
+        - representation_id: rep.photo.before
+          project_ref: project-a
+          source_artifact_ref: source.photo.before
+          source_kind: photo
+          identifiers: [{scheme: image.region, value: affected-area}]
+          observed_at: "2026-08-01T09:15:00Z"
+          binding_ref: binding.synthetic.image
+          adapter_version: 1.0.0
+          freshness_token: sha256:photo-before
+          content_digest: sha256:photo-before-region
+          proof_status: candidate
+        - representation_id: rep.photo.after
+          project_ref: project-a
+          source_artifact_ref: source.photo.after
+          source_kind: photo
+          identifiers: [{scheme: image.region, value: affected-area}]
+          observed_at: "2026-08-08T16:30:00Z"
+          binding_ref: binding.synthetic.image
+          adapter_version: 1.0.0
+          freshness_token: sha256:photo-after
+          content_digest: sha256:photo-after-region
+          proof_status: candidate
+      attribute_claim_candidates:
+        - attribute_claim_id: claim.photo.before.apparent-condition
+          subject_ref: {entity_type: source_representation, entity_id: rep.photo.before}
+          attribute_key: physical.apparent_condition
+          value: {value_type: controlled_label, value: apparent_defect}
+          assertion_mode: derived
+          source_authority: model_interpretation_candidate
+          proof_status: candidate
+          source_representation_refs: [rep.photo.before]
+        - attribute_claim_id: claim.photo.after.apparent-condition
+          subject_ref: {entity_type: source_representation, entity_id: rep.photo.after}
+          attribute_key: physical.apparent_condition
+          value: {value_type: controlled_label, value: no_visible_defect_in_observed_region}
+          assertion_mode: derived
+          source_authority: model_interpretation_candidate
+          proof_status: candidate
+          source_representation_refs: [rep.photo.after]
+      relation_claim_candidates: []
+      gaps: [{code: temporal.continuity_not_observed, subject_refs: [rep.photo.before, rep.photo.after]}]
+      withheld: []
+      warnings: [{code: review.no_reservation_inference}]
+      operational_outcome: success
+
+  - scenario_ids: [H53-DOC-CORRUPT]
+    title: Corrupted document produces gaps without fabricated candidates
+    expected_valid: true
+    invariants: [candidate_authority, non_success_absence_refused, no_fabricated_candidates]
+    overrides:
+      observation_bundle_id: observation-bundle.h53.document-corrupt
+      task_contract_ref: task-contract.observe-document.02
+      basis:
+        source_artifact_refs: [source.pdf.corrupted]
+        exact_digests: [{source_artifact_ref: source.pdf.corrupted, digest: sha256:corrupted-pdf}]
+      method:
+        capability_id: document.observe.content
+        binding_id: binding.synthetic.document
+        operation_id: document.observe.content.v1
+        adapter_ref: pantheon.synthetic.document
+        adapter_version: 1.0.0
+        request_ref: request-h53-corrupt
+      observed_at: "2026-08-09T15:20:00Z"
+      scope: {document_refs: [document:corrupted], pages: [1, 2, 3]}
+      coverage:
+        completeness: unknown
+        observed_scope: {document_refs: [document:corrupted], pages: [1]}
+        excluded_reasons: [decode_failed_after_page_1]
+        absence_inference_allowed: false
+      limitations: [Decode failed before the declared scope was traversed.]
+      source_representations: []
+      attribute_claim_candidates: []
+      relation_claim_candidates: []
+      gaps: [{code: source.decode_failed, subject_refs: [document:corrupted]}]
+      withheld: []
+      warnings: []
+      operational_outcome: failed

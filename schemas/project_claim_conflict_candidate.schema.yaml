@@ -1,0 +1,125 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Project Claim Conflict Candidate
+description: >-
+  Deterministic candidate that two active scalar ProjectClaims in the same Project
+  and claim_type may require conflict review. Detection records a tension; it does
+  not establish which Claim is true, mutate either Claim, admit Evidence, create a
+  Decision, resolve a conflict or authorize an effect. Claim content remains owned
+  by the immutable ProjectClaims and is not duplicated into this carrier.
+type: object
+required:
+  - conflict_candidate_id
+  - project_id
+  - claim_type
+  - claim_refs
+  - classification
+  - comparison
+  - detector
+  - limitations
+  - authority
+properties:
+  conflict_candidate_id:
+    type: string
+    pattern: "^pcc-[a-f0-9]{24}$"
+  project_id:
+    type: string
+    minLength: 1
+  claim_type:
+    type: string
+    minLength: 1
+  claim_refs:
+    type: array
+    minItems: 2
+    maxItems: 2
+    uniqueItems: true
+    description: >-
+      Canonically ordered references to two immutable ProjectClaims. Values,
+      temporal fields and provenance remain owned by those Claims and are resolved
+      only when the candidate is read or presented for review.
+    items:
+      type: object
+      required: [claim_id]
+      properties:
+        claim_id:
+          type: string
+          pattern: "^[a-z0-9._-]+$"
+      additionalProperties: false
+  classification:
+    type: string
+    enum:
+      - value_conflict_same_effective_start
+      - value_conflict_undated
+      - temporal_ambiguity
+    description: >-
+      Detector classification only. Even the strongest class remains a candidate
+      tension rather than a resolved professional contradiction.
+  comparison:
+    type: object
+    required:
+      - effective_time_relation
+      - basis_relation
+      - backing_relation
+      - scope_relation
+    properties:
+      effective_time_relation:
+        type: string
+        enum:
+          - same_explicit_start
+          - different_explicit_start
+          - partially_unknown
+          - both_unknown
+      basis_relation:
+        type: string
+        enum:
+          - same_structured_basis
+          - overlapping_structured_basis
+          - disjoint_structured_basis
+          - partially_unknown
+          - no_structured_basis
+      backing_relation:
+        type: string
+        enum: [same, different, partially_unknown, none]
+      scope_relation:
+        const: same_project_same_claim_type_only
+    additionalProperties: false
+  detector:
+    type: object
+    required: [detector_id, version, scan_scope]
+    properties:
+      detector_id: {const: project_claim_pairwise_conflict}
+      version: {const: "1"}
+      scan_scope: {const: active_unsuperseded_scalar_claims}
+    additionalProperties: false
+  limitations:
+    type: array
+    minItems: 2
+    uniqueItems: true
+    items:
+      type: string
+      minLength: 1
+  authority:
+    type: object
+    required:
+      - is_evidence
+      - is_decision
+      - resolves_conflict
+      - mutates_project_claim
+      - authorizes_effect
+      - merges_identity
+    properties:
+      is_evidence: {const: false}
+      is_decision: {const: false}
+      resolves_conflict: {const: false}
+      mutates_project_claim: {const: false}
+      authorizes_effect: {const: false}
+      merges_identity: {const: false}
+    additionalProperties: false
+additionalProperties: false
+x-boundary:
+  runtime_execution: false
+  automatic_resolution: false
+  automatic_claim_mutation: false
+  evidence_admission: false
+  decision_creation: false
+  identity_merge: false
+  external_effect_authorization: false

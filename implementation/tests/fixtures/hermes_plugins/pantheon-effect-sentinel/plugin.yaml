@@ -1,0 +1,12 @@
+name: pantheon-effect-sentinel
+version: "0.1.0"
+description: Ephemeral lab-only tool and pre_tool_call sentinel for pinned Hermes guard qualification
+provides_tools:
+  - pantheon_effect_sentinel
+provides_hooks:
+  - pre_tool_call
+requires_env:
+  - name: PANTHEON_SENTINEL_MODE_FILE
+    description: Ephemeral lab file selecting block, raise or allow behavior
+  - name: PANTHEON_SENTINEL_SINK
+    description: Ephemeral lab marker file touched only when the synthetic effect handler runs

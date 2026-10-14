@@ -1,0 +1,241 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Execution Result and Review Contract
+description: >-
+  Transport-neutral envelope for one bounded execution producing immutable typed
+  Result Candidates, optional Clarification Requests and separate Review
+  Dispositions. It does not authorize persistence into APU, Knowledge, Evidence,
+  Memory or any external system.
+type: object
+required:
+  - execution_result
+  - review_dispositions
+properties:
+  execution_result:
+    $ref: "#/$defs/execution_result"
+  review_dispositions:
+    type: array
+    items:
+      $ref: "#/$defs/review_disposition"
+additionalProperties: false
+$defs:
+  governed_id:
+    type: string
+    pattern: "^[a-z0-9][a-z0-9._-]*$"
+  relative_schema_ref:
+    type: string
+    minLength: 1
+    pattern: '^(?!/)(?!.*(?:^|/)\.\.(?:/|$)).+$'
+  authority_boundary:
+    type: object
+    required:
+      - is_fact
+      - is_evidence
+      - is_decision
+      - is_memory
+      - is_apu_write
+      - authorizes_external_effect
+    properties:
+      is_fact: { const: false }
+      is_evidence: { const: false }
+      is_decision: { const: false }
+      is_memory: { const: false }
+      is_apu_write: { const: false }
+      authorizes_external_effect: { const: false }
+    additionalProperties: false
+  producer:
+    type: object
+    required: [capability, implementation, version]
+    properties:
+      capability:
+        type: string
+        minLength: 1
+      implementation:
+        type: string
+        minLength: 1
+      version:
+        type: string
+        minLength: 1
+    additionalProperties: false
+  typed_result_candidate:
+    type: object
+    required:
+      - result_id
+      - result_kind
+      - schema_ref
+      - payload
+      - authority
+    properties:
+      result_id:
+        $ref: "#/$defs/governed_id"
+      result_kind:
+        type: string
+        enum:
+          - fragment_qualification
+          - document_alignment
+          - spatial_observation
+          - apu_object_mapping
+          - relation_candidate
+          - contradiction_candidate
+          - work_issue_candidate
+          - knowledge_edit_variant
+          - project_change_variant
+          - project_claim_candidate
+      schema_ref:
+        $ref: "#/$defs/relative_schema_ref"
+      payload:
+        type: object
+      evidence_pack_candidate_ref:
+        $ref: "#/$defs/governed_id"
+      authority:
+        $ref: "#/$defs/authority_boundary"
+    additionalProperties: false
+  clarification_request:
+    type: object
+    required:
+      - clarification_id
+      - question
+      - reason
+      - related_result_refs
+      - expected_answer_kind
+      - status
+    properties:
+      clarification_id:
+        $ref: "#/$defs/governed_id"
+      question:
+        type: string
+        minLength: 3
+      reason:
+        type: string
+        minLength: 3
+      related_result_refs:
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items:
+          $ref: "#/$defs/governed_id"
+      expected_answer_kind:
+        type: string
+        enum: [free_text, single_choice, multiple_choice, confirmation, source_request]
+      options:
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items:
+          type: string
+          minLength: 1
+      status:
+        type: string
+        enum: [open, answered, withdrawn, superseded]
+    allOf:
+      - if:
+          properties:
+            expected_answer_kind:
+              enum: [single_choice, multiple_choice]
+          required: [expected_answer_kind]
+        then:
+          required: [options]
+    additionalProperties: false
+  execution_result:
+    type: object
+    required:
+      - execution_id
+      - task_contract_ref
+      - produced_by
+      - produced_at
+      - results
+      - clarifications
+      - authority
+    properties:
+      execution_id:
+        $ref: "#/$defs/governed_id"
+      task_contract_ref:
+        type: string
+        minLength: 1
+      project_ref:
+        type: string
+        minLength: 1
+      source_refs:
+        type: array
+        uniqueItems: true
+        items:
+          type: string
+          minLength: 1
+      produced_by:
+        $ref: "#/$defs/producer"
+      produced_at:
+        type: string
+        format: date-time
+      results:
+        type: array
+        minItems: 1
+        items:
+          $ref: "#/$defs/typed_result_candidate"
+      clarifications:
+        type: array
+        items:
+          $ref: "#/$defs/clarification_request"
+      authority:
+        $ref: "#/$defs/authority_boundary"
+    additionalProperties: false
+  review_disposition:
+    type: object
+    required:
+      - disposition_id
+      - execution_ref
+      - result_ref
+      - disposition
+      - reviewed_by
+      - reviewed_at
+      - authority
+    properties:
+      disposition_id:
+        $ref: "#/$defs/governed_id"
+      execution_ref:
+        $ref: "#/$defs/governed_id"
+      result_ref:
+        $ref: "#/$defs/governed_id"
+      disposition:
+        type: string
+        enum:
+          - pending
+          - needs_clarification
+          - accepted_for_mapping
+          - accepted_for_claim
+          - rejected
+          - superseded
+      reviewed_by:
+        type: string
+        minLength: 1
+      reviewed_at:
+        type: string
+        format: date-time
+      comment:
+        type: string
+        minLength: 1
+      clarification_ref:
+        $ref: "#/$defs/governed_id"
+      authority:
+        type: object
+        required: [adopts_project_truth, writes_apu, admits_evidence, promotes_memory]
+        properties:
+          adopts_project_truth: { const: false }
+          writes_apu: { const: false }
+          admits_evidence: { const: false }
+          promotes_memory: { const: false }
+        additionalProperties: false
+    allOf:
+      - if:
+          properties:
+            disposition: { const: needs_clarification }
+          required: [disposition]
+        then:
+          required: [clarification_ref]
+    additionalProperties: false
+x-boundary:
+  runtime_execution: false
+  persistence_execution: false
+  automatic_apu_write: false
+  automatic_evidence_admission: false
+  automatic_memory_promotion: false
+  automatic_decision: false
+  external_effect_authorization: false

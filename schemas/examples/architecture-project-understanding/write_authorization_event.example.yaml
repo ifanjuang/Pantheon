@@ -1,0 +1,13 @@
+authorization_id: apu-write-authorization.001
+command_ref: apu-write-command.001
+command_payload_digest: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+action: authorize_application
+note: Autorisation explicite de préparer l’application technique séparée.
+authorized_by: human.ifj
+authorized_at: "2026-08-05T13:05:00Z"
+authority:
+  authorizes_command_application: true
+  applies_command: false
+  confirms_stable_identity: false
+  admits_evidence: false
+  promotes_memory: false

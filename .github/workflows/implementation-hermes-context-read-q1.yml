@@ -1,0 +1,106 @@
+name: Hermes Context Read Q1
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/implementation-hermes-context-read-q1.yml"
+      - "implementation/qualification/external-pins.json"
+      - "implementation/tools/export_external_qualification_pins.py"
+      - "implementation/tools/run_hermes_context_read_q1.py"
+      - "tests/test_hermes_context_read_q1_contract.py"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hermes-context-read-q1-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  context-read-q1:
+    name: exact-pin offline prompt/context observation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout current monorepo candidate
+        uses: actions/checkout@v4
+        with:
+          path: monorepo
+
+      - name: Load canonical Hermes qualification pin
+        shell: bash
+        run: python3 monorepo/implementation/tools/export_external_qualification_pins.py --github-env "$GITHUB_ENV" hermes-agent
+
+      - name: Checkout exact qualified Hermes source
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.HERMES_REPOSITORY }}
+          ref: ${{ env.HERMES_REF }}
+          path: hermes-upstream
+          fetch-depth: 1
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install exact Hermes source into isolated environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C "$GITHUB_WORKSPACE/hermes-upstream" rev-parse HEAD)" = "$HERMES_RELEASE_COMMIT"
+          python -m pip install --disable-pip-version-check --upgrade uv
+          python -m venv "$RUNNER_TEMP/hermes-context-read-q1-venv"
+          uv pip install --python "$RUNNER_TEMP/hermes-context-read-q1-venv/bin/python" \
+            -e "$GITHUB_WORKSPACE/hermes-upstream"
+          "$RUNNER_TEMP/hermes-context-read-q1-venv/bin/hermes" --version | tee "$RUNNER_TEMP/hermes-context-read-q1-version.txt"
+          grep -F "$HERMES_VERSION" "$RUNNER_TEMP/hermes-context-read-q1-version.txt"
+
+      - name: Observe official offline prompt-size context tier
+        shell: bash
+        run: |
+          set -euo pipefail
+          LAB_ROOT="$RUNNER_TEMP/hermes-context-read-q1"
+          export HERMES_HOME="$LAB_ROOT/hermes-home"
+          mkdir -p "$HERMES_HOME" "$LAB_ROOT/prompt-size-workspace" "$LAB_ROOT/artifacts"
+          cat > "$HERMES_HOME/config.yaml" <<'YAML'
+          model:
+            provider: custom
+            default: q1-inspect-model
+            base_url: http://127.0.0.1:1/v1
+            api_mode: chat_completions
+          memory:
+            provider: ""
+            memory_enabled: false
+            user_profile_enabled: false
+          platform_toolsets:
+            cli: []
+          YAML
+          printf 'Q1_PROMPT_SIZE_CONTEXT\n' > "$LAB_ROOT/prompt-size-workspace/AGENTS.md"
+          mkdir -p "$LAB_ROOT/prompt-size-workspace/.git"
+          cd "$LAB_ROOT/prompt-size-workspace"
+          "$RUNNER_TEMP/hermes-context-read-q1-venv/bin/hermes" prompt-size --platform cli --json \
+            > "$LAB_ROOT/artifacts/prompt-size.json"
+
+      - name: Execute project-context discovery and truncation Q1
+        shell: bash
+        run: |
+          set -euo pipefail
+          LAB_ROOT="$RUNNER_TEMP/hermes-context-read-q1"
+          export HERMES_HOME="$LAB_ROOT/hermes-home"
+          "$RUNNER_TEMP/hermes-context-read-q1-venv/bin/python" \
+            "$GITHUB_WORKSPACE/monorepo/implementation/tools/run_hermes_context_read_q1.py" \
+            --prompt-size-json "$LAB_ROOT/artifacts/prompt-size.json" \
+            --output "$LAB_ROOT/artifacts/context-read-q1.json"
+          cat "$LAB_ROOT/artifacts/context-read-q1.json" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Q1 observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hermes-context-read-q1-${{ github.run_id }}
+          path: ${{ runner.temp }}/hermes-context-read-q1/artifacts/
+          if-no-files-found: error
+          retention-days: 14

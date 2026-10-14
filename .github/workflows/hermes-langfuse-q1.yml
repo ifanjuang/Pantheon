@@ -1,0 +1,67 @@
+name: Hermes Langfuse Observability Q1
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/hermes-langfuse-q1.yml"
+      - "implementation/tools/run_hermes_langfuse_q1.py"
+      - "tests/test_hermes_langfuse_q1_contract.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pytest
+      - run: pytest -q tests/test_hermes_langfuse_q1_contract.py
+
+  plugin-runtime:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      HERMES_COMMIT: 4c1f53be10d0fce1d25aee1975e5149b6c54f25a
+      HERMES_LANGFUSE_PLUGIN_BLOB: 4454fd5788969def17516a21cd8f9242216a95f9
+    steps:
+      - name: Checkout Pantheon candidate
+        uses: actions/checkout@v4
+        with:
+          path: monorepo
+
+      - name: Checkout exact Hermes revision
+        uses: actions/checkout@v4
+        with:
+          repository: NousResearch/hermes-agent
+          ref: ${{ env.HERMES_COMMIT }}
+          path: hermes-agent
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify upstream identity
+        shell: bash
+        run: |
+          test "$(git -C hermes-agent rev-parse HEAD)" = "$HERMES_COMMIT"
+          test "$(git -C hermes-agent hash-object plugins/observability/langfuse/__init__.py)" = "$HERMES_LANGFUSE_PLUGIN_BLOB"
+
+      - name: Install Hermes and Langfuse SDK
+        working-directory: hermes-agent
+        run: python -m pip install -e . langfuse pytest
+
+      - name: Run upstream Langfuse plugin tests
+        working-directory: hermes-agent
+        run: pytest -q tests/plugins/test_langfuse_plugin.py
+
+      - name: Run Pantheon bounded Langfuse probe
+        working-directory: monorepo
+        env:
+          HERMES_ROOT: ${{ github.workspace }}/hermes-agent
+        run: python implementation/tools/run_hermes_langfuse_q1.py

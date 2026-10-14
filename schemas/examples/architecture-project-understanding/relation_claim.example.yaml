@@ -1,0 +1,16 @@
+relation_claim_id: REL-IDENTITY-RVT-40291
+subject_ref:
+  entity_type: source_representation
+  entity_id: REP-RVT-40291
+relation_type: identity.represents
+object_ref:
+  entity_type: stable_object
+  entity_id: OBJ-DOOR-0042
+assertion_mode: human_asserted
+source_authority: project_working_document
+proof_status: accepted_as_support
+certainty: E4
+source_representation_refs:
+  - REP-RVT-40291
+evidence_refs: []
+notes: "Human-reviewed alignment of one Revit occurrence to the stable project object; it does not canonize every Revit parameter."

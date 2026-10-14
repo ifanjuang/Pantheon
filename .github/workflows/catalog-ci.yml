@@ -1,0 +1,31 @@
+name: Capability Catalog CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "catalog/**"
+      - ".github/scripts/check_capability_catalog.py"
+      - ".github/workflows/catalog-ci.yml"
+  pull_request:
+    paths:
+      - "catalog/**"
+      - ".github/scripts/check_capability_catalog.py"
+      - ".github/workflows/catalog-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-catalog:
+    name: Read-only capability catalog validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Install validator dependencies
+        run: python3 -m pip install --quiet PyYAML jsonschema
+      - name: Validate schemas, references, roles and safety invariants
+        run: python3 .github/scripts/check_capability_catalog.py

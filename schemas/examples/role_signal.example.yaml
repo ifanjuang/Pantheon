@@ -1,0 +1,35 @@
+signal_id: example.role-signal
+created_at: "2026-08-20T00:30:00Z"
+from_role: MNEMOSYNE
+to_role: ARGOS
+signal_type: role_consultation
+purpose: Check whether a newer project record supersedes the remembered state before reuse.
+content_summary: CR index 14 appears newer than the recalled index 12 and may supersede the remembered ventilation status.
+payload_ref: example.evidence-pack
+# E2 = plausible: the newer record is identified but its evidentiary authority still needs review.
+certainty: E2
+# Legacy compatibility field; new signals use certainty as the canonical axis.
+confidence: partial
+claim_status: sourced_not_verified
+uncertainty_level: medium
+uncertainty_reasons:
+  - source authority of the newer record requires review
+assumptions:
+  - Both records belong to the same fictional project scope.
+limitations:
+  - Retrieval order alone does not establish which state is applicable.
+risk_level: C3
+evidence_refs:
+  - example.evidence-pack
+requested_action: check_version
+approval_impact: human review expected before consequential reuse
+memory_impact: memory_review_required
+external_effect: false
+related_task_contract_id: example.task-contract
+related_evidence_pack_id: example.evidence-pack
+status: open
+governance_refs:
+  - docs/governance/ROLE_SIGNALS.md
+  - docs/governance/AGENTS.md
+  - docs/governance/GOVERNANCE_COLLEGE.md
+  - docs/governance/USER_DECISION_GATE.md

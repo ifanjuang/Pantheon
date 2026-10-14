@@ -1,0 +1,21 @@
+api_version: pantheon.next/v0alpha1
+kind: CapabilityActivation
+metadata:
+  id: capability_activation_document_analysis_docling_project_demo
+  status: reviewed
+spec:
+  binding_id: capability_binding_document_analysis_docling
+  state: project_enabled
+  scope:
+    scope_type: project
+    scope_id: project_demo
+    scope_label: Project demo
+  decision_ref: decision.capability_activation.document_analysis_docling.project_demo
+  review_after: "2026-09-09"
+  supersedes: null
+governance:
+  record_only: true
+  runtime_activation_effect: none
+  task_authorization_effect: none
+  automatic_activation: false
+  binding_replacement_inherits_activation: false

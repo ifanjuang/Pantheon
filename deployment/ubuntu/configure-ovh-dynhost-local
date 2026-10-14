@@ -1,0 +1,148 @@
+#!/usr/bin/env bash
+# Maintain one OVH DynHost record from the private WireGuard host.
+# Credentials are prompted locally, stored root-only, and never printed.
+set -euo pipefail
+
+PROGRAM_NAME="${0##*/}"
+SCRIPT_PATH="$(readlink -f "$0")"
+STATE_DIR="/etc/pantheon-dynhost"
+CONFIG_FILE="$STATE_DIR/ovh-dynhost.env"
+SERVICE_FILE="/etc/systemd/system/pantheon-ovh-dynhost.service"
+TIMER_FILE="/etc/systemd/system/pantheon-ovh-dynhost.timer"
+MODE="check"
+HOSTNAME_VALUE=""
+
+usage() {
+  cat <<EOF
+Usage:
+  $PROGRAM_NAME --check
+  sudo $PROGRAM_NAME --apply --hostname vpn.example.fr
+
+Prompts locally for an OVH DynHost identifier and password. They are stored
+only in $CONFIG_FILE (root, mode 0600). The updater runs at boot and every
+five minutes. No credential is accepted as a command-line option.
+EOF
+}
+
+die() {
+  printf '%s: %s\n' "$PROGRAM_NAME" "$*" >&2
+  exit 1
+}
+
+require_root() {
+  [ "$(id -u)" -eq 0 ] || die "run with sudo for --apply"
+}
+
+valid_hostname() {
+  # Keep this deliberately portable across the Bash versions used by Ubuntu.
+  # The updater needs a DNS token, not a complete DNS-zone validator.
+  [[ "$1" == *.* ]] \
+    && [[ "$1" != .* && "$1" != *..* && "$1" != *.-* && "$1" != *-. ]] \
+    && [[ "$1" != *[![:alnum:].-]* ]]
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --check) MODE="check" ;;
+    --apply) MODE="apply" ;;
+    --run) MODE="run" ;;
+    --hostname)
+      shift
+      [ "$#" -gt 0 ] || die "--hostname needs a fully qualified hostname"
+      HOSTNAME_VALUE="$1"
+      ;;
+    --help|-h) usage; exit 0 ;;
+    *) die "unknown argument: $1" ;;
+  esac
+  shift
+done
+
+run_update() {
+  [ -r "$CONFIG_FILE" ] || die "DynHost credentials have not been configured"
+  # shellcheck disable=SC1090
+  source "$CONFIG_FILE"
+  [ -n "${DYNHOST_HOSTNAME:-}" ] || die "configured hostname is missing"
+  [ -n "${DYNHOST_USERNAME:-}" ] || die "configured DynHost identifier is missing"
+  [ -n "${DYNHOST_PASSWORD:-}" ] || die "configured DynHost password is missing"
+  response="$(curl --fail --silent --show-error --max-time 20 \
+    --user "$DYNHOST_USERNAME:$DYNHOST_PASSWORD" \
+    --get --data-urlencode 'system=dyndns' \
+    --data-urlencode "hostname=$DYNHOST_HOSTNAME" \
+    'https://www.ovh.com/nic/update')" || die "OVH DynHost update failed"
+  case "$response" in
+    good*|nochg*) ;;
+    *) die "OVH DynHost rejected the update" ;;
+  esac
+}
+
+if [ "$MODE" = "run" ]; then
+  run_update
+  exit 0
+fi
+
+if [ "$MODE" = "check" ]; then
+  printf 'curl: '
+  command -v curl >/dev/null 2>&1 && printf 'installed\n' || printf 'missing\n'
+  printf 'credentials: '
+  if [ -f "$CONFIG_FILE" ] && [ "$(stat -c '%U:%a' "$CONFIG_FILE" 2>/dev/null || true)" = "root:600" ]; then
+    printf 'root-only configured\n'
+  else
+    printf 'not configured\n'
+  fi
+  printf 'timer: '
+  systemctl is-enabled --quiet pantheon-ovh-dynhost.timer 2>/dev/null && printf 'enabled\n' || printf 'disabled\n'
+  exit 0
+fi
+
+require_root
+command -v curl >/dev/null 2>&1 || die "curl is required"
+valid_hostname "$HOSTNAME_VALUE" || die "--hostname must be a fully qualified DNS hostname"
+
+# systemd uses --run without a terminal, but --apply is intentionally an
+# operator action. Read from the controlling terminal so a wrapper or a closed
+# stdin cannot turn a credential typed after the prompt into a shell command.
+[ -r /dev/tty ] || die "--apply needs an interactive terminal"
+IFS= read -r -p 'OVH DynHost identifier: ' dynhost_username </dev/tty
+IFS= read -r -s -p 'OVH DynHost password: ' dynhost_password </dev/tty
+printf '\n'
+[ -n "$dynhost_username" ] || die "DynHost identifier cannot be empty"
+[ -n "$dynhost_password" ] || die "DynHost password cannot be empty"
+[[ "$dynhost_username$dynhost_password" != *$'\n'* ]] || die "credentials cannot contain newlines"
+
+install -d -m 0700 "$STATE_DIR"
+umask 077
+{
+  printf 'DYNHOST_HOSTNAME=%q\n' "$HOSTNAME_VALUE"
+  printf 'DYNHOST_USERNAME=%q\n' "$dynhost_username"
+  printf 'DYNHOST_PASSWORD=%q\n' "$dynhost_password"
+} >"$CONFIG_FILE"
+chmod 0600 "$CONFIG_FILE"
+
+cat >"$SERVICE_FILE" <<EOF
+[Unit]
+Description=Update the private WireGuard OVH DynHost record
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=$SCRIPT_PATH --run
+EOF
+
+cat >"$TIMER_FILE" <<'EOF'
+[Unit]
+Description=Schedule the private WireGuard OVH DynHost update
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
+systemctl daemon-reload
+systemctl enable --now pantheon-ovh-dynhost.timer
+run_update
+printf 'OVH DynHost updater configured for %s; credentials remain outside Git.\n' "$HOSTNAME_VALUE"

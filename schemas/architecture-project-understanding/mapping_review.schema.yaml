@@ -1,0 +1,111 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Architecture Project Understanding Mapping Review Event
+description: >-
+  Append-only human review event for one bounded identity-mapping candidate. The
+  reviewed candidate may be produced by the legacy APU adapter mapping result or
+  be one exact candidate identity.represents relation carried by a canonical
+  Observation Bundle. The event can select one existing stable-object candidate,
+  mark the mapping unmatched, request clarification or reject the mapping. It
+  prepares no APU write and confirms no canonical identity.
+type: object
+additionalProperties: false
+required:
+  - review_id
+  - execution_result_ref
+  - mapping_result_ref
+  - mapping_ref
+  - action
+  - reviewed_by
+  - reviewed_at
+  - authority
+properties:
+  review_id:
+    type: string
+    minLength: 1
+  execution_result_ref:
+    type: string
+    minLength: 1
+  mapping_result_ref:
+    description: >-
+      Exact Execution Result item carrying the reviewed mapping material. This may
+      be an apu_object_mapping result or a canonical observation_bundle result.
+    type: string
+    minLength: 1
+  mapping_ref:
+    description: >-
+      Exact candidate identity within mapping_result_ref. For a canonical
+      Observation Bundle this is the relation_claim_id of one candidate
+      identity.represents relation.
+    type: string
+    minLength: 1
+  action:
+    type: string
+    enum:
+      - select_existing_object
+      - mark_unmatched
+      - needs_clarification
+      - reject_mapping
+  selected_stable_object_ref:
+    type: string
+    minLength: 1
+  clarification_question:
+    type: string
+    minLength: 3
+  note:
+    type: string
+    minLength: 1
+  reviewed_by:
+    type: string
+    minLength: 1
+  reviewed_at:
+    type: string
+    format: date-time
+  authority:
+    type: object
+    additionalProperties: false
+    required:
+      - confirms_stable_identity
+      - writes_apu
+      - adopts_project_truth
+      - admits_evidence
+      - promotes_memory
+    properties:
+      confirms_stable_identity: { const: false }
+      writes_apu: { const: false }
+      adopts_project_truth: { const: false }
+      admits_evidence: { const: false }
+      promotes_memory: { const: false }
+allOf:
+  - if:
+      properties:
+        action: { const: select_existing_object }
+      required: [action]
+    then:
+      required: [selected_stable_object_ref]
+  - if:
+      properties:
+        action: { const: needs_clarification }
+      required: [action]
+    then:
+      required: [clarification_question]
+  - if:
+      properties:
+        action:
+          enum: [mark_unmatched, needs_clarification, reject_mapping]
+      required: [action]
+    then:
+      not:
+        required: [selected_stable_object_ref]
+governance_refs:
+  default:
+    - docs/domain-packs/architecture/PROJECT_UNDERSTANDING_ADAPTER_CONTRACT.md
+    - schemas/architecture-project-understanding/adapter_result.schema.yaml
+    - schemas/architecture-project-understanding/observation_bundle.schema.yaml
+    - schemas/architecture-project-understanding/relation_claim.schema.yaml
+x-boundary:
+  runtime_execution: false
+  provider_routing: false
+  memory_promotion: false
+  automatic_apu_write: false
+  automatic_canonization: false
+  approval_engine: false

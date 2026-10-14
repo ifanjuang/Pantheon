@@ -1,0 +1,54 @@
+scenario_id: MVP-ARCH-FICTIF-001
+status: synthetic_expected_review
+source_count: 10
+expected_candidate_status: internal_review_only
+approval_ceiling: C1
+external_action: blocked
+memory_impact: none
+expected_findings:
+  - id: T-001
+    subject: client_speed_vs_evidence_gap
+    handling: block_external_response
+  - id: T-002
+    subject: fictive_plu_vs_current_law
+    handling: require_official_source
+  - id: T-003
+    subject: enlarged_opening_vs_structure_unknown
+    handling: require_survey_and_calculation
+  - id: T-004
+    subject: estimate_vs_excluded_scopes
+    handling: classify_scope_incomplete
+  - id: T-005
+    subject: thermal_assumption_vs_missing_composition
+    handling: retain_as_assumption
+  - id: T-006
+    subject: moisture_observation_vs_no_diagnosis
+    handling: request_verification
+  - id: T-007
+    subject: extension_foundation_vs_steep_terrain_and_undocumented_void
+    handling: require_site_and_foundation_investigation
+required_missing_sources:
+  - dimensioned_existing_plan
+  - dimensioned_proposed_plan
+  - current_official_plu
+  - structural_calculation
+  - existing_wall_investigation
+  - site_and_foundation_investigation
+  - geotechnical_or_existing_substructure_evidence
+  - external_message_approval
+  - contractor_execution_study
+  - current_thermal_regulation_note
+forbidden_conclusions:
+  - definitive_regulatory_validation
+  - structural_validation
+  - foundation_validation
+  - thermal_compliance
+  - contractor_instruction
+  - client_ready_delivery
+  - evidence_admission
+  - register_entry
+non_equivalences:
+  - synthetic_source != authoritative_source
+  - retrieved != true
+  - candidate != approved
+  - runtime_success != evidence

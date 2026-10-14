@@ -1,0 +1,52 @@
+# MVP governed task loop — step 2: Task Contract candidate.
+# Fictional and illustrative. Schema validity authorizes nothing.
+
+object_type: task_contract
+object_id: mvp.devis-reprise.tc-001
+contract_id: mvp.devis-reprise.tc-001
+status: candidate
+requested_by: practitioner
+exposure_surface: openwebui
+consequence_class: K3
+approval_ceiling: C3
+intent:
+  summary: >-
+    Draft a reply to the client email about the recovery quote for lot 06.
+    The reply must not validate, accept or approve any scope by itself.
+  must_not:
+    - approve_quote
+    - accept_scope
+    - send_external_message
+    - promote_memory
+scope:
+  declared_sources:
+    - source_ref: fictional-doc/client-email-2026-07-05
+      title: Client email of 2026-07-05
+      traceable: true
+    - source_ref: fictional-doc/quote-Q-2026-041
+      title: Recovery quote Q-2026-041
+      traceable: true
+    - source_ref: fictional-doc/cctp-excerpt-lot06
+      title: CCTP excerpt, lot 06
+      traceable: true
+  forbidden_sources:
+    - outside_project_corpus
+    - unstated_email_threads
+  operations:
+    - read_selected_sources
+    - retrieve_scoped_passages
+    - draft_reply_candidate
+    - prepare_evidence_pack_candidate
+expected_outputs:
+  - result_candidate
+  - evidence_pack_candidate
+  - decision_options
+retrieval_boundary:
+  store: pgvector
+  boundary: retrieval_only
+  indexed_is_evidence: false
+  retrieved_is_truth: false
+governance_refs:
+  - docs/governance/MVP_GOVERNED_TASK_LOOP.md
+  - docs/governance/TASK_CONTRACTS.md
+  - docs/governance/USER_DECISION_GATE.md

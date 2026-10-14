@@ -1,0 +1,180 @@
+.change-candidate-review-dialog {
+  width: min(94vw, 760px);
+  max-height: min(92dvh, 920px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 20px;
+  background: #111318;
+  color: #f5f5f3;
+}
+
+.change-candidate-review-dialog::backdrop {
+  background: rgb(0 0 0 / 68%);
+  backdrop-filter: blur(8px);
+}
+
+.change-candidate-review-shell {
+  display: grid;
+  gap: 18px;
+  max-height: 92dvh;
+  padding: 22px;
+  overflow: auto;
+}
+
+.change-candidate-review-shell > header,
+.change-candidate-review-shell > footer,
+.change-candidate-review-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.change-candidate-review-shell h2,
+.change-candidate-review-shell h3,
+.change-candidate-review-shell p {
+  margin: 0;
+}
+
+.change-candidate-review-eyebrow {
+  font-size: .72rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  opacity: .62;
+}
+
+.change-candidate-review-boundary {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgb(255 255 255 / 6%);
+  font-size: .88rem;
+  line-height: 1.45;
+}
+
+.change-candidate-review-builder {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.change-candidate-review-shell label {
+  display: grid;
+  gap: 7px;
+  font-size: .82rem;
+}
+
+.change-candidate-review-wide {
+  grid-column: 1 / -1;
+}
+
+.change-candidate-review-shell select,
+.change-candidate-review-shell textarea,
+.change-candidate-review-shell button {
+  font: inherit;
+}
+
+.change-candidate-review-shell select,
+.change-candidate-review-shell textarea {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #191c22;
+  color: inherit;
+}
+
+.change-candidate-review-shell textarea {
+  resize: vertical;
+}
+
+.change-candidate-review-shell button {
+  min-height: 42px;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 999px;
+  padding: 8px 14px;
+  background: #20242c;
+  color: inherit;
+  cursor: pointer;
+}
+
+.change-candidate-review-shell button:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+.change-candidate-review-list {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.change-candidate-review-list li {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgb(255 255 255 / 5%);
+  font-size: .84rem;
+  line-height: 1.4;
+}
+
+.change-candidate-review-list li span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.change-candidate-review-empty {
+  opacity: .62;
+}
+
+.change-candidate-review-message {
+  min-height: 1.3em;
+  color: #f2c78c;
+  font-size: .84rem;
+}
+
+.change-candidate-review-shell > footer {
+  position: sticky;
+  bottom: -22px;
+  margin: 0 -22px -22px;
+  padding: 14px 22px calc(14px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgb(17 19 24 / 30%), #111318 32%);
+}
+
+@media (max-width: 620px) {
+  .change-candidate-review-dialog {
+    width: 100vw;
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .change-candidate-review-shell {
+    max-height: 100dvh;
+    padding: 18px;
+  }
+
+  .change-candidate-review-builder {
+    grid-template-columns: 1fr;
+  }
+
+  .change-candidate-review-wide {
+    grid-column: auto;
+  }
+
+  .change-candidate-review-shell > footer {
+    bottom: -18px;
+    margin: 0 -18px -18px;
+    padding-inline: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .change-candidate-review-dialog::backdrop {
+    backdrop-filter: none;
+  }
+}

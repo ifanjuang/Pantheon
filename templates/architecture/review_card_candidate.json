@@ -1,0 +1,79 @@
+{
+  "status_note": "template candidate — non-executable data shape; not a schema",
+  "boundary": {
+    "is_proof": false,
+    "is_approval": false,
+    "is_deliverable": false,
+    "authorizes_external_action": false,
+    "creates_memory": false
+  },
+  "card_identity": {
+    "review_card_id": "",
+    "linked_task_contract": "",
+    "linked_context_pack": "",
+    "linked_evidence_pack_candidate": "",
+    "linked_result_candidate": "",
+    "project_alias": "",
+    "prepared_date": "",
+    "prepared_by": ""
+  },
+  "display_status": {
+    "status": "internal candidate only | to verify | blocked | ready for User Decision Gate",
+    "approval_ceiling": "",
+    "requested_effect": "",
+    "external_action_status": "",
+    "memory_status": "",
+    "risk_level": "",
+    "decision_gate": ""
+  },
+  "one_line_verdict": "",
+  "corpus_snapshot": {
+    "received_sources_count": null,
+    "absent_critical_sources_count": null,
+    "source_authority_warning": "",
+    "critical_absent_sources": []
+  },
+  "key_claims": [
+    {
+      "claim": "",
+      "status": "supported | assumption | contradicted | insufficient | supported_synthesis",
+      "evidence_refs": [],
+      "risk": "low | medium | high"
+    }
+  ],
+  "contradictions": [
+    {
+      "tension": "",
+      "why_it_matters": "",
+      "required_handling": ""
+    }
+  ],
+  "risk_stack": {
+    "urbanism": "",
+    "structure": "",
+    "thermal_energy": "",
+    "water_substrate": "",
+    "scope_cost": "",
+    "communication_liability": ""
+  },
+  "allowed_ai_wording": {
+    "status": "internal candidate wording only",
+    "text": "",
+    "approved_for_sending": false
+  },
+  "forbidden_wording": [],
+  "decision_expected": {
+    "recommended_default": "",
+    "allowed_human_choices": [],
+    "user_decision_gate": ""
+  },
+  "next_evidence_requests": [],
+  "card_level_output_posture": {
+    "result_status": "candidate",
+    "evidence_status": "candidate support",
+    "external_status": "blocked",
+    "memory_status": "none",
+    "human_action_required": true
+  },
+  "boundary_footer": "This card displays candidate status. It does not approve. It does not validate. It does not transmit. It does not create memory. The human decides."
+}

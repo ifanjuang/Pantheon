@@ -1,0 +1,98 @@
+schema_id: pantheon.hermes_distribution_lock
+revision: 3
+distribution_id: pantheon-hermes-standard
+status: candidate
+source_pins:
+  pantheon_repository:
+    repository: ifanjuang/Pantheon
+    ref: "1111111111111111111111111111111111111111"
+  hermes_runtime:
+    runtime_id: nousresearch-hermes-agent
+    version: "0.20.0"
+    artifact_digest: null
+    observation_ref: docs/governance/HERMES_RUNTIME_SURFACE_REVIEW.md
+components:
+  - component_id: run-binding
+    kind: run_binding
+    path: implementation/mvp_vertical/hermes_run_binding.py
+    digest_mode: file
+    content_digest: sha256:1111111111111111111111111111111111111111111111111111111111111111
+    required: true
+    enabled_by_default: false
+    capabilities:
+      - reserve-admitted-launch
+      - submit-one-external-run
+      - record-runtime-start
+      - record-runtime-return
+  - component_id: context-bridge
+    kind: context_bridge
+    path: implementation/hermes/plugins/pantheon-context-bridge
+    digest_mode: tree
+    content_digest: sha256:2222222222222222222222222222222222222222222222222222222222222222
+    required: true
+    enabled_by_default: false
+    capabilities:
+      - read-admitted-context
+      - read-admitted-entity
+  - component_id: policy-mcp
+    kind: policy_mcp
+    path: templates/hermes/connection/pantheon_policy_mcp.template.yaml
+    digest_mode: file
+    content_digest: sha256:3333333333333333333333333333333333333333333333333333333333333333
+    required: false
+    enabled_by_default: false
+    capabilities:
+      - read-governance
+  - component_id: dashboard
+    kind: dashboard
+    path: templates/hermes/dashboard-plugins/pantheon-modules
+    digest_mode: tree
+    content_digest: sha256:4444444444444444444444444444444444444444444444444444444444444444
+    required: false
+    enabled_by_default: false
+    capabilities:
+      - observe-hermes-modules
+required_checks:
+  - check_id: component-paths
+    kind: static_structure
+    required: true
+    expected: Every declared component resolves inside the reviewed Pantheon monorepo checkout.
+  - check_id: component-digests
+    kind: artifact_integrity
+    required: true
+    expected: Every component digest matches the deterministic file or tree digest algorithm.
+  - check_id: bounded-routes
+    kind: route_contract
+    required: true
+    expected: The adapter uses only stable Pantheon routes and the reviewed external Hermes Runs API.
+  - check_id: composed-read-only-run
+    kind: end_to_end
+    required: true
+    expected: One admitted read-only run can launch, read exact context and return a candidate without automatic mutation or Evidence admission.
+  - check_id: no-authority-collapse
+    kind: no_authority
+    required: true
+    expected: Installation and acceptance do not activate a binding or authorize a task.
+state:
+  installation_state: not_observed
+  activation_state: not_activated
+  task_authorization_state: not_authorized
+  acceptance_state: not_run
+  observation_refs: []
+authority:
+  installs_components: false
+  activates_binding: false
+  authorizes_tasks: false
+  dispatches_runs: false
+  accepts_results: false
+  admits_evidence: false
+governance_refs:
+  - templates/hermes/DESIGN.md
+  - templates/hermes/AGENTS.md
+  - templates/hermes/SKILLS.md
+  - docs/governance/HERMES_RUNTIME_SURFACE_REVIEW.md
+  - docs/governance/NEXT_MVP_REPOSITORY_PLACEMENT.md
+  - docs/governance/HERMES_INTEGRATION.md
+  - docs/governance/TASK_CONTRACTS.md
+  - docs/governance/CONTEXT_PACKS.md
+  - docs/governance/APPROVALS.md

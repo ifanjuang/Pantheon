@@ -1,0 +1,104 @@
+name: UHP Hermes Runtime Compatibility
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/implementation-uhp-hermes-runtime-compatibility.yml"
+      - "implementation/qualification/external-pins.json"
+      - "implementation/qualification/external-upstream-observations.json"
+      - "implementation/tools/export_external_qualification_pins.py"
+      - "implementation/tools/check_uhp_hermes_runtime_compatibility.py"
+      - "implementation/tests/test_uhp_runtime_compatibility.py"
+      - "implementation/labs/uhp_hermes_transport/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uhp-hermes-runtime-compat-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compatibility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout current Pantheon candidate
+        uses: actions/checkout@v4
+        with:
+          path: monorepo
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Load canonical qualification pins
+        shell: bash
+        run: |
+          python3 monorepo/implementation/tools/export_external_qualification_pins.py \
+            --github-env "$GITHUB_ENV" \
+            hermes-agent harnessrouter
+
+      - name: Checkout exact HarnessRouter candidate
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.HARNESSROUTER_REPOSITORY }}
+          ref: ${{ env.HARNESSROUTER_REF }}
+          path: harnessrouter-upstream
+          fetch-depth: 1
+
+      - name: Observe Hermes runtime compatibility
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/uhp-hermes-runtime-compat"
+          python3 monorepo/implementation/tools/check_uhp_hermes_runtime_compatibility.py \
+            --harnessrouter-entrypoint "$GITHUB_WORKSPACE/harnessrouter-upstream/docker/entrypoint.sh" \
+            --harnessrouter-version "$HARNESSROUTER_VERSION" \
+            --harnessrouter-ref "$HARNESSROUTER_REF" \
+            --protocol-version "$HARNESSROUTER_PROTOCOL_VERSION" \
+            --pantheon-hermes-version "$HERMES_VERSION" \
+            --pantheon-hermes-ref "$HERMES_REF" \
+            --output "$RUNNER_TEMP/uhp-hermes-runtime-compat/report.json"
+          cat "$RUNNER_TEMP/uhp-hermes-runtime-compat/report.json"
+
+      - name: Exercise the matched-A/B gate
+        shell: bash
+        run: |
+          set +e
+          python3 monorepo/implementation/tools/check_uhp_hermes_runtime_compatibility.py \
+            --harnessrouter-entrypoint "$GITHUB_WORKSPACE/harnessrouter-upstream/docker/entrypoint.sh" \
+            --harnessrouter-version "$HARNESSROUTER_VERSION" \
+            --harnessrouter-ref "$HARNESSROUTER_REF" \
+            --protocol-version "$HARNESSROUTER_PROTOCOL_VERSION" \
+            --pantheon-hermes-version "$HERMES_VERSION" \
+            --pantheon-hermes-ref "$HERMES_REF" \
+            --require-match \
+            > "$RUNNER_TEMP/uhp-hermes-runtime-compat/gate.json"
+          rc=$?
+          set -e
+          if [ "$rc" -eq 0 ]; then
+            echo "matched A/B gate: ready" >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$rc" -eq 2 ]; then
+            echo "matched A/B gate: blocked by Hermes runtime mismatch" >> "$GITHUB_STEP_SUMMARY"
+            echo "::notice::UHP transport may be characterized, but a causal native-vs-UHP A/B is blocked until both arms use the same Hermes runtime."
+          else
+            cat "$RUNNER_TEMP/uhp-hermes-runtime-compat/gate.json"
+            exit "$rc"
+          fi
+          {
+            echo
+            echo '~~~json'
+            cat "$RUNNER_TEMP/uhp-hermes-runtime-compat/report.json"
+            echo '~~~'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload compatibility observation
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: uhp-hermes-runtime-compat-${{ github.run_id }}
+          path: ${{ runner.temp }}/uhp-hermes-runtime-compat/
+          if-no-files-found: error
+          retention-days: 14

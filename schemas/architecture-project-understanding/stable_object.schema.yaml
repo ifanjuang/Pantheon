@@ -1,0 +1,66 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Architecture Project Understanding Stable Object
+description: >-
+  V0.2 durable project identity. A stable object owns project identity and
+  nomenclature only. Source-native ids, source observations, claims, evidence,
+  decisions and workflow state belong to separate contracts.
+type: object
+additionalProperties: false
+required: [stable_object_id, project_ref, object_family]
+properties:
+  stable_object_id:
+    type: string
+    minLength: 1
+  project_ref:
+    type: string
+    minLength: 1
+  object_family:
+    $ref: "shared.schema.yaml#/$defs/object_family"
+  nomenclature:
+    type: object
+    additionalProperties: false
+    properties:
+      internal_code:
+        type: string
+        minLength: 1
+      display_name:
+        type: string
+        minLength: 1
+      aliases:
+        type: array
+        uniqueItems: true
+        default: []
+        items:
+          type: string
+          minLength: 1
+      name_history:
+        type: array
+        default: []
+        items:
+          type: object
+          additionalProperties: false
+          required: [value]
+          properties:
+            value:
+              type: string
+              minLength: 1
+            source_ref:
+              type: string
+              minLength: 1
+            valid_from:
+              $ref: "shared.schema.yaml#/$defs/date_time"
+            valid_until:
+              $ref: "shared.schema.yaml#/$defs/date_time"
+  governance_refs:
+    type: array
+    items: { type: string }
+    default:
+      - docs/domain-packs/architecture/PROJECT_ANATOMY_BASELINE_DECISION.md
+      - docs/domain-packs/architecture/PROJECT_ANATOMY_MODEL.md
+      - schemas/architecture-project-understanding/shared.schema.yaml
+x-boundary:
+  runtime_execution: false
+  provider_routing: false
+  memory_promotion: false
+  automatic_canonization: false
+  approval_engine: false

@@ -1,0 +1,72 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Pantheon Next Policy Decision
+description: Validation schema for a gate decision object. The decision is data and runs nothing.
+type: object
+required:
+  - decision_id
+  - created_at
+  - decision
+  - status
+  - reasons
+  - governance_refs
+properties:
+  decision_id:
+    type: string
+    pattern: "^[a-z0-9._-]+$"
+  created_at:
+    type: string
+    format: date-time
+  decision:
+    type: string
+    enum: [allow, allow_with_gate, block, needs_revision, needs_evidence, needs_approval, not_applicable]
+  status:
+    type: string
+    enum: [candidate, reviewed, superseded]
+  reasons:
+    type: array
+    items:
+      type: string
+    minItems: 1
+  required_approval:
+    type: string
+    enum: [C0, C1, C2, C3, C4, C5]
+  required_evidence:
+    type: array
+    items:
+      type: string
+  permitted_invocation_reference:
+    type:
+      - string
+      - "null"
+  permitted_scope:
+    type:
+      - string
+      - "null"
+  invocation_constraints:
+    type: array
+    items:
+      type: string
+  forbidden_actions:
+    type: array
+    items:
+      type: string
+  next_step:
+    type: string
+  governance_refs:
+    type: array
+    items:
+      type: string
+    default:
+      - docs/governance/UNIFORM_CAPABILITY_GOVERNANCE.md
+      - docs/governance/HERMES_INTEGRATION.md
+      - docs/governance/REQUEST_LIFECYCLE.md
+additionalProperties: false
+x-boundary:
+  runtime_execution: false
+  decision_is_data: true
+  autonomous_loop: false
+  provider_routing: false
+  scheduler: false
+  queue_system: false
+  memory_promotion: false
+  automatic_canonization: false

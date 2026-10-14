@@ -1,0 +1,46 @@
+candidate_kind: project_change_variant
+request_ref: variant-request.project-tilleul.couverture
+request_scope_digest: sha256:4e8f6d83813b2ea13b39ecaf521f60ba820c217a963266eb4bcefc565f60c1cf
+project_ref: project-tilleul
+base_revision: 12
+target_schema_id: agency.project.v2
+variant_label: option-zinc
+variant_title: Couverture zinc anthracite
+proposed_attributes:
+  architectural_style: Volumétrie en L sous couverture zinc anthracite.
+  programme_summary: Maison principale avec deux loggias et couverture zinc à joints debout.
+rationale: >-
+  Cette alternative conserve la volumétrie validée tout en réduisant l'épaisseur
+  visuelle de la couverture et en maintenant une teinte anthracite.
+assumptions:
+  - La charpente projetée accepte le complexe de couverture proposé.
+  - Le règlement d'urbanisme autorise l'aspect zinc sur ce secteur.
+compatibility_findings:
+  - status: compatible
+    subject: volumétrie architecturale
+    detail: La variante ne modifie ni l'emprise ni les volumes principaux.
+  - status: uncertain
+    subject: prescription urbanistique
+    detail: La pièce écrite du PLU doit encore être vérifiée pour le matériau exact.
+open_questions:
+  - Le maître d'ouvrage préfère-t-il le vieillissement naturel ou une finition prépatinée ?
+basis_refs:
+  - entity_type: information
+    entity_id: information.project-tilleul.avp-d
+    observed_revision: 4
+    observed_status: acted
+  - entity_type: document
+    entity_id: document.project-tilleul.plu
+    observed_revision: 2
+    observed_status: received
+limitations:
+  - Aucun chiffrage comparatif validé n'est encore associé à cette alternative.
+authority:
+  creates_change_candidate: false
+  selects_variant: false
+  applies_project_change: false
+  creates_project_claim: false
+  adopts_project_truth: false
+  creates_decision: false
+  admits_evidence: false
+  authorizes_effect: false

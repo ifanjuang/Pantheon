@@ -1,0 +1,111 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: https://pantheon.local/schemas/registry.schema.yaml
+title: Pantheon Registry Descriptor Projection
+type: object
+additionalProperties: false
+required:
+  - schema_version
+  - registry_id
+  - registry_kind
+  - version
+  - status
+  - owner
+  - authority_document
+  - governance_refs
+  - entries
+  - x_boundary
+properties:
+  schema_version:
+    type: string
+    const: "1"
+  registry_id:
+    type: string
+    pattern: "^[a-z][a-z0-9_]*$"
+  registry_kind:
+    type: string
+    enum:
+      - registry_index
+      - vocabulary
+      - projection_config
+      - presentation
+  version:
+    type: string
+    pattern: "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+  status:
+    type: string
+    enum:
+      - candidate
+      - active
+      - under_review
+      - deprecated
+      - superseded
+  owner:
+    type: object
+    additionalProperties: false
+    required:
+      - id
+      - repository
+    properties:
+      id:
+        type: string
+        minLength: 1
+      repository:
+        type: string
+        enum:
+          - Pantheon-Next
+          - pantheon-mvp
+  authority_document:
+    type: string
+    pattern: "^(docs|registries|schemas)/.+"
+  governance_refs:
+    type: array
+    minItems: 1
+    uniqueItems: true
+    default:
+      - registries/README.md
+      - docs/governance/EVOLUTION_OF_ROLES_RITES_AND_SPACES.md
+    items:
+      type: string
+      pattern: "^(docs|registries|schemas)/.+"
+  description:
+    type: string
+    minLength: 1
+  entries:
+    type: array
+    description: Descriptor entries only. Domain structure belongs to specialized schemas.
+    items:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z][a-z0-9_.-]*$"
+      additionalProperties: true
+  x_boundary:
+    type: object
+    additionalProperties: false
+    required:
+      - runtime_execution
+      - provider_routing
+      - task_authorization
+      - approval
+      - evidence_promotion
+      - memory_promotion
+    properties:
+      runtime_execution:
+        const: false
+      provider_routing:
+        const: false
+      task_authorization:
+        const: false
+      approval:
+        const: false
+      evidence_promotion:
+        const: false
+      memory_promotion:
+        const: false
+x-boundary:
+  runtime_execution: false
+  provider_routing: false
+  memory_promotion: false

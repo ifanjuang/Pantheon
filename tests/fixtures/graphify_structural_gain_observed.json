@@ -1,0 +1,124 @@
+{
+  "schema_id": "pantheon.graphify_structural_gain_observed",
+  "status": "observed_qualification_result",
+  "observed_on": "2026-09-03",
+  "candidate": {
+    "repository": "Graphify-Labs/graphify",
+    "package": "graphifyy",
+    "version": "0.9.53",
+    "ref": "33362d969292b57eda82f3fbd9eb5f3f5bc9bbc2",
+    "profile": "extract --code-only --no-cluster"
+  },
+  "source_run": {
+    "workflow_run_id": 33802347637,
+    "pr_head_sha": "659abc74fd440a4919a873beec0f75fef7bd1db1",
+    "execution_checkout_sha": "6f6e917c37a0c79c6cd40aa6553e1ac357e2567c",
+    "artifact_id": 9911599252,
+    "artifact_name": "graphify-structure-q2-33802347637",
+    "artifact_sha256": "219ea84d0acaeee04cf307244e2818eaa4d85f4611ff566fe07e19744bd90b83"
+  },
+  "execution": {
+    "same_normalized_graph_fingerprint": true,
+    "same_counts": true,
+    "same_relation_histogram": true,
+    "normalized_graph_fingerprint": "006683920d757ac88be0ef24cddeff215326ab56ee412bdcebfa0ac725ffe555",
+    "tracked_material_unchanged": true,
+    "working_tree_clean": true,
+    "pantheon_state_mutated": false,
+    "evidence_admitted": false,
+    "governed_relations_persisted": false,
+    "provider_binding_changed": false,
+    "mutation_inventory_replaced": false
+  },
+  "structural_observation": {
+    "nodes": 9836,
+    "edges": 23727,
+    "strongly_connected_components": 9916,
+    "cyclic_components": 6,
+    "cyclic_component_sizes": [
+      14,
+      6,
+      4,
+      2,
+      2,
+      2
+    ],
+    "relation_histogram": {
+      "calls": 8163,
+      "contains": 6484,
+      "defines": 70,
+      "depends_on": 6,
+      "dynamic_import": 9,
+      "extends": 371,
+      "imports": 1762,
+      "imports_from": 2386,
+      "indirect_call": 214,
+      "inherits": 299,
+      "method": 610,
+      "rationale_for": 907,
+      "references": 2092,
+      "uses": 354
+    },
+    "blast_radius_targets": {
+      "apu_owner": {
+        "matched_node_count": 60,
+        "downstream_reachable_count": 232,
+        "upstream_reachable_count": 252
+      },
+      "enforce_consequential": {
+        "matched_node_count": 4,
+        "downstream_reachable_count": 26,
+        "upstream_reachable_count": 497
+      },
+      "execution_results": {
+        "matched_node_count": 19,
+        "downstream_reachable_count": 132,
+        "upstream_reachable_count": 216
+      },
+      "knowledge": {
+        "matched_node_count": 327,
+        "downstream_reachable_count": 1556,
+        "upstream_reachable_count": 293
+      },
+      "policy_gate": {
+        "matched_node_count": 38,
+        "downstream_reachable_count": 45,
+        "upstream_reachable_count": 608
+      },
+      "project_claim": {
+        "matched_node_count": 142,
+        "downstream_reachable_count": 1596,
+        "upstream_reachable_count": 304
+      }
+    }
+  },
+  "limitations": {
+    "blast_radius_target_matching": "substring match over provider node id and label",
+    "blast_radius_edge_filter": "all observed provider relation types are traversed together",
+    "top_degree_noise": "generic and standard-library nodes can dominate degree ranking",
+    "comparative_binding_benchmark": "not demonstrated against Understand-Anything, RepoWise or CodeGraph in this run",
+    "resource_cost": "not measured by this run",
+    "incremental_freshness": "not measured by this run",
+    "relation_precision": "provider relations were not promoted or independently accepted as governed Pantheon relations"
+  },
+  "result": {
+    "marginal_structural_signal_observed": true,
+    "basis": "Repository-wide deterministic SCC/cycle and reachability observations add discovery signal outside the purpose-specific consequential-mutation inventory.",
+    "existing_capability_slot": "structural_repo_analysis",
+    "candidate_retained_for_existing_slot_benchmark": true,
+    "preferred_binding_change": false,
+    "provider_binding_changed": false,
+    "dependency_adopted": false,
+    "new_capability_slot_created": false,
+    "new_graph_authority_created": false,
+    "next_decision": "Compare only if a concrete structural-repository workflow needs a binding; preserve exact source verification and score precision, provenance, freshness and operational cost before selecting a preferred candidate."
+  },
+  "non_equivalences": [
+    "provider graph edge != governed relation",
+    "cycle finding != defect confirmed",
+    "blast radius != authorization",
+    "repository topology != professional truth",
+    "qualification success != dependency adopted",
+    "runtime success != Evidence"
+  ]
+}

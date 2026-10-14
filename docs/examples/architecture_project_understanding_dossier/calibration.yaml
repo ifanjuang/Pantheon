@@ -1,0 +1,8 @@
+calibration_id: CAL-SRC042
+source_artifact_id: SRC-042
+from_frame: PAGE
+to_frame: PROJECT
+witnesses:
+  - { kind: dimensioned_cote, mm_per_unit: 1.0 }
+agreement: convergent
+proof_status: accepted_as_support

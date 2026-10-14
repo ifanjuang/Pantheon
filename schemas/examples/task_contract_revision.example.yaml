@@ -1,0 +1,25 @@
+revision_id: example.task-contract-revision
+contract_id: example.task-contract
+revision_type: revise
+reason: Clarify that schema reconciliation remains validation-only and non-runtime.
+requested_by: human-owner
+created_at: "2026-05-17T20:05:00Z"
+change_summary: Added explicit non-runtime constraints and updated evidence expectations.
+approval_level: C3
+status: proposed
+approval_impact: unchanged
+scope_impact: narrowed
+memory_impact: none
+external_effect: false
+resume_policy: null
+supersedes_revision_id: null
+evidence_pack_id: example.evidence-pack
+evidence_expectation:
+  - revised Task Contract fields
+  - updated Evidence Pack reference
+  - ai_log entry
+governance_refs:
+  - docs/governance/TASK_CONTRACT_REVISIONS.md
+  - docs/governance/TASK_CONTRACTS.md
+  - docs/governance/APPROVALS.md
+  - docs/governance/USER_DECISION_GATE.md

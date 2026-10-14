@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pantheon-next.local/catalog/schemas/installation-candidate.schema.json",
+  "title": "Pantheon Installation Candidate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["api_version", "kind", "metadata", "spec", "governance"],
+  "properties": {
+    "api_version": {"const": "pantheon.next/v0alpha1"},
+    "kind": {"const": "InstallationCandidate"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "created_at", "status"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^installation_candidate_[a-z0-9_-]+$"},
+        "created_at": {"type": "string", "format": "date-time"},
+        "status": {"const": "prepared"}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capability", "resource", "configuration", "bindings", "allowed_provisioners", "health", "rollback"],
+      "properties": {
+        "capability": {"type": "string"},
+        "resource": {"type": "string"},
+        "configuration": {"type": "object"},
+        "bindings": {"type": "array"},
+        "allowed_provisioners": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "health": {"type": "object"},
+        "rollback": {"type": "object"}
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["installation_authorized", "execution_started", "activation_authorized", "human_approval_required"],
+      "properties": {
+        "installation_authorized": {"const": false},
+        "execution_started": {"const": false},
+        "activation_authorized": {"const": false},
+        "human_approval_required": {"const": true}
+      }
+    }
+  }
+}

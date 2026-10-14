@@ -1,0 +1,208 @@
+name: Pantheon implementation CI
+
+# The suite this workflow runs is not confined to `implementation/`.
+# `implementation/tests/test_external_qualification_pins.py` reads four roots —
+# `.github/workflows/`, `implementation/tools/`, `implementation/tests/` and the
+# repository-root `tests/` — so a change under any of them can break it. The
+# filter below must therefore stay a superset of those roots.
+#
+# It was not: Pantheon-Next#1073 touched only `deployment/ubuntu/` and root `tests/`, this
+# workflow never ran, and the pin guard stayed red on main across five
+# subsequent merges. A guard with repository-wide reach behind a narrow trigger
+# is a control that cannot fire.
+#
+# `deployment/**` is deliberately absent: the guard does not read it, and the
+# whole implementation suite is the wrong cost for a deployment-only change.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "implementation/**"
+      - "schemas/**"
+      - "tests/**"
+      - ".github/workflows/**"
+  pull_request:
+    paths:
+      - "implementation/**"
+      - "schemas/**"
+      - "tests/**"
+      - ".github/workflows/**"
+
+permissions:
+  contents: read
+
+jobs:
+  contract-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    defaults:
+      run:
+        working-directory: implementation
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install -e ".[test]"
+      - name: Canonical contract source and standalone wheel
+        shell: bash
+        run: |
+          set -euo pipefail
+          pytest -q --tb=short tests/test_canonical_contract_runtime.py
+          rm -rf /tmp/pantheon-wheel /tmp/pantheon-wheel-unpacked
+          mkdir -p /tmp/pantheon-wheel /tmp/pantheon-wheel-unpacked
+          python -m pip wheel . --no-deps -w /tmp/pantheon-wheel
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile
+
+          wheel = next(Path("/tmp/pantheon-wheel").glob("pantheon_mvp_vertical-*.whl"))
+          with zipfile.ZipFile(wheel) as archive:
+              archive.extractall("/tmp/pantheon-wheel-unpacked")
+          PY
+          (
+            cd /tmp
+            PYTHONPATH=/tmp/pantheon-wheel-unpacked python - <<'PY'
+          import json
+          from pathlib import Path
+          import mvp_vertical
+          from mvp_vertical import pantheon_contracts
+
+          unpacked = Path("/tmp/pantheon-wheel-unpacked").resolve()
+          assert Path(mvp_vertical.__file__).resolve().is_relative_to(unpacked)
+          source = pantheon_contracts.provenance("project_claim")
+          assert source["posture"] == "packaged-build-artifact", source
+          assert source["authority_transfer"] is False
+          assert source["source_commit"] is not None
+          assert source["working_tree_dirty"] is False
+          manifest_path = (
+              Path(mvp_vertical.__file__).resolve().parent
+              / "_generated_contracts"
+              / "manifest.json"
+          )
+          manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+          assert manifest["source_revision"] == source["source_commit"]
+          assert len(manifest["files"]) > len(pantheon_contracts.CONTRACT_PATHS)
+          assert pantheon_contracts.schema_path("project_claim").is_file()
+          assert pantheon_contracts._all_schema_paths()
+          PY
+          )
+          printf '\n# deliberate smoke-test tamper\n' >> \
+            /tmp/pantheon-wheel-unpacked/mvp_vertical/_generated_contracts/schemas/project_claim.schema.yaml
+          (
+            cd /tmp
+            PYTHONPATH=/tmp/pantheon-wheel-unpacked python - <<'PY'
+          from mvp_vertical import pantheon_contracts
+
+          try:
+              pantheon_contracts.schema_path("project_claim")
+          except pantheon_contracts.ContractUnavailable as exc:
+              assert "digest mismatch" in str(exc)
+          else:
+              raise AssertionError("tampered packaged schema was accepted")
+          PY
+          )
+      - name: Effective cockpit health posture
+        run: pytest -q --tb=short tests/test_cockpit_shell.py::test_health_reports_effective_service_posture
+      - name: Static cockpit and API shell contracts
+        run: >-
+          pytest -q --tb=short
+          tests/test_cockpit_assets.py
+          tests/test_cockpit_shell.py
+          -k "not test_health_reports_effective_service_posture"
+      - name: Cockpit loader request baseline
+        run: node tools/measure_cockpit_loader_requests.js
+      - name: Proposal-only effect contracts
+        run: pytest -q --tb=short tests/test_effect_guard.py tests/test_effect_preview.py
+      - name: Resource profile, manifest and navigation contracts
+        run: >-
+          pytest -q --tb=short
+          tests/test_resource_profiles.py
+          tests/test_site_manifest_preview.py
+          tests/test_site_manifest_routes.py
+          tests/test_site_navigation_profile.py
+          tests/test_site_navigation_profile_routes.py
+      - name: Knowledge UPDATE signed diff contract
+        run: pytest -q --tb=short tests/test_knowledge_update.py::test_preview_returns_signed_diff_without_writing
+      - name: Knowledge UPDATE transactional delegation contract
+        run: pytest -q --tb=short tests/test_knowledge_update.py::test_apply_verifies_exact_preview_and_delegates_transactional_write
+      - name: Knowledge UPDATE rejection contracts
+        run: pytest -q --tb=short tests/test_knowledge_update.py::test_apply_rejects_expiry_tampering_scope_and_stale_markdown
+      - name: Knowledge UPDATE input validation contracts
+        run: pytest -q --tb=short tests/test_knowledge_update.py::test_preview_refuses_noop_stale_version_and_status_change
+      - name: Knowledge UPDATE idempotency contract
+        run: pytest -q --tb=short tests/test_knowledge_update_idempotency.py
+      - name: Knowledge UPDATE API contracts
+        run: pytest -q --tb=short tests/test_knowledge_update_routes.py
+      - name: Retired legacy write contract
+        run: pytest -q --tb=short tests/test_legacy_knowledge_revision_retired.py
+      - name: Governed effect contracts
+        run: >-
+          pytest -q --tb=short
+          tests/test_policy_gate.py
+          tests/test_policy_preflight_contract.py
+          tests/test_capability_manager.py
+
+  tests:
+    needs: contract-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: implementation
+    services:
+      pgvector:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: mvp
+          POSTGRES_PASSWORD: mvp
+          POSTGRES_DB: mvp
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U mvp -d mvp"
+          --health-interval 2s
+          --health-timeout 2s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install -e ".[test]"
+      - name: Work Issue projection SQL baseline
+        env:
+          MVP_PG_DSN: postgresql://mvp:mvp@localhost:5433/mvp
+        run: python tools/measure_work_issue_projection_queries.py
+      - name: Information projection focused tests
+        env:
+          MVP_PG_DSN: postgresql://mvp:mvp@localhost:5433/mvp
+        run: >-
+          pytest -vv --tb=short
+          tests/test_information_projection.py
+          tests/test_information_projection_api.py
+          tests/test_information_projection_cockpit_integration.py
+          tests/test_information_projection_scope.py
+      - name: Run remaining test suite
+        id: full-tests
+        shell: bash
+        env:
+          MVP_PG_DSN: postgresql://mvp:mvp@localhost:5433/mvp
+        run: |
+          set +e
+          pytest -vv --tb=short \
+            --ignore=tests/test_information_projection.py \
+            --ignore=tests/test_information_projection_api.py \
+            --ignore=tests/test_information_projection_cockpit_integration.py \
+            --ignore=tests/test_information_projection_scope.py \
+            2>&1 | tee /tmp/full-tests.log
+          status=${PIPESTATUS[0]}
+          exit $status
+      - name: Upload full-test diagnostic
+        if: failure() && steps.full-tests.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-tests-diagnostic
+          path: /tmp/full-tests.log
+          if-no-files-found: error
+          retention-days: 1

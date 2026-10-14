@@ -1,0 +1,17 @@
+attribute_claim_id: AC-RVT40291-clearwidth
+subject_ref:
+  entity_type: source_representation
+  entity_id: REP-RVT-40291
+attribute_key: architecture.clear_width
+value:
+  value_type: number
+  value: 830
+  unit: mm
+assertion_mode: observed
+source_authority: project_working_document
+proof_status: source_complete_for_task
+certainty: E4
+source_representation_refs:
+  - REP-RVT-40291
+evidence_refs: []
+notes: "Observed on the Revit source representation before stable-object identity is required."

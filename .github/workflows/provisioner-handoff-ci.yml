@@ -1,0 +1,32 @@
+name: Provisioner Handoff CI
+
+on:
+  pull_request:
+    paths:
+      - 'catalog/schemas/**'
+      - 'catalog/examples/**'
+      - '.github/scripts/check_provisioner_handoff_contracts.py'
+      - '.github/workflows/provisioner-handoff-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'catalog/schemas/**'
+      - 'catalog/examples/**'
+      - '.github/scripts/check_provisioner_handoff_contracts.py'
+      - '.github/workflows/provisioner-handoff-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-handoff-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Install read-only validation dependencies
+        run: python -m pip install --quiet jsonschema
+      - name: Validate bounded handoff contracts
+        run: python .github/scripts/check_provisioner_handoff_contracts.py

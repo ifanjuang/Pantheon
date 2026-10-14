@@ -1,0 +1,91 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Architecture Proof Register Indexed Document Version
+description: One preserved index of a document family. The latest file is not automatically authority.
+type: object
+additionalProperties: false
+required: [document_version_id, document_family_id, scope_id, version_status, authority_status]
+properties:
+  document_version_id: { $ref: "#/$defs/uuid" }
+  human_ref: { type: string, minLength: 1, maxLength: 160 }
+  document_family_id: { $ref: "#/$defs/uuid" }
+  document_family_label: { type: string }
+  scope_id: { $ref: "#/$defs/uuid" }
+  scope_type: { type: string, enum: [project, phase, lot, agency_library, global_reference, external_project_subset] }
+  scope_notes: { type: string }
+  issuer_document_reference:
+    type: string
+    minLength: 1
+    maxLength: 500
+    description: >-
+      Exact professional document reference as declared or observed from the
+      issuer for this revision. The value is opaque external vocabulary: digits,
+      letters, mixed alphanumerics and punctuation are all valid. It is not an
+      internal identity, revision order or authority signal.
+  index_label:
+    type: string
+    minLength: 1
+    description: >-
+      Opaque issuer/project revision or index label. No generic numeric,
+      alphabetical, natural-sort or lexical ordering is implied.
+  version_label:
+    type: string
+    description: Optional opaque version label distinct from internal sequence.
+  phase_code: { type: string, enum: [DIAG, APS, APD, PRO, DCE, ACT, EXE, VISA, DET, OPC, AOR, DOE, GPA, AGENCY_LIBRARY, GLOBAL_REFERENCE] }
+  effect_class:
+    type: string
+    enum: [working_revision, minor_correction, coordination_update, modification_candidate, issued_for_review, issued_for_client_approval, approved_phase_decision, issued_for_consultation, issued_for_contract, signed_contractual_version, issued_for_execution, issued_for_site, visa_status_record, signed_or_contradictory_record, as_built_record, obsolete_superseded]
+  revision_reason: { type: string }
+  source_authority_level:
+    type: string
+    enum: [law_or_regulation, operation_contract, signed_market_document, approved_phase_decision, signed_or_contradictory_site_evidence, approved_client_decision, contractor_signed_response, approved_technical_report, agency_standard, project_working_document, derived_text, semantic_search_result, model_interpretation_candidate]
+  version_status: { type: string, enum: [draft, issued, under_review, approved, signed, effective, superseded, obsolete, rejected, withdrawn] }
+  authority_status:
+    type: string
+    enum: [not_authoritative, internal_working_authority, internal_review_authority, client_review_authority, phase_approval_authority, consultation_authority, execution_authority, site_record_authority, contractual_authority, as_built_authority, historical_evidence_only]
+  authority_notes: { type: string }
+  supersedes_version_id: { $ref: "#/$defs/uuid" }
+  issued_by: { type: string }
+  issued_at: { type: string, format: date }
+  approved_by: { type: string }
+  approved_at: { type: string, format: date }
+  signed_by: { type: string }
+  signed_at: { type: string, format: date }
+  effective_at: { type: string, format: date }
+  valid_from: { type: string, format: date }
+  valid_until: { type: string, format: date }
+  duration_calendar_days: { type: integer, minimum: 0 }
+  duration_working_days: { type: integer, minimum: 0 }
+  hash_sha256: { type: string, pattern: "^[a-fA-F0-9]{64}$" }
+  source_file_ref: { type: string }
+  allowed_use:
+    type: array
+    items: { $ref: "#/$defs/use_type" }
+    uniqueItems: true
+  allowed_use_notes: { type: string }
+  forbidden_use:
+    type: array
+    items: { $ref: "#/$defs/use_type" }
+    uniqueItems: true
+  forbidden_use_notes: { type: string }
+  metadata: { type: object }
+  governance_refs:
+    type: array
+    items: { type: string }
+    default:
+      - docs/domain-packs/architecture/PROOF_REGISTER.md
+      - docs/domain-packs/architecture/DOCUMENT_REVIEW.md
+      - docs/governance/GLOSSARY.md
+      - schemas/shared_axes.schema.yaml
+$defs:
+  uuid: { type: string, format: uuid }
+  use_type:
+    type: string
+    enum: [internal_review, meeting_preparation, client_review, external_transmission, consultation, contract_preparation, contractual_action, execution_use, site_record, reserve_followup, doe_handover, gpa_followup, memory_promotion, administrative_filing, payment_or_financial]
+x-boundary:
+  runtime_execution: false
+  provider_routing: false
+  scheduler: false
+  queue_system: false
+  memory_promotion: false
+  automatic_canonization: false
+  approval_engine: false

@@ -1,0 +1,20 @@
+api_version: pantheon.next/v0alpha1
+kind: CapabilityBinding
+metadata:
+  id: capability_binding_document_analysis_docling
+  status: preferred_candidate
+spec:
+  slot_id: document_structural_analysis
+  binding_role: preferred
+  capability_passport_id: example.portable-skill.read
+  implementation_anchor:
+    kind: content_digest
+    value: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  resource_id: docling
+  supersedes: null
+governance:
+  selection_only: true
+  dependency_adopted: false
+  installation_authorized: false
+  activation_authorized: false
+  task_authorized: false

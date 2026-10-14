@@ -1,0 +1,13 @@
+# Repository tool configuration only.
+#
+# The root is a governance/documentation workspace, not a Python distribution.
+# Deliberately keep both [project] and [build-system] absent. The supported
+# distributable is mcp-server/; see README.md and check_packaging_contract.py.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

@@ -1,0 +1,49 @@
+request_id: decision-request-001
+status: pending
+decision_type: arbitration
+question: Quelle variante de traitement de façade doit être retenue pour poursuivre la synthèse ?
+priority: high
+response_mode: single_option
+options:
+  - option_id: option-zinc
+    label: Zinc à joint debout
+    consequence: La synthèse poursuit avec le système zinc et ses interfaces structurelles.
+    limitations:
+      - Coût définitif non encore vérifié.
+  - option_id: option-ardoise
+    label: Ardoise naturelle
+    consequence: La synthèse poursuit avec le système ardoise et ses interfaces de fixation.
+    limitations:
+      - Calepinage détaillé non encore produit.
+recommendation_candidate: option-zinc
+blocking: true
+project_ref: project-fictional-renovation
+work_issue_ref: issue-envelope-synthesis
+scope_refs:
+  - entity_type: apu_object
+    entity_id: boundary.facade-south
+conversation_ref: conversation-envelope-review
+candidate_ref: result-candidate-envelope-001
+candidate_digest:
+  algorithm: sha256
+  value: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+evidence_pack_ref: null
+evidence_pack_digest: null
+source_refs:
+  - information-envelope-note-a01
+  - document-roof-options-a
+  - document-roof-options-b
+evidence_gaps:
+  - Prix final des deux variantes.
+blocked_action: Finaliser la synthèse enveloppe.
+next_safe_action: Comparer les conséquences puis enregistrer la détermination humaine.
+decision_surface: cockpit.decisions
+decision_owner: architect-project-owner
+created_by: human-reviewer
+created_at: "2026-08-06T10:30:00Z"
+revision: 1
+resolved_decision_ref: null
+resolved_response_ref: null
+resolved_at: null
+cancelled_by: null
+cancelled_at: null

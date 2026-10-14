@@ -1,0 +1,15 @@
+review_id: review.mapping.001
+execution_result_ref: execution.apu-mapping.001
+mapping_result_ref: result.apu-mapping.001
+mapping_ref: mapping.fragment-room-01
+action: select_existing_object
+selected_stable_object_ref: space.chambre-r2
+note: Correspondance retenue pour préparer une étape d’écriture APU séparée.
+reviewed_by: human.ifj
+reviewed_at: "2026-08-05T11:00:00Z"
+authority:
+  confirms_stable_identity: false
+  writes_apu: false
+  adopts_project_truth: false
+  admits_evidence: false
+  promotes_memory: false

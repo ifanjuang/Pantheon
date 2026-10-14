@@ -1,0 +1,139 @@
+workflow_id: research.multi_source_summary
+title: Multi-source research summary
+purpose: Govern bounded multi-source research from seed sources into a traceable synthesis candidate while preserving source, Evidence, approval, and retention boundaries.
+
+scope:
+  scope_type: task
+  included:
+    - bounded research question
+    - seed sources supplied as URL, document, Source Reference, or authorized Source Lead
+    - task-relevant references discovered inside inspected sources
+    - bounded independent challenge discovery when consequence or uncertainty warrants it
+    - synthesis and validation of inspected material
+  excluded:
+    - unbounded or recursive crawling
+    - automatic copying, caching, ingestion, or retention of linked sources
+    - treating retrieval, a Source Lead, or a summary as Evidence by itself
+  authority_limits:
+    - the Workflow Manifest governs the research class but does not execute it
+    - discovered references remain Source Leads until inspected within the Task Contract
+    - linked access is the default posture; caching or ingestion requires a separate source-handling decision
+  expected_inputs:
+    - bounded question and scope
+    - one or more seed sources, or an admitted discovery route
+  expected_outputs:
+    - research_report_candidate
+    - source_map
+    - Evidence Pack Candidate or explicit Evidence gap
+
+entry_criteria:
+  - the research question and task scope are bounded
+  - a seed source or admitted discovery route is available
+
+governed_phases:
+  - phase_id: frame
+    purpose: Bound the question, source perimeter, freshness needs, and discovery permissions.
+    role_viewpoint: ARGOS
+    expected_output:
+      - research frame
+      - seed Source Leads
+
+  - phase_id: inspect_expand_challenge
+    purpose: Inspect admitted sources, follow relevant references as bounded Source Leads, and run proportionate independent challenge discovery when needed.
+    role_viewpoint: ARGOS
+    expected_output:
+      - inspected source candidates
+      - source-linked claim candidates
+      - contradiction and uncertainty notes
+    risk_condition: discovery widens scope, exposes unauthorized context, or becomes an unbounded crawl
+
+  - phase_id: synthesize_validate
+    purpose: Produce and review one synthesis that preserves provenance, contradictions, limitations, and unresolved gaps.
+    role_viewpoint: APOLLO
+    expected_output:
+      - reviewable research_report_candidate
+      - source_map
+      - Evidence Pack Candidate material
+    risk_condition: material claims are unsupported, stale, inapplicable, or hidden behind summary-only reasoning
+
+role_viewpoints:
+  - ARGOS
+  - APOLLO
+
+task_contract_requirements:
+  - declare the bounded question, scope, intended use, and seed sources or admitted discovery route
+  - bound whether discovered references and independent challenge discovery may be followed
+  - declare material freshness, jurisdiction, confidentiality, and external-disclosure limits
+  - preserve linked source access separately from any caching or ingestion decision
+
+reasoning_topology_requirements:
+  allowed_topologies:
+    - single_primary_reasoning_context
+    - fanout_extract_then_single_synthesis
+  default_topology: fanout_extract_then_single_synthesis
+  topology_selection_policy: Use bounded fan-out for independently inspectable sources; use one primary context when decisive inference depends on a connected reference chain or cross-source contradiction.
+  evidence_policy: Material findings must remain linked to inspected sources; retrieval and worker output do not become truth or Evidence.
+  handoff_policy: A discovered reference is a Source Lead, not authorization or evidentiary support.
+  required_governance_refs:
+    - docs/governance/EVIDENCE_TOPOLOGY.md
+    - docs/governance/SOURCE_NEED_AND_REGISTRY.md
+    - docs/governance/SOURCE_INGESTION_RETRIEVAL_MODEL.md
+    - templates/hermes/skills/source-research/SKILL.md
+
+evidence_requirements:
+  - material claims retain an inspected source reference and locator when available
+  - provenance is preserved when one source leads to another
+  - contradictions, freshness limitations, and unresolved gaps remain visible
+  - uninspected references remain Source Leads rather than support
+
+approval_requirements:
+  - C0
+
+allowed_outputs:
+  - research_report_candidate
+  - source_map
+  - Evidence Pack Candidate
+  - research_limitation
+
+forbidden_outputs:
+  - unbounded_crawl_result
+  - retrieval_presented_as_Evidence
+  - automatically_promoted_Register_entry
+
+memory_rules:
+  memory_candidates_allowed: false
+  automatic_promotion_allowed: false
+
+risk_notes:
+  - the same URL may expose different content at different observation times
+  - reference discovery can reproduce the bias of the seed corpus unless proportionate challenge discovery remains available
+  - copied, cached, extracted, or summarized material does not replace original source identity
+  - stopping research does not mean uncertainty is resolved
+
+completion_criteria:
+  - the task remained within its declared research perimeter
+  - materially used sources and reference chains are attributable
+  - material claims are source-linked or explicitly marked as inference or uncertainty
+  - contradiction, freshness, and remaining source gaps are visible
+  - no output self-promoted into Evidence, Decision, Knowledge, or the Registre Probatoire
+
+forbidden_runtime_patterns:
+  - execution_engine
+  - scheduler
+  - queue
+  - provider_router
+  - autonomous_research_loop
+  - unbounded_recursive_crawl
+  - automatic_source_ingestion
+  - automatic_memory_promotion
+  - hidden_workflow_runtime
+
+governance_refs:
+  - docs/governance/WORKFLOW_SCHEMA.md
+  - docs/governance/TASK_CONTRACTS.md
+  - docs/governance/EVIDENCE_TOPOLOGY.md
+  - docs/governance/SOURCE_NEED_AND_REGISTRY.md
+  - docs/governance/SOURCE_INGESTION_RETRIEVAL_MODEL.md
+  - docs/governance/EVIDENCE_PACK.md
+  - docs/governance/NON_EQUIVALENCE_RULES.md
+  - templates/hermes/skills/source-research/SKILL.md

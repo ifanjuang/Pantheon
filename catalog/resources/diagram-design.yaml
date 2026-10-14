@@ -1,0 +1,22 @@
+api_version: pantheon.next/v0alpha1
+kind: Resource
+metadata:
+  id: diagram_design
+  title: Diagram Design
+  status: candidate
+spec:
+  resource_type: runtime
+  provides_roles:
+    - diagram_projection
+  lifecycle:
+    installable: true
+    connectable_existing_instance: true
+  interfaces:
+    - agent_skill
+  boundaries:
+    selected_version: v2.6
+    license: MIT
+    direct_source_observation: false
+    direct_project_anatomy_write: false
+    direct_evidence_admission: false
+    rendered_relation_is_governed_relation: false

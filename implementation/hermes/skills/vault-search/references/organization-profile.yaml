@@ -1,0 +1,57 @@
+schema_version: 1
+organization: Agency
+status: observed_local_binding
+
+generic_skill:
+  name: project-context
+  required_contract: true
+
+sources:
+  affaires:
+    logical_name: AFFAIRES
+    hermes_binding: hindsight-project
+    recall_tool: recall_project_memory
+    purpose: dossier-specific professional material
+    project_path_hints:
+      - "{designation}"
+      - "Projets/{designation}"
+      - "Notion/_Affaires/{designation}.md"
+    local_reader_binding: vault-read
+  documentaires:
+    logical_name: DOCUMENTAIRES
+    hermes_binding: vault-read
+    purpose: transversal professional reference material
+    local_reader_binding: vault-read
+  conversation_memory:
+    logical_name: HERMES_MEMORY
+    hindsight_bank: hermes
+    purpose: recent conversation and continuity leads only
+  live_project_state:
+    logical_name: NOTION
+    hermes_binding: notion
+    use_when: explicitly requested or indexed freshness is materially uncertain
+
+retrieval:
+  exact_discovery_first: list_documents
+  exact_document_read: get_document
+  associative_retrieval: recall
+  maximum_recall_calls_per_question: 2
+  maximum_candidate_documents: 5
+  recent_project_second_recall: HERMES_MEMORY
+
+documents:
+  textual_analysis_binding: docling
+  visual_analysis_binding: marker
+  physical_affaires_root: operator-configured AFFAIRES_ROOT
+  physical_documentaires_root: /srv/pantheon/obsidian-documentaires
+  markdown_reader_tools:
+    - find_vault_projects
+    - list_vault_project_sources
+    - search_vault_markdown
+    - read_vault_markdown_lines
+
+boundaries:
+  config_values_are_not_doctrine: true
+  alias_is_not_governed_identity: true
+  memory_is_not_business_source: true
+  extracted_content_is_not_evidence_admission: true

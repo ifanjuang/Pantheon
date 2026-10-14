@@ -1,0 +1,88 @@
+# Model Capability Review Candidate Template
+# Status: template — non-executable.
+# Repo state: documented non-implemented.
+# Authority: support scaffold only.
+# Legacy filename retained to avoid unnecessary path churn.
+# This template helps record a documentary model-specific review before any
+# universal Capability Passport, Capability Activation or Task Contract decision.
+# It is not a schema, benchmark, model registry, model router, provider selector,
+# runtime, approval engine or memory engine. It authorizes nothing by itself.
+
+model_capability_review_candidate:
+  record_kind: "model_capability_review"
+  review_status: "candidate" # candidate | reviewed | suspended | rejected
+  validation_level: "L0" # L0_document_exists | L1_required_fields_present | L2_internally_coherent | L3_review_recommendation_possible
+  reviewed_at: ""
+  reviewed_by: ""
+
+  references:
+    doctrine:
+      - "docs/governance/MODEL_CAPABILITY_PASSPORT.md"
+      - "docs/governance/RUNTIME_REVIEW_MODEL_PASSPORT_VALIDATION_PROMOTION.md"
+      - "docs/governance/UNIFORM_CAPABILITY_GOVERNANCE.md"
+    universal_capability_passport_ref: ""
+    capability_activation_ref: ""
+    task_contract_ref: ""
+    model_ref: ""
+    adapter_or_binding_ref: ""
+    notes: ""
+
+  model_identity:
+    model_id: ""
+    display_name: ""
+    version_or_release: ""
+    provider: ""
+    serving_posture: "unknown" # local_only | external_api | self_hosted_remote | organization_hosted | hybrid | unknown
+    serving_surface: "unknown"
+    modalities: []
+    context_window_or_limit: "unknown"
+
+  data_posture:
+    data_exposure_classes_allowed: []
+    sensitive_data_allowed: false
+    retention_or_training_posture: "unknown"
+    source_grounding_expectation: "required_when_source_dependent"
+    notes: ""
+
+  task_family_review:
+    # Suitability review is observational metadata, not task authorization.
+    # Example item:
+    # - family: "regulatory_research"
+    #   observed_suitability: "limited" # adequate | limited | weak | unknown
+    #   notes: "Requires current authoritative sources and human review."
+    reviewed_task_families: []
+    forbidden_task_families: []
+
+  professional_review:
+    professional_use_ceiling: "never_final_by_model" # draft_only | candidate_only | to_verify | supporting_analysis | reviewed_support | never_final_by_model
+    uncertainty_behavior: "must_surface_uncertainty"
+    comparison_required_when: []
+    fallback_model_or_path: "human_review"
+
+  failure_modes:
+    known_failure_modes: []
+    weak_modalities: []
+    weak_task_families: []
+    prompt_injection_sensitivity: "unknown" # low | medium | high | unknown
+    hallucination_risk: "unknown" # low | medium | high | unknown
+    numerical_reliability: "unknown" # low | medium | high | unknown
+    freshness_reliability: "unknown" # low | medium | high | unknown
+
+  validation_notes:
+    missing_fields: []
+    contradictions: []
+    capability_gaps: []
+    assumptions: []
+    limitations: []
+    review_recommendation: "needs_more_information" # review_complete | needs_more_information | needs_human_review | needs_security_review | needs_adapter_review | reject_review_record
+
+  boundary:
+    documentary_review_only: true
+    capability_activation: false
+    task_authorization: false
+    evidence_admission: false
+    approval_effect: false
+    runtime_effect: false
+    external_action: false
+    memory_promotion: false
+    statement: "Model reviewed does not mean model activated; model selected does not mean task authorized."

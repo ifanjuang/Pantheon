@@ -1,0 +1,27 @@
+fixture_id: memory_candidate_requiring_evidence
+status: fictive_development_fixture
+case_type: register_candidate_never_promoted
+request:
+  intent: "Propose a register candidate from a project statement that still lacks source evidence."
+  external_effect: false
+  writes_state: false
+  memory_promotion_requested: false
+  scope:
+    scope_type: dossier
+    scope_id: fixture-register-candidate
+  register_candidates:
+    - status: candidate
+      claim: "The client approved the substitution."
+      promotion: never automatic
+  claims_to_support:
+    - "approval exists"
+    - "approval came from an authorized person"
+expected_outputs:
+  classification:
+    consequence_level: K3
+    evidence_required: true
+  scope_report: "dossier scope echoed"
+  approval_level: C2
+  evidence_pack_skeleton: true
+  result_candidate_format: true
+  refusal_out_of_limits: "candidate may not be promoted without evidence and gate"

@@ -1,0 +1,83 @@
+observation_bundle_id: observation-bundle.h54.ifc-cross-source-conflict
+project_ref: project-a
+task_contract_ref: task-contract.compare-ifc-document.01
+basis:
+  source_artifact_refs: [source.ifc.model-a, source.document.schedule-a]
+  exact_digests:
+    - {source_artifact_ref: source.ifc.model-a, digest: sha256:ifc-model-a}
+    - {source_artifact_ref: source.document.schedule-a, digest: sha256:schedule-a}
+method:
+  capability_id: project_understanding.compare.source_properties
+  binding_id: binding.synthetic.cross-source
+  operation_id: compare.ifc_document_property.v1
+  adapter_ref: pantheon.synthetic.cross-source
+  adapter_version: 1.0.0
+  request_ref: request-h54-ifc-conflict
+observed_at: "2026-08-09T17:40:00Z"
+freshness_token: sha256:ifc-document-conflict
+scope:
+  document_refs: [ifc-document:model-a, document:schedule-a]
+  categories: [external_door]
+coverage:
+  completeness: complete_for_declared_scope
+  observed_scope:
+    document_refs: [ifc-document:model-a, document:schedule-a]
+    categories: [external_door]
+  excluded_reasons: []
+  absence_inference_allowed: true
+limitations:
+  - Conflicting source properties remain separate candidates; resolution belongs to H5.6 review/convergence.
+source_representations:
+  - representation_id: rep.ifc.door-a
+    project_ref: project-a
+    source_artifact_ref: source.ifc.model-a
+    source_kind: ifc
+    identifiers: [{scheme: ifc.global_id, value: 3aDoorGuidA}]
+    locators: [{type: ifc_guid, value: 3aDoorGuidA}]
+    observed_at: "2026-08-09T17:40:00Z"
+    binding_ref: binding.synthetic.cross-source
+    adapter_version: 1.0.0
+    freshness_token: sha256:ifc-model-a
+    proof_status: candidate
+  - representation_id: rep.document.door-a
+    project_ref: project-a
+    source_artifact_ref: source.document.schedule-a
+    source_kind: other
+    identifiers: [{scheme: document.row, value: P12}]
+    locators: [{type: other, value: schedule:door:P12}]
+    observed_at: "2026-08-09T17:40:00Z"
+    binding_ref: binding.synthetic.cross-source
+    adapter_version: 1.0.0
+    freshness_token: sha256:schedule-a
+    proof_status: candidate
+attribute_claim_candidates:
+  - attribute_claim_id: claim.ifc.door-a.fire-rating
+    subject_ref: {entity_type: source_representation, entity_id: rep.ifc.door-a}
+    attribute_key: ifc.pset_door_common.fire_rating
+    value: {value_type: text, value: EI30}
+    assertion_mode: observed
+    source_authority: project_working_document
+    proof_status: candidate
+    source_representation_refs: [rep.ifc.door-a]
+  - attribute_claim_id: claim.document.door-a.fire-rating
+    subject_ref: {entity_type: source_representation, entity_id: rep.document.door-a}
+    attribute_key: specification.fire_rating
+    value: {value_type: text, value: EI60}
+    assertion_mode: observed
+    source_authority: signed_market_document
+    proof_status: candidate
+    source_representation_refs: [rep.document.door-a]
+relation_claim_candidates: []
+gaps: []
+withheld: []
+warnings:
+  - code: conflict.source_scoped_unresolved
+    message: No source wins automatically; convergence/review is deferred to H5.6.
+operational_outcome: success
+authority:
+  is_fact: false
+  is_evidence: false
+  is_decision: false
+  is_memory: false
+  is_apu_write: false
+  authorizes_external_effect: false

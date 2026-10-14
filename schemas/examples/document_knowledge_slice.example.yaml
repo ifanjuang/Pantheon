@@ -1,0 +1,119 @@
+source_document:
+  document_id: document.fictional.cctp-lot-06
+  parent_project_id: project-fictional-maison-a
+  source_ref: Projects/MAISON-A/30_DCE/MAISON-A_A1_DCE_ARC_CCTP_LOT-06_2026-07-20.pdf
+  source_digest: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  media_type: application/pdf
+  byte_size: 4096
+  analysis_status: ready
+  version: 1
+  created_at: "2026-07-20T09:00:00Z"
+  updated_at: "2026-07-20T09:02:00Z"
+extraction:
+  extraction_id: extraction.fictional.cctp-lot-06.v1
+  document_ref: document.fictional.cctp-lot-06
+  source_digest: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  converter: docling_serve
+  converter_version: v1.21.0
+  config_digest: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+  observation_kind: live_parser
+  status: ready
+  quality_flags: []
+  created_at: "2026-07-20T09:02:00Z"
+document_structure:
+  structure_id: structure.fictional.cctp-lot-06.v1
+  document_ref: document.fictional.cctp-lot-06
+  extraction_ref: extraction.fictional.cctp-lot-06.v1
+  status: ready
+  native_units:
+    - unit_id: unit.fictional.cctp-lot-06.page-12
+      unit_kind: page
+      ordinal: 11
+      label: Page 12
+  fragments:
+    - fragment_id: fragment.fictional.cctp-lot-06.article-3-2
+      unit_ref: unit.fictional.cctp-lot-06.page-12
+      fragment_kind: section
+      label: Article 3.2 — Reprise des façades existantes
+      reading_order: 0
+      locator:
+        structural_locator: section/lot-06/article-3-2
+        region: [0.08, 0.14, 0.92, 0.78]
+      qualification:
+        topic: reprise des façades existantes
+        discipline: architecture
+        representation_kind: report_section
+        project_state: existing
+        coverage_refs:
+          - spatial.facade.principale
+        certainty: E4
+  quality_flags: []
+  created_at: "2026-07-20T09:03:00Z"
+chunks:
+  - chunk_id: chunk.fictional.cctp-lot-06.0000
+    document_ref: document.fictional.cctp-lot-06
+    extraction_ref: extraction.fictional.cctp-lot-06.v1
+    fragment_ref: fragment.fictional.cctp-lot-06.article-3-2
+    ordinal: 0
+    text_digest: cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    provenance:
+      source_ref: Projects/MAISON-A/30_DCE/MAISON-A_A1_DCE_ARC_CCTP_LOT-06_2026-07-20.pdf
+      source_digest: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      extraction_ref: extraction.fictional.cctp-lot-06.v1
+      page: 12
+      structural_locator: section/lot-06/article-3-2
+document_card:
+  card_id: card.document.fictional.cctp-lot-06
+  document_ref: document.fictional.cctp-lot-06
+  parent_project_id: project-fictional-maison-a
+  source_ref: Projects/MAISON-A/30_DCE/MAISON-A_A1_DCE_ARC_CCTP_LOT-06_2026-07-20.pdf
+  title: CCTP lot 06
+  analysis_status: ready
+  source_version: 1
+  authority:
+    is_source: false
+    is_evidence: false
+    is_memory: false
+knowledge_publications:
+  - knowledge_id: knowledge.techniques.reprise-facade
+    document_ref: document.fictional.cctp-lot-06
+    title: Reprise des façades existantes
+    family: techniques
+    markdown_digest: dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+    source_chunk_refs:
+      - chunk.fictional.cctp-lot-06.0000
+    review_status: generated_unreviewed
+    version: 1
+    created_by: hermes-fictional
+    created_at: "2026-07-20T09:05:00Z"
+    updated_at: "2026-07-20T09:05:00Z"
+    authority:
+      is_evidence: false
+      is_memory: false
+      is_doctrine: false
+events:
+  - event_id: event.document.cctp-lot-06.structure-recorded
+    aggregate_kind: document
+    aggregate_ref: document.fictional.cctp-lot-06
+    event_type: document_structure_recorded
+    actor: hermes-fictional
+    actor_kind: hermes
+    expected_version: 1
+    resulting_version: 2
+    idempotency_key: structure-cctp-lot-06-v1
+    occurred_at: "2026-07-20T09:03:00Z"
+  - event_id: event.knowledge.reprise-facade.created
+    aggregate_kind: knowledge
+    aggregate_ref: knowledge.techniques.reprise-facade
+    event_type: knowledge_published
+    actor: hermes-fictional
+    actor_kind: hermes
+    expected_version: 0
+    resulting_version: 1
+    idempotency_key: publish-reprise-facade-v1
+    occurred_at: "2026-07-20T09:05:00Z"
+governance_refs:
+  - docs/governance/DOCUMENT_KNOWLEDGE_SLICE_CONTRACT.md
+  - docs/domain-packs/architecture/DOCUMENT_AND_KNOWLEDGE_ORGANIZATION.md
+  - docs/governance/KNOWLEDGE_TAXONOMY.md
+  - docs/governance/RAG_INGESTION_PIPELINE.md

@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pantheon-next.local/catalog/schemas/handoff-decision.schema.json",
+  "title": "Pantheon Handoff Decision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["api_version", "kind", "metadata", "spec", "governance"],
+  "properties": {
+    "api_version": {"const": "pantheon.next/v0alpha1"},
+    "kind": {"const": "HandoffDecision"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "created_at", "status"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^handoff_decision_[a-z0-9_-]+$"},
+        "created_at": {"type": "string", "format": "date-time"},
+        "status": {"enum": ["approved", "refused", "revoked", "expired"]}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["handoff_candidate", "decision", "decided_by", "decision_level", "effective_at", "expires_at", "reason", "supersedes"],
+      "properties": {
+        "handoff_candidate": {"type": "string", "pattern": "^handoff_candidate_[a-z0-9_-]+$"},
+        "decision": {"enum": ["approve", "refuse", "revoke", "expire"]},
+        "decided_by": {"type": "string", "minLength": 1},
+        "decision_level": {"enum": ["C2", "C3", "C4", "C5"]},
+        "authorized_scope": {"$ref": "#/$defs/scope"},
+        "reviewed_scope": {"$ref": "#/$defs/scope"},
+        "effective_at": {"type": "string", "format": "date-time"},
+        "expires_at": {"type": ["string", "null"], "format": "date-time"},
+        "reason": {"type": "string", "minLength": 1},
+        "evidence_references": {"type": "array", "items": {"type": "string"}, "default": []},
+        "supersedes": {"type": ["string", "null"], "pattern": "^handoff_decision_[a-z0-9_-]+$"}
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["approval_is_execution", "automatic_approval", "runtime_callback", "activation_authorized"],
+      "properties": {
+        "approval_is_execution": {"const": false},
+        "automatic_approval": {"const": false},
+        "runtime_callback": {"const": false},
+        "activation_authorized": {"const": false}
+      }
+    }
+  },
+  "$defs": {
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["environment", "resource", "configuration_ref", "provisioner", "one_time"],
+      "properties": {
+        "environment": {"type": "string", "minLength": 1},
+        "resource": {"type": "string", "minLength": 1},
+        "configuration_ref": {"type": "string", "pattern": "^installation_candidate_[a-z0-9_-]+$"},
+        "provisioner": {"type": "string", "minLength": 1},
+        "one_time": {"const": true}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"spec": {"properties": {"decision": {"const": "approve"}}}}},
+      "then": {
+        "properties": {
+          "metadata": {"properties": {"status": {"const": "approved"}}},
+          "spec": {
+            "required": ["authorized_scope"],
+            "properties": {"expires_at": {"type": "string", "format": "date-time"}, "supersedes": {"type": "null"}},
+            "not": {"required": ["reviewed_scope"]}
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"spec": {"properties": {"decision": {"const": "refuse"}}}}},
+      "then": {
+        "properties": {
+          "metadata": {"properties": {"status": {"const": "refused"}}},
+          "spec": {
+            "required": ["reviewed_scope"],
+            "properties": {"expires_at": {"type": "null"}, "supersedes": {"type": "null"}},
+            "not": {"required": ["authorized_scope"]}
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"spec": {"properties": {"decision": {"const": "revoke"}}}}},
+      "then": {
+        "properties": {
+          "metadata": {"properties": {"status": {"const": "revoked"}}},
+          "spec": {
+            "required": ["reviewed_scope"],
+            "properties": {"expires_at": {"type": "null"}, "supersedes": {"type": "string"}},
+            "not": {"required": ["authorized_scope"]}
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"spec": {"properties": {"decision": {"const": "expire"}}}}},
+      "then": {
+        "properties": {
+          "metadata": {"properties": {"status": {"const": "expired"}}},
+          "spec": {
+            "required": ["reviewed_scope"],
+            "properties": {"expires_at": {"type": "null"}, "supersedes": {"type": "string"}},
+            "not": {"required": ["authorized_scope"]}
+          }
+        }
+      }
+    }
+  ]
+}

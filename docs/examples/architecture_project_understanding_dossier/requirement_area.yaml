@@ -1,0 +1,23 @@
+requirement_id: REQ-CHB-AREA
+human_ref: "Chambre >= 9 m2"
+source:
+  source_type: program
+  source_ref: PRG-TILLEULS-01
+requirement_kind: attribute
+target:
+  selector:
+    object_family: spatial
+    classification_scheme: agency.space_function
+    classification_value: bedroom
+    attribute_key: area
+constraint:
+  operator: min
+  attribute_key: area
+  expected_value:
+    value_type: number
+    value: 9
+    unit: m2
+scope_type: project
+scope_id: PRJ-TILLEULS
+source_authority: approved_client_decision
+proof_status: accepted_as_support

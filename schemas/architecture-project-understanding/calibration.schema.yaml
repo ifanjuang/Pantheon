@@ -1,0 +1,52 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Architecture Project Understanding Calibration
+description: >-
+  Registration of a source into a shared coordinate frame, gated and
+  multi-witness. While witnesses diverge beyond threshold, no derived measurement
+  may exceed requires_more_evidence (invariant 6). Orientation and altimetry are
+  expressed as frames here, not as separate graphs. Structure only.
+type: object
+additionalProperties: false
+required: [calibration_id, source_artifact_id, to_frame, agreement, proof_status]
+properties:
+  calibration_id: { type: string, minLength: 1 }
+  source_artifact_id: { type: string, minLength: 1 }
+  from_frame: { $ref: "shared.schema.yaml#/$defs/coordinate_frame" }
+  to_frame: { $ref: "shared.schema.yaml#/$defs/coordinate_frame" }
+  witnesses:
+    type: array
+    default: []
+    items:
+      type: object
+      additionalProperties: false
+      required: [kind]
+      properties:
+        kind: { $ref: "shared.schema.yaml#/$defs/calibration_witness_kind" }
+        mm_per_unit: { type: number, exclusiveMinimum: 0 }
+        rotation_deg: { type: number }
+        evidence_ref: { $ref: "shared.schema.yaml#/$defs/evidence_ref" }
+  agreement: { $ref: "shared.schema.yaml#/$defs/calibration_agreement" }
+  divergence_threshold_pct: { type: number, minimum: 0 }
+  proof_status: { $ref: "shared.schema.yaml#/$defs/proof_status" }
+  notes: { type: string }
+  governance_refs:
+    type: array
+    items: { type: string }
+    default:
+      - docs/domain-packs/architecture/PROJECT_ANATOMY_MODEL.md
+      - schemas/architecture-project-understanding/shared.schema.yaml
+allOf:
+  # Invariant 6: divergent calibration caps proof at requires_more_evidence.
+  - if:
+      properties:
+        agreement: { const: divergent }
+      required: [agreement]
+    then:
+      properties:
+        proof_status: { enum: [requires_more_evidence, contradictory_evidence, candidate, rejected] }
+x-boundary:
+  runtime_execution: false
+  provider_routing: false
+  memory_promotion: false
+  automatic_canonization: false
+  approval_engine: false

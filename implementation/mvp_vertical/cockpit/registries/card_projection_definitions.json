@@ -1,0 +1,104 @@
+{
+  "schema_id": "cockpit.card_projection_definitions",
+  "revision": 1,
+  "definitions": [
+    {
+      "definition_id": "navigation_space_pantheon",
+      "entity_id": "space:pantheon",
+      "entity_type": "cockpit_space",
+      "card_role": "conversation",
+      "presentation_family": "pantheon",
+      "category": "Pantheon",
+      "title": "Pantheon",
+      "summary": "Contexte, gouvernance, décisions conséquentes et runs en cours.",
+      "status": "active",
+      "detail_rows": [
+        ["Principe", "Pantheon gouverne ; Hermès exécute. Cette projection ne modifie ni la nature ni les autorisations des objets."]
+      ],
+      "children_source": "navigation_registry"
+    },
+    {
+      "definition_id": "navigation_space_affaires",
+      "entity_id": "space:affaires",
+      "entity_type": "cockpit_space",
+      "card_role": "container",
+      "presentation_family": "project",
+      "category": "Projets",
+      "title": "Affaires",
+      "summary": "Projets, Informations, Contacts et Travaux.",
+      "status": "active",
+      "detail_rows": [
+        ["Source", "PostgreSQL Agency Data reste le system of record."]
+      ],
+      "children_source": "navigation_registry"
+    },
+    {
+      "definition_id": "navigation_space_connaissances",
+      "entity_id": "space:connaissances",
+      "entity_type": "cockpit_space",
+      "card_role": "container",
+      "presentation_family": "information",
+      "category": "Références",
+      "title": "Connaissances",
+      "summary": "Références réutilisables et leur état de revue.",
+      "status": "neutral",
+      "detail_rows": [
+        ["Limite", "Knowledge ≠ Evidence ≠ mémoire gouvernée."]
+      ],
+      "children_source": "navigation_registry"
+    },
+    {
+      "definition_id": "navigation_space_workspace",
+      "entity_id": "space:workspace",
+      "entity_type": "cockpit_space",
+      "card_role": "container",
+      "presentation_family": "information",
+      "category": "Workspace",
+      "title": "Workspace",
+      "summary": "Arborescences humaines configurées, projetées en lecture seule.",
+      "status": "neutral",
+      "detail_rows": [
+        ["Limite", "Un dossier ou son emplacement ne définit ni Project, ni Category, ni Knowledge, ni autorisation." ]
+      ],
+      "children_source": "navigation_registry"
+    },
+    {
+      "definition_id": "navigation_space_outils",
+      "entity_id": "space:outils",
+      "entity_type": "cockpit_space",
+      "card_role": "container",
+      "presentation_family": "tool",
+      "category": "Outils",
+      "title": "Outils",
+      "summary": "Outils, skills, bindings et runtimes observés ou candidats.",
+      "status": "neutral",
+      "detail_rows": [
+        ["Limite", "Installé ≠ approuvé · healthy ≠ safe · update disponible ≠ update autorisée."]
+      ],
+      "children_source": "navigation_registry"
+    },
+    {
+      "definition_id": "navigation_space_decisions",
+      "entity_id": "space:decisions",
+      "entity_type": "cockpit_space",
+      "card_role": "container",
+      "presentation_family": "decision",
+      "category": "Attention humaine",
+      "title": "Décisions",
+      "summary": "Questions, validations, approbations et arbitrages qui requièrent une détermination humaine.",
+      "status": "neutral",
+      "detail_rows": [
+        ["Frontière", "Une demande n’est pas une Décision. Une Décision enregistrée n’exécute aucune action."]
+      ],
+      "children_source": "navigation_registry"
+    }
+  ],
+  "boundaries": {
+    "object_schema": false,
+    "lifecycle": false,
+    "authorization": false,
+    "evidence_qualification": false,
+    "runtime_execution": false,
+    "provider_routing": false
+  }
+}

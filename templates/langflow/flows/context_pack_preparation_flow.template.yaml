@@ -1,0 +1,38 @@
+# Non-executable Langflow flow template.
+# This is not a Langflow export or deployable flow.
+
+template_id: context_pack_preparation_flow
+owner_layer: langflow
+status: candidate_template_only
+purpose: >
+  Describe a deterministic preparation flow for Context Pack candidate assembly.
+
+allowed_inputs:
+  - selected_documents
+  - selected_sources
+  - scope_labels
+  - redaction_policy
+  - extraction_policy
+
+allowed_outputs:
+  - context_pack_candidate
+  - extraction_summary
+  - unsupported_item_note
+  - redaction_gap_note
+
+forbidden_outputs:
+  - approval_final
+  - canonical_memory
+  - evidence_pack_approval
+  - autonomous_scope_expansion
+  - hidden_workflow_state
+
+required_governance:
+  - task_contract_reference
+  - scope_boundary
+  - evidence_boundary
+  - human_review_required
+
+notes:
+  - Langflow may prepare candidates.
+  - Langflow must not decide validity or approval.

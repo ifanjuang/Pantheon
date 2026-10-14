@@ -1,0 +1,93 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Architecture Project Understanding Attribute Claim
+description: >-
+  V0.2 canonical value-bearing assertion about an APU entity. Claims preserve
+  source and derivation provenance and may exist about a source representation
+  before project identity has been resolved. Approval/use grants remain external
+  governance records and are not embedded in the claim.
+type: object
+additionalProperties: false
+required:
+  - attribute_claim_id
+  - subject_ref
+  - attribute_key
+  - value
+  - assertion_mode
+  - source_authority
+  - proof_status
+properties:
+  attribute_claim_id:
+    type: string
+    minLength: 1
+  subject_ref:
+    $ref: "shared.schema.yaml#/$defs/apu_entity_ref"
+  attribute_key:
+    type: string
+    minLength: 3
+    pattern: "^[a-z][a-z0-9_.-]*$"
+  value:
+    $ref: "shared.schema.yaml#/$defs/claim_value"
+  assertion_mode:
+    $ref: "shared.schema.yaml#/$defs/assertion_mode"
+  source_authority:
+    $ref: "shared.schema.yaml#/$defs/source_authority_level"
+  proof_status:
+    $ref: "shared.schema.yaml#/$defs/proof_status"
+  certainty:
+    $ref: "shared.schema.yaml#/$defs/certainty"
+  tolerance:
+    type: object
+    additionalProperties: true
+  source_representation_refs:
+    type: array
+    uniqueItems: true
+    default: []
+    items:
+      type: string
+      minLength: 1
+  derivation_refs:
+    type: array
+    uniqueItems: true
+    default: []
+    items:
+      type: string
+      minLength: 1
+  evidence_refs:
+    type: array
+    default: []
+    items:
+      $ref: "shared.schema.yaml#/$defs/evidence_ref"
+  supersedes_claim_ref:
+    type: string
+    minLength: 1
+  validity:
+    type: object
+    additionalProperties: false
+    properties:
+      established_at_phase:
+        $ref: "shared.schema.yaml#/$defs/phase_code"
+      source_version_ref:
+        type: string
+        minLength: 1
+      valid_from:
+        $ref: "shared.schema.yaml#/$defs/date_time"
+      valid_until:
+        $ref: "shared.schema.yaml#/$defs/date_time"
+      invalidated_by_claim_ref:
+        type: string
+        minLength: 1
+  notes:
+    type: string
+  governance_refs:
+    type: array
+    items: { type: string }
+    default:
+      - docs/domain-packs/architecture/PROJECT_ANATOMY_BASELINE_DECISION.md
+      - docs/domain-packs/architecture/PROJECT_ANATOMY_MODEL.md
+      - schemas/architecture-project-understanding/shared.schema.yaml
+x-boundary:
+  runtime_execution: false
+  provider_routing: false
+  memory_promotion: false
+  automatic_canonization: false
+  approval_engine: false

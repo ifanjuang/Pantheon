@@ -1,0 +1,67 @@
+{
+  "schema_id": "agency.information.v1",
+  "entity_type": "information",
+  "version": 1,
+  "authority": {
+    "system_of_record": "postgres",
+    "field_posture_is_authorization": false,
+    "lifecycle_is_authorization": false,
+    "note": "Views and field posture describe projection/edit affordances only. ACTED immutability, source-version derivation and Hermes admission remain enforced by server domain gates."
+  },
+  "fields": [
+    {"key":"information_id","label":"Identifiant","storage":"core","type":"string","required":true,"mutable":false,"hermes_mode":"no","group":"identity"},
+    {"key":"series_id","label":"Série","storage":"core","type":"string","required":true,"mutable":false,"hermes_mode":"no","group":"identity"},
+    {"key":"project_id","label":"Projet","storage":"core","type":"string","required":true,"mutable":false,"hermes_mode":"no","group":"identity"},
+    {"key":"title","label":"Titre","storage":"core","type":"string","required":true,"mutable":true,"hermes_mode":"bounded","group":"identity"},
+    {"key":"category","label":"Catégorie","storage":"core","type":"string","required":true,"mutable":true,"hermes_mode":"bounded","group":"identity"},
+
+    {"key":"source_type","label":"Type de source","storage":"core","type":"string","required":true,"mutable":false,"hermes_mode":"no","group":"source","lifecycle":"source_version"},
+    {"key":"source_ref","label":"Fichier / source","storage":"core","type":"string","required":false,"nullable":true,"mutable":false,"hermes_mode":"no","group":"source","lifecycle":"source_version"},
+    {"key":"source_note","label":"Note / brouillon source","storage":"core","type":"string","required":false,"nullable":true,"mutable":false,"hermes_mode":"no","group":"source","lifecycle":"source_version","editor":{"widget":"textarea"}},
+    {"key":"source_version","label":"Version source","storage":"core","type":"string","required":false,"nullable":true,"mutable":false,"hermes_mode":"no","group":"source","lifecycle":"source_version"},
+    {"key":"index_label","label":"Indice","storage":"core","type":"string","required":true,"mutable":false,"hermes_mode":"no","group":"source","lifecycle":"source_version"},
+
+    {"key":"information_date","label":"Date","storage":"core","type":"date","required":false,"nullable":true,"mutable":true,"hermes_mode":"bounded","group":"content"},
+    {"key":"summary","label":"Résumé","storage":"core","type":"string","required":false,"mutable":true,"hermes_mode":"bounded","group":"content","editor":{"widget":"textarea"}},
+    {"key":"details","label":"Informations détaillées","storage":"core","type":"string","required":false,"mutable":true,"hermes_mode":"bounded","group":"content","editor":{"widget":"textarea"}},
+    {"key":"author","label":"Auteur","storage":"core","type":"string","required":false,"nullable":true,"mutable":true,"hermes_mode":"bounded","group":"content"},
+
+    {"key":"status","label":"Statut","storage":"core","type":"enum","values":["draft","in_progress","acted","superseded"],"required":true,"mutable":true,"hermes_mode":"bounded","group":"state","lifecycle":"information_status","editor":{"values":["draft","in_progress"]}},
+    {"key":"limits","label":"Limites","storage":"core","type":"string_list","required":false,"mutable":true,"hermes_mode":"bounded","group":"state"},
+    {"key":"type_tags","label":"Types","storage":"core","type":"string_list","required":false,"mutable":true,"hermes_mode":"bounded","group":"classification"},
+    {"key":"subject_tags","label":"Sujets","storage":"core","type":"string_list","required":false,"mutable":true,"hermes_mode":"bounded","group":"classification"},
+
+    {"key":"base_acted_id","label":"Version ACTÉE de référence","storage":"system","type":"string","required":false,"nullable":true,"mutable":false,"hermes_mode":"system","group":"lineage"},
+    {"key":"previous_source_id","label":"Source précédente","storage":"system","type":"string","required":false,"nullable":true,"mutable":false,"hermes_mode":"system","group":"lineage"},
+    {"key":"revision","label":"Révision technique","storage":"system","type":"integer","required":true,"mutable":false,"hermes_mode":"system","group":"audit"},
+    {"key":"created_at","label":"Créé le","storage":"system","type":"datetime","required":true,"mutable":false,"hermes_mode":"system","group":"audit"},
+    {"key":"updated_at","label":"Mis à jour le","storage":"system","type":"datetime","required":true,"mutable":false,"hermes_mode":"system","group":"audit"},
+    {"key":"acted_at","label":"Acté le","storage":"system","type":"datetime","required":false,"nullable":true,"mutable":false,"hermes_mode":"system","group":"audit"}
+  ],
+  "views": {
+    "cockpit_front": {
+      "purpose": "Compact Information identity and summary used on the card recto.",
+      "fields": ["category","title","summary","index_label","information_date","status","limits","type_tags","subject_tags"]
+    },
+    "cockpit_back": {
+      "purpose": "Information content and provenance shown on the card verso.",
+      "fields": ["title","summary","details","source_type","source_ref","source_note","source_version","author","status","index_label","information_date","limits","type_tags","subject_tags"]
+    },
+    "create": {
+      "purpose": "Human creation surface for a new Information series. Source identity and initial content are collected together before canonical persistence.",
+      "fields": ["title","category","source_type","source_ref","source_note","source_version","index_label","information_date","summary","details","author","status","limits","type_tags","subject_tags"]
+    },
+    "edit": {
+      "purpose": "Human working-version editor. Source identity and index are intentionally excluded and change only through source-version derivation.",
+      "fields": ["title","category","information_date","summary","details","author","status","limits","type_tags","subject_tags"]
+    },
+    "notion": {
+      "purpose": "Optional definitive Information projection. Consumers must filter to ACTED state; archives and working versions remain outside Notion sync.",
+      "fields": ["information_id","project_id","title","category","source_type","source_ref","source_version","index_label","information_date","summary","details","author","status","limits","type_tags","subject_tags","revision"]
+    },
+    "hermes_context": {
+      "purpose": "Information context eligible for admitted scoped runtime materialization; inclusion is not mutation authority.",
+      "fields": ["information_id","series_id","project_id","title","category","source_type","source_ref","source_note","source_version","index_label","information_date","summary","details","author","status","limits","type_tags","subject_tags","base_acted_id","revision"]
+    }
+  }
+}

@@ -1,0 +1,85 @@
+# Vertical slice — architecture_devis_reprise (fictional; validation-only).
+contract_id: vertical.devis-reprise.task-contract
+title: Prepare a governed opinion on a complementary quote (devis complémentaire)
+intent: From the project dossier, prepare a candidate opinion on the contractor's
+  complementary quote and a draft MOA email — without approving the quote or sending
+  anything.
+scope:
+  scope_type: project
+  scope_id: maison-lierre
+  scope_label: Maison Lierre — extension (devis complémentaire)
+  included:
+  - project dossier
+  - the complementary quote
+  - prior signed amendment
+  excluded:
+  - submit
+  - sign
+  - send email
+  - approve payment
+  authority_limits:
+  - candidate opinion only
+  - no external commitment
+  - no client instruction
+  expected_domain: architecture
+owner_role: HEPHAISTOS
+role_viewpoints:
+- ATHENA
+- THEMIS
+- APOLLO
+- HEPHAISTOS
+constraints:
+- Preserve OpenWebUI exposes, Hermes Agent executes, Pantheon Next governs.
+- Do not add execution, scheduling, provider routing or memory promotion semantics.
+- Keep schemas as validation contracts only.
+approval_level: C3
+requested_by: human-owner
+created_at: '2026-05-17T20:00:00Z'
+reasoning_topology:
+  selected: fanout_extract_then_single_synthesis
+  reason: Schema files and examples may be reviewed separately, but final schema meaning
+    must remain consolidated under governance.
+  handoff_policy: evidence_items_only
+  evidence_policy: source_linked_evidence_items_required
+  synthesis_policy: single consolidated review before treating schema changes as stable
+  memory_policy: no memory promotion from schema examples
+  approval_policy: protected schema area requires explicit human authorization
+  rejected_topologies:
+  - bounded_hermes_swarm_as_authority
+  - summary_only_handoff
+  topology_risks:
+  - schema fields may be misread as runtime dispatch
+  - examples may be mistaken for executable configuration
+  forbidden_handoffs:
+  - recommendation_without_source_locator
+  - handoff_as_approval
+expected_evidence:
+- quote line items
+- prior amendment amount
+- MOA correspondence
+allowed_outputs:
+- candidate opinion
+- draft MOA email
+- uncertain points list
+forbidden_outputs:
+- runtime execution
+- provider routing
+- scheduler or queue semantics
+- automatic memory promotion
+- hidden workflow runtime
+memory_rules:
+  memory_behavior: no_memory_output
+  promotion_allowed: false
+  notes: This task does not create Registre Probatoire entry.
+risk_notes:
+- Schema fields may be misread as runtime semantics.
+- Examples must remain fictional and non-executable.
+protected_areas:
+- schemas/
+evidence_required: true
+governance_refs:
+- docs/governance/TASK_CONTRACTS.md
+- docs/governance/APPROVALS.md
+- docs/domain-packs/architecture/METHOD_DECK.md
+- docs/governance/USER_DECISION_GATE.md
+- docs/governance/EVIDENCE_PACK.md

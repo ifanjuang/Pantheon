@@ -1,0 +1,22 @@
+fixture_id: photo_chantier_to_site_report
+status: fictive_development_fixture
+case_type: normal
+request:
+  intent: "Prepare a draft site report from site photos and notes."
+  external_effect: false
+  writes_state: false
+  scope:
+    scope_type: dossier
+    scope_id: fixture-photo-report
+  capabilities:
+    - document_intelligence_candidate
+    - evidence_pack_candidate_preparation
+expected_outputs:
+  classification:
+    consequence_level_any_of: [K2, K3]
+    task_contract_required: true
+  scope_report: "dossier scope must be echoed"
+  approval_level: "C1 or above depending on evidence gaps"
+  evidence_pack_skeleton: true
+  result_candidate_format: true
+  refusal_out_of_limits: "external send remains blocked unless separately gated"

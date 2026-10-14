@@ -1,0 +1,16 @@
+document_family_id: 55555555-5555-4555-8555-555555555555
+purpose: current_for_consultation
+resolution_status: resolved
+document_version_id: 66666666-6666-4666-8666-666666666666
+index_label: C
+effect_class: issued_for_consultation
+version_status: issued
+authority_status: consultation_authority
+basis:
+  basis_type: version_effect_event
+  basis_refs:
+    - fixture:version-effect:cctp-c
+  missing_requirements: []
+  conflict_refs: []
+  notes: Synthetic read-only projection kept outside document.yaml.
+evaluated_at: "2026-08-22T16:00:00Z"
