@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Authenticated loopback MCP exposing only project-scoped project-platform recall."""
+"""Authenticated loopback MCP exposing scoped, read-only Hindsight recall.
+
+HINDSIGHT_ROUTER_MODE selects one surface per service instance:
+``project`` (default) forces one exact project scope; ``library`` serves a
+reference library restricted to its source tag, optionally narrowed to a folder.
+"""
 
 from __future__ import annotations
 
@@ -15,17 +20,37 @@ from mcp.types import ToolAnnotations
 from hindsight_project_recall import ProjectRecallClient, ProjectRecallError
 
 
-mcp = MCPServer(
-    "hindsight-project",
-    instructions=(
-        "Read-only project-platform Hindsight recall. Every request is forced into one exact "
-        "project with source:project-sync and tags_match=all_strict. It returns at "
-        "most eight source-grounded world/experience facts, each carrying an exact "
-        "document_id and chunk_id. Consolidated observations without provenance are "
-        "not exposed. Verify material claims against the referenced document. This "
-        "service cannot perform bank-wide recall."
-    ),
+MODE = os.environ.get("HINDSIGHT_ROUTER_MODE", "project").strip() or "project"
+if MODE not in {"project", "library"}:
+    raise SystemExit("HINDSIGHT_ROUTER_MODE must be 'project' or 'library'")
+
+_SHARED_INSTRUCTIONS = (
+    "It returns at most eight source-grounded world/experience facts, each carrying "
+    "an exact document_id and chunk_id. Consolidated observations without "
+    "provenance are not exposed. Verify material claims against the referenced "
+    "document. This service cannot write to Hindsight."
 )
+if MODE == "project":
+    mcp = MCPServer(
+        "hindsight-project",
+        instructions=(
+            "Read-only project-platform Hindsight recall. Every request is forced into one exact "
+            "project with source:project-sync and tags_match=all_strict. "
+            + _SHARED_INSTRUCTIONS
+            + " This service cannot perform bank-wide recall."
+        ),
+    )
+else:
+    mcp = MCPServer(
+        "hindsight-library",
+        instructions=(
+            "Read-only reference-library Hindsight recall (standards, guides, insurer "
+            "recommendations, glossaries). Every request is forced into the library "
+            "source tag with tags_match=all_strict and may be narrowed to one folder. "
+            + _SHARED_INSTRUCTIONS
+            + " Library content is transversal reference, never a project fact."
+        ),
+    )
 READ_ONLY = ToolAnnotations(
     read_only_hint=True,
     destructive_hint=False,
@@ -44,7 +69,6 @@ def _client() -> ProjectRecallClient:
     )
 
 
-@mcp.tool(annotations=READ_ONLY)
 def recall_project_memory(
     project: str,
     query: str,
@@ -68,7 +92,6 @@ def recall_project_memory(
     return json.dumps(payload, ensure_ascii=False)
 
 
-@mcp.tool(annotations=READ_ONLY)
 def hindsight_project_list(limit: int = 100) -> str:
     """List indexed project scopes and memory counts; does not read documents."""
     try:
@@ -76,6 +99,37 @@ def hindsight_project_list(limit: int = 100) -> str:
     except (ProjectRecallError, OSError, ValueError) as exc:
         payload = {"status": "error", "reason": str(exc)}
     return json.dumps(payload, ensure_ascii=False)
+
+
+def recall_library_memory(query: str, folder: str = "", max_tokens: int = 2048) -> str:
+    """Recall up to eight facts from the reference library.
+
+    Put the user's complete question in ``query``. Use ``folder`` only to narrow
+    to one folder returned by ``hindsight_library_folders`` (for example a
+    standards or insurer folder); leave it empty to search the whole library.
+    """
+    try:
+        payload = _client().recall_library(query, folder=folder, max_tokens=max_tokens)
+    except (ProjectRecallError, OSError, ValueError) as exc:
+        payload = {"status": "error", "reason": str(exc)}
+    return json.dumps(payload, ensure_ascii=False)
+
+
+def hindsight_library_folders(limit: int = 100) -> str:
+    """List indexed library folders and memory counts; does not read documents."""
+    try:
+        payload = _client().list_library_folders(limit)
+    except (ProjectRecallError, OSError, ValueError) as exc:
+        payload = {"status": "error", "reason": str(exc)}
+    return json.dumps(payload, ensure_ascii=False)
+
+
+TOOLS = {
+    "project": (recall_project_memory, hindsight_project_list),
+    "library": (recall_library_memory, hindsight_library_folders),
+}
+for _tool in TOOLS[MODE]:
+    mcp.tool(annotations=READ_ONLY)(_tool)
 
 
 class BearerGuard:

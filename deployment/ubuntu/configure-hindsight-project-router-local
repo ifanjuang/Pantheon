@@ -8,16 +8,12 @@ source "$SCRIPT_DIR/release.env"
 MCP_VERSION="${RELEASE_HINDSIGHT_PROJECT_MCP_VERSION:?release.env missing router MCP version}"
 SOURCE_ROOT="$REPO_ROOT/implementation/hermes/hindsight_project_router"
 APP_ROOT="/opt/pantheon-node/hindsight-project-router"
-STATE_ROOT="/srv/pantheon/hindsight-project-router"
-TOKEN_FILE="$STATE_ROOT/token"
-UNIT_FILE="/etc/systemd/system/pantheon-hindsight-project-router.service"
 UV="/opt/pantheon-node/uv/bin/uv"
 SERVICE_USER="pantheon-hindsight-router"
 HINDSIGHT_URL="${HINDSIGHT_PROJECT_URL:-http://127.0.0.1:8888}"
-HINDSIGHT_BANK_ID="${HINDSIGHT_PROJECT_BANK_ID:-AGENCY_PROJECTS}"
-HINDSIGHT_SOURCE_KIND="${HINDSIGHT_PROJECT_SOURCE_KIND:-project-sync}"
 APPLY=0
 ENABLE=0
+MODE="project"
 
 log() { printf '[hindsight-project-router] %s\n' "$*"; }
 die() { printf '[hindsight-project-router] ERROR: %s\n' "$*" >&2; exit 1; }
@@ -27,11 +23,20 @@ usage() {
 Usage:
   deployment/ubuntu/configure-hindsight-project-router-local --check
   sudo deployment/ubuntu/configure-hindsight-project-router-local --apply [--enable]
+  deployment/ubuntu/configure-hindsight-project-router-local --library --check
+  sudo deployment/ubuntu/configure-hindsight-project-router-local --library --apply [--enable]
 
 Installs an authenticated loopback MCP service that exposes only project-scoped
 Project-platform recall. It always applies source:project-sync, one scope:project:* tag and
 tags_match=all_strict, and fails closed if Hindsight returns an unscoped result.
 It never exposes bank-wide recall or a Hindsight write operation.
+
+--library installs a second, independent instance for a reference library
+(standards, guides, insurer recommendations, glossaries). It applies only the
+library source tag (default source:library) and an optional folder tag, with
+tags_match=all_strict, on 127.0.0.1:8023 with its own bearer token. Bank and
+source are deployment values: set HINDSIGHT_LIBRARY_BANK_ID and
+HINDSIGHT_LIBRARY_SOURCE_KIND from the local installation bindings.
 USAGE
 }
 
@@ -40,11 +45,30 @@ while (($#)); do
     --check) APPLY=0 ;;
     --apply) APPLY=1 ;;
     --enable) ENABLE=1 ;;
+    --library) MODE="library" ;;
     -h|--help) usage; exit 0 ;;
     *) die "unknown argument: $1" ;;
   esac
   shift
 done
+
+if [[ "$MODE" == library ]]; then
+  INSTANCE="pantheon-hindsight-library-router"
+  STATE_ROOT="/srv/pantheon/hindsight-library-router"
+  PORT=8023
+  HINDSIGHT_BANK_ID="${HINDSIGHT_LIBRARY_BANK_ID:-AGENCY_LIBRARY}"
+  HINDSIGHT_SOURCE_KIND="${HINDSIGHT_LIBRARY_SOURCE_KIND:-library}"
+  DESCRIPTION="Reference-library Hindsight MCP router for Hermes"
+else
+  INSTANCE="pantheon-hindsight-project-router"
+  STATE_ROOT="/srv/pantheon/hindsight-project-router"
+  PORT=8022
+  HINDSIGHT_BANK_ID="${HINDSIGHT_PROJECT_BANK_ID:-AGENCY_PROJECTS}"
+  HINDSIGHT_SOURCE_KIND="${HINDSIGHT_PROJECT_SOURCE_KIND:-project-sync}"
+  DESCRIPTION="Project-scoped Hindsight MCP router for Hermes"
+fi
+TOKEN_FILE="$STATE_ROOT/token"
+UNIT_FILE="/etc/systemd/system/$INSTANCE.service"
 
 [[ -f "$SOURCE_ROOT/hindsight_project_recall.py" ]] || die "project recall core is missing"
 [[ -f "$SOURCE_ROOT/hindsight_project_mcp.py" ]] || die "project MCP service is missing"
@@ -55,12 +79,12 @@ if ((APPLY == 0)); then
     || log "isolated runtime absent"
   [[ -f "$TOKEN_FILE" ]] && log "bearer token present (not displayed)" \
     || log "bearer token absent"
-  if systemctl is-active --quiet pantheon-hindsight-project-router.service; then
+  if systemctl is-active --quiet "$INSTANCE.service"; then
     log "loopback service active"
   else
     log "loopback service inactive"
   fi
-  log "bank=$HINDSIGHT_BANK_ID source=$HINDSIGHT_SOURCE_KIND url=$HINDSIGHT_URL"
+  log "mode=$MODE bank=$HINDSIGHT_BANK_ID source=$HINDSIGHT_SOURCE_KIND url=$HINDSIGHT_URL port=$PORT"
   log "check only; no state changed"
   exit 0
 fi
@@ -90,7 +114,7 @@ chmod 0600 "$TOKEN_FILE"
 
 cat > "$UNIT_FILE" <<EOF_UNIT
 [Unit]
-Description=Project-scoped Hindsight MCP router for Hermes
+Description=$DESCRIPTION
 After=network-online.target
 Wants=network-online.target
 
@@ -103,6 +127,8 @@ Environment=HINDSIGHT_PROJECT_URL=$HINDSIGHT_URL
 Environment=HINDSIGHT_PROJECT_BANK_ID=$HINDSIGHT_BANK_ID
 Environment=HINDSIGHT_PROJECT_SOURCE_KIND=$HINDSIGHT_SOURCE_KIND
 Environment=HINDSIGHT_PROJECT_TOKEN_FILE=$TOKEN_FILE
+Environment=HINDSIGHT_PROJECT_MCP_PORT=$PORT
+Environment=HINDSIGHT_ROUTER_MODE=$MODE
 ExecStart=$APP_ROOT/.venv/bin/python $APP_ROOT/hindsight_project_mcp.py --http
 Restart=on-failure
 RestartSec=5
@@ -118,13 +144,13 @@ EOF_UNIT
 chmod 0644 "$UNIT_FILE"
 systemctl daemon-reload
 if ((ENABLE == 1)); then
-  systemctl enable pantheon-hindsight-project-router.service
-  if systemctl is-active --quiet pantheon-hindsight-project-router.service; then
-    systemctl restart pantheon-hindsight-project-router.service
+  systemctl enable "$INSTANCE.service"
+  if systemctl is-active --quiet "$INSTANCE.service"; then
+    systemctl restart "$INSTANCE.service"
   else
-    systemctl start pantheon-hindsight-project-router.service
+    systemctl start "$INSTANCE.service"
   fi
-  log "enabled authenticated MCP on 127.0.0.1:8022"
+  log "enabled authenticated $MODE MCP on 127.0.0.1:$PORT"
 else
   log "staged but not activated; rerun with --apply --enable after review"
 fi
