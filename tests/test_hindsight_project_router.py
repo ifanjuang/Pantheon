@@ -139,3 +139,62 @@ def test_project_scope_token_disambiguates_slug_collisions() -> None:
     module = _module()
     assert module.tag_value("Projet A") == module.tag_value("Projet-A")
     assert module.project_scope_token("Projet A") != module.project_scope_token("Projet-A")
+
+
+def test_library_recall_forces_source_and_optional_folder_only() -> None:
+    module = _module()
+    client = module.ProjectRecallClient(
+        "http://127.0.0.1:8888", "AGENCY_LIBRARY", source_kind="library"
+    )
+    response = {
+        "results": [{
+            "id": "fact-1",
+            "text": "Réception avec réserves",
+            "document_id": "doc-1:source",
+            "chunk_id": "chunk-1",
+            "tags": ["source:library", "folder:insurer", "scope:project:insurer-0123456789ab"],
+        }],
+        "chunks": {"chunk-1": {"document_id": "doc-1:source"}},
+    }
+    with patch.object(client, "_post", return_value=response) as post:
+        whole = client.recall_library("Que conseille l'assureur à la réception ?")
+        narrowed = client.recall_library("Réserves ?", folder="Insurer")
+
+    first, second = (call.args[0] for call in post.call_args_list)
+    assert first["tags"] == ["source:library"]
+    assert second["tags"] == ["source:library", "folder:insurer"]
+    assert first["tags_match"] == second["tags_match"] == "all_strict"
+    assert whole["source_scope"] == "source:library"
+    assert whole["folder_scope"] is None
+    assert narrowed["folder_scope"] == "folder:insurer"
+    assert "project_scope" not in whole
+    assert whole["results"][0]["document_id"] == "doc-1:source"
+
+
+def test_library_recall_fails_closed_outside_source_or_folder() -> None:
+    module = _module()
+    client = module.ProjectRecallClient(
+        "http://127.0.0.1:8888", "AGENCY_LIBRARY", source_kind="library"
+    )
+    for tags, folder in (
+        ([], ""),
+        (["source:project-sync"], ""),
+        (["source:library", "folder:standards"], "insurer"),
+    ):
+        with patch.object(
+            client, "_post",
+            return_value={"results": [{"id": "leak", "text": "wrong", "tags": tags}]},
+        ):
+            with pytest.raises(module.ProjectRecallError):
+                client.recall_library("question", folder=folder)
+
+
+def test_library_recall_rejects_empty_query_before_hindsight_call() -> None:
+    module = _module()
+    client = module.ProjectRecallClient(
+        "http://127.0.0.1:8888", "AGENCY_LIBRARY", source_kind="library"
+    )
+    with patch.object(client, "_post") as post:
+        with pytest.raises(module.ProjectRecallError):
+            client.recall_library("   ")
+    post.assert_not_called()

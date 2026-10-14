@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail-closed project-scoped recall adapter for Hindsight 0.10.2."""
+"""Fail-closed scoped recall adapter for Hindsight (project or reference library)."""
 
 from __future__ import annotations
 
@@ -93,55 +93,9 @@ class ProjectRecallClient:
             raise ProjectRecallError("Hindsight returned an unexpected recall response")
         return payload
 
-    def list_project_scopes(self, limit: int = 100) -> dict[str, Any]:
-        """List bounded project-scope tags and their observed memory counts."""
-        path = f"/v1/default/banks/{quote(self.bank_id, safe='')}/tags?" + urlencode({
-            "q": "scope:project:*", "limit": max(1, min(int(limit), 250)),
-        })
-        headers = {"Accept": "application/json", "User-Agent": "pantheon-hindsight-project-router/1"}
-        if self.authorization:
-            headers["Authorization"] = self.authorization
-        try:
-            with urlopen(Request(f"{self.base_url}{path}", headers=headers), timeout=self.timeout_seconds) as response:
-                payload = json.loads(response.read().decode("utf-8"))
-        except (HTTPError, OSError, URLError, UnicodeError, json.JSONDecodeError) as exc:
-            raise ProjectRecallError(f"Hindsight project list unavailable: {exc}") from exc
-        items = payload.get("items") if isinstance(payload, dict) else None
-        if not isinstance(items, list):
-            raise ProjectRecallError("Hindsight returned an unexpected project-tag response")
-        projects = [
-            {"scope": item["tag"], "memory_count": item["count"]}
-            for item in items
-            if isinstance(item, dict) and isinstance(item.get("tag"), str)
-            and isinstance(item.get("count"), int) and item["tag"].startswith("scope:project:")
-        ]
-        return {"status": "ok", "source_scope": f"source:{self.source_kind}", "projects": projects,
-                "total": payload.get("total", len(projects)), "scope_is_indexed_not_identity": True}
-
-    def recall_project(
-        self,
-        project: str,
-        query: str,
-        *,
-        folder: str = "",
-        max_tokens: int = 2048,
-    ) -> dict[str, Any]:
-        project_slug = tag_value(project)
-        if not project_slug or project_slug == "pending-identification":
-            raise ProjectRecallError("A concrete project is required")
-        project_scope = project_scope_token(project)
-        query = query.strip()
-        if not query or len(query) > 2000:
-            raise ProjectRecallError("Query must contain between 1 and 2000 characters")
-
-        source_tag = f"source:{self.source_kind}"
-        scope_tag = f"scope:project:{project_scope}"
-        tags = [source_tag, scope_tag]
-        folder_slug = tag_value(folder) if folder else ""
-        if folder_slug:
-            tags.append(f"folder:{folder_slug}")
-
-        body = {
+    @staticmethod
+    def _recall_body(query: str, tags: list[str], max_tokens: int) -> dict[str, Any]:
+        return {
             "query": query,
             "types": ["world", "experience"],
             "budget": "mid",
@@ -152,16 +106,19 @@ class ProjectRecallClient:
             "tags": tags,
             "tags_match": "all_strict",
         }
-        payload = self._post(body)
 
+    @staticmethod
+    def _bounded_evidence(
+        payload: dict[str, Any], required_tags: tuple[str, ...]
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         # Defense in depth: never pass through a result whose returned scope does
-        # not prove that Hindsight applied both mandatory selectors.
+        # not prove that Hindsight applied every mandatory selector.
         for result in payload["results"]:
             result_tags = result.get("tags") if isinstance(result, dict) else None
             if not isinstance(result_tags, list):
                 raise ProjectRecallError("Hindsight returned an unscoped result")
-            if source_tag not in result_tags or scope_tag not in result_tags:
-                raise ProjectRecallError("Hindsight returned a result outside the requested project")
+            if not all(tag in result_tags for tag in required_tags):
+                raise ProjectRecallError("Hindsight returned a result outside the requested scope")
 
         evidence: list[dict[str, Any]] = []
         seen: set[tuple[str, str, str]] = set()
@@ -192,12 +149,110 @@ class ProjectRecallClient:
             if isinstance(raw_chunks, dict)
             else {}
         )
+        return evidence, chunks
+
+    def _list_tags(self, pattern: str, limit: int) -> list[dict[str, Any]]:
+        path = f"/v1/default/banks/{quote(self.bank_id, safe='')}/tags?" + urlencode({
+            "q": pattern, "limit": max(1, min(int(limit), 250)),
+        })
+        headers = {"Accept": "application/json", "User-Agent": "pantheon-hindsight-project-router/1"}
+        if self.authorization:
+            headers["Authorization"] = self.authorization
+        try:
+            with urlopen(Request(f"{self.base_url}{path}", headers=headers), timeout=self.timeout_seconds) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        except (HTTPError, OSError, URLError, UnicodeError, json.JSONDecodeError) as exc:
+            raise ProjectRecallError(f"Hindsight tag list unavailable: {exc}") from exc
+        items = payload.get("items") if isinstance(payload, dict) else None
+        if not isinstance(items, list):
+            raise ProjectRecallError("Hindsight returned an unexpected tag response")
+        prefix = pattern.rstrip("*")
+        return [
+            {"tag": item["tag"], "memory_count": item["count"]}
+            for item in items
+            if isinstance(item, dict) and isinstance(item.get("tag"), str)
+            and isinstance(item.get("count"), int) and item["tag"].startswith(prefix)
+        ]
+
+    def list_project_scopes(self, limit: int = 100) -> dict[str, Any]:
+        """List bounded project-scope tags and their observed memory counts."""
+        projects = [
+            {"scope": row["tag"], "memory_count": row["memory_count"]}
+            for row in self._list_tags("scope:project:*", limit)
+        ]
+        return {"status": "ok", "source_scope": f"source:{self.source_kind}", "projects": projects,
+                "total": len(projects), "scope_is_indexed_not_identity": True}
+
+    def list_library_folders(self, limit: int = 100) -> dict[str, Any]:
+        """List bounded reference-library folder tags and their memory counts."""
+        folders = [
+            {"folder": row["tag"].removeprefix("folder:"), "memory_count": row["memory_count"]}
+            for row in self._list_tags("folder:*", limit)
+        ]
+        return {"status": "ok", "source_scope": f"source:{self.source_kind}", "folders": folders,
+                "total": len(folders), "folder_is_indexed_not_authority": True}
+
+    def recall_project(
+        self,
+        project: str,
+        query: str,
+        *,
+        folder: str = "",
+        max_tokens: int = 2048,
+    ) -> dict[str, Any]:
+        project_slug = tag_value(project)
+        if not project_slug or project_slug == "pending-identification":
+            raise ProjectRecallError("A concrete project is required")
+        project_scope = project_scope_token(project)
+        query = query.strip()
+        if not query or len(query) > 2000:
+            raise ProjectRecallError("Query must contain between 1 and 2000 characters")
+
+        source_tag = f"source:{self.source_kind}"
+        scope_tag = f"scope:project:{project_scope}"
+        tags = [source_tag, scope_tag]
+        folder_slug = tag_value(folder) if folder else ""
+        if folder_slug:
+            tags.append(f"folder:{folder_slug}")
+
+        payload = self._post(self._recall_body(query, tags, max_tokens))
+        evidence, chunks = self._bounded_evidence(payload, (source_tag, scope_tag))
 
         return {
             "status": "ok",
             "bank_id": self.bank_id,
             "mode": "source-grounded-evidence",
             "project_scope": scope_tag,
+            "source_scope": source_tag,
+            "folder_scope": f"folder:{folder_slug}" if folder_slug else None,
+            "tags_match": "all_strict",
+            "max_results": MAX_EVIDENCE_RESULTS,
+            "results": evidence,
+            "chunks": chunks,
+        }
+
+    def recall_library(
+        self,
+        query: str,
+        *,
+        folder: str = "",
+        max_tokens: int = 2048,
+    ) -> dict[str, Any]:
+        """Recall from a reference library: one source, optional folder, no project."""
+        query = query.strip()
+        if not query or len(query) > 2000:
+            raise ProjectRecallError("Query must contain between 1 and 2000 characters")
+        source_tag = f"source:{self.source_kind}"
+        tags = [source_tag]
+        folder_slug = tag_value(folder) if folder else ""
+        if folder_slug:
+            tags.append(f"folder:{folder_slug}")
+        payload = self._post(self._recall_body(query, tags, max_tokens))
+        evidence, chunks = self._bounded_evidence(payload, tuple(tags))
+        return {
+            "status": "ok",
+            "bank_id": self.bank_id,
+            "mode": "source-grounded-evidence",
             "source_scope": source_tag,
             "folder_scope": f"folder:{folder_slug}" if folder_slug else None,
             "tags_match": "all_strict",

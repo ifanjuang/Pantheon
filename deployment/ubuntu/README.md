@@ -596,3 +596,18 @@ Its project material is not exposed through the direct multi-bank Hindsight MCP.
 Hermes uses the authenticated project router installed by
 `configure-hindsight-project-router-local`, which always applies the exact
 `source:project-sync` and `scope:project:*` tags with `all_strict` matching.
+
+A reference library bank (standards, guides, insurer recommendations,
+glossaries) uses a second, independent instance of the same router:
+
+```bash
+deployment/ubuntu/configure-hindsight-project-router-local --library --check
+sudo HINDSIGHT_LIBRARY_BANK_ID=<library-bank> HINDSIGHT_LIBRARY_SOURCE_KIND=<library-source> \
+  deployment/ubuntu/configure-hindsight-project-router-local --library --apply --enable
+```
+
+It listens on `127.0.0.1:8023` with its own bearer token, exposes only
+`recall_library_memory` and `hindsight_library_folders`, and always applies the
+library source tag (plus an optional `folder:*` tag) with `all_strict` matching.
+Library content is transversal reference, never a project fact. Bank and source
+names are installation values kept outside the repository.
