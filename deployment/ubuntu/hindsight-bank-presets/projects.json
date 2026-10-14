@@ -4,6 +4,7 @@
     "reflect_mission": "Answer only from memories inside the requested project scope. Separate established source statements, likely interpretations and unresolved references. Preserve document_id, source_path and page or section provenance. A memory or generated page is not professional source authority.",
     "observations_mission": "Consolidate only durable project facts and explicit document relations within the exact combined tag scope. Never merge projects, pending-identification material or source channels. Preserve contradictions and unresolved references.",
     "enable_observations": true,
+    "enable_auto_consolidation": false,
     "audit_log_enabled": true,
     "store_document_text": true,
     "retain_extraction_mode": "concise",
@@ -19,15 +20,42 @@
         "optional": true,
         "tag": false,
         "values": [
-          {"value": "person", "description": "Personne nommée"},
-          {"value": "organization", "description": "Organisation, entreprise ou administration"},
-          {"value": "project", "description": "Projet ou affaire explicitement nommé"},
-          {"value": "document", "description": "Document, pièce, plan ou annexe cité"},
-          {"value": "place", "description": "Lieu, adresse ou site"},
-          {"value": "contract", "description": "Contrat, marché, offre ou engagement"},
-          {"value": "work_lot", "description": "Lot, corps d'état ou poste de travaux"},
-          {"value": "standard", "description": "Norme, DTU, règlement ou référence technique"},
-          {"value": "asset", "description": "Ouvrage, équipement ou composant désigné"}
+          {
+            "value": "person",
+            "description": "Personne nommée"
+          },
+          {
+            "value": "organization",
+            "description": "Organisation, entreprise ou administration"
+          },
+          {
+            "value": "project",
+            "description": "Projet ou affaire explicitement nommé"
+          },
+          {
+            "value": "document",
+            "description": "Document, pièce, plan ou annexe cité"
+          },
+          {
+            "value": "place",
+            "description": "Lieu, adresse ou site"
+          },
+          {
+            "value": "contract",
+            "description": "Contrat, marché, offre ou engagement"
+          },
+          {
+            "value": "work_lot",
+            "description": "Lot, corps d'état ou poste de travaux"
+          },
+          {
+            "value": "standard",
+            "description": "Norme, DTU, règlement ou référence technique"
+          },
+          {
+            "value": "asset",
+            "description": "Ouvrage, équipement ou composant désigné"
+          }
         ]
       }
     ],

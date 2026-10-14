@@ -1,0 +1,48 @@
+{
+  "updates": {
+    "retain_mission": "Retain reusable professional reference knowledge for drafting and verification. The knowledge vault holds reference documents such as regulatory texts, standards and technical guides, contract and market templates, administrative forms, internal methods, toolboxes and checklists. Preserve titles, headings, tables of contents, article or clause numbers, links, references, examples, model wording, dates, versions, issuers and applicability limits when explicit. Keep folder context as navigation context only. Distinguish reference knowledge, candidate wording and project-specific obligation. Never infer that a reference document applies to a specific project without a project source and human validation. Never infer currency, validity or supersession from filenames, upload time or filesystem metadata.",
+    "reflect_mission": "Answer as a transversal reference library. Separate exact source statements, reusable wording, interpretation and project applicability. Preserve document_id, source_path, section, page or article when available, issuer, date or version and applicability limits. Propose source-grounded candidate wording, never automatic obligations. A memory or generated page is not professional source authority.",
+    "observations_mission": "Consolidate reusable standards, definitions, legal or technical references, drafting patterns, clauses, checklists, methods and explicit document relations. Keep limits, versions, references and contradictions visible. Never merge with project-scoped memories.",
+    "enable_observations": true,
+    "enable_auto_consolidation": false,
+    "audit_log_enabled": true,
+    "store_document_text": true,
+    "retain_extraction_mode": "concise",
+    "enable_text_search": true,
+    "enable_temporal_retrieval": true,
+    "enable_graph_retrieval": true,
+    "enable_reranking": true,
+    "entity_labels": [
+      {
+        "key": "document_family",
+        "description": "Simple family of a reference document. It helps retrieval; it creates no applicability, validity or authority.",
+        "type": "value",
+        "optional": true,
+        "tag": false,
+        "values": [
+          {
+            "value": "regulatory",
+            "description": "Law, code, decree, order, regulation"
+          },
+          {
+            "value": "technical",
+            "description": "Standard, technical guide, product sheet"
+          },
+          {
+            "value": "contractual",
+            "description": "General or special conditions, specification, price schedule, clause"
+          },
+          {
+            "value": "administrative",
+            "description": "Administrative form, letter template"
+          },
+          {
+            "value": "methodology",
+            "description": "Internal method, checklist, toolbox, drafting guide"
+          }
+        ]
+      }
+    ],
+    "entities_allow_free_form": true
+  }
+}

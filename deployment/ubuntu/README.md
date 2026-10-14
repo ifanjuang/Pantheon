@@ -560,12 +560,37 @@ The probe is self-cleaning by default. It requires write access because future c
 
 If the probe reports `inotify: not-observed-reconcile-required`, the mount can still qualify for correctness: keep periodic reconcile enabled and treat watcher delivery only as an optimization.
 
-The private project-platform bank is converged separately after Hindsight is healthy:
+Hindsight banks follow two usages, each with a repository preset in
+`hindsight-bank-presets/` (extraction, observation and reflection missions,
+entity labels, retrieval modes, no automatic consolidation):
+
+- `projects`: project documents, recalled one project at a time;
+- `knowledge`: reference documents shared across projects (regulations,
+  standards, templates, methods). They are sources to cite, not governed
+  Knowledge, and never project obligations by themselves.
+
+Converge each bank after Hindsight is healthy:
 
 ```bash
-deployment/ubuntu/configure-hindsight-project-bank --check
-deployment/ubuntu/configure-hindsight-project-bank --apply
+deployment/ubuntu/configure-hindsight-bank --usage projects --check
+deployment/ubuntu/configure-hindsight-bank --usage knowledge --bank KNOWLEDGE --apply
 ```
+
+An organization adds its own context with `--overlay FILE`, kept outside the
+repository with the other installation bindings. The overlay may only append
+text to the three missions (`mission_additions`) and add entity labels or
+label values (`entity_labels`); the script refuses any other key, so the
+preset's safety settings cannot be weakened locally:
+
+```json
+{
+  "mission_additions": {"retain_mission": "The library also holds ..."},
+  "entity_labels": [{"key": "document_family", "values": [{"value": "internal", "description": "..."}]}]
+}
+```
+
+A failure observed in use is fixed in the preset when it concerns every
+organization, and in the overlay when it is specific to one.
 
 Its project material is not exposed through the direct multi-bank Hindsight MCP.
 Hermes uses the authenticated project router installed by
