@@ -8,7 +8,7 @@ import yaml
 IMPLEMENTATION_ROOT = Path(__file__).resolve().parents[1]
 MONOREPO_ROOT = IMPLEMENTATION_ROOT.parent
 WORKFLOW = MONOREPO_ROOT / ".github" / "workflows" / "implementation-architecture-audit.yml"
-AUTHORITY_REF = "c335f5784cec005c1cf93e52b0b22ad4afce3442"
+AUTHORITY_REF = "c1e8db4e7c949768b5f7ade94cd9931b7062f316"
 
 
 def test_architecture_audit_pins_reviewed_logical_ownership_registry() -> None:

@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     env:
-      PANTHEON_DISTRIBUTION_AUTHORITY_REF: 1afbcdb25209fa6e411dc3792ddeb56447685ebf
+      PANTHEON_DISTRIBUTION_AUTHORITY_REF: c1e8db4e7c949768b5f7ade94cd9931b7062f316
       PROFILE: pantheon-governed
       PROFILE_KEY: hermes-profile-lab-key
       FIXTURE_URL: http://127.0.0.1:9010
