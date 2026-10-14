@@ -17,12 +17,16 @@ Ce dépôt public a démarré le 2026-10-14 à partir d’un instantané revu de
 L’hypothèse architecturale actuelle de Pantheon est qu’une compréhension globale utile du projet doit émerger de **plusieurs représentations hétérogènes qui convergent vers les mêmes identités gouvernées et relations explicites**, plutôt que d’aplatir toutes les sources dans une vérité canonique unique.
 
 ```text
-plans / coupes / IFC / photos
-        -> source_representations + claims
-CCTP / documents projet / comptes rendus
-        -> requirements projet + Information + contexte sourcé
-Knowledge
-        -> repères réutilisables d’interprétation
+plans / coupes / IFC / photos / relevés
+        -> source_representations + claims sur l’ouvrage
+contrats / avenants / devis / CCTP / attestations
+        -> engagements et exigences, avec leurs versions et leurs parties
+comptes rendus / procès-verbaux / rapports de chantier et techniques
+        -> faits constatés, réserves et décisions consignées
+communications : e-mails / messageries / courriers
+        -> demandes, réponses et accords, avec émetteur et date
+coffre knowledge : réglementation / normes / modèles / méthodes
+        -> références réutilisables et repères d’interprétation
 
 l’ensemble
         -> stable_objects + relations explicites
@@ -38,6 +42,8 @@ plusieurs sources alignées != vérité fusionnée
 même stable_object != une valeur source canonique unique
 contenu récupéré != vérité
 repère Knowledge != applicabilité d’une exigence
+message reçu != engagement ni approbation
+consigné au compte rendu != validé par les parties
 interprétation Hermes != claim gouverné ni décision
 ```
 

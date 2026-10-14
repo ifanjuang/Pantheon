@@ -17,12 +17,16 @@ This public repository started on 2026-10-14 from a reviewed snapshot of the for
 Pantheon’s current architectural hypothesis is that a useful global understanding of a project should emerge from **several heterogeneous representations converging on the same governed identities and explicit relations**, rather than from flattening every source into one canonical truth.
 
 ```text
-drawings / sections / IFC / photos
-        -> source representations + claims
-CCTP / project documents / site records
-        -> project-specific requirements + Information + source-backed context
-Knowledge
-        -> reusable interpretation cues
+drawings / sections / IFC / photos / surveys
+        -> source representations + claims about the built object
+contracts / amendments / quotes / specifications / certificates
+        -> commitments and requirements, with their versions and parties
+meeting minutes / formal records / site and technical reports
+        -> observed facts, reservations and recorded decisions
+communications: emails / messaging / letters
+        -> requests, answers and agreements, with sender and date
+knowledge vault: regulations / standards / templates / methods
+        -> reusable references and interpretation cues
 
 all of the above
         -> stable object identities + explicit relations
@@ -38,6 +42,8 @@ multiple sources aligned != merged truth
 same stable object != one canonical source value
 retrieved content != truth
 Knowledge cue != requirement applicability
+message received != commitment or approval
+recorded in minutes != validated by the parties
 Hermes interpretation != governed claim or decision
 ```
 
