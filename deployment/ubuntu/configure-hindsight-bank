@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+PRESET_DIR="$SCRIPT_DIR/hindsight-bank-presets"
+HINDSIGHT_URL="${HINDSIGHT_URL:-http://127.0.0.1:8888}"
+USAGE_NAME=""
+BANK_ID=""
+OVERLAY=""
+APPLY=0
+log() { printf '[hindsight-bank] %s\n' "$*"; }
+die() { printf '[hindsight-bank] ERROR: %s\n' "$*" >&2; exit 1; }
+usage() {
+  cat <<'USAGE'
+Usage:
+  deployment/ubuntu/configure-hindsight-bank --usage projects|knowledge [--bank ID] [--overlay FILE] --check
+  deployment/ubuntu/configure-hindsight-bank --usage projects|knowledge [--bank ID] [--overlay FILE] --apply
+
+Creates the bank when absent and converges its extraction, observation and
+reflection rules from the repository preset for that usage:
+  projects   one bank of project documents, recalled one project at a time
+             (default bank AGENCY_PROJECTS)
+  knowledge  one bank of reference documents shared across projects
+             (default bank KNOWLEDGE). These are sources to cite, not
+             governed Knowledge.
+
+--overlay adds organization-specific context kept outside the repository. It
+may only add: text appended to the three missions ("mission_additions") and
+extra entity labels or label values ("entity_labels"). It cannot change the
+safety settings of the preset. The Hindsight API must remain node-local/private.
+USAGE
+}
+while (($#)); do
+  case "$1" in
+    --usage) USAGE_NAME="${2:?missing usage}"; shift ;;
+    --bank) BANK_ID="${2:?missing bank id}"; shift ;;
+    --overlay) OVERLAY="${2:?missing overlay file}"; shift ;;
+    --check) APPLY=0 ;;
+    --apply) APPLY=1 ;;
+    -h|--help) usage; exit 0 ;;
+    *) die "unknown argument: $1" ;;
+  esac
+  shift
+done
+
+case "$USAGE_NAME" in
+  projects) BANK_ID="${BANK_ID:-AGENCY_PROJECTS}"; BANK_NAME="Projects" ;;
+  knowledge) BANK_ID="${BANK_ID:-KNOWLEDGE}"; BANK_NAME="Knowledge" ;;
+  *) die "--usage must be projects or knowledge" ;;
+esac
+PRESET="$PRESET_DIR/$USAGE_NAME.json"
+command -v curl >/dev/null || die "curl is required"
+command -v jq >/dev/null || die "jq is required"
+jq -e '.updates | type == "object"' "$PRESET" >/dev/null || die "invalid preset: $PRESET"
+
+if [[ -n "$OVERLAY" ]]; then
+  [[ -f "$OVERLAY" ]] || die "overlay not found: $OVERLAY"
+  jq -e '
+    type == "object"
+    and (keys - ["mission_additions", "entity_labels"] | length == 0)
+    and ((.mission_additions // {}) | type == "object")
+    and ((.mission_additions // {}) | keys - ["retain_mission", "reflect_mission", "observations_mission"] | length == 0)
+    and ((.mission_additions // {}) | all(.[]; type == "string"))
+    and ((.entity_labels // []) | type == "array")
+  ' "$OVERLAY" >/dev/null || die "overlay may only contain mission_additions and entity_labels: $OVERLAY"
+  overlay_json="$(jq -c . "$OVERLAY")"
+else
+  overlay_json='{}'
+fi
+
+# Preset first; the overlay appends mission text and adds labels or label values.
+expected="$(jq -c --argjson overlay "$overlay_json" '
+  .updates as $base
+  | ($overlay.mission_additions // {}) as $add
+  | reduce ($add | to_entries[]) as $m ($base;
+      .[$m.key] = (.[$m.key] + "\n\nOrganization context: " + $m.value))
+  | .entity_labels = (
+      reduce ($overlay.entity_labels // [])[] as $label (.entity_labels // [];
+        if any(.[]; .key == $label.key) then
+          map(if .key == $label.key then
+                (.values | map(.value)) as $known
+                | .values += [($label.values // [])[] | select(.value as $v | $known | any(. == $v) | not)]
+              else . end)
+        else . + [$label] end))
+' "$PRESET")"
+
+health="$(curl -fsS "$HINDSIGHT_URL/health")" || die "Hindsight is unavailable at $HINDSIGHT_URL"
+printf '%s' "$health" | jq -e '.status == "healthy"' >/dev/null || die "Hindsight is not healthy"
+
+if ((APPLY == 1)); then
+  curl -fsS -X PUT "$HINDSIGHT_URL/v1/default/banks/$BANK_ID" \
+    -H 'Content-Type: application/json' \
+    -d "$(jq -cn --arg name "$BANK_NAME" '{name: $name}')" >/dev/null
+  curl -fsS -X PATCH "$HINDSIGHT_URL/v1/default/banks/$BANK_ID/config" \
+    -H 'Content-Type: application/json' \
+    --data-binary "$(jq -cn --argjson updates "$expected" '{updates: $updates}')" >/dev/null
+fi
+
+observed="$(curl -fsS "$HINDSIGHT_URL/v1/default/banks/$BANK_ID/config")" \
+  || die "bank $BANK_ID is absent; run --apply"
+drift="$(printf '%s' "$observed" | jq -r --argjson expected "$expected" '
+  .overrides as $actual
+  | [$expected | to_entries[] | select($actual[.key] != .value) | .key] | join(", ")')"
+[[ -z "$drift" ]] || die "bank $BANK_ID differs from the $USAGE_NAME preset${OVERLAY:+ and overlay}: $drift"
+
+log "bank=$BANK_ID usage=$USAGE_NAME configuration current${OVERLAY:+ (with overlay)}"
+((APPLY == 1)) && log "configuration applied" || log "check only; no state changed"
