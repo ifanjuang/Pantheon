@@ -2694,7 +2694,7 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("WORKSPACE_RECONCILE_HERMES_URL must be HTTP(S)")
 
     CockpitHandler.roots = args.root
-    CockpitHandler.expected_worker_root = os.getenv("WORKSPACE_EXPECTED_AFFAIRES_ROOT", "")
+    CockpitHandler.expected_worker_root = os.getenv("WORKSPACE_EXPECTED_PROJECTS_ROOT", "")
     CockpitHandler.expected_worker_source = os.getenv("WORKSPACE_EXPECTED_AFFAIRES_SOURCE", "")
     CockpitHandler.scope_request_path = Path(os.getenv(
         "WORKSPACE_SCOPE_REQUEST_PATH",

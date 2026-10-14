@@ -208,11 +208,16 @@ when either required professional Hindsight binding is absent.
 
 ### Agency exact-source fallback
 
+Pantheon knows two vaults: `projects` (project documents, read one project at
+a time) and `knowledge` (reference documents shared across projects). Each
+installation maps them to its own roots and Hindsight banks; the names used
+on a node stay in its local bindings, not in this repository.
+
 The optional agency reader resolves a project directory before topic keywords,
 lists bounded `.md`/PDF candidates within that project, and provides
 line-located, capped reads of exact Markdown files. It can also read an exact
-DOCUMENTAIRES Markdown path. It cannot write files or open arbitrary host paths;
-AFFAIRES reads require a matching project reference. PDF content still goes
+`knowledge` Markdown path. It cannot write files or open arbitrary host paths;
+`projects` reads require a matching project reference. PDF content still goes
 through Docling. Inventory matches and search previews are not source
 inspection or Evidence.
 
@@ -225,8 +230,8 @@ Installation and profile binding are separate explicit steps:
 ```bash
 deployment/ubuntu/configure-vault-read-local --check
 sudo deployment/ubuntu/configure-vault-read-local \
-  --apply --affaires-root /path/to/mounted/AFFAIRES \
-  --documentaires-root /path/to/mounted/DOCUMENTAIRES --enable
+  --apply --projects-root /path/to/mounted/projects \
+  --knowledge-root /path/to/mounted/knowledge --enable
 deployment/ubuntu/configure-hermes-activity-projection --check \
   --with-vault-adapter --bind-local-mcp
 sudo deployment/ubuntu/configure-hermes-activity-projection --apply --restart \
@@ -324,7 +329,7 @@ writes a reviewable Hermes fragment to `/srv/pantheon/hermes/docling-mcp.yaml`;
 it does not silently modify Hermes' active configuration or authorize a new
 tool. Merge that fragment into Hermes after reviewing the active MCP policy.
 The host Docling service and the bounded source reader must receive the same
-operator-selected `AFFAIRES_ROOT`. Hermes passes an admitted source path as tool
+operator-selected `PROJECTS_ROOT`. Hermes passes an admitted source path as tool
 input; Hermes does not need a separate NAS mount. Hindsight indexes remain outside Hermes' file surface.
 
 ## Read-only Workspace Cockpit
@@ -333,7 +338,7 @@ The executable Workspace Cockpit now follows the selected direct-NAS topology. I
 
 ```text
 Project-platform
-└── AFFAIRES              -> AFFAIRES_ROOT
+└── AFFAIRES              -> PROJECTS_ROOT
              |
              v
       one standalone Workspace producer
@@ -352,11 +357,11 @@ and host group in an ignored local env file:
 ```bash
 umask 077
 cat > .env.workspace-cockpit <<'EOF'
-AFFAIRES_ROOT=/mnt/pantheon-affaires/AFFAIRES
+PROJECTS_ROOT=/mnt/pantheon-affaires/AFFAIRES
 AFFAIRES_GID=replace-with-affaires-mount-group-id
 EOF
 # Use the group recorded on the qualified mount, for example:
-# sed -i "s/replace-with-affaires-mount-group-id/$(stat -c %g "$AFFAIRES_ROOT")/" .env.workspace-cockpit
+# sed -i "s/replace-with-affaires-mount-group-id/$(stat -c %g "$PROJECTS_ROOT")/" .env.workspace-cockpit
 docker compose --env-file release.env --env-file .env.workspace-cockpit \
   -f compose.workspace-cockpit-local.yaml up -d --build
 ```
@@ -394,7 +399,7 @@ docker compose --env-file release.env --env-file .env.workspace-cockpit \
 sudo ./configure-hindsight-enrichment-hook --apply
 ```
 
-After the final command, **Settings → Webhooks** in the `AGENCY_PROJECTS` bank shows
+After the final command, **Settings → Webhooks** in the `PROJECTS` bank shows
 one enabled `retain.completed` endpoint. The Hindsight bank configuration also
 defines a small controlled vocabulary of entity labels (person, organisation,
 project, document, place, contract, lot, standard and asset). Unknown entities
@@ -408,15 +413,15 @@ remains an explicit optional addition:
 
 ```bash
 sudo ./configure-workspace-cockpit-local \
-  --user <linux-user> --affaires-root /mnt/pantheon-affaires/AFFAIRES \
+  --user <linux-user> --projects-root /mnt/pantheon-affaires/AFFAIRES \
   --enable-producer
 # Only if the local Cockpit interface is wanted:
 sudo ./configure-workspace-cockpit-local \
-  --user <linux-user> --affaires-root /mnt/pantheon-affaires/AFFAIRES \
+  --user <linux-user> --projects-root /mnt/pantheon-affaires/AFFAIRES \
   --enable-cockpit
 ```
 
-The service binds to `127.0.0.1:8189` by default and admits only the reviewed `AFFAIRES_ROOT`. `ARCHIVES/PROJET` is not a Workspace source and is not scanned, indexed or sent to Hindsight. Nested directories named Archive/Archives remain excluded recursively inside AFFAIRES. Cockpit is a projection and never becomes another scanner or Hindsight writer.
+The service binds to `127.0.0.1:8189` by default and admits only the reviewed `PROJECTS_ROOT`. `ARCHIVES/PROJET` is not a Workspace source and is not scanned, indexed or sent to Hindsight. Nested directories named Archive/Archives remain excluded recursively inside AFFAIRES. Cockpit is a projection and never becomes another scanner or Hindsight writer.
 
 ## Governed Hermes skills
 
@@ -529,7 +534,7 @@ Those can be added only when their actual configuration and qualification needs 
 
 The productive Workspace/Hindsight topology is evaluated from this Linux host against the NAS path as mounted here. Hindsight remains local to Linux; the AFFAIRES daemon is the filesystem watcher and Hindsight producer.
 
-Set `AFFAIRES_ROOT` locally to the reviewed project root whose direct children
+Set `PROJECTS_ROOT` locally to the reviewed project root whose direct children
 are project directories. The project catalogue derives only from these
 first-level directories. A filesystem folder is a routing/project-scope
 observation, not governed Project identity. The repository never assumes a NAS
@@ -602,12 +607,12 @@ glossaries) uses a second, independent instance of the same router:
 
 ```bash
 deployment/ubuntu/configure-hindsight-project-router-local --library --check
-sudo HINDSIGHT_LIBRARY_BANK_ID=<library-bank> HINDSIGHT_LIBRARY_SOURCE_KIND=<library-source> \
+sudo HINDSIGHT_KNOWLEDGE_BANK_ID=<library-bank> HINDSIGHT_KNOWLEDGE_SOURCE_KIND=<library-source> \
   deployment/ubuntu/configure-hindsight-project-router-local --library --apply --enable
 ```
 
 It listens on `127.0.0.1:8023` with its own bearer token, exposes only
-`recall_library_memory` and `hindsight_library_folders`, and always applies the
+`recall_knowledge_memory` and `hindsight_knowledge_folders`, and always applies the
 library source tag (plus an optional `folder:*` tag) with `all_strict` matching.
 Library content is transversal reference, never a project fact. Bank and source
 names are installation values kept outside the repository.

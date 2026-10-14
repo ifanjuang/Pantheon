@@ -216,8 +216,8 @@ silently establish currentness.
    `binding_unavailable`, `no_match` and `indexing_gap` in the limitation.
    For an exact Markdown path, use `search_vault_markdown` only to locate lines,
    then `read_vault_markdown_lines` for the bounded passage being cited. Supply
-   `project_ref` for AFFAIRES; never supply one project's path with another
-   project's reference. For DOCUMENTAIRES leave `project_ref` empty and keep
+   `project_ref` for the projects vault; never supply one project's path with another
+   project's reference. For the knowledge vault leave `project_ref` empty and keep
    the general reference separate from project facts. A search preview,
    Hindsight excerpt or internal `spillover` cache is not an inspected passage.
    Markdown extracted from a PDF is a derivative; use Docling on the original
@@ -228,8 +228,8 @@ change the result. Attribute memory-only information to recent conversation and
 mark it unconfirmed until an admitted business source supports it.
 
 For a material professional factual answer, the applicable source lookup is
-mandatory before final synthesis: `AFFAIRES` for dossier facts,
-`DOCUMENTAIRES` for transversal professional facts, and both for a mixed
+mandatory before final synthesis: `projects` for dossier facts,
+`knowledge` for transversal professional facts, and both for a mixed
 question. A memory lead never satisfies this requirement. If the required
 binding is unavailable, return the limitation rather than substituting model
 recall.
@@ -261,13 +261,15 @@ document opened != Evidence admitted
 
 ## Source routing
 
-- Use `AFFAIRES` for project records, clients, contracts, correspondence,
+- Use the `projects` vault for project records, clients, contracts, correspondence,
   permits, plans, schedules and administrative material.
-- Use `DOCUMENTAIRES` for transversal technical, regulatory, legal, contractual
-  and professional references.
+- Use the `knowledge` vault for transversal technical, regulatory, legal, contractual
+  and professional references. Its Hindsight lead is
+  `hindsight-knowledge:recall_knowledge_memory`; open the cited document with
+  `vault-read` before relying on it.
 - Use both when a project-specific fact must be tested against a transversal
   rule. Keep their contributions distinguishable.
-- For a mixed document/compliance question, open the exact AFFAIRES source
+- For a mixed document/compliance question, open the exact projects-vault source
   first, then consult only the admitted transversal source needed for the rule
   family. If none is available, label the item `à vérifier`.
 - Use the live source only when the user requests current state or indicates a
@@ -297,7 +299,7 @@ exact source path or URL
 For Hermes MCP calls, the conversion argument is exactly `source`:
 
 ```json
-{"source": "/srv/pantheon/obsidian-documentaires/<document>.pdf"}
+{"source": "<knowledge-root>/<document>.pdf"}
 ```
 
 Do not call `get_prompt`, `list_prompts`, `read_resource` or `list_resources` as
@@ -358,7 +360,7 @@ invented path.
 - Cite the exact path or document ID for each material project fact.
 - Expose contradictions, freshness limits and missing source confirmation.
 - For every proposed omission or compliance gap, cite the exact project-document
-  locator and the exact DOCUMENTAIRES reference when available. Otherwise label
+  locator and the exact knowledge-vault reference when available. Otherwise label
   it `à vérifier` and state which reference is missing.
 - End a material review with two to four optional, bounded follow-up paths when
   useful (for example: inspect a specific lot, verify a named standard, compare

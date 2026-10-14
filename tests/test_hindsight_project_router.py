@@ -23,7 +23,7 @@ def _module():
 
 def test_recall_forces_source_project_and_all_strict() -> None:
     module = _module()
-    client = module.ProjectRecallClient("http://127.0.0.1:8888", "AGENCY_PROJECTS")
+    client = module.ProjectRecallClient("http://127.0.0.1:8888", "PROJECTS")
     response = {
         "results": [{
             "id": "fact-1",
@@ -56,7 +56,7 @@ def test_french_accents_normalize_to_stable_ascii_scope() -> None:
 
 def test_folder_can_only_narrow_an_existing_project_scope() -> None:
     module = _module()
-    client = module.ProjectRecallClient("http://127.0.0.1:8888", "AGENCY_PROJECTS")
+    client = module.ProjectRecallClient("http://127.0.0.1:8888", "PROJECTS")
     response = {
         "results": [{
             "id": "fact-1",
@@ -84,7 +84,7 @@ def test_folder_can_only_narrow_an_existing_project_scope() -> None:
 
 def test_recall_omits_unprovenanced_results_and_caps_evidence() -> None:
     module = _module()
-    client = module.ProjectRecallClient("http://127.0.0.1:8888", "AGENCY_PROJECTS")
+    client = module.ProjectRecallClient("http://127.0.0.1:8888", "PROJECTS")
     tags = ["source:project-sync", f"scope:project:{module.project_scope_token('Projet Alpha')}"]
     results = [{"id": "observation", "text": "lead", "tags": tags}]
     results.extend(
@@ -115,7 +115,7 @@ def test_recall_omits_unprovenanced_results_and_caps_evidence() -> None:
 
 def test_pending_or_empty_project_is_rejected_before_hindsight_call() -> None:
     module = _module()
-    client = module.ProjectRecallClient("http://127.0.0.1:8888", "AGENCY_PROJECTS")
+    client = module.ProjectRecallClient("http://127.0.0.1:8888", "PROJECTS")
     for project in ("", "pending identification"):
         with pytest.raises(module.ProjectRecallError):
             client.recall_project(project, "question")
@@ -123,7 +123,7 @@ def test_pending_or_empty_project_is_rejected_before_hindsight_call() -> None:
 
 def test_out_of_scope_or_untagged_result_fails_closed() -> None:
     module = _module()
-    client = module.ProjectRecallClient("http://127.0.0.1:8888", "AGENCY_PROJECTS")
+    client = module.ProjectRecallClient("http://127.0.0.1:8888", "PROJECTS")
     for tags in ([], ["source:project-sync", f"scope:project:{module.project_scope_token('Projet Beta')}"]):
         with patch.object(
             client,
@@ -141,10 +141,10 @@ def test_project_scope_token_disambiguates_slug_collisions() -> None:
     assert module.project_scope_token("Projet A") != module.project_scope_token("Projet-A")
 
 
-def test_library_recall_forces_source_and_optional_folder_only() -> None:
+def test_knowledge_recall_forces_source_and_optional_folder_only() -> None:
     module = _module()
     client = module.ProjectRecallClient(
-        "http://127.0.0.1:8888", "AGENCY_LIBRARY", source_kind="library"
+        "http://127.0.0.1:8888", "KNOWLEDGE", source_kind="knowledge"
     )
     response = {
         "results": [{
@@ -152,49 +152,49 @@ def test_library_recall_forces_source_and_optional_folder_only() -> None:
             "text": "Réception avec réserves",
             "document_id": "doc-1:source",
             "chunk_id": "chunk-1",
-            "tags": ["source:library", "folder:insurer", "scope:project:insurer-0123456789ab"],
+            "tags": ["source:knowledge", "folder:insurer", "scope:project:insurer-0123456789ab"],
         }],
         "chunks": {"chunk-1": {"document_id": "doc-1:source"}},
     }
     with patch.object(client, "_post", return_value=response) as post:
-        whole = client.recall_library("Que conseille l'assureur à la réception ?")
-        narrowed = client.recall_library("Réserves ?", folder="Insurer")
+        whole = client.recall_knowledge("Que conseille l'assureur à la réception ?")
+        narrowed = client.recall_knowledge("Réserves ?", folder="Insurer")
 
     first, second = (call.args[0] for call in post.call_args_list)
-    assert first["tags"] == ["source:library"]
-    assert second["tags"] == ["source:library", "folder:insurer"]
+    assert first["tags"] == ["source:knowledge"]
+    assert second["tags"] == ["source:knowledge", "folder:insurer"]
     assert first["tags_match"] == second["tags_match"] == "all_strict"
-    assert whole["source_scope"] == "source:library"
+    assert whole["source_scope"] == "source:knowledge"
     assert whole["folder_scope"] is None
     assert narrowed["folder_scope"] == "folder:insurer"
     assert "project_scope" not in whole
     assert whole["results"][0]["document_id"] == "doc-1:source"
 
 
-def test_library_recall_fails_closed_outside_source_or_folder() -> None:
+def test_knowledge_recall_fails_closed_outside_source_or_folder() -> None:
     module = _module()
     client = module.ProjectRecallClient(
-        "http://127.0.0.1:8888", "AGENCY_LIBRARY", source_kind="library"
+        "http://127.0.0.1:8888", "KNOWLEDGE", source_kind="knowledge"
     )
     for tags, folder in (
         ([], ""),
         (["source:project-sync"], ""),
-        (["source:library", "folder:standards"], "insurer"),
+        (["source:knowledge", "folder:standards"], "insurer"),
     ):
         with patch.object(
             client, "_post",
             return_value={"results": [{"id": "leak", "text": "wrong", "tags": tags}]},
         ):
             with pytest.raises(module.ProjectRecallError):
-                client.recall_library("question", folder=folder)
+                client.recall_knowledge("question", folder=folder)
 
 
-def test_library_recall_rejects_empty_query_before_hindsight_call() -> None:
+def test_knowledge_recall_rejects_empty_query_before_hindsight_call() -> None:
     module = _module()
     client = module.ProjectRecallClient(
-        "http://127.0.0.1:8888", "AGENCY_LIBRARY", source_kind="library"
+        "http://127.0.0.1:8888", "KNOWLEDGE", source_kind="knowledge"
     )
     with patch.object(client, "_post") as post:
         with pytest.raises(module.ProjectRecallError):
-            client.recall_library("   ")
+            client.recall_knowledge("   ")
     post.assert_not_called()

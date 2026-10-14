@@ -78,7 +78,7 @@ def test_workspace_cockpit_compose_is_read_only_and_loopback_only() -> None:
     assert "cap_drop:" in text and "- ALL" in text
     assert "group_add:" in text
     assert "${AFFAIRES_GID:?set AFFAIRES_GID to the Linux-mounted NAS AFFAIRES group id}" in text
-    affaires_mount = "${AFFAIRES_ROOT:?set AFFAIRES_ROOT to the Linux-mounted NAS AFFAIRES path}:/workspace/affaires:ro"
+    affaires_mount = "${PROJECTS_ROOT:?set PROJECTS_ROOT to the Linux-mounted NAS AFFAIRES path}:/workspace/affaires:ro"
     assert text.count(affaires_mount) == 2
     assert "workspace-producer:" in text
     assert 'entrypoint: ["/opt/hermes/.venv/bin/python", "/app/producer_daemon.py"]' in text
@@ -98,7 +98,7 @@ def test_workspace_cockpit_compose_is_read_only_and_loopback_only() -> None:
     assert "network_mode: host" in text
     assert "Affaires=/workspace/affaires" in text
     assert 'WORKSPACE_RECONCILE_SECONDS:-3600' in text
-    assert 'WORKSPACE_HINDSIGHT_BANK_ID:-AGENCY_PROJECTS' in text
+    assert 'WORKSPACE_HINDSIGHT_BANK_ID:-PROJECTS' in text
     assert 'WORKSPACE_HINDSIGHT_SETTLE_OBSERVATIONS:-2' in text
     assert 'WORKSPACE_HINDSIGHT_SOURCE_KIND:-project-sync' in text
 

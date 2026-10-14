@@ -24,7 +24,7 @@ pas active, et non une instruction à inventer un outil terminal dans Hermes :
 ```bash
 SKILL_ROOT="${HERMES_HOME:-$HOME/.hermes}/skills/vault-search"
 python3 "$SKILL_ROOT/scripts/list_project_files.py" \
-  "$VAULT_AFFAIRES_ROOT" --under chemin/du/projet --extension .pdf
+  "$VAULT_PROJECTS_ROOT" --under chemin/du/projet --extension .pdf
 ```
 
 Ne pas lancer une recherche non bornée sur tout le système. Le chemin passé à

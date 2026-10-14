@@ -11,7 +11,7 @@ def test_docling_route_uses_conversion_source_and_shared_workspace_paths() -> No
     text = SKILL.read_text(encoding="utf-8")
 
     assert "convert_document_into_docling_document(source)" in text
-    assert '{"source": "/srv/pantheon/obsidian-documentaires/<document>.pdf"}' in text
+    assert '{"source": "<knowledge-root>/<document>.pdf"}' in text
     assert "get_overview_of_document_anchors(document_key)" in text
     assert "Do not call `get_prompt`, `list_prompts`, `read_resource` or `list_resources`" in text
     assert "source_not_visible_to_docling" in text

@@ -23,20 +23,20 @@ usage() {
 Usage:
   deployment/ubuntu/configure-hindsight-project-router-local --check
   sudo deployment/ubuntu/configure-hindsight-project-router-local --apply [--enable]
-  deployment/ubuntu/configure-hindsight-project-router-local --library --check
-  sudo deployment/ubuntu/configure-hindsight-project-router-local --library --apply [--enable]
+  deployment/ubuntu/configure-hindsight-project-router-local --knowledge --check
+  sudo deployment/ubuntu/configure-hindsight-project-router-local --knowledge --apply [--enable]
 
 Installs an authenticated loopback MCP service that exposes only project-scoped
 Project-platform recall. It always applies source:project-sync, one scope:project:* tag and
 tags_match=all_strict, and fails closed if Hindsight returns an unscoped result.
 It never exposes bank-wide recall or a Hindsight write operation.
 
---library installs a second, independent instance for a reference library
+--knowledge installs a second, independent instance for the knowledge vault
 (standards, guides, insurer recommendations, glossaries). It applies only the
-library source tag (default source:library) and an optional folder tag, with
+knowledge source tag (default source:knowledge) and an optional folder tag, with
 tags_match=all_strict, on 127.0.0.1:8023 with its own bearer token. Bank and
-source are deployment values: set HINDSIGHT_LIBRARY_BANK_ID and
-HINDSIGHT_LIBRARY_SOURCE_KIND from the local installation bindings.
+source are deployment values: set HINDSIGHT_KNOWLEDGE_BANK_ID and
+HINDSIGHT_KNOWLEDGE_SOURCE_KIND from the local installation bindings.
 USAGE
 }
 
@@ -45,25 +45,25 @@ while (($#)); do
     --check) APPLY=0 ;;
     --apply) APPLY=1 ;;
     --enable) ENABLE=1 ;;
-    --library) MODE="library" ;;
+    --knowledge) MODE="knowledge" ;;
     -h|--help) usage; exit 0 ;;
     *) die "unknown argument: $1" ;;
   esac
   shift
 done
 
-if [[ "$MODE" == library ]]; then
-  INSTANCE="pantheon-hindsight-library-router"
-  STATE_ROOT="/srv/pantheon/hindsight-library-router"
+if [[ "$MODE" == knowledge ]]; then
+  INSTANCE="pantheon-hindsight-knowledge-router"
+  STATE_ROOT="/srv/pantheon/hindsight-knowledge-router"
   PORT=8023
-  HINDSIGHT_BANK_ID="${HINDSIGHT_LIBRARY_BANK_ID:-AGENCY_LIBRARY}"
-  HINDSIGHT_SOURCE_KIND="${HINDSIGHT_LIBRARY_SOURCE_KIND:-library}"
-  DESCRIPTION="Reference-library Hindsight MCP router for Hermes"
+  HINDSIGHT_BANK_ID="${HINDSIGHT_KNOWLEDGE_BANK_ID:-KNOWLEDGE}"
+  HINDSIGHT_SOURCE_KIND="${HINDSIGHT_KNOWLEDGE_SOURCE_KIND:-knowledge}"
+  DESCRIPTION="Knowledge-vault Hindsight MCP router for Hermes"
 else
   INSTANCE="pantheon-hindsight-project-router"
   STATE_ROOT="/srv/pantheon/hindsight-project-router"
   PORT=8022
-  HINDSIGHT_BANK_ID="${HINDSIGHT_PROJECT_BANK_ID:-AGENCY_PROJECTS}"
+  HINDSIGHT_BANK_ID="${HINDSIGHT_PROJECT_BANK_ID:-PROJECTS}"
   HINDSIGHT_SOURCE_KIND="${HINDSIGHT_PROJECT_SOURCE_KIND:-project-sync}"
   DESCRIPTION="Project-scoped Hindsight MCP router for Hermes"
 fi

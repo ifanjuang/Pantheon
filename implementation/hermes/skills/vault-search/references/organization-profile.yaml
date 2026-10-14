@@ -7,8 +7,8 @@ generic_skill:
   required_contract: true
 
 sources:
-  affaires:
-    logical_name: AFFAIRES
+  projects:
+    logical_name: projects
     hermes_binding: hindsight-project
     recall_tool: recall_project_memory
     purpose: dossier-specific professional material
@@ -17,9 +17,10 @@ sources:
       - "Projets/{designation}"
       - "Notion/_Affaires/{designation}.md"
     local_reader_binding: vault-read
-  documentaires:
-    logical_name: DOCUMENTAIRES
-    hermes_binding: vault-read
+  knowledge:
+    logical_name: knowledge
+    hermes_binding: hindsight-knowledge
+    recall_tool: recall_knowledge_memory
     purpose: transversal professional reference material
     local_reader_binding: vault-read
   conversation_memory:
@@ -42,8 +43,8 @@ retrieval:
 documents:
   textual_analysis_binding: docling
   visual_analysis_binding: marker
-  physical_affaires_root: operator-configured AFFAIRES_ROOT
-  physical_documentaires_root: /srv/pantheon/obsidian-documentaires
+  physical_projects_root: operator-configured PROJECTS_ROOT
+  physical_knowledge_root: operator-configured KNOWLEDGE_ROOT
   markdown_reader_tools:
     - find_vault_projects
     - list_vault_project_sources

@@ -38,15 +38,15 @@ def test_hindsight_enrichment_hook_validates_and_deduplicates_completed_retains(
     payload = {
         "event": "retain.completed",
         "status": "completed",
-        "bank_id": "AGENCY_PROJECTS",
+        "bank_id": "PROJECTS",
         "operation_id": "op-1",
         "data": {"document_id": "doc-1", "memory_unit_count": 2},
     }
     state_db = tmp_path / "state.sqlite3"
     hook._ensure_schema(state_db)
-    assert hook._queue(state_db, payload, "AGENCY_PROJECTS") is True
-    assert hook._queue(state_db, payload, "AGENCY_PROJECTS") is True
-    assert hook._queue(state_db, {**payload, "bank_id": "OTHER"}, "AGENCY_PROJECTS") is False
+    assert hook._queue(state_db, payload, "PROJECTS") is True
+    assert hook._queue(state_db, payload, "PROJECTS") is True
+    assert hook._queue(state_db, {**payload, "bank_id": "OTHER"}, "PROJECTS") is False
     body = b'{"event":"retain.completed"}'
     signature = "sha256=" + hook.hmac.new(b"secret", body, hook.hashlib.sha256).hexdigest()
     assert hook._valid_signature("secret", body, signature) is True
@@ -1197,8 +1197,8 @@ def test_linux_installer_and_browser_assets_are_syntax_valid() -> None:
     assert "StateDirectory=pantheon-workspace-cockpit" in text
     assert "--state-db /var/lib/pantheon-workspace-cockpit/index.sqlite3" in text
     assert "--reconcile-seconds 60" in text
-    assert "--affaires-root" in text
-    assert "AFFAIRES_ROOT" in text
+    assert "--projects-root" in text
+    assert "PROJECTS_ROOT" in text
     assert "--archives-projet-root" not in text
     assert "ARCHIVES_PROJET_ROOT" not in text
     assert "--root ArchivesProjet=%s" not in text
@@ -1208,19 +1208,19 @@ def test_linux_installer_and_browser_assets_are_syntax_valid() -> None:
     assert "--projection-only" in text
     assert "memory_reconciliation.py" in text
     assert "EnvironmentFile=-/etc/pantheon-workspace-cockpit.env" in text
-    assert text.count("printf 'RequiresMountsFor=%s\\n' \"$AFFAIRES_ROOT\"") == 2
+    assert text.count("printf 'RequiresMountsFor=%s\\n' \"$PROJECTS_ROOT\"") == 2
     assert "setfacl" not in text
     assert "vault mirror" not in text.lower()
     assert "pgvector" not in text.lower()
     compose = COMPOSE.read_text(encoding="utf-8")
     assert "read_only: true" in compose
-    assert "${AFFAIRES_ROOT:?set AFFAIRES_ROOT to the Linux-mounted NAS AFFAIRES path}:/workspace/affaires:ro" in compose
+    assert "${PROJECTS_ROOT:?set PROJECTS_ROOT to the Linux-mounted NAS AFFAIRES path}:/workspace/affaires:ro" in compose
     assert "${AFFAIRES_GID:?set AFFAIRES_GID to the Linux-mounted NAS AFFAIRES group id}" in compose
     assert "group_add:" in compose
     assert "workspace-producer:" in compose
     assert 'entrypoint: ["/opt/hermes/.venv/bin/python", "/app/producer_daemon.py"]' in compose
     assert "--projection-only" in compose
-    assert compose.count("${AFFAIRES_ROOT:?set AFFAIRES_ROOT to the Linux-mounted NAS AFFAIRES path}:/workspace/affaires:ro") == 2
+    assert compose.count("${PROJECTS_ROOT:?set PROJECTS_ROOT to the Linux-mounted NAS AFFAIRES path}:/workspace/affaires:ro") == 2
     assert "ARCHIVES_PROJET_ROOT" not in compose
     assert "ArchivesProjet" not in compose
     assert "workspace-cockpit-state:/state:ro" in compose
@@ -1240,7 +1240,7 @@ def test_linux_installer_and_browser_assets_are_syntax_valid() -> None:
     assert "WORKSPACE_RECONCILE_HERMES_KEY" in compose
     assert "WORKSPACE_RECONCILE_MAX_CONTEXT_CHARS" in compose
     readme = (ROOT / "deployment" / "ubuntu" / "README.md").read_text(encoding="utf-8")
-    assert "AFFAIRES_ROOT=/mnt/pantheon-affaires/AFFAIRES" in readme
+    assert "PROJECTS_ROOT=/mnt/pantheon-affaires/AFFAIRES" in readme
     assert "ARCHIVES_PROJET_ROOT" not in readme
     assert "ARCHIVES/PROJET` is not a Workspace source" in readme
     assert "AFFAIRES_GID=replace-with-affaires-mount-group-id" in readme

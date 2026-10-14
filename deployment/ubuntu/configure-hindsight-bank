@@ -18,7 +18,7 @@ Usage:
 Creates the bank when absent and converges its extraction, observation and
 reflection rules from the repository preset for that usage:
   projects   one bank of project documents, recalled one project at a time
-             (default bank AGENCY_PROJECTS)
+             (default bank PROJECTS)
   knowledge  one bank of reference documents shared across projects
              (default bank KNOWLEDGE). These are sources to cite, not
              governed Knowledge.
@@ -43,7 +43,7 @@ while (($#)); do
 done
 
 case "$USAGE_NAME" in
-  projects) BANK_ID="${BANK_ID:-AGENCY_PROJECTS}"; BANK_NAME="Projects" ;;
+  projects) BANK_ID="${BANK_ID:-PROJECTS}"; BANK_NAME="Projects" ;;
   knowledge) BANK_ID="${BANK_ID:-KNOWLEDGE}"; BANK_NAME="Knowledge" ;;
   *) die "--usage must be projects or knowledge" ;;
 esac

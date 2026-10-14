@@ -172,8 +172,8 @@ def test_archive_uses_fresh_server_catalogue_and_never_accepts_client_path(
 ) -> None:
     state_db = tmp_path / "state.sqlite3"
     _catalogue_db(state_db)
-    affaires_root = tmp_path / "AFFAIRES"
-    project_root = affaires_root / "VERGER"
+    projects_root = tmp_path / "AFFAIRES"
+    project_root = projects_root / "VERGER"
     project_root.mkdir(parents=True)
     observed: dict = {}
 
@@ -199,7 +199,7 @@ def test_archive_uses_fresh_server_catalogue_and_never_accepts_client_path(
     client = TestClient(
         _app(
             project_catalogue_state_db=state_db,
-            project_roots={"AFFAIRES": affaires_root},
+            project_roots={"AFFAIRES": projects_root},
             raw_retention_root=tmp_path / "retention",
             raw_storage_provider_ref="gmail-retention",
         )

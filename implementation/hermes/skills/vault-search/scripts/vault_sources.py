@@ -64,24 +64,23 @@ def _bounded(value: int, maximum: int, name: str) -> int:
 
 
 class VaultSources:
-    def __init__(self, affaires_root: Path, documentaires_root: Path):
-        if affaires_root.is_symlink() or documentaires_root.is_symlink():
+    def __init__(self, projects_root: Path, knowledge_root: Path):
+        if projects_root.is_symlink() or knowledge_root.is_symlink():
             raise VaultSourceError("configured source roots must not be symbolic links")
-        self.affaires_root = affaires_root.resolve(strict=True)
-        self.documentaires_root = documentaires_root.resolve(strict=True)
-        if not self.affaires_root.is_dir() or not self.documentaires_root.is_dir():
+        self.projects_root = projects_root.resolve(strict=True)
+        self.knowledge_root = knowledge_root.resolve(strict=True)
+        if not self.projects_root.is_dir() or not self.knowledge_root.is_dir():
             raise VaultSourceError("configured vault roots must be directories")
-        self.projects_root = self.affaires_root
 
     @classmethod
     def from_environment(cls) -> VaultSources:
-        affaires_root = os.environ.get("VAULT_AFFAIRES_ROOT")
-        if not affaires_root:
-            raise VaultSourceError("VAULT_AFFAIRES_ROOT must select the mounted NAS root")
-        return cls(
-            Path(affaires_root),
-            Path(os.environ.get("VAULT_DOCUMENTAIRES_ROOT", "/srv/pantheon/obsidian-documentaires")),
-        )
+        projects_root = os.environ.get("VAULT_PROJECTS_ROOT")
+        if not projects_root:
+            raise VaultSourceError("VAULT_PROJECTS_ROOT must select the mounted NAS root")
+        knowledge_root = os.environ.get("VAULT_KNOWLEDGE_ROOT")
+        if not knowledge_root:
+            raise VaultSourceError("VAULT_KNOWLEDGE_ROOT must select the mounted NAS root")
+        return cls(Path(projects_root), Path(knowledge_root))
 
     def find_projects(self, designation: str, max_items: int = MAX_PROJECTS) -> dict:
         limit = _bounded(max_items, MAX_PROJECTS, "max_items")
@@ -118,8 +117,8 @@ class VaultSources:
         rank = {"exact_name": 0, "partial_name": 1, "fuzzy_name": 2}
         candidates.sort(key=lambda item: (rank[item["match"]], item["name"].casefold()))
         return {
-            "status": "candidates" if candidates else "no_name_match_in_affaires",
-            "scope": "AFFAIRES",
+            "status": "candidates" if candidates else "no_name_match_in_projects",
+            "scope": "projects",
             "count": min(len(candidates), limit),
             "truncated": len(candidates) > limit,
             "items": candidates[:limit],
@@ -129,7 +128,7 @@ class VaultSources:
     def _project(self, project_ref: str) -> Path:
         parts = Path(project_ref).parts
         if len(parts) != 1 or parts[0] in {".", ".."}:
-            raise VaultSourceError("project_ref must be one direct AFFAIRES project directory")
+            raise VaultSourceError("project_ref must be one direct projects-vault project directory")
         path = self.projects_root / parts[0]
         if path.is_symlink() or not path.is_dir() or path.resolve() != path:
             raise VaultSourceError("project directory is absent or redirected")
@@ -248,14 +247,14 @@ class VaultSources:
         if supplied.is_symlink() or not supplied.is_file() or supplied.suffix.casefold() != ".md":
             raise VaultSourceError("source_path must be an existing Markdown file, not a directory or link")
         path = supplied.resolve(strict=True)
-        if path.is_relative_to(self.affaires_root):
+        if path.is_relative_to(self.projects_root):
             if not project_ref or not path.is_relative_to(self._project(project_ref)):
-                raise VaultSourceError("AFFAIRES source does not belong to the selected project")
-            family = "AFFAIRES"
-        elif path.is_relative_to(self.documentaires_root):
+                raise VaultSourceError("projects-vault source does not belong to the selected project")
+            family = "projects"
+        elif path.is_relative_to(self.knowledge_root):
             if project_ref:
-                raise VaultSourceError("DOCUMENTAIRES source must not be presented as a project file")
-            family = "DOCUMENTAIRES"
+                raise VaultSourceError("knowledge-vault source must not be presented as a project file")
+            family = "knowledge"
         else:
             raise VaultSourceError("source_path is outside the admitted vault mirrors")
         if path.stat().st_size > MAX_MARKDOWN_BYTES:

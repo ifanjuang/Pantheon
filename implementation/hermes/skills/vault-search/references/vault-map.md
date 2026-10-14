@@ -1,16 +1,16 @@
 # Carte des sources agency
 
-## VAULT_AFFAIRES
+## Coffre `projects`
 
-Serveur MCP Hermes : `hindsight-project` (`recall_project_memory`)
+Piste Hindsight : `hindsight-project` (`recall_project_memory`, `hindsight_project_list`),
+toujours bornée à un seul projet. Lecture des pièces : `vault-read`.
 
-Banque Hindsight : `VAULT_AFFAIRES`
+Banque Hindsight : celle de l'installation (par défaut `PROJECTS`).
 
 Contenu attendu : affaires, projets, appels d'offres, clients, missions,
 chantiers, contrats, factures et pièces administratives associées.
 
-Outils actuellement autorisés : `recall`, `reflect`, `list_documents`,
-`get_document`, `list_operations`, `get_operation`, `list_tags`.
+Hermes n'a accès ni à `reflect` ni à l'écriture dans la banque.
 
 ### Structure projet attendue — provisoire
 
@@ -47,17 +47,19 @@ commune, d'un code, de l'opération ou du dossier. Résoudre ces alias à partir
 leur cooccurrence dans les documents et conserver le chemin documentaire comme
 ancrage vérifiable. Une commune seule peut désigner plusieurs projets.
 
-## VAULT_DOCUMENTAIRES
+## Coffre `knowledge`
 
-Serveur MCP Hermes : `vault-read` pour les sources accessibles localement
+Piste Hindsight : `hindsight-knowledge` (`recall_knowledge_memory`,
+`hindsight_knowledge_folders`), éventuellement restreinte à un dossier.
+Lecture des pièces : `vault-read`.
 
-Banque Hindsight : `VAULT_DOCUMENTAIRES`
+Banque Hindsight : celle de l'installation (par défaut `KNOWLEDGE`). Ce sont
+des documents de référence à citer, pas de la Knowledge gouvernée.
 
 Contenu attendu : références techniques, documentation, méthodes, doctrine et
 documents utilisés pour étayer une analyse.
 
-Outils actuellement autorisés : `recall`, `reflect`, `list_documents`,
-`get_document`, `list_tags`.
+Hermes n'a accès ni à `reflect` ni à l'écriture dans la banque.
 
 Pour une affirmation technique, citer le document et la page ou section quand
 le résultat les fournit. Distinguer le texte source de son interprétation.
@@ -82,8 +84,8 @@ Ne pas fusionner silencieusement les deux états; dater ou qualifier la source.
 
 ## Questions transversales
 
-- Affaire seule : rechercher uniquement `VAULT_AFFAIRES`.
-- Référence seule : rechercher uniquement `VAULT_DOCUMENTAIRES`.
+- Affaire seule : rechercher uniquement dans `projects`.
+- Référence seule : rechercher uniquement dans `knowledge`.
 - Conformité ou comparaison affaire/référence : rechercher d'abord l'affaire,
   puis la documentation utile, avec un `recall` maximum dans chaque vault.
 - Synchronisation : vérifier les opérations disponibles et comparer avec la

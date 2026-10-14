@@ -297,7 +297,7 @@ python3 implementation/workspace_cockpit/server.py \
 
 The container/native installers now require the Linux-visible AFFAIRES mount directly. They do not create, synchronize or maintain a local source-tree copy.
 
-The operator selects `AFFAIRES_ROOT` locally. It must be the admitted source
+The operator selects `PROJECTS_ROOT` locally. It must be the admitted source
 root whose direct children are project directories. The repository does not
 encode a NAS hostname, share, project name, or intermediary folder; a broader
 NAS share is not an admissible root when it mixes unrelated material.
@@ -608,19 +608,19 @@ temporary process buffers / bounded transient extraction
 
 These are not professional source copies.
 
-For the container deployment set `AFFAIRES_ROOT` to the Linux-mounted NAS path. For native systemd installation use `--affaires-root /path/to/mounted/AFFAIRES`.
+For the container deployment set `PROJECTS_ROOT` to the Linux-mounted NAS path. For native systemd installation use `--projects-root /path/to/mounted/AFFAIRES`.
 
 The installer verifies read/traverse access but never rewrites NAS ACLs recursively.
 
 
 ## Active AFFAIRES project catalogue
 
-The productive Workspace source is the reviewed `AFFAIRES_ROOT`, whose direct
+The productive Workspace source is the reviewed `PROJECTS_ROOT`, whose direct
 children are active project directories. `ARCHIVES/PROJET` is not admitted as a
 Workspace source and is not scanned, indexed or sent to Hindsight by this path.
 
 The standalone producer derives a bounded catalogue only from direct
-first-level directories below `AFFAIRES_ROOT` and persists it in the same
+first-level directories below `PROJECTS_ROOT` and persists it in the same
 technical SQLite projection. The optional Cockpit reads that persisted
 catalogue through:
 

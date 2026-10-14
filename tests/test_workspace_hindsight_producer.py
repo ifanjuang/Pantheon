@@ -685,7 +685,7 @@ def test_http_client_updates_only_document_tags_for_same_project_move() -> None:
         return _Response({"success": True})
 
     client = module.HindsightHTTPClient(
-        "http://127.0.0.1:8888", "AGENCY_PROJECTS", timeout_seconds=9
+        "http://127.0.0.1:8888", "PROJECTS", timeout_seconds=9
     )
     with patch.object(module, "urlopen", fake_urlopen):
         client.update_document_tags(
@@ -696,7 +696,7 @@ def test_http_client_updates_only_document_tags_for_same_project_move() -> None:
     request = captured["request"]
     assert request.method == "PATCH"
     assert request.full_url.endswith(
-        "/v1/default/banks/AGENCY_PROJECTS/documents/doc-1%3Asource"
+        "/v1/default/banks/PROJECTS/documents/doc-1%3Asource"
     )
     assert json.loads(request.data) == {
         "tags": ["source:project-sync", "scope:project:alpha", "folder:alpha-dce"]
@@ -714,14 +714,14 @@ def test_http_client_deletes_one_exact_hindsight_document() -> None:
         return _Response({"success": True})
 
     client = module.HindsightHTTPClient(
-        "http://127.0.0.1:8888", "AGENCY_PROJECTS", timeout_seconds=9
+        "http://127.0.0.1:8888", "PROJECTS", timeout_seconds=9
     )
     with patch.object(module, "urlopen", fake_urlopen):
         client.delete_document("doc-1:source")
 
     assert captured["request"].method == "DELETE"
     assert captured["request"].full_url.endswith(
-        "/v1/default/banks/AGENCY_PROJECTS/documents/doc-1%3Asource"
+        "/v1/default/banks/PROJECTS/documents/doc-1%3Asource"
     )
     assert captured["timeout"] == 9
 
