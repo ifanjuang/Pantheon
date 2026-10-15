@@ -31,6 +31,8 @@ READ_ONLY = ToolAnnotations(
     idempotent_hint=True,
     open_world_hint=False,
 )
+# Tools are registered with structured_output=False: they return JSON text, and a
+# structured copy ({"result": <same text>}) would reach the model twice.
 
 
 def _reply(method: Callable[[], dict]) -> str:
@@ -40,13 +42,13 @@ def _reply(method: Callable[[], dict]) -> str:
         return json.dumps({"status": "error", "reason": str(exc)}, ensure_ascii=False)
 
 
-@mcp.tool(annotations=READ_ONLY)
+@mcp.tool(annotations=READ_ONLY, structured_output=False)
 def find_vault_projects(designation: str, max_items: int = 12) -> str:
     """Find bounded project-directory candidates by explicit name; no identity admission."""
     return _reply(lambda: VaultSources.from_environment().find_projects(designation, max_items))
 
 
-@mcp.tool(annotations=READ_ONLY)
+@mcp.tool(annotations=READ_ONLY, structured_output=False)
 def list_vault_project_sources(project_ref: str, topic: str = "", max_items: int = 30) -> str:
     """Inventory Markdown/PDF paths in one selected project; path matches are only leads."""
     return _reply(lambda: VaultSources.from_environment().list_project_sources(
@@ -54,7 +56,7 @@ def list_vault_project_sources(project_ref: str, topic: str = "", max_items: int
     ))
 
 
-@mcp.tool(annotations=READ_ONLY)
+@mcp.tool(annotations=READ_ONLY, structured_output=False)
 def search_vault_markdown(
     source_path: str, term: str, project_ref: str = "", max_hits: int = 8
 ) -> str:
@@ -64,7 +66,7 @@ def search_vault_markdown(
     ))
 
 
-@mcp.tool(annotations=READ_ONLY)
+@mcp.tool(annotations=READ_ONLY, structured_output=False)
 def read_vault_markdown_lines(
     source_path: str, start_line: int = 1, max_lines: int = 24, project_ref: str = ""
 ) -> str:

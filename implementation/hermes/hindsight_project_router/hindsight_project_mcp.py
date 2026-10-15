@@ -129,7 +129,9 @@ TOOLS = {
     "knowledge": (recall_knowledge_memory, hindsight_knowledge_folders),
 }
 for _tool in TOOLS[MODE]:
-    mcp.tool(annotations=READ_ONLY)(_tool)
+    # structured_output=False: the tools return JSON text; a structured copy
+    # ({"result": <same text>}) would reach the model twice.
+    mcp.tool(annotations=READ_ONLY, structured_output=False)(_tool)
 
 
 class BearerGuard:
