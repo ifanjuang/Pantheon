@@ -43,7 +43,7 @@ def test_recall_forces_source_project_and_all_strict() -> None:
     assert body["tags_match"] == "all_strict"
     assert body["types"] == ["world", "experience"]
     assert body["prefer_observations"] is False
-    assert body["include"] == {"entities": None, "chunks": {}, "source_facts": None}
+    assert body["include"] == {"entities": None, "chunks": {"max_tokens": 2048}, "source_facts": None}
     assert result["project_scope"] == f"scope:project:{module.project_scope_token('Projet Alpha')}"
     assert result["mode"] == "source-grounded-evidence"
     assert result["results"][0]["document_id"] == "doc-1:source"
@@ -198,3 +198,11 @@ def test_knowledge_recall_rejects_empty_query_before_hindsight_call() -> None:
         with pytest.raises(module.ProjectRecallError):
             client.recall_knowledge("   ")
     post.assert_not_called()
+
+
+def test_raw_chunks_share_the_bounded_recall_budget() -> None:
+    module = _module()
+    for requested, expected in ((6, 256), (1200, 1200), (100000, 4096)):
+        body = module.ProjectRecallClient._recall_body("q", ["source:x"], requested)
+        assert body["max_tokens"] == expected
+        assert body["include"]["chunks"] == {"max_tokens": expected}
