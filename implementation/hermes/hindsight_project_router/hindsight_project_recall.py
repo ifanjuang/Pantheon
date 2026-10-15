@@ -95,14 +95,18 @@ class ProjectRecallClient:
 
     @staticmethod
     def _recall_body(query: str, tags: list[str], max_tokens: int) -> dict[str, Any]:
+        budget = max(256, min(int(max_tokens), 4096))
         return {
             "query": query,
             "types": ["world", "experience"],
             "budget": "mid",
-            "max_tokens": max(256, min(int(max_tokens), 4096)),
+            "max_tokens": budget,
             "trace": False,
             "prefer_observations": False,
-            "include": {"entities": None, "chunks": {}, "source_facts": None},
+            # Hindsight bounds facts with max_tokens but raw chunks separately
+            # (8192 tokens by default): without this cap one recall can fill a
+            # local model's context window on its own.
+            "include": {"entities": None, "chunks": {"max_tokens": budget}, "source_facts": None},
             "tags": tags,
             "tags_match": "all_strict",
         }
