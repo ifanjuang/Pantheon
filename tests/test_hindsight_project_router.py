@@ -206,3 +206,56 @@ def test_raw_chunks_share_the_bounded_recall_budget() -> None:
         body = module.ProjectRecallClient._recall_body("q", ["source:x"], requested)
         assert body["max_tokens"] == expected
         assert body["include"]["chunks"] == {"max_tokens": expected}
+
+
+def test_evidence_keeps_text_and_provenance_but_drops_index_bookkeeping() -> None:
+    module = _module()
+    client = module.ProjectRecallClient(
+        "http://127.0.0.1:8888", "KNOWLEDGE", source_kind="knowledge"
+    )
+    response = {
+        "results": [{
+            "id": "fact-1",
+            "text": "Épaisseur minimale 15 mm",
+            "type": "world",
+            "document_id": "doc-1:source",
+            "chunk_id": "chunk-1",
+            "tags": ["source:knowledge", "folder:standards"],
+            "context": "professional source document; title=Standard.pdf; folder ancestry=Standards",
+            "scores": {"semantic": 0.61, "bm25": 3.2, "rerank": 0.8},
+            "entities": None,
+            "occurred_start": None,
+            "source_fact_ids": [],
+            "metadata": {
+                "title": "Standard.pdf",
+                "revision": "B",
+                "source_path": "Standards/Standard.pdf",
+                "source_sha256": "0" * 64,
+                "workspace": "Library",
+                "parent_path": "Standards",
+                "source_kind": "knowledge",
+                "folder_ancestry": "Standards",
+                "pantheon_document_id": "doc-1",
+            },
+        }],
+        "chunks": {
+            "chunk-1": {"id": "chunk-1", "text": "…15 mm…", "chunk_index": 3, "truncated": False, "attachments": []},
+            "chunk-other": {"id": "chunk-other", "text": "unrelated"},
+        },
+    }
+    with patch.object(client, "_post", return_value=response):
+        result = client.recall_knowledge("épaisseur ?", folder="standards")
+
+    assert result["results"] == [{
+        "text": "Épaisseur minimale 15 mm",
+        "type": "world",
+        "document_id": "doc-1:source",
+        "chunk_id": "chunk-1",
+        "metadata": {
+            "title": "Standard.pdf",
+            "revision": "B",
+            "source_path": "Standards/Standard.pdf",
+            "source_sha256": "0" * 64,
+        },
+    }]
+    assert result["chunks"] == {"chunk-1": {"text": "…15 mm…", "truncated": False}}
