@@ -15,10 +15,40 @@ from urllib.request import Request, urlopen
 
 TAG_SAFE_RE = re.compile(r"[^a-z0-9._-]+")
 MAX_EVIDENCE_RESULTS = 8
+# Indexing bookkeeping repeated on every row: it restates the enforced scope or
+# derives from source_path, so it costs a local model context without adding
+# provenance. Descriptive document metadata (title, revision, phase...) is kept.
+REDUNDANT_METADATA = frozenset({
+    "workspace", "parent_path", "source_kind", "source_space", "scope_project",
+    "project_hint", "folder_ancestry", "identity_origin", "pantheon_document_id",
+    "project_scope_source", "document_identity_source",
+})
+EVIDENCE_FIELDS = ("text", "type", "document_id", "chunk_id", "occurred_start", "occurred_end", "mentioned_at")
 
 
 class ProjectRecallError(RuntimeError):
     pass
+
+
+def _compact_evidence(result: dict[str, Any]) -> dict[str, Any]:
+    """Keep the text and its provenance; drop scope tags (already enforced),
+    scores, Hindsight context strings and empty fields."""
+    row = {key: result[key] for key in EVIDENCE_FIELDS if result.get(key) not in (None, "", [], {})}
+    metadata = result.get("metadata")
+    if isinstance(metadata, dict):
+        kept = {
+            key: value for key, value in metadata.items()
+            if key not in REDUNDANT_METADATA and value not in (None, "", [], {})
+        }
+        if kept:
+            row["metadata"] = kept
+    return row
+
+
+def _compact_chunk(value: Any) -> Any:
+    if not isinstance(value, dict):
+        return value
+    return {key: value[key] for key in ("document_id", "text", "truncated") if key in value}
 
 
 def tag_value(value: str) -> str:
@@ -138,7 +168,7 @@ class ProjectRecallClient:
             if identity in seen:
                 continue
             seen.add(identity)
-            evidence.append(result)
+            evidence.append(_compact_evidence(result))
             if len(evidence) >= MAX_EVIDENCE_RESULTS:
                 break
 
@@ -146,7 +176,7 @@ class ProjectRecallClient:
         raw_chunks = payload.get("chunks")
         chunks = (
             {
-                chunk_id: value
+                chunk_id: _compact_chunk(value)
                 for chunk_id, value in raw_chunks.items()
                 if chunk_id in chunk_ids
             }
