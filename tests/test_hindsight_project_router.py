@@ -43,7 +43,7 @@ def test_recall_forces_source_project_and_all_strict() -> None:
     assert body["tags_match"] == "all_strict"
     assert body["types"] == ["world", "experience"]
     assert body["prefer_observations"] is False
-    assert body["include"] == {"entities": None, "chunks": {"max_tokens": 2048}, "source_facts": None}
+    assert body["include"] == {"entities": None, "chunks": {"max_tokens": module.CHUNK_TOKENS}, "source_facts": None}
     assert result["project_scope"] == f"scope:project:{module.project_scope_token('Projet Alpha')}"
     assert result["mode"] == "source-grounded-evidence"
     assert result["results"][0]["document_id"] == "doc-1:source"
@@ -110,7 +110,7 @@ def test_recall_omits_unprovenanced_results_and_caps_evidence() -> None:
 
     assert len(result["results"]) == 8
     assert all(row["document_id"] for row in result["results"])
-    assert set(result["chunks"]) == {f"chunk-{index}" for index in range(8)}
+    assert "chunks" not in result
 
 
 def test_pending_or_empty_project_is_rejected_before_hindsight_call() -> None:
@@ -200,12 +200,12 @@ def test_knowledge_recall_rejects_empty_query_before_hindsight_call() -> None:
     post.assert_not_called()
 
 
-def test_raw_chunks_share_the_bounded_recall_budget() -> None:
+def test_fact_budget_is_bounded_and_chunks_stay_internal() -> None:
     module = _module()
     for requested, expected in ((6, 256), (1200, 1200), (100000, 4096)):
         body = module.ProjectRecallClient._recall_body("q", ["source:x"], requested)
         assert body["max_tokens"] == expected
-        assert body["include"]["chunks"] == {"max_tokens": expected}
+        assert body["include"]["chunks"] == {"max_tokens": module.CHUNK_TOKENS}
 
 
 def test_evidence_keeps_text_and_provenance_but_drops_index_bookkeeping() -> None:
@@ -239,7 +239,11 @@ def test_evidence_keeps_text_and_provenance_but_drops_index_bookkeeping() -> Non
             },
         }],
         "chunks": {
-            "chunk-1": {"id": "chunk-1", "text": "…15 mm…", "chunk_index": 3, "truncated": False, "attachments": []},
+            "chunk-1": {
+                "id": "chunk-1",
+                "text": "3.2.2.3 Epaisseur\nL'épaisseur minimale des lames est de 15 mm pour des\nsupports courants.",
+                "chunk_index": 3, "truncated": False, "attachments": [],
+            },
             "chunk-other": {"id": "chunk-other", "text": "unrelated"},
         },
     }
@@ -257,5 +261,58 @@ def test_evidence_keeps_text_and_provenance_but_drops_index_bookkeeping() -> Non
             "source_path": "Standards/Standard.pdf",
             "source_sha256": "0" * 64,
         },
+        "quote": "3.2.2.3 Epaisseur L'épaisseur minimale des lames est de 15 mm pour des supports courants.",
+        "section": "3.2.2.3 Epaisseur",
+        "citation": "Standard.pdf, 3.2.2.3 Epaisseur",
     }]
-    assert result["chunks"] == {"chunk-1": {"text": "…15 mm…", "truncated": False}}
+    assert "chunks" not in result
+
+
+def test_quote_is_verbatim_and_located_under_its_heading() -> None:
+    module = _module()
+    chunk = (
+        "8.6 Lame d'air ventilée\n"
+        "La lame d'air ventilée est spécifique au bardage et ne peut servir à la\n"
+        "ventilation d'autres ouvrages.\n"
+        "8.6.1  Section de ventilation\n"
+        "Les entrées basses sont de section suffisante : 50 cm2 /ml pour une hauteur\n"
+        "au plus égale à 3 m ; 65 cm2 /ml pour une hauteur de 3 m à 6 m.\n"
+    )
+    quote, section = module.locate_quote(
+        "Les entrées basses ont une section de 50 cm²/ml jusqu'à 3 m de hauteur.", chunk
+    )
+    assert "Les entrées basses sont de section suffisante : 50 cm2 /ml" in quote
+    assert " ".join(quote.split()) in " ".join(chunk.split())
+    assert section == "8.6.1 Section de ventilation"
+
+
+def test_no_quote_when_a_figure_of_the_summary_is_absent() -> None:
+    module = _module()
+    # The formula is an image in the source: the extracted text lacks "1000".
+    chunk = "8.6.1 Section de ventilation\nLa section est calculée selon la formule suivante :\noù K = 50 pour les autres cas"
+    assert module.locate_quote(
+        "La section est calculée selon la formule S = K × H / 1000, où K = 50.", chunk
+    ) == (None, None)
+
+
+def test_no_quote_when_the_chunk_does_not_carry_the_summary() -> None:
+    module = _module()
+    assert module.locate_quote(
+        "Les acrotères reçoivent une couvertine.", "Les menuiseries sont alignées à 4 mm près."
+    ) == (None, None)
+
+
+def test_quote_elides_print_footers_contacts_and_vertical_margin_text() -> None:
+    module = _module()
+    chunk = (
+        "Les sorties de la lame d'air sont protégées en tête par couvertine ou appui de\n"
+        "http://intranet:8080/print.jsp?code=X Page 19 of 65 contact@example.org\n"
+        "baie avec un recouvrement suffisant.\n"
+        "e r u t i o t - s u o S 1 0 5\n"
+    )
+    quote, _ = module.locate_quote(
+        "Les sorties de la lame d'air sont protégées en tête par couvertine ou appui de baie.", chunk
+    )
+    assert "http" not in quote and "@" not in quote and "Page 19" not in quote
+    assert "[…]" in quote
+    assert "e r u t" not in quote
