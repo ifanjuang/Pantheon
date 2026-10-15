@@ -316,3 +316,27 @@ def test_quote_elides_print_footers_contacts_and_vertical_margin_text() -> None:
     assert "http" not in quote and "@" not in quote and "Page 19" not in quote
     assert "[…]" in quote
     assert "e r u t" not in quote
+
+
+def test_a_passage_shared_by_several_facts_is_quoted_once() -> None:
+    module = _module()
+    client = module.ProjectRecallClient(
+        "http://127.0.0.1:8888", "KNOWLEDGE", source_kind="knowledge"
+    )
+    chunk = "3.2 Fixations\nLes lames sont fixées par deux pointes inox de 2,5 mm par appui."
+    tags = ["source:knowledge"]
+    response = {
+        "results": [
+            {"id": f"fact-{i}", "text": text, "document_id": "doc-1:source", "chunk_id": "chunk-1",
+             "tags": tags, "metadata": {"title": "Guide.pdf"}}
+            for i, text in enumerate(("Les lames sont fixées par deux pointes par appui.",
+                                      "Les pointes sont en inox de 2,5 mm."))
+        ],
+        "chunks": {"chunk-1": {"text": chunk}},
+    }
+    with patch.object(client, "_post", return_value=response):
+        first, second = client.recall_knowledge("fixation ?")["results"]
+
+    assert "pointes inox de 2,5 mm" in first["quote"]
+    assert "quote" not in second
+    assert second["citation"] == first["citation"] == "Guide.pdf, 3.2 Fixations"
