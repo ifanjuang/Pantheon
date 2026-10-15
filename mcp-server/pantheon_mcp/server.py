@@ -52,7 +52,9 @@ without it, so the declaration cannot silently drift from the surface it describ
 
 def _read_only_tool():
     """Register one read-only, side-effect-free Pantheon policy tool."""
-    return mcp.tool(annotations=_READ_ONLY_ANNOTATIONS)
+    # structured_output=False: the tools return JSON text; a structured copy
+    # ({"result": <same text>}) would reach the model twice.
+    return mcp.tool(annotations=_READ_ONLY_ANNOTATIONS, structured_output=False)
 
 
 def _dump(data: Any) -> str:
