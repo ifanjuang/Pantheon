@@ -32,7 +32,15 @@ snippet or secondary summary cannot substitute for the exact admitted edition.
 Return: exact standard identity; applicability frame; relevant provisions and
 locators; project facts used; condition-by-condition analysis; contradictions,
 missing data and limits; readiness. If the exact applicable text is unavailable,
-return `blocked` or `needs_user_input`, not a reconstructed rule.
+return `blocked` or `needs_user_input`, not a reconstructed rule. Common
+practice may still be stated as `assumption_only`, without number, edition or
+locator, together with the source that would confirm it.
+
+Search the knowledge vault first, then the web, and say which was used. Write
+a standard reference, section or value only when it appears in a passage read
+in this conversation; a related standard recalled from memory is not cited. A
+section from the tool's `citation` is the section; a printed page is not the
+PDF page.
 
 ```text
 standard recalled != standard inspected

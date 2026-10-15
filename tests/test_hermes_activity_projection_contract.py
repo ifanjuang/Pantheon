@@ -44,7 +44,20 @@ def test_governed_profile_supplement_requires_progress_without_private_reasoning
     assert "skills own procedure" in text
     assert "Pantheon viewpoints and delegated-intervenant labels are optional observable\nlabels, never agents, permissions or decorative prose" in text
     assert "retrieved source material, derived calculations, candidate\noutputs and authorization separate" in text
-    assert len(text.split()) < 180
+    assert len(text.split()) < 400
+
+
+def test_governed_profile_supplement_bounds_professional_answers() -> None:
+    text = SOUL_APPEND.read_text(encoding="utf-8")
+    for block in ("**Réponse**", "**Conditions**", "**Vigilance**", "**Sources**", "**Et ensuite**"):
+        assert block in text
+    assert "search the admitted sources\nbefore answering" in text
+    assert "Put quotation marks only around a `quote` returned by a tool" in text
+    assert "Never write a standard, article, edition, page or value not read" in text
+    assert "`assumption_only`" in text and "never `validated_for_scope`" in text
+    assert "at most four follow-ups drawn from this answer's own" in text
+    assert "« Autre / reformuler »" in text
+    assert "Use `clarify` only after the answer is shown" in text
 
 
 def test_linux_configurator_is_idempotent_and_keeps_a_backup() -> None:
