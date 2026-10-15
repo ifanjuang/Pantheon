@@ -579,6 +579,14 @@ def test_workspace_index_dirty_signal_reconciles_without_ui_scan(tmp_path: Path)
     )
     index.start()
     try:
+        # Wait for the startup reconcile first: on a slow runner it can otherwise
+        # pick up the new file itself and report "startup" instead of "watch".
+        deadline = module.time.monotonic() + 3
+        while module.time.monotonic() < deadline:
+            if index.snapshot()["index_state"].get("last_reconcile_reason") == "startup":
+                break
+            module.time.sleep(0.02)
+        assert index.snapshot()["index_state"]["last_reconcile_reason"] == "startup"
         assert index.snapshot()["item_count"] == 0
         (affaires / "Notice.pdf").write_bytes(b"%PDF")
         index.mark_dirty()
