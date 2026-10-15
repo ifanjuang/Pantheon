@@ -17,6 +17,8 @@ from unittest.mock import patch
 
 import pytest
 
+pytest.importorskip("mcp")  # the packaging job runs the suite without the MCP SDK
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SERVERS = {
