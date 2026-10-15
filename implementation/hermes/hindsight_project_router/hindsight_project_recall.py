@@ -244,6 +244,7 @@ class ProjectRecallClient:
         }
         evidence: list[dict[str, Any]] = []
         seen: set[tuple[str, str, str]] = set()
+        quoted: set[str] = set()
         for result in payload["results"]:
             if not isinstance(result, dict):
                 continue
@@ -256,7 +257,14 @@ class ProjectRecallClient:
             if identity in seen:
                 continue
             seen.add(identity)
-            evidence.append(_compact_evidence(result, chunks.get(chunk_id, "")))
+            row = _compact_evidence(result, chunks.get(chunk_id, ""))
+            # Facts drawn from one passage would repeat it: quote it once; later
+            # rows keep their summary, section and citation.
+            if row.get("quote") in quoted:
+                del row["quote"]
+            elif "quote" in row:
+                quoted.add(row["quote"])
+            evidence.append(row)
             if len(evidence) >= MAX_EVIDENCE_RESULTS:
                 break
         return evidence
