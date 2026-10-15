@@ -51,6 +51,10 @@ visible milestone != MCP-prescribed tool sequence
    consult the relevant DOCUMENTAIRES or authoritative source separately from
    the project source.
 
+When an answer depends on project values not given, read
+[references/project-frame.md](references/project-frame.md) for the frame
+factors, the ways to narrow them and the likely task.
+
 Read [references/professional-source-routing.md](references/professional-source-routing.md)
 before a material professional review. Read
 [references/project-resolution.md](references/project-resolution.md) for an
