@@ -24,15 +24,96 @@ REDUNDANT_METADATA = frozenset({
     "project_scope_source", "document_identity_source",
 })
 EVIDENCE_FIELDS = ("text", "type", "document_id", "chunk_id", "occurred_start", "occurred_end", "mentioned_at")
+# Raw chunks are requested generously from Hindsight but never forwarded: each
+# row carries only the verbatim passage of its own chunk that supports it.
+CHUNK_TOKENS = 8192
+QUOTE_MAX_CHARS = 420
+_WORD_RE = re.compile(r"\w+", re.UNICODE)
+# A numbered heading on its own line ("8.6.1 Section de ventilation", "Annexe B").
+_GLYPH_RE = re.compile(r"\(cid:\d+\)")
+# Sentence-like units: up to a sentence end, a semicolon or a list bullet.
+_UNIT_RE = re.compile(r"(?:[^.;•]|\.(?=\d))+?(?:[.;](?!\d)|(?=•)|$)")
+# Print footers, links and watermark contacts are not part of the source text:
+# they are replaced by an elision mark instead of being quoted.
+_NOISE_RE = re.compile(
+    r"https?://\S+|\b[\w.+-]+@[\w-]+\.[\w.]+\b|\bPage \d+ of \d+\b|(?:\+33|\b0)[1-9](?:[ .]?\d{2}){4}\b"
+)
+_HEADING_RE = re.compile(r"^\s*((?:\d+(?:\.\d+)+|[A-Z](?:\.\d+)+|Annexe\s+[A-Z]))\.?\s+(\S.{0,80}?)\s*$")
 
 
 class ProjectRecallError(RuntimeError):
     pass
 
 
-def _compact_evidence(result: dict[str, Any]) -> dict[str, Any]:
-    """Keep the text and its provenance; drop scope tags (already enforced),
-    scores, Hindsight context strings and empty fields."""
+def _significant_tokens(text: str) -> set[str]:
+    return {token for token in _WORD_RE.findall(text.lower()) if len(token) >= 4 or any(c.isdigit() for c in token)}
+
+
+def _numbers(text: str) -> set[str]:
+    return {token for token in _WORD_RE.findall(text) if token.isdigit()}
+
+
+def _is_spaced_out(unit: str) -> bool:
+    """Margin text printed vertically ("e r u t i o t") extracts as single letters."""
+    tokens = unit.split()
+    return len(tokens) >= 6 and sum(len(token) == 1 for token in tokens) > 0.5 * len(tokens)
+
+
+def _weight(tokens: set[str]) -> int:
+    return sum(2 if token.isdigit() else 1 for token in tokens)
+
+
+def locate_quote(summary: str, chunk_text: str) -> tuple[str | None, str | None]:
+    """Find the verbatim chunk passage that supports a Hindsight summary.
+
+    Returns (quote, section). The quote is copied from the chunk with only
+    whitespace and PDF glyph artifacts normalized; the section is the last
+    numbered heading above it in the same chunk. Either is None when the chunk
+    does not establish it (for example a summary of a table), so a caller never
+    receives a reconstructed quotation or locator.
+    """
+    wanted = _significant_tokens(summary)
+    if not wanted or not chunk_text.strip():
+        return None, None
+    text = _GLYPH_RE.sub(lambda m: " " * len(m.group()), chunk_text)
+    text = _NOISE_RE.sub(lambda m: "[…]".ljust(len(m.group())), text)
+    headings, offset = [], 0
+    for line in text.splitlines(keepends=True):
+        match = _HEADING_RE.match(line)
+        if match:
+            headings.append((offset, " ".join(f"{match.group(1)} {match.group(2)}".split())))
+        offset += len(line)
+    # PDF extraction breaks lines mid-sentence: join them (same length, so the
+    # heading offsets stay valid), then cut at sentence or list-item ends.
+    flow = text.replace("\n", " ")
+    units = [(m.start(), m.group()) for m in _UNIT_RE.finditer(flow) if m.group().strip() and not _is_spaced_out(m.group())]
+    candidates: list[tuple[float, int, int, int]] = []  # ratio, length, first, last
+    for first in range(len(units)):
+        for last in range(first, len(units)):
+            passage = " ".join(unit for _, unit in units[first:last + 1])
+            if len(" ".join(passage.split())) > QUOTE_MAX_CHARS and last > first:
+                break
+            ratio = _weight(wanted & _significant_tokens(passage)) / _weight(wanted)
+            candidates.append((ratio, len(passage), first, last))
+    if not candidates:
+        return None, None
+    top = max(candidate[0] for candidate in candidates)
+    # Near-equal support: the shortest passage is the most precise quotation.
+    ratio, _, first, last = min((c for c in candidates if c[0] >= top - 0.1), key=lambda c: (c[1], -c[0]))
+    quote = " ".join(" ".join(unit for _, unit in units[first:last + 1]).split())
+    if ratio < 0.6 or not _numbers(summary) <= _numbers(quote):
+        return None, None  # the passage does not carry the summary or one of its figures
+    if len(quote) > QUOTE_MAX_CHARS:
+        quote = quote[:QUOTE_MAX_CHARS].rsplit(" ", 1)[0] + " …"
+    # A heading opening the quoted passage is its own section.
+    opening = units[first][0] + len(units[first][1])
+    section = next((title for position, title in reversed(headings) if position < opening), None)
+    return quote, section
+
+
+def _compact_evidence(result: dict[str, Any], chunk_text: str = "") -> dict[str, Any]:
+    """Keep the summary and its provenance, add the verbatim supporting passage;
+    drop scope tags (already enforced), scores, context strings and empty fields."""
     row = {key: result[key] for key in EVIDENCE_FIELDS if result.get(key) not in (None, "", [], {})}
     metadata = result.get("metadata")
     if isinstance(metadata, dict):
@@ -42,13 +123,15 @@ def _compact_evidence(result: dict[str, Any]) -> dict[str, Any]:
         }
         if kept:
             row["metadata"] = kept
+    quote, section = locate_quote(row["text"], chunk_text) if chunk_text else (None, None)
+    if quote:
+        row["quote"] = quote
+    if section:
+        row["section"] = section
+    title = (row.get("metadata") or {}).get("title")
+    if title:
+        row["citation"] = f"{title}, {section}" if section else title
     return row
-
-
-def _compact_chunk(value: Any) -> Any:
-    if not isinstance(value, dict):
-        return value
-    return {key: value[key] for key in ("document_id", "text", "truncated") if key in value}
 
 
 def tag_value(value: str) -> str:
@@ -133,10 +216,9 @@ class ProjectRecallClient:
             "max_tokens": budget,
             "trace": False,
             "prefer_observations": False,
-            # Hindsight bounds facts with max_tokens but raw chunks separately
-            # (8192 tokens by default): without this cap one recall can fill a
-            # local model's context window on its own.
-            "include": {"entities": None, "chunks": {"max_tokens": budget}, "source_facts": None},
+            # Chunks feed the per-row verbatim quote and are not forwarded, so
+            # their budget no longer reaches the model's context window.
+            "include": {"entities": None, "chunks": {"max_tokens": CHUNK_TOKENS}, "source_facts": None},
             "tags": tags,
             "tags_match": "all_strict",
         }
@@ -144,7 +226,7 @@ class ProjectRecallClient:
     @staticmethod
     def _bounded_evidence(
         payload: dict[str, Any], required_tags: tuple[str, ...]
-    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         # Defense in depth: never pass through a result whose returned scope does
         # not prove that Hindsight applied every mandatory selector.
         for result in payload["results"]:
@@ -154,6 +236,12 @@ class ProjectRecallClient:
             if not all(tag in result_tags for tag in required_tags):
                 raise ProjectRecallError("Hindsight returned a result outside the requested scope")
 
+        raw_chunks = payload.get("chunks")
+        chunks = {
+            chunk_id: value["text"]
+            for chunk_id, value in (raw_chunks.items() if isinstance(raw_chunks, dict) else ())
+            if isinstance(value, dict) and isinstance(value.get("text"), str)
+        }
         evidence: list[dict[str, Any]] = []
         seen: set[tuple[str, str, str]] = set()
         for result in payload["results"]:
@@ -168,22 +256,10 @@ class ProjectRecallClient:
             if identity in seen:
                 continue
             seen.add(identity)
-            evidence.append(_compact_evidence(result))
+            evidence.append(_compact_evidence(result, chunks.get(chunk_id, "")))
             if len(evidence) >= MAX_EVIDENCE_RESULTS:
                 break
-
-        chunk_ids = {result["chunk_id"] for result in evidence}
-        raw_chunks = payload.get("chunks")
-        chunks = (
-            {
-                chunk_id: _compact_chunk(value)
-                for chunk_id, value in raw_chunks.items()
-                if chunk_id in chunk_ids
-            }
-            if isinstance(raw_chunks, dict)
-            else {}
-        )
-        return evidence, chunks
+        return evidence
 
     def _list_tags(self, pattern: str, limit: int) -> list[dict[str, Any]]:
         path = f"/v1/default/banks/{quote(self.bank_id, safe='')}/tags?" + urlencode({
@@ -250,7 +326,7 @@ class ProjectRecallClient:
             tags.append(f"folder:{folder_slug}")
 
         payload = self._post(self._recall_body(query, tags, max_tokens))
-        evidence, chunks = self._bounded_evidence(payload, (source_tag, scope_tag))
+        evidence = self._bounded_evidence(payload, (source_tag, scope_tag))
 
         return {
             "status": "ok",
@@ -262,7 +338,6 @@ class ProjectRecallClient:
             "tags_match": "all_strict",
             "max_results": MAX_EVIDENCE_RESULTS,
             "results": evidence,
-            "chunks": chunks,
         }
 
     def recall_knowledge(
@@ -282,7 +357,7 @@ class ProjectRecallClient:
         if folder_slug:
             tags.append(f"folder:{folder_slug}")
         payload = self._post(self._recall_body(query, tags, max_tokens))
-        evidence, chunks = self._bounded_evidence(payload, tuple(tags))
+        evidence = self._bounded_evidence(payload, tuple(tags))
         return {
             "status": "ok",
             "bank_id": self.bank_id,
@@ -292,5 +367,4 @@ class ProjectRecallClient:
             "tags_match": "all_strict",
             "max_results": MAX_EVIDENCE_RESULTS,
             "results": evidence,
-            "chunks": chunks,
         }

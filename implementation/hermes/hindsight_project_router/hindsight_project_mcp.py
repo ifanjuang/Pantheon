@@ -27,8 +27,11 @@ if MODE not in {"project", "knowledge"}:
 _SHARED_INSTRUCTIONS = (
     "It returns at most eight source-grounded world/experience facts, each carrying "
     "an exact document_id and chunk_id. Consolidated observations without "
-    "provenance are not exposed. Verify material claims against the referenced "
-    "document. This service cannot write to Hindsight."
+    "provenance are not exposed. 'text' is a Hindsight summary, not a quotation; "
+    "'quote' (when present) is the verbatim source passage, 'section' the heading "
+    "above it and 'citation' a ready reference. Quote only 'quote', cite only "
+    "'citation', and never add an article, page or edition they do not contain. "
+    "This service cannot write to Hindsight."
 )
 if MODE == "project":
     mcp = MCPServer(
