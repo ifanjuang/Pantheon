@@ -58,6 +58,9 @@ def test_governed_profile_supplement_bounds_professional_answers() -> None:
     assert "at most four follow-ups drawn from this answer's own" in text
     assert "« Autre / reformuler »" in text
     assert "Use `clarify` only after the answer is shown" in text
+    assert "about six tool calls\nbefore a first answer" in text and "never item by item" in text
+    assert "under 200 words besides Sources" in text
+    assert "« schéma illustratif »" in text and "no dimension not read" in text
 
 
 def test_linux_configurator_is_idempotent_and_keeps_a_backup() -> None:
