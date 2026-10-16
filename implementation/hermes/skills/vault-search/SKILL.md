@@ -285,6 +285,14 @@ document opened != Evidence admitted
   `vault-read` before relying on it.
 - Use both when a project-specific fact must be tested against a transversal
   rule. Keep their contributions distinguishable.
+- For a mixed-source conclusion, treat project recall and standards recall as
+  discovery leads, then inspect the exact project source and the exact
+  applicable reference. Compare claim, scope, date/revision, units and
+  applicability; classify an apparent difference, missing applicability fact,
+  stale source or direct conflict. Never let retrieval rank or a blanket
+  project-vs-standard precedence rule erase the other source. If the actual
+  legal/contractual hierarchy is not established, report `to_verify` or
+  `to_arbitrate` with both source locators and the next check.
 - For a mixed document/compliance question, open the exact projects-vault source
   first, then consult only the admitted transversal source needed for the rule
   family. If none is available, label the item `à vérifier`.
