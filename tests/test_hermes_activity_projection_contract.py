@@ -56,7 +56,9 @@ def test_governed_profile_supplement_bounds_professional_answers() -> None:
     assert "structure, fire, fall or ERP\nsafety point" in text
     assert "search the admitted sources\nbefore answering" in text
     assert "Put quotation marks only around a `quote` returned by a tool" in text
-    assert "Never write a standard, article, edition, page or value not read" in text
+    assert "Never write a standard, article, edition, page, value, zone or class\nnot read" in text
+    assert "not even as an assumption or range; name the\ntable still to read" in text
+    assert "A derived value shows its operation and units" in text
     assert "`assumption_only`" in text and "never `validated_for_scope`" in text
     assert "four follow-ups drawn from this answer's own" in text and "never a written list" in text
     assert "« Autre / reformuler »" in text
