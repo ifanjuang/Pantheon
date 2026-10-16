@@ -43,6 +43,9 @@ def test_router_exposes_no_broad_or_write_tool() -> None:
     assert "def recall_knowledge_memory(" in mcp
     assert '"project": (recall_project_memory, hindsight_project_list)' in mcp
     assert '"knowledge": (recall_knowledge_memory, hindsight_knowledge_folders)' in mcp
+    # Listing tools narrow a search; they are not a routine first call.
+    assert "never for a general reference question and never as a routine first step" in mcp
+    assert "Not needed before a first recall" in mcp
     assert "def recall_knowledge(" in core
     assert "tags = [source_tag]" in core
     assert "retain" not in mcp

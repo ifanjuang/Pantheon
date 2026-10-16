@@ -97,7 +97,11 @@ def recall_project_memory(
 
 
 def hindsight_project_list(limit: int = 100) -> str:
-    """List indexed project scopes and memory counts; does not read documents."""
+    """List indexed project scopes and memory counts; does not read documents.
+
+    Call it only when the question names a project whose exact scope is unknown,
+    never for a general reference question and never as a routine first step.
+    """
     try:
         payload = _client().list_project_scopes(limit)
     except (ProjectRecallError, OSError, ValueError) as exc:
@@ -120,7 +124,11 @@ def recall_knowledge_memory(query: str, folder: str = "", max_tokens: int = 2048
 
 
 def hindsight_knowledge_folders(limit: int = 100) -> str:
-    """List indexed knowledge-vault folders and memory counts; does not read documents."""
+    """List indexed knowledge-vault folders and memory counts; does not read documents.
+
+    Not needed before a first recall, which searches the whole knowledge vault:
+    call it only to narrow a recall that missed to one folder.
+    """
     try:
         payload = _client().list_knowledge_folders(limit)
     except (ProjectRecallError, OSError, ValueError) as exc:
