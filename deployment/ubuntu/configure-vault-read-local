@@ -6,6 +6,7 @@ REPO_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/release.env"
 MCP_VERSION="${RELEASE_VAULT_MCP_VERSION:?release.env missing RELEASE_VAULT_MCP_VERSION}"
+PYMUPDF_VERSION="${RELEASE_VAULT_PYMUPDF_VERSION:?release.env missing RELEASE_VAULT_PYMUPDF_VERSION}"
 SOURCE_ROOT="$REPO_ROOT/implementation/hermes/skills/vault-search/scripts"
 APP_ROOT="/opt/pantheon-node/vault-read"
 UV="/opt/pantheon-node/uv/bin/uv"
@@ -44,7 +45,7 @@ while (($#)); do
   shift
 done
 
-[[ -f "$SOURCE_ROOT/vault_mcp.py" && -f "$SOURCE_ROOT/vault_sources.py" ]] \
+[[ -f "$SOURCE_ROOT/vault_mcp.py" && -f "$SOURCE_ROOT/vault_sources.py" && -f "$SOURCE_ROOT/vault_figures.py" ]] \
   || die "repository-owned vault reader sources are missing"
 
 if ((APPLY == 0)); then
@@ -97,10 +98,11 @@ if [[ -f "$APP_ROOT/vault_mcp.py" || -f "$UNIT_FILE" ]]; then
 fi
 install -m 0644 "$SOURCE_ROOT/vault_mcp.py" "$APP_ROOT/vault_mcp.py"
 install -m 0644 "$SOURCE_ROOT/vault_sources.py" "$APP_ROOT/vault_sources.py"
+install -m 0644 "$SOURCE_ROOT/vault_figures.py" "$APP_ROOT/vault_figures.py"
 if [[ ! -x "$APP_ROOT/.venv/bin/python" ]]; then
   "$UV" venv --python /usr/bin/python3 "$APP_ROOT/.venv"
 fi
-"$UV" pip install --python "$APP_ROOT/.venv/bin/python" "mcp==$MCP_VERSION"
+"$UV" pip install --python "$APP_ROOT/.venv/bin/python" "mcp==$MCP_VERSION" "pymupdf==$PYMUPDF_VERSION"
 chmod -R a+rX "$APP_ROOT"
 
 install -d -o pantheon-docling -g pantheon-docling -m 0750 /srv/pantheon/docling

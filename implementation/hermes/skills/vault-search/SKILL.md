@@ -222,6 +222,22 @@ silently establish currentness.
    Hindsight excerpt or internal `spillover` cache is not an inspected passage.
    Markdown extracted from a PDF is a derivative; use Docling on the original
    PDF when page, graphic, signature or source-original verification matters.
+
+### Figures from a source
+
+Look for a figure only when it would carry what the text cannot: the passage
+read refers to one (« figure 28 », « voir schéma »), a caption on that page
+names the subject, or the question is about a layout, detail, assembly, junction
+or sequence. Then call `read_vault_pdf_figures` on the exact original PDF with
+the page, or a few words of the passage or caption. It returns each crop with
+its page and caption as an image you can see.
+
+Before showing a figure, compare it with the question: its caption and what it
+draws must match the subject. Show it with the document, page and caption; drop
+a figure that does not match, and never show an uncaptioned crop as if it were
+named. When nothing matches, say no figure was found; never describe or draw a
+figure in its place. A figure is a reading aid, not Evidence, and its values are
+cited only when its caption or the page text states them.
 For a recent project or information possibly awaiting synchronization, use one
 distinct Mnemosyne recall only when a freshness concern is observed and it can
 change the result. Attribute memory-only information to recent conversation and

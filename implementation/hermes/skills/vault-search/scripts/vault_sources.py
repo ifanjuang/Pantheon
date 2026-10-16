@@ -241,11 +241,17 @@ class VaultSources:
         }
 
     def _markdown(self, source_path: str, project_ref: str = "") -> tuple[Path, str]:
+        path, family = self._located(source_path, project_ref, ".md", "Markdown")
+        if path.stat().st_size > MAX_MARKDOWN_BYTES:
+            raise VaultSourceError("Markdown source exceeds the bounded reader limit")
+        return path, family
+
+    def _located(self, source_path: str, project_ref: str, suffix: str, kind: str) -> tuple[Path, str]:
         supplied = Path(source_path)
         if not supplied.is_absolute():
             raise VaultSourceError("source_path must be an absolute path returned by the source inventory")
-        if supplied.is_symlink() or not supplied.is_file() or supplied.suffix.casefold() != ".md":
-            raise VaultSourceError("source_path must be an existing Markdown file, not a directory or link")
+        if supplied.is_symlink() or not supplied.is_file() or supplied.suffix.casefold() != suffix:
+            raise VaultSourceError(f"source_path must be an existing {kind} file, not a directory or link")
         path = supplied.resolve(strict=True)
         if path.is_relative_to(self.projects_root):
             if not project_ref or not path.is_relative_to(self._project(project_ref)):
@@ -257,9 +263,29 @@ class VaultSources:
             family = "knowledge"
         else:
             raise VaultSourceError("source_path is outside the admitted vault mirrors")
-        if path.stat().st_size > MAX_MARKDOWN_BYTES:
-            raise VaultSourceError("Markdown source exceeds the bounded reader limit")
         return path, family
+
+    def pdf_figures(
+        self, source_path: str, page: int = 0, text: str = "", project_ref: str = "",
+        max_items: int = 3,
+    ) -> tuple[dict, list[bytes]]:
+        """Caption-located figure crops from one exact PDF; images are returned separately."""
+        from vault_figures import FigureError, read_figures
+
+        path, family = self._located(source_path, project_ref, ".pdf", "PDF")
+        try:
+            result, images = read_figures(path, page, text, max_items)
+        except FigureError as exc:
+            raise VaultSourceError(str(exc)) from exc
+        return {
+            "source_path": str(path),
+            "source_family": family,
+            "representation": "pdf_figure_crop",
+            **result,
+            "status": "figures" if result["figures"] else "no_figure_found",
+            "figure_checked_against_question": False,
+            "evidence_admitted": False,
+        }, images
 
     def search_markdown(
         self, source_path: str, term: str, project_ref: str = "", max_hits: int = 8

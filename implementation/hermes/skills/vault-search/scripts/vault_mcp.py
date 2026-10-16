@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Callable
 
 from mcp.server import MCPServer
+from mcp.server.mcpserver.utilities.types import Image
 from mcp.types import ToolAnnotations
 
 from vault_sources import VaultSourceError, VaultSources
@@ -21,8 +22,9 @@ mcp = MCPServer(
     instructions=(
         "Read-only agency vault mirror discovery. Paths are source leads, not project "
         "identity or Evidence. Search previews are not inspected passages; use "
-        "read_vault_markdown_lines for line-located source content. PDFs require "
-        "the separately admitted Docling binding."
+        "read_vault_markdown_lines for line-located source content. PDF text requires "
+        "the separately admitted Docling binding; read_vault_pdf_figures returns "
+        "caption-located figure crops from one exact PDF."
     ),
 )
 READ_ONLY = ToolAnnotations(
@@ -74,6 +76,25 @@ def read_vault_markdown_lines(
     return _reply(lambda: VaultSources.from_environment().read_markdown_lines(
         source_path, start_line, max_lines, project_ref
     ))
+
+
+@mcp.tool(annotations=READ_ONLY, structured_output=False)
+def read_vault_pdf_figures(
+    source_path: str, page: int = 0, text: str = "", project_ref: str = "", max_items: int = 3
+) -> list:
+    """Crop the figures of one exact PDF page with their captions, as images.
+
+    Give the 1-based page, or a few words of the passage or caption to locate it.
+    Compare each figure with the question before showing it; a figure without a
+    caption, or one that does not match, is not shown. Never Evidence.
+    """
+    try:
+        result, images = VaultSources.from_environment().pdf_figures(
+            source_path, page, text, project_ref, max_items
+        )
+    except (VaultSourceError, OSError) as exc:
+        return [json.dumps({"status": "error", "reason": str(exc)}, ensure_ascii=False)]
+    return [json.dumps(result, ensure_ascii=False), *(Image(data=data, format="png") for data in images)]
 
 
 class BearerGuard:
