@@ -1,4 +1,4 @@
-"""Bounded figure crops from one exact vault PDF page, located by caption.
+"""Bounded figures from one exact vault PDF page, located by caption.
 
 A figure is a drawing or embedded-image region of the page together with the
 caption that names it (« Figure 28 … », « Tableau 1 … », « Schéma … »). The
@@ -19,6 +19,7 @@ MAX_FIGURES = 4
 MAX_PAGES_SEARCHED = 2
 MAX_IMAGE_BYTES = 2 * 1024 * 1024
 RENDER_DPI = 144
+MAX_NATIVE_SIDE = 2400  # pixels; a larger embedded image is halved until it fits
 SEARCH_SECONDS = 8  # a common word on every page must not stall the reader
 MIN_REGION_PT = 36  # below this, a rule, logo or pictogram
 CAPTION = re.compile(r"^\s*(figure|fig\.?|sch[ée]ma|tableau|planche|d[ée]tail)\s*n?°?\s*\d+", re.IGNORECASE)
@@ -90,12 +91,44 @@ def page_figures(page, mu) -> list[dict]:
         region = _nearest(rect, regions)
         if region is None:
             continue
-        figures.append({"caption": text, "rect": region | rect})
+        figures.append({"caption": text, "rect": region | rect, "region": region})
     if not figures:  # an uncaptioned drawing is offered only when the page names none
-        figures = [{"caption": "", "rect": region} for region in regions
+        figures = [{"caption": "", "rect": region, "region": region} for region in regions
                    if region.height * region.width > 120 * 80]
     figures.sort(key=lambda f: (f["rect"].y0, f["rect"].x0))
     return figures
+
+
+def _embedded(page, region, mu) -> bytes | None:
+    """The figure's own image when it is one embedded image and nothing is drawn or
+    written over it: full source resolution. Otherwise None, and the region is
+    rendered so labels, dimensions and vector strokes stay with the drawing."""
+    inside = [info for info in page.get_image_info(xrefs=True)
+              if region.contains(mu.Rect(info["bbox"]) + (-2, -2, 2, 2)) or region.intersects(mu.Rect(info["bbox"]))]
+    if len(inside) != 1 or not inside[0].get("xref"):
+        return None
+    box = mu.Rect(inside[0]["bbox"])
+    if box.get_area() < 0.85 * region.get_area():
+        return None
+    inner = box + (4, 4, -4, -4)
+    if any(inner.intersects(mu.Rect(b[:4])) for b in page.get_text("blocks")):
+        return None
+    background = 0.5 * page.rect.get_area()  # a page-wide fill is not drawn over the figure
+    if any(inner.intersects(d["rect"]) for d in page.get_drawings()
+           if 4 < d["rect"].get_area() < background):
+        return None
+    try:
+        pix = mu.Pixmap(page.parent, inside[0]["xref"])
+        if pix.alpha:
+            pix = mu.Pixmap(pix, 0)
+        if pix.colorspace and pix.colorspace.n not in (1, 3):
+            pix = mu.Pixmap(mu.csRGB, pix)
+        while max(pix.width, pix.height) > MAX_NATIVE_SIDE:
+            pix.shrink(1)
+        data = pix.tobytes("png")
+    except (RuntimeError, ValueError):
+        return None
+    return data if len(data) <= MAX_IMAGE_BYTES else None
 
 
 def _render(page, rect, mu) -> bytes:
@@ -163,11 +196,15 @@ def read_figures(path: Path, page: int = 0, text: str = "", max_items: int = 3) 
             for figure in figures:
                 if len(items) >= max_items:
                     break
-                images.append(_render(current, figure["rect"], mu))
+                native = _embedded(current, figure["region"], mu)
+                images.append(native or _render(current, figure["rect"], mu))
                 items.append({
                     "page": number,
                     "caption": figure["caption"],
                     "caption_found": bool(figure["caption"]),
+                    # embedded_image: the PDF's own picture, caption given here only;
+                    # page_crop: the rendered region, caption included in the image.
+                    "rendering": "embedded_image" if native else "page_crop",
                     "image": len(images),
                 })
         return {
