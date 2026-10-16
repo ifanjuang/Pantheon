@@ -50,6 +50,7 @@ documents:
     - list_vault_project_sources
     - search_vault_markdown
     - read_vault_markdown_lines
+  figure_reader_tool: read_vault_pdf_figures
 
 boundaries:
   config_values_are_not_doctrine: true
