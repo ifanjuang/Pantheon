@@ -49,17 +49,20 @@ def test_governed_profile_supplement_requires_progress_without_private_reasoning
 
 def test_governed_profile_supplement_bounds_professional_answers() -> None:
     text = SOUL_APPEND.read_text(encoding="utf-8")
-    for block in ("**Réponse**", "**Conditions**", "**Vigilance**", "**Sources**", "**Et ensuite**"):
+    for block in ("**Réponse**", "**À vérifier**", "**Sources**"):
         assert block in text
+    assert "**Conditions**" not in text and "**Et ensuite**" not in text
+    assert "Detail conditions and risks\nonly when asked" in text
+    assert "structure, fire, fall or ERP\nsafety point" in text
     assert "search the admitted sources\nbefore answering" in text
     assert "Put quotation marks only around a `quote` returned by a tool" in text
     assert "Never write a standard, article, edition, page or value not read" in text
     assert "`assumption_only`" in text and "never `validated_for_scope`" in text
-    assert "at most four follow-ups drawn from this answer's own" in text
+    assert "four follow-ups drawn from this answer's own" in text and "never a written list" in text
     assert "« Autre / reformuler »" in text
     assert "Use `clarify` only after the answer is shown" in text
     assert "about six tool calls\nbefore a first answer" in text and "never item by item" in text
-    assert "under 200 words besides Sources" in text
+    assert "under 120 words besides Sources" in text
     assert "Show a figure only once opened and checked" in text and "else say none" in text
     assert "Draw only\norganisations, processes or phasing" in text
     assert "« schéma illustratif »" in text and "dimension not read" in text

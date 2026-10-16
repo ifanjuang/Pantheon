@@ -27,11 +27,21 @@ snippet or secondary summary cannot substitute for the exact admitted edition.
 5. State the conclusion at issue level; do not claim global project conformity
    from a bounded standard review.
 
+When a project source and a standard appear to disagree, keep the project
+statement and the standard's requirement as separate claims. Check whether they
+address the same object, phase, date, scope, units and conditions; then classify
+the relation as an apparent difference, a missing applicability fact, a stale
+source or a direct conflict. Do not make either source erase the other. Identify
+the applicable legal and contractual hierarchy for the specific issue; if the
+inspected sources do not establish it, leave the result `to_verify` or
+`to_arbitrate` and name the needed review.
+
 ## Result contract
 
 Return: exact standard identity; applicability frame; relevant provisions and
-locators; project facts used; condition-by-condition analysis; contradictions,
-missing data and limits; readiness. If the exact applicable text is unavailable,
+locators; project facts used; condition-by-condition analysis; relationship
+between each project and reference claim; contradictions, missing data and
+limits; readiness. If the exact applicable text is unavailable,
 return `blocked` or `needs_user_input`, not a reconstructed rule. Common
 practice may still be stated as `assumption_only`, without number, edition or
 locator, together with the source that would confirm it.

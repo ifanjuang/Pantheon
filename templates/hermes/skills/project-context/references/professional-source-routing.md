@@ -56,6 +56,61 @@ surface missing support, freshness, contradiction and capability limits. Use
 authoritative current external source is needed; minimize project detail before
 any external query.
 
+## Mixed project and reference claims
+
+For a question that tests a project condition against a general rule, keep the
+two claim families separate through retrieval, inspection and the final answer:
+
+| Claim | Source family | What it can establish |
+|---|---|---|
+| What is specified, observed, decided or recorded for this project | `projects` | The project record, within its date, revision, issuer and validation status |
+| What a law, regulation, standard or professional reference says | `knowledge` or the current official source | The cited text, edition/date, scope and conditions; not project compliance by itself |
+| Whether the project condition satisfies the applicable rule | Both, plus applicability facts | A bounded comparison candidate; not professional approval or certification |
+
+Do not treat project memory as the project source: use recall to locate the
+record, then inspect the exact project document for a material project fact.
+Likewise, a standards recall locates a reference but does not establish its
+wording, edition or applicability; inspect the exact passage.
+
+When two inspected sources appear inconsistent, compare the same claim and
+conditions before calling it a contradiction. Check that they concern the same
+object, location, material, phase, date, revision, units and scope. Classify the
+result as one of:
+
+```text
+apparent_difference       # different scope, condition, unit or time
+project_reference_gap     # project value is known; applicable rule is not established
+reference_project_gap     # rule is known; project fact or applicability is missing
+stale_or_superseded       # one source may no longer describe the applicable state
+direct_conflict           # same claim and conditions, incompatible statements
+```
+
+Never resolve a `direct_conflict` by retrieval rank, recency alone, source count,
+or a blanket rule that one source family always wins. Project records establish
+what was specified or decided; they do not override applicable law or establish
+technical compliance. A standard or general reference does not rewrite the
+project record, and a standard's applicability may depend on law, contract,
+edition, date and project conditions. Use the relevant source hierarchy only
+after identifying the actual question and applicable instruments. If that
+cannot be established from inspected sources, preserve both readings and mark
+the conclusion `to_verify` or `to_arbitrate`.
+
+For a material mixed-source answer, use a compact comparison with these fields:
+
+```text
+project statement | exact source + locator + status
+reference statement | exact source + edition/date + locator
+applicability | matched conditions and missing conditions
+relationship | one of the classifications above
+result | what is supported, what remains unresolved, and the next verification
+```
+
+Do not merge a project value and a general rule into one unqualified number or
+sentence. If the difference affects safety, legal compliance, contract,
+responsibility or an external instruction, stop at the unresolved gate and
+identify the competent reviewer or exact source needed. Keep the non-selected
+source visible; arbitration changes the next status, not the historical record.
+
 For a consequential decision, external action, protected mutation, durable
 retention or professional conclusion, obtain the selected Pantheon routing
 before the effect. It proposes a path and readiness; it neither opens the
