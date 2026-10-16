@@ -106,3 +106,33 @@ def test_mcp_tool_returns_metadata_then_images(vaults, monkeypatch) -> None:
     assert json.loads(blocks[0].text)["figures"][0]["page"] == 3
     assert [block.type for block in blocks] == ["text", "image"]
     assert (getattr(blocks[1], "mime_type", None) or getattr(blocks[1], "mimeType", None)) == "image/png"
+
+
+def _picture(width: int, height: int) -> bytes:
+    pix = pymupdf.Pixmap(pymupdf.csRGB, pymupdf.IRect(0, 0, width, height), False)
+    pix.set_rect(pix.irect, (200, 120, 40))
+    return pix.tobytes("png")
+
+
+def test_single_embedded_picture_is_returned_at_source_resolution(tmp_path: Path) -> None:
+    (tmp_path / "affaires").mkdir()
+    knowledge = tmp_path / "bibliotheque"
+    knowledge.mkdir()
+    source = knowledge / "images.pdf"
+    doc = pymupdf.open()
+    plain = doc.new_page()
+    plain.insert_image(pymupdf.Rect(80, 80, 380, 280), stream=_picture(1200, 800))
+    plain.insert_text((80, 300), "Figure 1 Photo de chantier", fontsize=9)
+    labelled = doc.new_page()
+    labelled.insert_image(pymupdf.Rect(80, 80, 380, 280), stream=_picture(1200, 800))
+    labelled.insert_text((150, 180), "pare-pluie 20 mm", fontsize=9)
+    labelled.insert_text((80, 300), "Figure 2 Coupe cotee", fontsize=9)
+    doc.save(source)
+    reader = VaultSources(tmp_path / "affaires", knowledge)
+
+    result, images = reader.pdf_figures(str(source), page=1)
+    assert result["figures"][0]["rendering"] == "embedded_image"
+    assert (pymupdf.Pixmap(images[0]).width, pymupdf.Pixmap(images[0]).height) == (1200, 800)
+
+    result, _ = reader.pdf_figures(str(source), page=2)
+    assert result["figures"][0]["rendering"] == "page_crop"  # the label drawn over it stays visible
