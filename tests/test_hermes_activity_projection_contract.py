@@ -67,8 +67,9 @@ def test_governed_profile_supplement_bounds_professional_answers() -> None:
     assert "Use `clarify` only after the answer is shown" in text
     assert "about six tool calls\nbefore a first answer" in text and "never item by item" in text
     assert "under 120 words besides Sources" in text
-    assert "Show a figure only once opened and checked" in text and "else say none" in text
-    assert "Draw only\norganisations, processes or phasing" in text
+    assert "Show a figure or image met in what you read" in text and "seek one only when asked" in text
+    assert "Find a standard detail, never draw it" in text
+    assert "Draw only organisations, processes or a project-specific detail no\nsource shows" in text
     assert "« schéma illustratif »" in text and "dimension not read" in text
 
 
