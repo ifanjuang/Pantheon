@@ -291,6 +291,27 @@ class VaultSources:
             "evidence_admitted": False,
         }, images
 
+    def pdf_pages(
+        self, source_path: str, page: int = 0, text: str = "", project_ref: str = "",
+        max_pages: int = 2,
+    ) -> tuple[dict, list[bytes]]:
+        """Text-layer pages of one exact PDF; scanned pages come back as images."""
+        from vault_figures import FigureError, read_pages
+
+        path, family = self._located(source_path, project_ref, ".pdf", "PDF")
+        try:
+            result, images = read_pages(path, page, text, max_pages)
+        except FigureError as exc:
+            raise VaultSourceError(str(exc)) from exc
+        return {
+            "source_path": str(path),
+            "source_family": family,
+            "representation": "pdf_text_layer",
+            **result,
+            "status": "pages" if result["pages"] else "not_found",
+            "evidence_admitted": False,
+        }, images
+
     def search_markdown(
         self, source_path: str, term: str, project_ref: str = "", max_hits: int = 8
     ) -> dict:

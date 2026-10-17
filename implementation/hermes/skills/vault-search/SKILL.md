@@ -308,6 +308,11 @@ sources and pages needed. Preserve source identity and locator.
 
 ### Docling tool routing
 
+For a passage of a PDF, call `vault-read:read_vault_pdf_pages` first, with the
+path as recall cites it and the page or a few words of the passage: it reads the
+PDF's own text in a second, and returns a scanned page as an image. Convert with
+Docling only when that text is missing or a table's structure is needed.
+
 When the requested answer depends on the content of a PDF, DOCX, PPTX, XLSX or
 image, use the configured Docling MCP binding through this bounded sequence:
 

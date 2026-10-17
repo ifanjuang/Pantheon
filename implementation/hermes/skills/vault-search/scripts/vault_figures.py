@@ -1,4 +1,7 @@
-"""Bounded figures from one exact vault PDF page, located by caption.
+"""Bounded figures and page text from one exact vault PDF.
+
+Page text is the PDF's own text layer, read without conversion or OCR; a page
+without one (a scan) is returned as an image for the reader to look at.
 
 A figure is a drawing or embedded-image region of the page together with the
 caption that names it (« Figure 28 … », « Tableau 1 … », « Schéma … »). The
@@ -21,6 +24,10 @@ MAX_IMAGE_BYTES = 2 * 1024 * 1024
 RENDER_DPI = 144
 MAX_NATIVE_SIDE = 2400  # pixels; a larger embedded image is halved until it fits
 SEARCH_SECONDS = 8  # a common word on every page must not stall the reader
+MAX_PAGES_READ = 3
+MAX_PAGE_CHARS = 6000
+MIN_TEXT_CHARS = 40  # below this a page is treated as a scan
+SCAN_DPI = 110
 MIN_REGION_PT = 36  # below this, a rule, logo or pictogram
 CAPTION = re.compile(r"^\s*(figure|fig\.?|sch[ée]ma|tableau|planche|d[ée]tail)\s*n?°?\s*\d+", re.IGNORECASE)
 
@@ -131,9 +138,8 @@ def _embedded(page, region, mu) -> bytes | None:
     return data if len(data) <= MAX_IMAGE_BYTES else None
 
 
-def _render(page, rect, mu) -> bytes:
+def _render(page, rect, mu, dpi: int = RENDER_DPI) -> bytes:
     clip = (rect + (-6, -6, 6, 2)) & page.rect
-    dpi = RENDER_DPI
     while True:
         data = page.get_pixmap(clip=clip, dpi=dpi).tobytes("png")
         if len(data) <= MAX_IMAGE_BYTES or dpi <= 72:
@@ -211,4 +217,52 @@ def read_figures(path: Path, page: int = 0, text: str = "", max_items: int = 3) 
             "page_count": doc.page_count,
             "located_by": "page" if page else "text",
             "figures": items,
+        }, images
+
+
+def _mentions(doc, needle: str, limit: int) -> list[int]:
+    """First pages whose text contains *needle*, within the search time budget."""
+    found = []
+    deadline = time.monotonic() + SEARCH_SECONDS
+    for number in range(doc.page_count):
+        if time.monotonic() > deadline or len(found) >= limit:
+            break
+        if doc[number].search_for(needle, quads=False):
+            found.append(number + 1)
+    return found
+
+
+def read_pages(path: Path, page: int = 0, text: str = "", max_pages: int = 2) -> tuple[dict, list[bytes]]:
+    """Text of a page (1-based) and the next ones, or of the first pages containing *text*."""
+    mu = _mu()
+    max_pages = min(max(int(max_pages), 1), MAX_PAGES_READ)
+    if path.stat().st_size > MAX_PDF_BYTES:
+        raise FigureError("PDF source exceeds the bounded reader limit")
+    needle = " ".join(text.split())
+    if not page and len(needle) < 4:
+        raise FigureError("give a page number or at least four characters of text to locate")
+    with mu.open(path) as doc:
+        if page:
+            if not 1 <= page <= doc.page_count:
+                raise FigureError(f"page must be between 1 and {doc.page_count}")
+            pages = list(range(page, min(page + max_pages, doc.page_count + 1)))
+        else:
+            pages = _mentions(doc, needle, max_pages)
+        items, images = [], []
+        for number in pages:
+            current = doc[number - 1]
+            body = current.get_text("text").strip()
+            item = {"page": number, "citation": f"{path.name}, p. {number}"}
+            if len(body) < MIN_TEXT_CHARS:  # a scan: its image, not an OCR guess
+                images.append(_render(current, current.rect, mu, SCAN_DPI))
+                item.update(text_layer=False, image=len(images))
+            else:
+                item.update(text_layer=True, text=body[:MAX_PAGE_CHARS],
+                            truncated=len(body) > MAX_PAGE_CHARS)
+            items.append(item)
+        return {
+            "pages_examined": pages,
+            "page_count": doc.page_count,
+            "located_by": "page" if page else "text",
+            "pages": items,
         }, images
