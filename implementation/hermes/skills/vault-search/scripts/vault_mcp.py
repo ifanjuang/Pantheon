@@ -46,13 +46,20 @@ def _reply(method: Callable[[], dict]) -> str:
 
 @mcp.tool(annotations=READ_ONLY, structured_output=False)
 def find_vault_projects(designation: str, max_items: int = 12) -> str:
-    """Find bounded project-directory candidates by explicit name; no identity admission."""
+    """Find bounded project-directory candidates by explicit name; no identity admission.
+
+    Only for a project, dossier or operation the question names. The knowledge
+    library is not a project: a standard or reference question never calls this.
+    """
     return _reply(lambda: VaultSources.from_environment().find_projects(designation, max_items))
 
 
 @mcp.tool(annotations=READ_ONLY, structured_output=False)
 def list_vault_project_sources(project_ref: str, topic: str = "", max_items: int = 30) -> str:
-    """Inventory Markdown/PDF paths in one selected project; path matches are only leads."""
+    """Inventory Markdown/PDF paths in one selected project; path matches are only leads.
+
+    ``project_ref`` is a candidate returned by ``find_vault_projects``, never a guess.
+    """
     return _reply(lambda: VaultSources.from_environment().list_project_sources(
         project_ref, topic, max_items
     ))

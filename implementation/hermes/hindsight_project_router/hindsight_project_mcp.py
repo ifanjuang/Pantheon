@@ -115,6 +115,9 @@ def recall_knowledge_memory(query: str, folder: str = "", max_tokens: int = 2048
     Put the user's complete question in ``query``. Use ``folder`` only to narrow
     to one folder returned by ``hindsight_knowledge_folders`` (for example a
     standards or insurer folder); leave it empty to search the whole knowledge vault.
+    A fact is a lead: open the document it cites, by the path it gives, rather than
+    recalling again. Recall again only with terms the first results did not
+    contain; after two recalls, say what was not found instead of rephrasing.
     """
     try:
         payload = _client().recall_knowledge(query, folder=folder, max_tokens=max_tokens)
