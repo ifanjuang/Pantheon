@@ -445,3 +445,12 @@ def test_docling_ocr_is_opt_in() -> None:
     text = CONFIGURE_DOCLING.read_text(encoding="utf-8")
     assert "OCR=false" in text and "--ocr) OCR=true" in text
     assert "DOCLING_MCP_DO_OCR=$OCR" in text
+
+
+def test_uv_installs_copy_instead_of_hard_linking_the_shared_cache() -> None:
+    # A chown of one venv must not re-own files shared with Hermes' venv (seen on a node).
+    for name in ("configure-docling-local", "configure-vault-read-local",
+                 "configure-hindsight-project-router-local", "install-node", "update-node"):
+        assert "export UV_LINK_MODE=copy" in (DEPLOY / name).read_text(encoding="utf-8"), name
+    router = (DEPLOY / "configure-hindsight-project-router-local").read_text(encoding="utf-8")
+    assert router.index("pip install --reinstall") < router.index('chown -R "$SERVICE_USER')

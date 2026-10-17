@@ -9,6 +9,9 @@ MCP_VERSION="${RELEASE_HINDSIGHT_PROJECT_MCP_VERSION:?release.env missing router
 SOURCE_ROOT="$REPO_ROOT/implementation/hermes/hindsight_project_router"
 APP_ROOT="/opt/pantheon-node/hindsight-project-router"
 UV="/opt/pantheon-node/uv/bin/uv"
+# Copies, not hard links to root's uv cache: a chown of one venv would otherwise
+# re-own the same files in every other venv on the node, Hermes' included.
+export UV_LINK_MODE=copy
 SERVICE_USER="pantheon-hindsight-router"
 HINDSIGHT_URL="${HINDSIGHT_PROJECT_URL:-http://127.0.0.1:8888}"
 APPLY=0
@@ -101,7 +104,9 @@ install -m 0644 "$SOURCE_ROOT/hindsight_project_mcp.py" "$APP_ROOT/hindsight_pro
 if [[ ! -x "$APP_ROOT/.venv/bin/python" ]]; then
   "$UV" venv --python /usr/bin/python3 "$APP_ROOT/.venv"
 fi
-"$UV" pip install --python "$APP_ROOT/.venv/bin/python" "mcp==$MCP_VERSION"
+# --reinstall replaces files an earlier hard-link install shared with other venvs
+# before the chown below makes them this service's own.
+"$UV" pip install --reinstall --python "$APP_ROOT/.venv/bin/python" "mcp==$MCP_VERSION"
 chown -R "$SERVICE_USER:$SERVICE_USER" "$APP_ROOT"
 chmod -R a+rX "$APP_ROOT"
 
