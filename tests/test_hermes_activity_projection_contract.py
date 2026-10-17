@@ -44,7 +44,7 @@ def test_governed_profile_supplement_requires_progress_without_private_reasoning
     assert "skills own procedure" in text
     assert "Pantheon viewpoints and delegated-intervenant labels are optional observable\nlabels, never agents, permissions or decorative prose" in text
     assert "retrieved source material, derived calculations, candidate\noutputs and authorization separate" in text
-    assert len(text.split()) < 400
+    assert len(text.split()) < 430
 
 
 def test_governed_profile_supplement_bounds_professional_answers() -> None:
@@ -53,6 +53,8 @@ def test_governed_profile_supplement_bounds_professional_answers() -> None:
         assert block in text
     assert "**Conditions**" not in text and "**Et ensuite**" not in text
     assert "Detail conditions and risks\nonly when asked" in text
+    assert "A follow-up answers only what it asks, under 200 words" in text
+    assert "in the user's language" in text
     assert "structure, fire, fall or ERP\nsafety point" in text
     assert "search the admitted sources\nbefore answering" in text
     assert "Put quotation marks only around a `quote` returned by a tool" in text
