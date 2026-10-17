@@ -249,7 +249,11 @@ class VaultSources:
     def _located(self, source_path: str, project_ref: str, suffix: str, kind: str) -> tuple[Path, str]:
         supplied = Path(source_path)
         if not supplied.is_absolute():
-            raise VaultSourceError("source_path must be an absolute path returned by the source inventory")
+            # A relative path is the form knowledge recall cites (« DTU/guide.pdf »): it is
+            # taken under the selected project, else under the knowledge vault, never elsewhere.
+            if not source_path.strip() or ".." in supplied.parts:
+                raise VaultSourceError("source_path must be a vault path returned by the inventory or recall")
+            supplied = (self._project(project_ref) if project_ref else self.knowledge_root) / supplied
         if supplied.is_symlink() or not supplied.is_file() or supplied.suffix.casefold() != suffix:
             raise VaultSourceError(f"source_path must be an existing {kind} file, not a directory or link")
         path = supplied.resolve(strict=True)

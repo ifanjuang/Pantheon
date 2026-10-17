@@ -84,7 +84,9 @@ def read_vault_pdf_figures(
 ) -> list:
     """Crop the figures of one exact PDF page with their captions, as images.
 
-    Give the 1-based page, or a few words of the passage or caption to locate it.
+    source_path is the path as knowledge recall or the source inventory gives it
+    (« DTU/guide.pdf » is read in the knowledge vault). Give the 1-based page, or
+    a few words of the passage or caption to locate it.
     Compare each figure with the question before showing it; a figure without a
     caption, or one that does not match, is not shown. Never Evidence.
     """
