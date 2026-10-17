@@ -439,3 +439,9 @@ def test_ollama_keeps_the_shared_model_resident_between_bursts() -> None:
     assert 'Environment="OLLAMA_KEEP_ALIVE=30m"' in text
     assert 'Environment="OLLAMA_MAX_LOADED_MODELS=1"' in text
     assert 'Environment="OLLAMA_CONTEXT_LENGTH=32768"' in text
+
+
+def test_docling_ocr_is_opt_in() -> None:
+    text = CONFIGURE_DOCLING.read_text(encoding="utf-8")
+    assert "OCR=false" in text and "--ocr) OCR=true" in text
+    assert "DOCLING_MCP_DO_OCR=$OCR" in text
