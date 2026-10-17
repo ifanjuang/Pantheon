@@ -92,8 +92,7 @@ def test_reader_keeps_vault_scope_and_bounds(vaults, tmp_path: Path) -> None:
         reader.pdf_figures(str(guide), page=9)
     with pytest.raises(VaultSourceError, match="four characters"):
         reader.pdf_figures(str(guide), text="ab")
-    with pytest.raises(VaultSourceError, match="max_items"):
-        reader.pdf_figures(str(guide), page=3, max_items=9)
+    assert len(reader.pdf_figures(str(guide), page=3, max_items=9)[0]["figures"]) <= 4  # capped, not refused
 
 
 def test_mcp_tool_returns_metadata_then_images(vaults, monkeypatch) -> None:

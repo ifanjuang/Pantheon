@@ -225,18 +225,17 @@ silently establish currentness.
 
 ### Figures from a source
 
-Look for a figure only when it would carry what the text cannot: the passage
-read refers to one (« figure 28 », « voir schéma »), a caption on that page
-names the subject, or the question is about a layout, detail, assembly, junction
-or sequence. Then call `read_vault_pdf_figures` on the exact original PDF, with
+Open a figure when the passage read refers to one (« figure 28 », « voir
+schéma ») or a caption on that page names the subject; search for figures
+elsewhere only when the user asks to see one. Then call `read_vault_pdf_figures` on the exact original PDF, with
 its path as recall or the inventory cites it, and the page or a few words of the
 passage or caption. It returns each crop with
 its page and caption as an image you can see.
 
-Before showing a figure, compare it with the question: its caption and what it
-draws must match the subject. Show it with the document, page and caption; drop
-a figure that does not match, and never show an uncaptioned crop as if it were
-named. When nothing matches, say no figure was found; never describe or draw a
+Before showing a figure, compare it with the question. Show at most two, each
+with the document, page and caption; when unsure it matches, show it and say
+why; drop one clearly unrelated, and never show an uncaptioned crop as if it
+were named. When nothing matches, say no figure was found; never describe or draw a
 figure in its place. A figure is a reading aid, not Evidence, and its values are
 cited only when its caption or the page text states them.
 For a recent project or information possibly awaiting synchronization, use one

@@ -173,8 +173,7 @@ def _locate(doc, needle: str, mu) -> list[int]:
 def read_figures(path: Path, page: int = 0, text: str = "", max_items: int = 3) -> tuple[dict, list[bytes]]:
     """Figures of one page (1-based), or of the first pages whose text contains *text*."""
     mu = _mu()
-    if not 1 <= max_items <= MAX_FIGURES:
-        raise FigureError(f"max_items must be between 1 and {MAX_FIGURES}")
+    max_items = min(max(int(max_items), 1), MAX_FIGURES)  # more than the bound is not an error
     if path.stat().st_size > MAX_PDF_BYTES:
         raise FigureError("PDF source exceeds the bounded reader limit")
     needle = " ".join(text.split())
