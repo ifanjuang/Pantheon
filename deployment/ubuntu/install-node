@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+# Copies, not hard links to root's uv cache: a chown of one venv would otherwise
+# re-own the same files in every other venv on the node, Hermes' included.
+export UV_LINK_MODE=copy
 
 TOOL_VERSION="0.1.0"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"

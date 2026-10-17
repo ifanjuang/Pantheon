@@ -21,6 +21,9 @@ DOCLING_STATE="$STATE_ROOT/docling"
 DOCLING_CACHE="$AI_ROOT/cache/docling"
 DOCLING_USER="pantheon-docling"
 UV="$APP_ROOT/uv/bin/uv"
+# Copies, not hard links to root's uv cache: a chown of one venv would otherwise
+# re-own the same files in every other venv on the node, Hermes' included.
+export UV_LINK_MODE=copy
 ENABLE=0
 OCR=false
 

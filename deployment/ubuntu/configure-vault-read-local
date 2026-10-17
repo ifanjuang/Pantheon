@@ -10,6 +10,9 @@ PYMUPDF_VERSION="${RELEASE_VAULT_PYMUPDF_VERSION:?release.env missing RELEASE_VA
 SOURCE_ROOT="$REPO_ROOT/implementation/hermes/skills/vault-search/scripts"
 APP_ROOT="/opt/pantheon-node/vault-read"
 UV="/opt/pantheon-node/uv/bin/uv"
+# Copies, not hard links to root's uv cache: a chown of one venv would otherwise
+# re-own the same files in every other venv on the node, Hermes' included.
+export UV_LINK_MODE=copy
 TOKEN_FILE="/srv/pantheon/docling/vault-read.token"
 UNIT_FILE="/etc/systemd/system/pantheon-vault-read.service"
 PROJECTS_ROOT="${PROJECTS_ROOT:-}"
