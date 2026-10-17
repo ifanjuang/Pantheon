@@ -22,12 +22,17 @@ DOCLING_CACHE="$AI_ROOT/cache/docling"
 DOCLING_USER="pantheon-docling"
 UV="$APP_ROOT/uv/bin/uv"
 ENABLE=0
+OCR=false
 
 log() { printf '[pantheon-docling] %s\n' "$*"; }
 die() { printf '[pantheon-docling] ERROR: %s\n' "$*" >&2; exit 1; }
 usage() {
   cat <<'USAGE'
-Usage: sudo ./configure-docling-local [--enable]
+Usage: sudo ./configure-docling-local [--enable] [--ocr]
+
+  --ocr   run OCR during conversion. Off by default: on CPU it converts a
+          long PDF for many minutes, and vault-read returns a scanned page
+          as an image for the model to read.
 
 Installs pinned Docling and Docling MCP, then prepares a loopback-only
 streamable HTTP MCP service for Hermes. Activation is explicit.
@@ -36,6 +41,7 @@ USAGE
 while (($#)); do
   case "$1" in
     --enable) ENABLE=1 ;;
+    --ocr) OCR=true ;;
     -h|--help) usage; exit 0 ;;
     *) die "unknown argument: $1" ;;
   esac
@@ -63,6 +69,7 @@ chmod -R a+rX "$DOCLING_ROOT"
 cat > "$CONFIG_ROOT/docling.env" <<EOF_ENV
 HOME=$DOCLING_STATE
 DOCLING_MCP_CONVERSION_MODE=local
+DOCLING_MCP_DO_OCR=$OCR
 HF_HOME=$DOCLING_CACHE/huggingface
 TORCH_HOME=$DOCLING_CACHE/torch
 XDG_CACHE_HOME=$DOCLING_CACHE
@@ -113,7 +120,8 @@ chmod 0640 "$STATE_ROOT/hermes/docling-mcp.yaml"
 
 systemctl daemon-reload
 if ((ENABLE == 1)); then
-  systemctl enable --now pantheon-docling-mcp.service
+  systemctl enable pantheon-docling-mcp.service >/dev/null
+  systemctl restart pantheon-docling-mcp.service  # a changed docling.env applies now
   log "Docling MCP enabled on http://127.0.0.1:8020/mcp"
 else
   systemctl disable pantheon-docling-mcp.service >/dev/null 2>&1 || true
