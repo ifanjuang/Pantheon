@@ -22,9 +22,10 @@ mcp = MCPServer(
     instructions=(
         "Read-only agency vault mirror discovery. Paths are source leads, not project "
         "identity or Evidence. Search previews are not inspected passages; use "
-        "read_vault_markdown_lines for line-located source content. PDF text requires "
-        "the separately admitted Docling binding; read_vault_pdf_figures returns "
-        "caption-located figure crops from one exact PDF."
+        "read_vault_markdown_lines for line-located source content. read_vault_pdf_pages "
+        "returns the text layer of a few pages of one exact PDF (a scan as an image); "
+        "the separately admitted Docling binding converts whole documents and tables; "
+        "read_vault_pdf_figures returns caption-located figure crops from one exact PDF."
     ),
 )
 READ_ONLY = ToolAnnotations(
@@ -100,6 +101,27 @@ def read_vault_pdf_figures(
     try:
         result, images = VaultSources.from_environment().pdf_figures(
             source_path, page, text, project_ref, max_items
+        )
+    except (VaultSourceError, OSError) as exc:
+        return [json.dumps({"status": "error", "reason": str(exc)}, ensure_ascii=False)]
+    return [json.dumps(result, ensure_ascii=False), *(Image(data=data, format="png") for data in images)]
+
+
+@mcp.tool(annotations=READ_ONLY, structured_output=False)
+def read_vault_pdf_pages(
+    source_path: str, page: int = 0, text: str = "", project_ref: str = "", max_pages: int = 2
+) -> list:
+    """Read the text of one to three pages of an exact PDF, as the PDF stores it.
+
+    Fast, no conversion or OCR: prefer it to a Docling conversion for a passage.
+    source_path is the path as knowledge recall or the source inventory gives it.
+    Give the 1-based page, or a few words to find the first pages containing them.
+    A page without a text layer (a scan) is returned as an image to read instead.
+    Each page carries its citation; the text is a source passage, never Evidence.
+    """
+    try:
+        result, images = VaultSources.from_environment().pdf_pages(
+            source_path, page, text, project_ref, max_pages
         )
     except (VaultSourceError, OSError) as exc:
         return [json.dumps({"status": "error", "reason": str(exc)}, ensure_ascii=False)]

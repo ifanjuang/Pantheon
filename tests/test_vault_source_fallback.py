@@ -168,6 +168,7 @@ def test_runtime_binding_is_explicitly_read_only_and_bounded() -> None:
     for tool in (
         "find_vault_projects", "list_vault_project_sources",
         "search_vault_markdown", "read_vault_markdown_lines", "read_vault_pdf_figures",
+        "read_vault_pdf_pages",
     ):
         assert tool in script and tool in configure
     assert "read_only_hint=True" in script
@@ -238,6 +239,7 @@ def test_mcp_registers_only_the_five_read_only_tools() -> None:
     assert {tool.name for tool in tools} == {
         "find_vault_projects", "list_vault_project_sources",
         "search_vault_markdown", "read_vault_markdown_lines", "read_vault_pdf_figures",
+        "read_vault_pdf_pages",
     }
     assert all(tool.annotations.read_only_hint is True for tool in tools)
     assert all(tool.annotations.destructive_hint is False for tool in tools)

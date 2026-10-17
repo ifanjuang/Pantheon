@@ -139,3 +139,39 @@ def test_single_embedded_picture_is_returned_at_source_resolution(tmp_path: Path
 
     result, _ = reader.pdf_figures(str(source), page=2)
     assert result["figures"][0]["rendering"] == "page_crop"  # the label drawn over it stays visible
+
+
+def test_pages_return_the_text_layer_with_a_citation(vaults) -> None:
+    reader, guide, _ = vaults
+    result, images = reader.pdf_pages(guide.name, text="lame d'air")
+    assert result["status"] == "pages" and images == []
+    assert result["pages_examined"] == [2]
+    page = result["pages"][0]
+    assert page["text_layer"] is True and "decrite a la figure 2" in page["text"]
+    assert page["citation"] == f"{guide.name}, p. 2"
+    assert result["evidence_admitted"] is False
+    assert [p["page"] for p in reader.pdf_pages(str(guide), page=2, max_pages=9)[0]["pages"]] == [2, 3]
+
+
+def test_a_scanned_page_comes_back_as_an_image(tmp_path: Path) -> None:
+    (tmp_path / "affaires").mkdir()
+    knowledge = tmp_path / "bibliotheque"
+    knowledge.mkdir()
+    doc = pymupdf.open()
+    doc.new_page().insert_image(pymupdf.Rect(40, 40, 560, 800), stream=_picture(600, 900))
+    doc.save(knowledge / "scan.pdf")
+    result, images = VaultSources(tmp_path / "affaires", knowledge).pdf_pages("scan.pdf", page=1)
+    assert result["pages"][0]["text_layer"] is False and result["pages"][0]["image"] == 1
+    assert images[0].startswith(PNG)
+
+
+def test_mcp_pages_tool_is_listed_and_read_only(vaults, monkeypatch) -> None:
+    pytest.importorskip("mcp")
+    import vault_mcp
+
+    reader, guide, _ = vaults
+    monkeypatch.setenv("VAULT_PROJECTS_ROOT", str(reader.projects_root))
+    monkeypatch.setenv("VAULT_KNOWLEDGE_ROOT", str(reader.knowledge_root))
+    blocks = asyncio.run(vault_mcp.mcp.call_tool("read_vault_pdf_pages", {"source_path": guide.name, "page": 1}))
+    blocks = getattr(blocks, "content", blocks)
+    assert json.loads(blocks[0].text)["pages"][0]["page"] == 1
