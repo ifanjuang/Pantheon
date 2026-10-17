@@ -228,8 +228,9 @@ silently establish currentness.
 Look for a figure only when it would carry what the text cannot: the passage
 read refers to one (« figure 28 », « voir schéma »), a caption on that page
 names the subject, or the question is about a layout, detail, assembly, junction
-or sequence. Then call `read_vault_pdf_figures` on the exact original PDF with
-the page, or a few words of the passage or caption. It returns each crop with
+or sequence. Then call `read_vault_pdf_figures` on the exact original PDF, with
+its path as recall or the inventory cites it, and the page or a few words of the
+passage or caption. It returns each crop with
 its page and caption as an image you can see.
 
 Before showing a figure, compare it with the question: its caption and what it

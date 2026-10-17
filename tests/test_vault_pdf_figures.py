@@ -81,6 +81,10 @@ def test_reader_keeps_vault_scope_and_bounds(vaults, tmp_path: Path) -> None:
         reader.pdf_figures(str(plan), page=1)
     assert reader.pdf_figures(str(plan), page=1, project_ref="Project Alpha")[0]["source_family"] == "projects"
     outside = tmp_path / "outside.pdf"
+    assert reader.pdf_figures(guide.name, page=3)[0]["source_path"] == str(guide)  # as recall cites it
+    assert reader.pdf_figures("plan.pdf", page=1, project_ref="Project Alpha")[0]["source_family"] == "projects"
+    with pytest.raises(VaultSourceError, match="vault path"):
+        reader.pdf_figures("../outside.pdf", page=1)
     outside.write_bytes(guide.read_bytes())
     with pytest.raises(VaultSourceError, match="outside the admitted"):
         reader.pdf_figures(str(outside), page=1)
