@@ -2,22 +2,18 @@
 
 The Ubuntu node scripts read their pins as `${RELEASE_X:?release.env missing
 RELEASE_X}`. Under `set -Eeuo pipefail` an undefined name is not a warning: the
-script dies on its first line, before any action. Three such names remain
-undefined in the optional Docling configurator:
-
-    configure-docling-local          RELEASE_DOCLING_VERSION
-                                     RELEASE_DOCLING_MCP_VERSION
-                                     RELEASE_DOCLING_PYTHON
+script dies on its first line, before any action. The optional Docling
+configurator's three pins were the last such names; they now carry the versions
+observed running on the reference node.
 
 Nothing checked the two halves against each other, so the gap was invisible
 until a script was actually run on a machine.
 
 `release.env` carries *reviewed* deployment targets. A value invented to make
 this test pass would assert a review that never happened -- and a wrong CUDA
-pin breaks a real node. So the three names below are recorded as debt rather than
-filled in: the ratchet is the floor, and it only shrinks. Adding a reviewed
-value to `release.env` and deleting its line here is the whole retirement path.
-A *new* undefined name fails immediately, with no seeded debt to hide in.
+pin breaks a real node. The Docling pins were therefore held as debt until a
+node actually ran them; they are now filled with those observed versions, and
+the debt set is empty. A *new* undefined name fails immediately.
 """
 
 from __future__ import annotations
@@ -35,11 +31,7 @@ DEFINED = re.compile(r"^(RELEASE_[A-Z0-9_]+)=", re.MULTILINE)
 # Shrink-only. Each entry is a pin a script demands and `release.env` does not
 # carry. Removing an entry requires adding the reviewed value, not deleting the
 # requirement. Never add to this set.
-KNOWN_UNDEFINED_RELEASE_PINS = {
-    "RELEASE_DOCLING_MCP_VERSION",
-    "RELEASE_DOCLING_PYTHON",
-    "RELEASE_DOCLING_VERSION",
-}
+KNOWN_UNDEFINED_RELEASE_PINS: set[str] = set()
 
 
 def _required_pins() -> set[str]:
