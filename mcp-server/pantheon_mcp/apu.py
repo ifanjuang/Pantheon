@@ -81,6 +81,13 @@ def load_relation_profile(root: Path | None = None) -> dict[str, Any]:
     value = json.loads(read_repo_text(RELATION_PROFILE_PATH, root))
     if not isinstance(value, dict) or not isinstance(value.get("entries"), list):
         raise ValueError(f"{RELATION_PROFILE_PATH} is not a relation profile")
+    ids = [entry.get("id") for entry in value["entries"] if isinstance(entry, dict)]
+    duplicates = sorted({str(item) for item in ids if ids.count(item) > 1})
+    if duplicates:
+        # An ambiguous vocabulary fails closed instead of keeping one shadow entry.
+        raise ValueError(
+            f"{RELATION_PROFILE_PATH} declares duplicate relation ids: {', '.join(duplicates)}"
+        )
     return value
 
 
@@ -293,7 +300,20 @@ def validate_apu_dossier(dossier: dict[str, Any]) -> dict[str, Any]:
 
     def entity_ref(value: Any, label: str) -> None:
         if isinstance(value, dict):
-            ref(value.get("entity_id"), f"{label}.entity_id")
+            entity_id = value.get("entity_id")
+            ref(entity_id, f"{label}.entity_id")
+            # A reference resolved inside the dossier must name the type the
+            # id is declared with; otherwise endpoint and family checks would
+            # trust a mislabelled reference.
+            declared_type = value.get("entity_type")
+            indexed = id_index.get(str(entity_id)) if entity_id not in (None, "") else None
+            if indexed is not None and declared_type in TYPE_SCHEMA:
+                indexed_type = indexed.split("[", 1)[0]
+                if indexed_type != declared_type:
+                    reference_errors.append(
+                        f"{label} declares entity_type '{declared_type}' but "
+                        f"'{entity_id}' is {indexed}"
+                    )
 
     vocabulary_errors: list[str] = []
     try:

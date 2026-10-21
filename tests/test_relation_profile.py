@@ -86,6 +86,16 @@ def test_relation_names_never_encode_time_or_negation() -> None:
     assert any("spatial.was_adjacent_to: name encodes time or negation" in item for item in failures)
 
 
+def test_duplicate_relation_ids_are_rejected() -> None:
+    module = _check_module()
+    profile = _profile()
+    shadow = copy.deepcopy(_entry(profile, "spatial.adjacent_to"))
+    shadow["object_object_families"] = ["element"]
+    profile["entries"].append(shadow)
+    failures = module.coherence_failures(profile)
+    assert any("spatial.adjacent_to: declared more than once" in item for item in failures)
+
+
 def test_namespace_must_equal_family() -> None:
     module = _check_module()
     profile = _profile()

@@ -66,6 +66,12 @@ def coherence_failures(profile: dict[str, Any]) -> list[str]:
     vocabularies = {
         vocab.get("key"): vocab for vocab in profile.get("qualifier_vocabularies", [])
     }
+    ids = [entry.get("id") for entry in profile.get("entries", [])]
+    for duplicate in sorted({str(item) for item in ids if ids.count(item) > 1}):
+        failures.append(f"{duplicate}: declared more than once; the vocabulary is ambiguous")
+    keys = [vocab.get("key") for vocab in profile.get("qualifier_vocabularies", [])]
+    for duplicate in sorted({str(item) for item in keys if keys.count(item) > 1}):
+        failures.append(f"qualifier {duplicate}: declared more than once")
     entries = {entry.get("id"): entry for entry in profile.get("entries", [])}
 
     for key, vocab in vocabularies.items():

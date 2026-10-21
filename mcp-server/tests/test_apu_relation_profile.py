@@ -6,6 +6,7 @@ admitted, Evidence or approved. Nothing here executes, persists or canonizes.
 """
 
 import copy
+import json
 import os
 import unittest
 from pathlib import Path
@@ -246,6 +247,43 @@ class TestRelationProfileValidation(unittest.TestCase):
             _dossier(_relation("RC-1", "DOOR-1", "architecture.opens_to", "SO-ELSEWHERE"))
         )
         self.assertEqual(report["vocabulary_errors"], [])
+
+    def test_mislabelled_entity_type_is_a_reference_error(self):
+        dossier = _dossier(_relation("RC-1", "DOOR-1", "architecture.opens_to", "REP-1"))
+        dossier["source_representation"] = {
+            "representation_id": "REP-1",
+            "project_ref": "PRJ-1",
+            "source_artifact_ref": "SRC-1",
+            "source_kind": "drawing",
+            "identifiers": [{"scheme": "drawing.fragment", "value": "room-1"}],
+            "observed_at": "2026-08-07T12:00:00Z",
+            "binding_ref": "binding.drawing.fixture",
+            "adapter_version": "0.2-test",
+            "freshness_token": "fixture-revision-1",
+            "proof_status": "candidate",
+        }
+        report = apu.validate_apu_dossier(dossier)
+        self.assertEqual(report["result"], "error")
+        self.assertFalse(report["gate"]["canonical_emission_allowed"])
+        self.assertTrue(
+            any("declares entity_type 'stable_object' but 'REP-1' is source_representation[0]"
+                in item for item in report["reference_errors"]),
+            report["reference_errors"],
+        )
+
+    def test_duplicate_relation_ids_fail_closed(self):
+        profile = apu.load_relation_profile()
+        profile["entries"].append(dict(profile["entries"][0]))
+        with mock.patch.object(apu, "read_repo_text", return_value=json.dumps(profile)):
+            report = apu.validate_apu_dossier(
+                _dossier(_relation("RC-1", "DOOR-1", "architecture.opens_to", "ROOM-1"))
+            )
+        self.assertEqual(report["result"], "error")
+        self.assertTrue(
+            any("duplicate relation ids: identity.represents" in item
+                for item in report["vocabulary_errors"]),
+            report["vocabulary_errors"],
+        )
 
     def test_missing_profile_fails_closed(self):
         with mock.patch.object(apu, "RELATION_PROFILE_PATH", "registries/missing.registry.json"):
