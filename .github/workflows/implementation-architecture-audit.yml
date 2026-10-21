@@ -17,12 +17,12 @@ jobs:
       PANTHEON_AUDIT_AUTHORITY_REF: c1e8db4e7c949768b5f7ade94cd9931b7062f316
     steps:
       - name: Checkout current monorepo candidate
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: monorepo
 
       - name: Checkout bounded pinned audit authority snapshot
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: ifanjuang/Pantheon
           ref: ${{ env.PANTHEON_AUDIT_AUTHORITY_REF }}

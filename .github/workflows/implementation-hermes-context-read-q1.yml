@@ -25,7 +25,7 @@ jobs:
 
     steps:
       - name: Checkout current monorepo candidate
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: monorepo
 
@@ -34,7 +34,7 @@ jobs:
         run: python3 monorepo/implementation/tools/export_external_qualification_pins.py --github-env "$GITHUB_ENV" hermes-agent
 
       - name: Checkout exact qualified Hermes source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: ${{ env.HERMES_REPOSITORY }}
           ref: ${{ env.HERMES_REF }}
