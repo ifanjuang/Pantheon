@@ -38,8 +38,9 @@ _SHARED_INSTRUCTIONS = (
     "documents (indice, date_document, emetteur, destinataire, revision...): report them "
     "with the source they come from, never infer a version, a validity or a replacement from "
     "them, and never treat an index as ordering documents. A 'notice' qualifies a row "
-    "(general conditions of a company are not a rule; an earlier version is shown after the "
-    "most recent): repeat it when you use the row. Set older_versions only when the user "
+    "(general conditions of a company are not a rule; an earlier-dated document of the same "
+    "file-name family is shown after the most recent, which does not make it replaced): repeat it "
+    "when you use the row. Set older_versions only when the user "
     "asks for earlier versions or what changed. "
     "This service cannot write to Hindsight."
 )

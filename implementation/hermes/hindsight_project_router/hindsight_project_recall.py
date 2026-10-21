@@ -55,8 +55,8 @@ GENERAL_CONDITIONS_NOTICE = (
     "Reprise de conditions générales d'entreprise, pas une règle ni une obligation propre à cette affaire."
 )
 OLDER_MEMBER_NOTICE = (
-    "Version antérieure d'un même ensemble de pièces, présentée après la plus récente ; "
-    "consultable sur demande (older_versions)."
+    "Pièce de la même famille de noms de fichier, datée plus tôt : présentée après la plus récente, "
+    "sans que cela établisse un remplacement ; consultable sur demande (older_versions)."
 )
 SUPERSEDED_NOTICE = (
     "Édition remplacée par {successor} : présentée après les éditions en vigueur, "
@@ -214,18 +214,22 @@ def _apply_family_recency(hits: list[_Hit], older_versions: bool) -> list[_Hit]:
     promoted: dict[int, int] = {}
     demoted: list[_Hit] = []
     for members in families.values():
-        if len(members) < 2:
+        # Recency compares documents, not passages: every passage of the most recent
+        # document stays in place, and documents sharing that date are not "earlier".
+        latest = max(member.date for member in members)
+        earlier = [member for member in members if member.date < latest]
+        earlier_documents = {member.document_id for member in earlier}
+        if not earlier_documents:
             continue
-        # Equal dates fall back to relevance, never to the index.
-        newest = min(members, key=lambda hit: (tuple(-part for part in hit.date), hit.pos))
-        newest.row["earlier_in_family"] = len(members) - 1
+        # Among the most recent passages, relevance decides, never the index.
+        newest = min((member for member in members if member.date == latest), key=lambda hit: hit.pos)
+        newest.row["earlier_in_family"] = len(earlier_documents)
         if older_versions:
             continue
         promoted[id(newest)] = min(member.pos for member in members)
-        for member in members:
-            if member is not newest:
-                member.notices.append(OLDER_MEMBER_NOTICE)
-                demoted.append(member)
+        for member in earlier:
+            member.notices.append(OLDER_MEMBER_NOTICE)
+            demoted.append(member)
     if older_versions or not demoted:
         return hits
     behind = {id(hit) for hit in demoted}

@@ -447,11 +447,31 @@ def test_project_mode_presents_the_most_recent_family_member_first() -> None:
 
     order = [row["document_id"] for row in payload["results"]]
     assert order == ["plan-c:source", "notice-1:source", "plan-b:source", "plan-a:source"]
-    newest = payload["results"][0]
-    assert newest["earlier_in_family"] == 2
-    for older in payload["results"][2:]:
-        assert "présentée après" in older["notice"]
-        assert "earlier_in_family" not in older
+    newest, _, same_date, older = payload["results"]
+    # plan-b shares the latest date: it is not earlier, only less relevant.
+    assert newest["earlier_in_family"] == 1
+    assert "notice" not in same_date and "earlier_in_family" not in same_date
+    assert "présentée après" in older["notice"] and "remplacement" in older["notice"]
+    assert "earlier_in_family" not in older
+
+
+def test_family_recency_compares_documents_not_passages() -> None:
+    module = _module()
+    family = "family:family-0123456789abcdef01234567"
+    results = [
+        _fact("f1", "Hauteur sous plafond 2,60 m.", "plan-c", _alpha_tags(module, family, "date_document:2025-03")),
+        _fact("f2", "Hauteur sous plafond 2,50 m.", "plan-a", _alpha_tags(module, family, "date_document:2024-11")),
+        _fact("f3", "Garde-corps vitré au R+1.", "plan-c", _alpha_tags(module, family, "date_document:2025-03")),
+    ]
+    payload, _ = _recall(module, results)
+
+    order = [row["document_id"] for row in payload["results"]]
+    assert order == ["plan-c:source", "plan-c:source", "plan-a:source"]
+    first, second, older = payload["results"]
+    # A second passage of the most recent document is neither demoted nor called earlier.
+    assert first["earlier_in_family"] == 1
+    assert "notice" not in second and "earlier_in_family" not in second
+    assert "présentée après" in older["notice"]
 
 
 def test_older_versions_on_request_keep_their_relevance_rank() -> None:
