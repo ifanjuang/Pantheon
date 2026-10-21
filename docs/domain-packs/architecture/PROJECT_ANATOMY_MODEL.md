@@ -169,6 +169,24 @@ identity.supersedes
 
 Relation ids are governed and namespaced. Hermes or adapters may propose relations but cannot invent an admitted ontology silently.
 
+This section owns the project-world relation vocabulary of the architecture domain. The types listed above are the `active` set of the relation profile `architecture@1`, carried by `registries/architecture_relation_profile.registry.json` (candidate registry, see §8). The profile may also declare `candidate` types; using one is valid but surfaces as a review note.
+
+Vocabulary rules:
+
+```text
+relation id = <family>.<name>, the namespace is the family
+time, phase, variant and building state = claim dimensions (validity, qualifier.ouvrage_state), never relation names
+deliberate absence of connection = a positive named relation, never a negation flag
+prescriptive intent ("must be adjacent to") = requirement, never relation_claim
+IFC correspondence = linking hint, never import contract or Pantheon identity
+```
+
+```text
+relation type declared != relation claim true
+relation type active != relation claim admitted
+derivable relation != derived relation admitted
+```
+
 A source-to-project match is represented as:
 
 ```text
@@ -241,7 +259,9 @@ predicate visible != predicate approved
 classification proposed != classification retained
 ```
 
-The executable Profile/Predicate/Relation Registry remains documented non-implemented until its reviewed slice lands.
+The relation part of the registry is implemented as a candidate vocabulary for `architecture@1`: `registries/architecture_relation_profile.registry.json`, specialized schema `schemas/architecture-project-understanding/relation_profile.schema.yaml`, read-only enforcement in the APU validator (`mcp-server/pantheon_mcp/apu.py`) and `.github/scripts/check_relation_profile.py`. It controls `relation_claim.relation_type`, `requirement.constraint.relation_type`, admissible endpoints and the controlled qualifier keys `ouvrage_state`, `containment`, `junction_type`, `coverage` and `legal_basis`; other qualifier keys stay free.
+
+The predicate vocabulary, classification schemes, source identifier schemes, other profiles and persistence-side enforcement in `implementation/` remain documented non-implemented until their reviewed slices land.
 
 ## 9. Revision Sets — documentary baselines
 
@@ -608,6 +628,7 @@ Current repository state:
 Pantheon-Next schemas / read-only validation = implemented
 implementation/ Project Anatomy persistence/review/application path = implemented candidate, not adopted
 Pantheon-plugins Revit W0 adapter = implemented and CI-validated, live Revit 2027 proof still required
+relation profile architecture@1 = implemented candidate vocabulary, read-only validation only
 ```
 
 The former `pantheon-mvp` repository is provenance only; its executable owner now lives under `implementation/` in this monorepo.
@@ -616,7 +637,8 @@ Documented non-implemented until their reviewed slices land:
 
 ```text
 Revision Set executable contract
-Profile/Predicate/Relation Registry
+Profile/Predicate Registry beyond the architecture@1 relation vocabulary
+persistence-side relation-profile enforcement in implementation/
 semantic lens policy
 purpose-specific Proof model
 Revit mutation/write seam

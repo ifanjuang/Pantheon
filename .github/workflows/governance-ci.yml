@@ -163,6 +163,12 @@ jobs:
           set -euo pipefail
           python3 .github/scripts/check_apu_referential_integrity.py
 
+      - name: Project Anatomy relation profile (architecture@1)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/check_relation_profile.py
+
   mcp-server:
     name: mcp-server module tests
     runs-on: ubuntu-latest

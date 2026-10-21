@@ -179,6 +179,26 @@ The Tag Registry reconciliation is already structurally anchored by canonical `s
 - `schemas/examples/registry.example.json` — fictional descriptor example;
 - `.github/scripts/check_registry_foundation.py` — deterministic read-only checks.
 
+## Governance-owned registries
+
+```text
+architecture_relation_profile.registry.json  vocabulary, candidate
+```
+
+`architecture_relation_profile.registry.json` is the Project Anatomy relation profile `architecture@1`. Its semantic owner is `docs/domain-packs/architecture/PROJECT_ANATOMY_MODEL.md` (sections 6 and 8); its specialized schema is `schemas/architecture-project-understanding/relation_profile.schema.yaml`.
+
+It declares the identifiers admitted for `relation_claim.relation_type` and `requirement.constraint.relation_type`, their endpoints, inverses, controlled qualifiers and IFC/BOT correspondence hints. Relation types named by the model are `active`; proposed ones are `candidate` and surface as review notes when used.
+
+Current consumers: the read-only APU validator in `mcp-server/pantheon_mcp/apu.py` (also served to external runtimes through the MCP `validate_apu_dossier` tool) and `.github/scripts/check_relation_profile.py`, which reuses it. Persistence-side consumption by `implementation/` is a later slice, because the packaged implementation currently carries only the `schemas/` tree.
+
+The registry stays `candidate` until the admission rule below is reviewed as satisfied.
+
+```text
+relation type declared != relation claim true
+relation type active != relation claim admitted
+IFC correspondence != IFC import or Pantheon identity
+```
+
 ## Admission rule
 
 Do not create a Registry merely because data can be serialized.

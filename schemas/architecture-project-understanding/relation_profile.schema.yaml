@@ -1,0 +1,275 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: https://pantheon.local/schemas/architecture-project-understanding/relation_profile.schema.yaml
+title: Project Anatomy Relation Profile Registry
+description: >-
+  Specialized registry schema for a versioned Project Anatomy relation profile
+  such as architecture@1. It carries the cross-registry descriptor fields of
+  schemas/registry.schema.yaml plus the controlled relation vocabulary admitted
+  for relation_claim.relation_type. Declaring a relation type does not make any
+  relation claim true, admitted, Evidence or approved; it only makes the
+  identifier governable. IFC and BOT columns are correspondence hints for
+  linking and reading, never an import contract and never Pantheon identity.
+type: object
+additionalProperties: false
+required:
+  - schema_version
+  - registry_id
+  - registry_kind
+  - version
+  - status
+  - owner
+  - authority_document
+  - governance_refs
+  - description
+  - profile
+  - naming_rules
+  - families
+  - qualifier_vocabularies
+  - entries
+  - x_boundary
+properties:
+  schema_version:
+    type: string
+    const: "1"
+  registry_id:
+    type: string
+    pattern: "^[a-z][a-z0-9_]*$"
+  registry_kind:
+    const: vocabulary
+  version:
+    type: string
+    pattern: "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+  status:
+    type: string
+    enum: [candidate, active, under_review, deprecated, superseded]
+  owner:
+    type: object
+    additionalProperties: false
+    required: [id, repository]
+    properties:
+      id:
+        type: string
+        minLength: 1
+      repository:
+        type: string
+        enum: [Pantheon-Next]
+  authority_document:
+    type: string
+    pattern: "^(docs|registries|schemas)/.+"
+  governance_refs:
+    type: array
+    minItems: 1
+    uniqueItems: true
+    items:
+      type: string
+      pattern: "^(docs|registries|schemas)/.+"
+  description:
+    type: string
+    minLength: 1
+  profile:
+    type: object
+    additionalProperties: false
+    required: [id, governs, excludes]
+    properties:
+      id:
+        type: string
+        pattern: "^[a-z][a-z0-9_]*@[0-9]+$"
+      governs:
+        type: string
+        minLength: 1
+      excludes:
+        type: array
+        uniqueItems: true
+        items:
+          type: string
+          minLength: 1
+  naming_rules:
+    type: object
+    additionalProperties: false
+    required: [id_pattern, forbidden_name_prefixes]
+    properties:
+      id_pattern:
+        type: string
+        minLength: 1
+      forbidden_name_prefixes:
+        type: array
+        uniqueItems: true
+        items:
+          type: string
+          pattern: "^[a-z][a-z0-9_]*_$"
+  families:
+    type: array
+    minItems: 1
+    items:
+      $ref: "#/$defs/family"
+  qualifier_vocabularies:
+    type: array
+    items:
+      $ref: "#/$defs/qualifier_vocabulary"
+  entries:
+    type: array
+    minItems: 1
+    items:
+      $ref: "#/$defs/relation_entry"
+  x_boundary:
+    type: object
+    additionalProperties: false
+    required:
+      - runtime_execution
+      - provider_routing
+      - task_authorization
+      - approval
+      - evidence_promotion
+      - memory_promotion
+    properties:
+      runtime_execution: { const: false }
+      provider_routing: { const: false }
+      task_authorization: { const: false }
+      approval: { const: false }
+      evidence_promotion: { const: false }
+      memory_promotion: { const: false }
+$defs:
+  slug:
+    type: string
+    pattern: "^[a-z][a-z0-9_]*$"
+  relation_id:
+    type: string
+    pattern: "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+  apu_entity_type:
+    type: string
+    enum: [stable_object, source_representation, requirement, program]
+  object_family:
+    type: string
+    enum: [spatial, element, assembly, material, system, datum, group, type_definition]
+  family:
+    type: object
+    additionalProperties: false
+    required: [id, description]
+    properties:
+      id:
+        $ref: "#/$defs/slug"
+      description:
+        type: string
+        minLength: 1
+  qualifier_vocabulary:
+    type: object
+    additionalProperties: false
+    required: [key, values, description]
+    properties:
+      key:
+        $ref: "#/$defs/slug"
+      description:
+        type: string
+        minLength: 1
+      values:
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items:
+          $ref: "#/$defs/slug"
+      allowed_families:
+        description: Families on which this qualifier is admitted for every relation.
+        type: array
+        uniqueItems: true
+        items:
+          $ref: "#/$defs/slug"
+  correspondence:
+    type: object
+    additionalProperties: false
+    required: [term, fidelity]
+    properties:
+      term:
+        type: string
+        minLength: 1
+      fidelity:
+        type: string
+        enum: [exact, partial, derived, none]
+      note:
+        type: string
+        minLength: 1
+  relation_entry:
+    type: object
+    additionalProperties: false
+    required:
+      - id
+      - status
+      - family
+      - definition
+      - subject_entity_types
+      - object_entity_types
+      - symmetric
+      - inverse
+      - cardinality
+      - derivable
+    properties:
+      id:
+        $ref: "#/$defs/relation_id"
+      status:
+        type: string
+        enum: [active, candidate, deprecated]
+      family:
+        $ref: "#/$defs/slug"
+      definition:
+        type: string
+        minLength: 1
+      subject_entity_types:
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items:
+          $ref: "#/$defs/apu_entity_type"
+      object_entity_types:
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items:
+          $ref: "#/$defs/apu_entity_type"
+      subject_object_families:
+        type: array
+        uniqueItems: true
+        items:
+          $ref: "#/$defs/object_family"
+      object_object_families:
+        type: array
+        uniqueItems: true
+        items:
+          $ref: "#/$defs/object_family"
+      symmetric:
+        type: boolean
+      inverse:
+        oneOf:
+          - $ref: "#/$defs/relation_id"
+          - type: "null"
+      cardinality:
+        description: Declarative reading aid; not enforced by the validator in this version.
+        type: string
+        enum: [one_to_one, one_to_many, many_to_one, many_to_many]
+      derivable:
+        description: >-
+          True when the relation can be computed from boundaries, geometry or
+          other claims. A derived relation stays a candidate until reviewed.
+        type: boolean
+      allowed_qualifiers:
+        type: array
+        uniqueItems: true
+        items:
+          $ref: "#/$defs/slug"
+      ifc:
+        type: array
+        items:
+          $ref: "#/$defs/correspondence"
+      bot:
+        type: array
+        items:
+          $ref: "#/$defs/correspondence"
+      replaced_by:
+        $ref: "#/$defs/relation_id"
+      notes:
+        type: string
+        minLength: 1
+x-boundary:
+  runtime_execution: false
+  provider_routing: false
+  memory_promotion: false
+  automatic_canonization: false
+  approval_engine: false

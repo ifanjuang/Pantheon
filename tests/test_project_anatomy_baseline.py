@@ -22,6 +22,7 @@ ACTIVE_SCHEMAS = {
     "observation_bundle.schema.yaml",
     "program.schema.yaml",
     "relation_claim.schema.yaml",
+    "relation_profile.schema.yaml",
     "requirement.schema.yaml",
     "shared.schema.yaml",
     "source_representation.schema.yaml",
