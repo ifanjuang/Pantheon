@@ -597,6 +597,20 @@ preset's safety settings cannot be weakened locally:
 A failure observed in use is fixed in the preset when it concerns every
 organization, and in the overlay when it is specific to one.
 
+Both presets also declare a named retain strategy, `text` (raw passages of 800
+characters, no fact extraction). It is never the bank's default: it only takes
+effect when a producer asks for it per file. To also keep a raw-text copy of each
+source, searchable within minutes while facts are still being extracted, converge the
+bank first and then enable the producer option:
+
+```bash
+deployment/ubuntu/configure-hindsight-bank --usage projects --apply
+deployment/ubuntu/configure-workspace-producer --set NAME --root PATH --bank BANK --text-strategy text --apply
+```
+
+The producer option is off by default; the search routers must be current before it is
+enabled so that raw passages are presented as quotes, not as fact summaries.
+
 Its project material is not exposed through the direct multi-bank Hindsight MCP.
 Hermes uses the authenticated project router installed by
 `configure-hindsight-project-router-local`, which always applies the exact
