@@ -35,6 +35,24 @@ def _merge(usage: str, overlay: dict) -> dict:
     return json.loads(result.stdout)
 
 
+@pytest.mark.parametrize("usage", ["projects", "knowledge"])
+def test_presets_declare_the_raw_text_strategy_without_changing_the_default(usage: str) -> None:
+    payload = _preset(usage)
+    # A named strategy a producer may request per file (raw passages, no fact extraction).
+    # It is declared, never the bank's default: existing retains behave exactly as before.
+    assert payload["retain_strategies"] == {
+        "text": {"retain_extraction_mode": "chunks", "retain_chunk_size": 800}
+    }
+    assert "retain_default_strategy" not in payload
+    assert payload["retain_extraction_mode"] == "concise"
+
+
+def test_overlay_cannot_redefine_the_raw_text_strategy() -> None:
+    merged = _merge("projects", {"mission_additions": {"retain_mission": "Local context."}})
+    assert merged["retain_strategies"] == _preset("projects")["retain_strategies"]
+    assert 'keys - ["mission_additions", "entity_labels"] | length == 0' in SCRIPT.read_text(encoding="utf-8")
+
+
 def test_presets_exist_for_exactly_the_two_vault_usages() -> None:
     assert sorted(p.stem for p in PRESETS.glob("*.json")) == ["knowledge", "projects"]
 

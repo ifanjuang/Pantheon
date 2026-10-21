@@ -59,6 +59,12 @@
         ]
       }
     ],
-    "entities_allow_free_form": true
+    "entities_allow_free_form": true,
+    "retain_strategies": {
+      "text": {
+        "retain_extraction_mode": "chunks",
+        "retain_chunk_size": 800
+      }
+    }
   }
 }
