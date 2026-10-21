@@ -2583,6 +2583,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="file parser requested from Hindsight (default markitdown)",
     )
     parser.add_argument(
+        "--hindsight-text-strategy",
+        default=os.getenv("WORKSPACE_HINDSIGHT_TEXT_STRATEGY", ""),
+        help="name of a retain strategy of the bank: also retain every source as raw text",
+    )
+    parser.add_argument(
         "--hindsight-max-submits-per-reconcile",
         type=int,
         default=int(os.getenv("WORKSPACE_HINDSIGHT_MAX_SUBMITS_PER_RECONCILE", "4")),
@@ -2673,14 +2678,18 @@ def main(argv: list[str] | None = None) -> int:
             max_file_bytes=args.hindsight_max_file_mb * 1024 * 1024,
         )
         if not args.projection_only:
-            producer = HindsightProducer(
-                roots=args.root,
-                state_db=state_db,
-                client=hindsight_client,
-                max_submits_per_reconcile=args.hindsight_max_submits_per_reconcile,
-                settle_observations=args.hindsight_settle_observations,
-                source_kind=args.hindsight_source_kind,
-            )
+            try:
+                producer = HindsightProducer(
+                    roots=args.root,
+                    state_db=state_db,
+                    client=hindsight_client,
+                    max_submits_per_reconcile=args.hindsight_max_submits_per_reconcile,
+                    settle_observations=args.hindsight_settle_observations,
+                    source_kind=args.hindsight_source_kind,
+                    text_strategy=args.hindsight_text_strategy,
+                )
+            except ValueError as exc:
+                raise SystemExit(f"--hindsight-text-strategy: {exc}") from exc
 
     reconcile_hermes_url = args.reconcile_hermes_url.strip().rstrip("/")
     reconcile_hermes_key = os.getenv("WORKSPACE_RECONCILE_HERMES_KEY", "").strip()

@@ -418,6 +418,30 @@ WORKSPACE_HINDSIGHT_SOURCE_KIND=project-sync
 
 `WORKSPACE_HINDSIGHT_AUTHORIZATION` may be supplied there when the selected Hindsight exposure requires it. The environment file is optional; absence keeps the producer inactive.
 
+### Optional raw-text representation
+
+By default each source is retained once, as `<document_id>:source`. Setting `WORKSPACE_HINDSIGHT_TEXT_STRATEGY=<name>` (or `--hindsight-text-strategy`; `configure-workspace-producer --text-strategy`) also retains the same source a second time as `<document_id>:text`, through the retain strategy `<name>` that the **bank must define** (for example raw chunks without fact extraction). The second document carries the same tags plus `representation:text`, and is the part a reader can search within minutes while facts are still being extracted.
+
+```text
+the raw text is searchable even when no fact was extracted
+a failed raw-text retain never blocks, delays or repeats the source retain
+sources already indexed before the option was set get their raw text without being extracted again
+quarantine, tag updates and deletion apply to both documents; a missing twin is not an error
+```
+
+Each projected card gains `hindsight_text_status`, `hindsight_fact_count` and `hindsight_piece_state`:
+
+| `hindsight_piece_state` | Meaning |
+|---|---|
+| `indexed` | the source is retained and, with the option on, so is its raw text |
+| `searchable_text` | the raw text is searchable although the source has no fact yet (or none was extracted) |
+| `partial` | retained, but without any fact or without its raw text |
+| `extraction_failed` | nothing could be retained |
+| `ocr_needed` | no text could be read; manual OCR remains a per-file decision |
+| `in_progress` | a retain is waiting or running |
+
+The fact count is read once per source version and only with the option on. A source with no fact is a signal, never an error: it stays listed and its raw text stays searchable. Without the option the producer behaves exactly as before.
+
 ```text
 filesystem present != professionally validated
 retain submitted != retain completed

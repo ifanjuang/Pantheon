@@ -17,6 +17,7 @@ LABEL=""
 ROOT=""
 BANK=""
 SOURCE_KIND=""
+TEXT_STRATEGY=""
 MAX_DEPTH=8
 RECONCILE_SECONDS=300
 EXCLUDE=""
@@ -45,6 +46,8 @@ Options for --set:
   --bank BANK             Hindsight bank receiving this root (required)
   --label LABEL           Workspace root name shown in the Cockpit (default: NAME)
   --source-kind KIND      Hindsight source:KIND tag (default: NAME)
+  --text-strategy NAME    also retain every source as raw text through this retain strategy of the
+                          bank (the strategy must exist in the bank configuration; default: off)
   --max-depth N           folder depth, 1-16 (default: 8)
   --reconcile-seconds S   full reconcile interval (default: 300)
   --exclude A,B           extra folder names to skip
@@ -68,6 +71,7 @@ while (($#)); do
     --bank) BANK="${2:?missing BANK}"; shift ;;
     --label) LABEL="${2:?missing LABEL}"; shift ;;
     --source-kind) SOURCE_KIND="${2:?missing KIND}"; shift ;;
+    --text-strategy) TEXT_STRATEGY="${2:?missing NAME}"; shift ;;
     --max-depth) MAX_DEPTH="${2:?missing N}"; shift ;;
     --reconcile-seconds) RECONCILE_SECONDS="${2:?missing S}"; shift ;;
     --exclude) EXCLUDE="${2:?missing folders}"; shift ;;
@@ -132,6 +136,7 @@ LABEL="${LABEL:-$NAME}"
 [[ "$LABEL" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$ ]] || die "--label must be a simple name"
 SOURCE_KIND="${SOURCE_KIND:-$NAME}"
 [[ "$SOURCE_KIND" =~ ^[a-z0-9][a-z0-9-]{0,63}$ ]] || die "--source-kind must be lowercase letters, digits or dashes"
+[[ -z "$TEXT_STRATEGY" || "$TEXT_STRATEGY" =~ ^[A-Za-z0-9_-]{1,40}$ ]] || die "--text-strategy must be 1-40 letters, digits, dashes or underscores"
 [[ "$EXCLUDE" != *$'\n'* && "$EXCLUDE" != *=* ]] || die "--exclude must be a comma-separated list of folder names"
 SERVICE_USER="${SERVICE_USER:-$(stat -c %U -- "$ROOT")}"
 id -u "$SERVICE_USER" >/dev/null 2>&1 || die "service user does not exist: $SERVICE_USER"
@@ -154,6 +159,7 @@ WORKSPACE_WATCH_DEBOUNCE_MS=500
 WORKSPACE_HINDSIGHT_URL=$HINDSIGHT_URL
 WORKSPACE_HINDSIGHT_BANK_ID=$BANK
 WORKSPACE_HINDSIGHT_SOURCE_KIND=$SOURCE_KIND
+WORKSPACE_HINDSIGHT_TEXT_STRATEGY=$TEXT_STRATEGY
 WORKSPACE_EXCLUDED_FOLDERS=$EXCLUDE
 EOF_ENV
 )"

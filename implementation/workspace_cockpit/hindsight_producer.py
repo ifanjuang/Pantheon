@@ -35,6 +35,12 @@ IDENTITY_TABLE = "workspace_document_identity"
 OBSERVATION_TABLE = "hindsight_source_observation"
 QUALITY_TABLE = "hindsight_extraction_quality"
 TAG_SAFE_RE = re.compile(r"[^a-z0-9._-]+")
+STRATEGY_RE = re.compile(r"^[A-Za-z0-9_-]{1,40}$")
+# Tag carried by the raw-text representation of a document (a second Hindsight document).
+TEXT_REPRESENTATION_TAG = "representation:text"
+TEXT_SUFFIX = ":text"
+SOURCE_SUFFIX = ":source"
+FAILED_STATUSES = {"FAILED", "CANCELLED", "SUBMIT_ERROR"}
 
 
 def _utc_now() -> str:
@@ -105,6 +111,39 @@ def _same_project(left: str | None, right: str | None) -> bool:
     if left is None or right is None:
         return left is right
     return _tag_value(left) == _tag_value(right)
+
+
+def _piece_state(row: dict[str, Any], quality_status: str | None, text_layer: bool) -> str | None:
+    """What a reader can do with a piece now, whatever step failed.
+
+    ocr_needed        no text could be read; manual OCR is proposed
+    indexed           the source is retained (facts or text, per the bank) and, with the text
+                      layer on, its raw text too
+    searchable_text   the raw text is searchable although the source has no fact (yet)
+    partial           retained, but without fact or without its raw text
+    extraction_failed nothing could be retained
+    in_progress       a retain is waiting or running
+    None              not a state of reading (quarantined, archived, blocked)
+    """
+    status = row.get("status")
+    text = row.get("text_status")
+    text_done = text == "COMPLETED"
+    if quality_status == "OCR_NEEDED" or status == "OCR_NEEDED":
+        return "ocr_needed"
+    if status == "COMPLETED":
+        no_fact = row.get("fact_count") == 0
+        if not text_layer:
+            return "partial" if no_fact else "indexed"
+        if text_done:
+            return "searchable_text" if no_fact else "indexed"
+        if text in FAILED_STATUSES:
+            return "partial"
+        return "in_progress"
+    if status in FAILED_STATUSES:
+        return "searchable_text" if text_done else "extraction_failed"
+    if status in ACTIVE_STATUSES or status == "QUEUED":
+        return "searchable_text" if text_done else "in_progress"
+    return None
 
 
 class ProjectReclassificationRequired(RuntimeError):
@@ -183,20 +222,23 @@ class HindsightHTTPClient:
         context: str,
         tags: list[str],
         metadata: dict[str, str],
+        strategy: str | None = None,
     ) -> str:
         boundary = f"----pantheon-{uuid.uuid4().hex}"
+        file_metadata: dict[str, Any] = {
+            "context": context,
+            "document_id": document_id,
+            "tags": tags,
+            "metadata": metadata,
+            "timestamp": "unset",
+        }
+        if strategy:
+            # A named retain strategy of the bank (for example raw text without extraction).
+            file_metadata["strategy"] = strategy
         request_payload = json.dumps(
             {
                 "parser": self.parser,
-                "files_metadata": [
-                    {
-                        "context": context,
-                        "document_id": document_id,
-                        "tags": tags,
-                        "metadata": metadata,
-                        "timestamp": "unset",
-                    }
-                ],
+                "files_metadata": [file_metadata],
             },
             ensure_ascii=False,
             separators=(",", ":"),
@@ -346,6 +388,9 @@ class HindsightProducer:
         max_submits_per_reconcile: int = 4,
         settle_observations: int = 1,
         source_kind: str = "",
+        text_strategy: str = "",
+        max_text_submits_per_reconcile: int = 50,
+        max_fact_checks_per_reconcile: int = 20,
     ) -> None:
         self.roots = {name: root for name, root in roots}
         self.state_db = state_db
@@ -353,10 +398,19 @@ class HindsightProducer:
         self.max_submits_per_reconcile = max(1, int(max_submits_per_reconcile))
         self.settle_observations = max(1, int(settle_observations))
         self.source_kind = _tag_value(source_kind) if source_kind else ""
+        # A non-empty name of a retain strategy of the bank enables the raw-text
+        # representation: every source is also retained, without extraction, as
+        # "<document_id>:text". Empty keeps the single "<document_id>:source" document.
+        self.text_strategy = text_strategy.strip()
+        if self.text_strategy and not STRATEGY_RE.match(self.text_strategy):
+            raise ValueError("text_strategy must be 1-40 letters, digits, dashes or underscores")
+        self.max_text_submits_per_reconcile = max(1, int(max_text_submits_per_reconcile))
+        self.max_fact_checks_per_reconcile = max(1, int(max_fact_checks_per_reconcile))
         self._last_summary: dict[str, Any] = {
             "enabled": True,
             "bank_id": client.bank_id,
             "mode": "source-only",
+            "text_layer": bool(self.text_strategy),
             "delete_missing": "two-observation-quarantine",
             "ocr_mode": "manual-per-file",
             "submitted": 0,
@@ -412,6 +466,16 @@ class HindsightProducer:
                 )
             if "tags_json" not in sync_columns:
                 connection.execute(f"ALTER TABLE {SYNC_TABLE} ADD COLUMN tags_json TEXT")
+            # Raw-text twin ("<id>:text") and fact-count check, tracked on the same row.
+            for column, definition in (
+                ("text_operation_id", "TEXT"),
+                ("text_status", "TEXT"),
+                ("text_error", "TEXT"),
+                ("fact_count", "INTEGER"),
+                ("facts_checked_fingerprint", "TEXT"),
+            ):
+                if column not in sync_columns:
+                    connection.execute(f"ALTER TABLE {SYNC_TABLE} ADD COLUMN {column} {definition}")
             connection.execute(
                 f"""
                 CREATE TABLE IF NOT EXISTS {IDENTITY_TABLE} (
@@ -454,6 +518,91 @@ class HindsightProducer:
             connection.commit()
         finally:
             connection.close()
+
+    @staticmethod
+    def _twin(key: str) -> str:
+        """The raw-text document paired with a source document."""
+        base = key[: -len(SOURCE_SUFFIX)] if key.endswith(SOURCE_SUFFIX) else key
+        return f"{base}{TEXT_SUFFIX}"
+
+    @staticmethod
+    def _text_tags(tags: list[str]) -> list[str]:
+        return list(dict.fromkeys([*tags, TEXT_REPRESENTATION_TAG]))
+
+    def _update_tags(self, key: str, tags: list[str]) -> None:
+        """Keep the raw-text twin's tags in step with its source; a missing twin is not an error."""
+        self.client.update_document_tags(key, tags)
+        if self.text_strategy:
+            try:
+                self.client.update_document_tags(self._twin(key), self._text_tags(tags))
+            except RuntimeError as exc:
+                if "404" not in str(exc):
+                    raise
+
+    def _delete_document(self, key: str, row: dict[str, Any] | None = None) -> None:
+        self.client.delete_document(key)
+        if self.text_strategy or (row and row.get("text_status")):
+            self.client.delete_document(self._twin(key))
+
+    def _save_text(self, key: str, operation_id: str | None, status: str | None, error: str | None) -> None:
+        connection = self._connect()
+        try:
+            with connection:
+                connection.execute(
+                    f"UPDATE {SYNC_TABLE} SET text_operation_id = ?, text_status = ?, text_error = ?, "
+                    "updated_at = ? WHERE hindsight_document_id = ?",
+                    (operation_id, status, error, _utc_now(), key),
+                )
+        finally:
+            connection.close()
+
+    def _save_fact_count(self, key: str, fingerprint: str, count: int | None) -> None:
+        connection = self._connect()
+        try:
+            with connection:
+                connection.execute(
+                    f"UPDATE {SYNC_TABLE} SET fact_count = ?, facts_checked_fingerprint = ? "
+                    "WHERE hindsight_document_id = ?",
+                    (count, fingerprint, key),
+                )
+        finally:
+            connection.close()
+
+    def _submit_text(self, candidate: ProducerCandidate, key: str, tags: list[str]) -> dict[str, Any]:
+        """Retain the same source a second time as raw text. Failure never blocks the source."""
+        try:
+            operation_id = self.client.retain_file(
+                candidate.source_path,
+                document_id=self._twin(key),
+                context=candidate.context,
+                tags=self._text_tags(tags),
+                metadata=candidate.metadata,
+                strategy=self.text_strategy,
+            )
+        except (OSError, RuntimeError) as exc:
+            update = {"text_operation_id": None, "text_status": "SUBMIT_ERROR", "text_error": str(exc)}
+        else:
+            update = {"text_operation_id": operation_id, "text_status": "SUBMITTED", "text_error": None}
+        self._save_text(key, update["text_operation_id"], update["text_status"], update["text_error"])
+        return update
+
+    def _poll_text(self, row: dict[str, Any]) -> dict[str, Any]:
+        operation_id = row.get("text_operation_id")
+        if not operation_id:
+            return row
+        key = row["hindsight_document_id"]
+        try:
+            payload = self.client.operation_status(str(operation_id))
+        except RuntimeError as exc:
+            row["text_error"] = str(exc)
+            self._save_text(key, str(operation_id), row.get("text_status"), row["text_error"])
+            return row
+        row["text_status"] = str(payload["status"]).upper()
+        row["text_error"] = (
+            str(payload.get("error_message")) if payload.get("error_message") is not None else None
+        )
+        self._save_text(key, str(operation_id), row["text_status"], row["text_error"])
+        return row
 
     def _states(self) -> dict[str, dict[str, Any]]:
         connection = self._connect()
@@ -1046,6 +1195,9 @@ class HindsightProducer:
         for key, row in list(states.items()):
             if row.get("status") in ACTIVE_STATUSES:
                 states[key] = self._poll(row)
+        for key, row in list(states.items()):
+            if row.get("text_status") in ACTIVE_STATUSES:
+                states[key] = self._poll_text(row)
 
         candidates: dict[str, ProducerCandidate] = {}
         seen_document_ids: set[str] = set()
@@ -1128,7 +1280,7 @@ class HindsightProducer:
                     )
                     updated_tags = _with_raw_ocr_status(projected_tags[key] + preserved_tags)
                     if sorted(set(preserved_tags)) != updated_tags:
-                        self.client.update_document_tags(key, updated_tags)
+                        self._update_tags(key, updated_tags)
                     projected_tags[key] = updated_tags
             except RuntimeError as exc:
                 quality_status = "CHECK_ERROR"
@@ -1167,7 +1319,7 @@ class HindsightProducer:
             )
             if stable_content_move:
                 try:
-                    self.client.update_document_tags(key, tags)
+                    self._update_tags(key, tags)
                 except RuntimeError as exc:
                     last_error = str(exc)
                     continue
@@ -1195,7 +1347,7 @@ class HindsightProducer:
             if row and row.get("fingerprint") == candidate.fingerprint:
                 if row.get("status") == "QUARANTINED":
                     try:
-                        self.client.update_document_tags(key, tags)
+                        self._update_tags(key, tags)
                     except RuntimeError as exc:
                         # A remotely absent document must be retained again. Other
                         # failures are transient and must not risk a duplicate retain.
@@ -1341,6 +1493,49 @@ class HindsightProducer:
                 "last_error": None,
                 "tags_json": json.dumps(tags, ensure_ascii=False),
             }
+            if self.text_strategy:
+                # Searchable within minutes, long before the facts are extracted.
+                states[key].update(self._submit_text(candidate, key, tags))
+
+        if self.text_strategy:
+            # Sources indexed before the text layer existed get their raw text without
+            # being extracted again; a failed submission is retried on the next pass.
+            text_budget = self.max_text_submits_per_reconcile
+            for key, candidate in candidates.items():
+                row = states.get(key)
+                if text_budget <= 0:
+                    break
+                if (
+                    row
+                    and row.get("status") == "COMPLETED"
+                    and row.get("fingerprint") == candidate.fingerprint
+                    and row.get("text_status") in (None, "SUBMIT_ERROR")
+                ):
+                    text_budget -= 1
+                    row.update(self._submit_text(candidate, key, projected_tags.get(key, candidate.tags)))
+
+        # A source that completed with no fact at all stays visible as partial (its raw text, when
+        # present, remains searchable). The count is read once per source version, and only with
+        # the text layer on: an installation without it keeps exactly the reads it had.
+        fact_checks = 0
+        for key, candidate in candidates.items():
+            row = states.get(key)
+            if not self.text_strategy or fact_checks >= self.max_fact_checks_per_reconcile:
+                break
+            if (
+                row
+                and row.get("status") == "COMPLETED"
+                and row.get("fingerprint") == candidate.fingerprint
+                and row.get("facts_checked_fingerprint") != candidate.fingerprint
+            ):
+                fact_checks += 1
+                try:
+                    count = self.client.get_document(key).get("memory_unit_count")
+                except RuntimeError:
+                    continue
+                count = count if isinstance(count, int) else None
+                self._save_fact_count(key, candidate.fingerprint, count)
+                row.update(fact_count=count, facts_checked_fingerprint=candidate.fingerprint)
 
         available_workspaces = {
             str(workspace.get("name"))
@@ -1398,7 +1593,7 @@ class HindsightProducer:
             observations = int(row.get("missing_observations") or 0) + 1
             if observations == 1:
                 try:
-                    self.client.update_document_tags(
+                    self._update_tags(
                         key,
                         [
                             "lifecycle:quarantined",
@@ -1425,7 +1620,7 @@ class HindsightProducer:
                 row.update(status="QUARANTINED", missing_observations=observations)
             else:
                 try:
-                    self.client.delete_document(key)
+                    self._delete_document(key, row)
                 except RuntimeError as exc:
                     last_error = str(exc)
                     continue
@@ -1494,6 +1689,13 @@ class HindsightProducer:
                     quality is not None and quality.get("status") == "OCR_NEEDED"
                 )
                 card["hindsight_ocr_mode"] = "manual-per-file"
+                card["hindsight_text_status"] = row.get("text_status")
+                card["hindsight_fact_count"] = row.get("fact_count")
+                card["hindsight_piece_state"] = _piece_state(
+                    row,
+                    quality.get("status") if quality is not None else None,
+                    bool(self.text_strategy),
+                )
 
         counts = {
             "submitted": 0,
@@ -1509,9 +1711,22 @@ class HindsightProducer:
             "ocr_needed": sum(
                 1 for row in quality_states.values() if row.get("status") == "OCR_NEEDED"
             ),
+            "text_completed": 0,
+            "text_pending": 0,
+            "text_failed": 0,
+            "no_facts": 0,
         }
         for row in states.values():
             status = row.get("status")
+            text_status = row.get("text_status")
+            if text_status == "COMPLETED":
+                counts["text_completed"] += 1
+            elif text_status in ACTIVE_STATUSES:
+                counts["text_pending"] += 1
+            elif text_status in FAILED_STATUSES:
+                counts["text_failed"] += 1
+            if status == "COMPLETED" and row.get("fact_count") == 0:
+                counts["no_facts"] += 1
             if status == "SUBMITTED":
                 counts["submitted"] += 1
             elif status in {"PENDING", "PROCESSING"}:
@@ -1535,6 +1750,7 @@ class HindsightProducer:
             "enabled": True,
             "bank_id": self.client.bank_id,
             "mode": "source-only",
+            "text_layer": bool(self.text_strategy),
             "delete_missing": "two-observation-quarantine",
             "ocr_mode": "manual-per-file",
             **counts,

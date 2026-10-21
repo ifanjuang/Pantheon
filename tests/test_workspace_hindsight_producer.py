@@ -7,6 +7,8 @@ import sqlite3
 import sys
 from unittest.mock import patch
 
+import pytest
+
 
 ROOT = Path(__file__).resolve().parents[1]
 PRODUCER = ROOT / "implementation" / "workspace_cockpit" / "hindsight_producer.py"
@@ -1073,3 +1075,274 @@ def test_replacement_quality_is_not_checked_against_previous_fingerprint(tmp_pat
 
     producer.reconcile(_snapshot(_card()))
     assert client.document_reads == 2
+
+
+def _text_producer(module, tmp_path: Path, client, *, text_strategy: str = "text"):
+    return module.HindsightProducer(
+        roots=[("Affaires", tmp_path)],
+        state_db=tmp_path / "state.sqlite3",
+        client=client,
+        max_submits_per_reconcile=4,
+        text_strategy=text_strategy,
+    )
+
+
+def _projected(snapshot: dict) -> dict:
+    return snapshot["workspaces"][0]["cards"][0]
+
+
+def test_text_layer_is_off_by_default_and_changes_nothing(tmp_path: Path) -> None:
+    module = _module()
+    (tmp_path / "Notice.pdf").write_bytes(b"%PDF-text-off")
+    client = FakeClient(["completed"])
+    producer = module.HindsightProducer(
+        roots=[("Affaires", tmp_path)], state_db=tmp_path / "state.sqlite3", client=client
+    )
+
+    producer.reconcile(_snapshot(_card()))
+    snapshot = _snapshot(_card())
+    summary = producer.reconcile(snapshot)
+
+    assert len(client.retains) == 1 and "strategy" not in client.retains[0]
+    assert summary["text_layer"] is False
+    assert _row(tmp_path / "state.sqlite3")["text_status"] is None
+    assert _projected(snapshot)["hindsight_piece_state"] == "indexed"
+
+
+def test_text_layer_retains_the_same_source_twice_and_tags_the_second_as_raw_text(tmp_path: Path) -> None:
+    module = _module()
+    source = tmp_path / "Notice.pdf"
+    source.write_bytes(b"%PDF-text-on")
+    client = FakeClient(["completed", "completed"])
+    producer = _text_producer(module, tmp_path, client)
+
+    first_snapshot = _snapshot(_card())
+    first = producer.reconcile(first_snapshot)
+
+    assert first["text_layer"] is True and first["submitted"] == 1
+    source_call, text_call = client.retains
+    assert source_call["document_id"] == "doc-notice:source" and "strategy" not in source_call
+    assert text_call["document_id"] == "doc-notice:text" and text_call["strategy"] == "text"
+    assert text_call["source"] == source_call["source"] == source
+    assert text_call["context"] == source_call["context"]
+    assert text_call["metadata"] == source_call["metadata"]
+    assert text_call["tags"] == [*source_call["tags"], "representation:text"]
+    assert "representation:text" not in source_call["tags"]
+    assert _projected(first_snapshot)["hindsight_piece_state"] == "in_progress"
+
+    second_snapshot = _snapshot(_card())
+    second = producer.reconcile(second_snapshot)
+
+    assert len(client.retains) == 2
+    assert second["text_completed"] == 1 and second["completed"] == 1
+    row = _row(tmp_path / "state.sqlite3")
+    assert row["status"] == "COMPLETED" and row["text_status"] == "COMPLETED"
+    assert _projected(second_snapshot)["hindsight_text_status"] == "COMPLETED"
+    assert _projected(second_snapshot)["hindsight_piece_state"] == "indexed"
+
+
+def test_text_layer_failure_never_blocks_the_source_and_is_retried(tmp_path: Path) -> None:
+    module = _module()
+    (tmp_path / "Notice.pdf").write_bytes(b"%PDF-text-fails")
+
+    class TextFailsClient(FakeClient):
+        def __init__(self) -> None:
+            super().__init__(["completed"])
+            self.text_attempts = 0
+
+        def retain_file(self, source: Path, **kwargs):
+            if kwargs["document_id"].endswith(":text"):
+                self.text_attempts += 1
+                raise RuntimeError("raw text upload failed")
+            return super().retain_file(source, **kwargs)
+
+    client = TextFailsClient()
+    producer = _text_producer(module, tmp_path, client)
+
+    producer.reconcile(_snapshot(_card()))
+    row = _row(tmp_path / "state.sqlite3")
+    assert row["status"] == "SUBMITTED" and row["text_status"] == "SUBMIT_ERROR"
+    assert "raw text upload failed" in row["text_error"]
+
+    snapshot = _snapshot(_card())
+    summary = producer.reconcile(snapshot)
+
+    assert client.text_attempts == 2
+    assert len(client.retains) == 1  # the source was retained once and never again
+    assert _row(tmp_path / "state.sqlite3")["status"] == "COMPLETED"
+    assert summary["text_failed"] == 1
+    assert _projected(snapshot)["hindsight_piece_state"] == "partial"
+
+
+def test_sources_indexed_before_the_text_layer_get_their_raw_text_without_extraction(tmp_path: Path) -> None:
+    module = _module()
+    (tmp_path / "Notice.pdf").write_bytes(b"%PDF-before-text-layer")
+    client = FakeClient(["completed", "completed"])
+    before = module.HindsightProducer(
+        roots=[("Affaires", tmp_path)], state_db=tmp_path / "state.sqlite3", client=client
+    )
+    before.reconcile(_snapshot(_card()))
+    before.reconcile(_snapshot(_card()))
+    assert len(client.retains) == 1
+
+    after = _text_producer(module, tmp_path, client)
+    summary = after.reconcile(_snapshot(_card()))
+
+    assert [call["document_id"] for call in client.retains] == ["doc-notice:source", "doc-notice:text"]
+    assert _row(tmp_path / "state.sqlite3")["status"] == "COMPLETED"
+    assert summary["text_pending"] == 1
+    after.reconcile(_snapshot(_card()))
+    assert _row(tmp_path / "state.sqlite3")["text_status"] == "COMPLETED"
+    assert len(client.retains) == 2
+
+
+def test_quarantine_and_deletion_reach_the_raw_text_twin(tmp_path: Path) -> None:
+    module = _module()
+    (tmp_path / "Notice.pdf").write_bytes(b"%PDF-lifecycle-twin")
+    client = FakeClient(["completed", "completed"])
+    producer = _text_producer(module, tmp_path, client)
+    producer.reconcile(_snapshot(_card()))
+    producer.reconcile(_snapshot(_card()))
+
+    producer.reconcile(_snapshot(None))
+
+    lifecycle = ["lifecycle:quarantined", "workspace:affaires", "reason:source-missing"]
+    assert client.tag_updates[-2:] == [
+        {"document_id": "doc-notice:source", "tags": lifecycle},
+        {"document_id": "doc-notice:text", "tags": [*lifecycle, "representation:text"]},
+    ]
+    producer.reconcile(_snapshot(None))
+    assert client.deleted_documents == ["doc-notice:source", "doc-notice:text"]
+
+
+def test_a_missing_twin_does_not_fail_a_tag_update(tmp_path: Path) -> None:
+    module = _module()
+    (tmp_path / "Notice.pdf").write_bytes(b"%PDF-twin-404")
+
+    class MissingTwinClient(FakeClient):
+        def update_document_tags(self, document_id: str, tags: list[str]):
+            if document_id.endswith(":text"):
+                raise RuntimeError("Hindsight HTTP 404: not found")
+            super().update_document_tags(document_id, tags)
+
+    client = MissingTwinClient(["completed", "completed"])
+    producer = _text_producer(module, tmp_path, client)
+    producer.reconcile(_snapshot(_card()))
+    producer.reconcile(_snapshot(_card()))
+
+    producer.reconcile(_snapshot(None))
+
+    assert _row(tmp_path / "state.sqlite3")["status"] == "QUARANTINED"
+
+
+@pytest.mark.parametrize(
+    ("row", "quality", "text_layer", "expected"),
+    [
+        ({"status": "COMPLETED"}, None, False, "indexed"),
+        ({"status": "COMPLETED", "fact_count": 0}, None, False, "partial"),
+        ({"status": "COMPLETED", "text_status": "COMPLETED"}, None, True, "indexed"),
+        ({"status": "COMPLETED", "text_status": "COMPLETED", "fact_count": 0}, None, True, "searchable_text"),
+        ({"status": "COMPLETED", "text_status": "SUBMIT_ERROR"}, None, True, "partial"),
+        ({"status": "COMPLETED", "text_status": "SUBMITTED"}, None, True, "in_progress"),
+        ({"status": "COMPLETED"}, None, True, "in_progress"),
+        ({"status": "FAILED", "text_status": "COMPLETED"}, None, True, "searchable_text"),
+        ({"status": "FAILED"}, None, True, "extraction_failed"),
+        ({"status": "SUBMIT_ERROR"}, None, False, "extraction_failed"),
+        ({"status": "PENDING"}, None, True, "in_progress"),
+        ({"status": "QUEUED", "text_status": "COMPLETED"}, None, True, "searchable_text"),
+        ({"status": "COMPLETED"}, "OCR_NEEDED", True, "ocr_needed"),
+        ({"status": "OCR_NEEDED"}, None, False, "ocr_needed"),
+        ({"status": "QUARANTINED"}, None, True, None),
+        ({"status": "ARCHIVED"}, None, False, None),
+    ],
+)
+def test_piece_state_tells_what_a_reader_can_do_with_the_piece(row, quality, text_layer, expected) -> None:
+    assert _module()._piece_state(row, quality, text_layer) == expected
+
+
+def test_source_without_any_fact_is_partial_and_its_text_stays_searchable(tmp_path: Path) -> None:
+    module = _module()
+    (tmp_path / "Notice.pdf").write_bytes(b"%PDF-no-fact")
+
+    class CountClient(FakeClient):
+        def __init__(self, count: int) -> None:
+            super().__init__(["completed", "completed"])
+            self.count = count
+            self.document_reads = 0
+
+        def get_document(self, document_id: str):
+            self.document_reads += 1
+            return {"id": document_id, "original_text": "Texte lisible.", "memory_unit_count": self.count}
+
+    empty = CountClient(0)
+    producer = _text_producer(module, tmp_path, empty)
+    producer.reconcile(_snapshot(_card()))
+    snapshot = _snapshot(_card())
+    summary = producer.reconcile(snapshot)
+
+    row = _row(tmp_path / "state.sqlite3")
+    assert row["fact_count"] == 0
+    assert summary["no_facts"] == 1
+    assert _projected(snapshot)["hindsight_fact_count"] == 0
+    assert _projected(snapshot)["hindsight_piece_state"] == "searchable_text"
+    reads = empty.document_reads
+    producer.reconcile(_snapshot(_card()))
+    assert empty.document_reads == reads  # counted once per source version
+
+    other = tmp_path / "other"
+    other.mkdir()
+    (other / "Notice.pdf").write_bytes(b"%PDF-with-facts")
+    producer = _text_producer(module, other, CountClient(7))
+    producer.reconcile(_snapshot(_card()))
+    snapshot = _snapshot(_card())
+    producer.reconcile(snapshot)
+    assert _projected(snapshot)["hindsight_piece_state"] == "indexed"
+    assert _projected(snapshot)["hindsight_fact_count"] == 7
+
+
+def test_http_client_sends_a_named_retain_strategy_only_when_asked(tmp_path: Path) -> None:
+    module = _module()
+    source = tmp_path / "Notice.pdf"
+    source.write_bytes(b"BYTES")
+    bodies = []
+
+    def fake_urlopen(request, timeout):
+        bodies.append(request.data)
+        return _Response({"operation_ids": ["op-1"]})
+
+    client = module.HindsightHTTPClient("http://127.0.0.1:8888", "affaires")
+    with patch.object(module, "urlopen", fake_urlopen):
+        client.retain_file(source, document_id="d:text", context="c", tags=[], metadata={}, strategy="text")
+        client.retain_file(source, document_id="d:source", context="c", tags=[], metadata={})
+
+    assert b'"strategy":"text"' in bodies[0]
+    assert b'"strategy"' not in bodies[1]
+
+
+@pytest.mark.parametrize("name", ["bad name", "a" * 41, "x/y", "é"])
+def test_text_strategy_name_is_validated(tmp_path: Path, name: str) -> None:
+    module = _module()
+    with pytest.raises(ValueError):
+        _text_producer(module, tmp_path, FakeClient(), text_strategy=name)
+
+
+def test_state_database_created_before_the_text_layer_is_migrated(tmp_path: Path) -> None:
+    module = _module()
+    db = tmp_path / "state.sqlite3"
+    connection = sqlite3.connect(db)
+    connection.execute(
+        "CREATE TABLE hindsight_sync (hindsight_document_id TEXT PRIMARY KEY, document_id TEXT NOT NULL, "
+        "workspace TEXT NOT NULL, source_path TEXT NOT NULL, source_sha256 TEXT NOT NULL, "
+        "fingerprint TEXT NOT NULL, operation_id TEXT, status TEXT NOT NULL, last_error TEXT, "
+        "missing_observations INTEGER NOT NULL DEFAULT 0, tags_json TEXT, updated_at TEXT NOT NULL)"
+    )
+    connection.commit()
+    connection.close()
+
+    _text_producer(module, tmp_path, FakeClient())
+
+    connection = sqlite3.connect(db)
+    columns = {row[1] for row in connection.execute("PRAGMA table_info(hindsight_sync)")}
+    connection.close()
+    assert {"text_operation_id", "text_status", "text_error", "fact_count", "facts_checked_fingerprint"} <= columns
+
