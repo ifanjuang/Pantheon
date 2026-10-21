@@ -200,7 +200,7 @@ jobs:
           exit $status
       - name: Upload full-test diagnostic
         if: failure() && steps.full-tests.outcome == 'failure'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: full-tests-diagnostic
           path: /tmp/full-tests.log
