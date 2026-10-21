@@ -155,10 +155,14 @@ A blocking relation is therefore asserted by a Role, a method or a human. It is 
 derived from state by a traversal. Deriving it would let the graph decide the next
 allowed action, which is the scheduler these rules exist to prevent.
 
-Relation vocabulary remains owned by `PANTHEON_GRAPH_MODEL.md` and, for the
-architecture domain, by `ARCHITECTURAL_PROJECT_GRAPH.md`. This section records the
-status collapses to avoid when those relations are read, not the relations
-themselves.
+Governance-graph relation vocabulary remains owned by `PANTHEON_GRAPH_MODEL.md`.
+Project-world relations of the architecture domain are owned by
+`docs/domain-packs/architecture/PROJECT_ANATOMY_MODEL.md` (sections 6 and 8) and
+its versioned relation profile
+`registries/architecture_relation_profile.registry.json`;
+`ARCHITECTURAL_PROJECT_GRAPH.md` uses plain orientation labels for those
+relations and owns none of them. This section records the status collapses to
+avoid when those relations are read, not the relations themselves.
 
 ## Use in documents
 

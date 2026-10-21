@@ -13,8 +13,21 @@
     "registries/README.md",
     "docs/governance/EVOLUTION_OF_ROLES_RITES_AND_SPACES.md"
   ],
-  "description": "Inventory of reviewed machine-readable registry projections governed from Pantheon-Next.",
-  "entries": [],
+  "description": "Inventory of machine-readable registry projections governed from Pantheon-Next; each entry carries its own status and an index entry approves nothing.",
+  "entries": [
+    {
+      "id": "architecture_relation_profile",
+      "path": "registries/architecture_relation_profile.registry.json",
+      "schema": "schemas/architecture-project-understanding/relation_profile.schema.yaml",
+      "registry_kind": "vocabulary",
+      "status": "candidate",
+      "profile": "architecture@1",
+      "consumers": [
+        "mcp-server/pantheon_mcp/apu.py",
+        ".github/scripts/check_relation_profile.py"
+      ]
+    }
+  ],
   "x_boundary": {
     "runtime_execution": false,
     "provider_routing": false,
