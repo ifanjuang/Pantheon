@@ -13,7 +13,7 @@
     "registries/README.md",
     "docs/governance/EVOLUTION_OF_ROLES_RITES_AND_SPACES.md"
   ],
-  "description": "Inventory of reviewed machine-readable registry projections governed from Pantheon-Next.",
+  "description": "Inventory of machine-readable registry projections governed from Pantheon-Next; each entry carries its own status and an index entry approves nothing.",
   "entries": [
     {
       "id": "architecture_relation_profile",

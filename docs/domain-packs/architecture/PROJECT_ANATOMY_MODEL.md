@@ -149,7 +149,7 @@ later claim != erased history
 
 It covers project-world relations and source-to-project identity alignment.
 
-Examples:
+Active relation types (architecture@1):
 
 ```text
 identity.represents
@@ -259,7 +259,7 @@ predicate visible != predicate approved
 classification proposed != classification retained
 ```
 
-The relation part of the registry is implemented as a candidate vocabulary for `architecture@1`: `registries/architecture_relation_profile.registry.json`, specialized schema `schemas/architecture-project-understanding/relation_profile.schema.yaml`, read-only enforcement in the APU validator (`mcp-server/pantheon_mcp/apu.py`) and `.github/scripts/check_relation_profile.py`. It controls `relation_claim.relation_type`, `requirement.constraint.relation_type`, admissible endpoints and the controlled qualifier keys `ouvrage_state`, `containment`, `junction_type`, `coverage` and `legal_basis`; other qualifier keys stay free.
+The relation part of the registry is implemented as a candidate vocabulary for `architecture@1`: `registries/architecture_relation_profile.registry.json`, specialized schema `schemas/architecture-project-understanding/relation_profile.schema.yaml`, read-only enforcement in the APU validator (`mcp-server/pantheon_mcp/apu.py`) and `.github/scripts/check_relation_profile.py`. It controls `relation_claim.relation_type` with its admissible endpoints, `requirement.constraint.relation_type` (type and status only; requirement endpoints are not checked against the profile in this slice) and the controlled qualifier keys `ouvrage_state`, `containment`, `junction_type`, `coverage` and `legal_basis`; other qualifier keys stay free.
 
 The predicate vocabulary, classification schemes, source identifier schemes, other profiles and persistence-side enforcement in `implementation/` remain documented non-implemented until their reviewed slices land.
 

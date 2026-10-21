@@ -108,6 +108,9 @@ def relation_profile_findings(
     errors: list[str] = []
     notes: list[str] = []
 
+    if not isinstance(relation_type, str):
+        # Shape errors (missing or non-string type) belong to the schema check.
+        return errors, notes
     entry = entries.get(relation_type)
     if entry is None:
         errors.append(
@@ -298,11 +301,12 @@ def validate_apu_dossier(dossier: dict[str, Any]) -> dict[str, Any]:
     except (OSError, ValueError) as exc:
         relation_profile = None
         vocabulary_errors.append(f"relation profile unavailable: {exc}")
-    object_families = {
-        str(item.get("stable_object_id")): str(item.get("object_family"))
-        for object_type, _index, item in objects
-        if object_type == "stable_object" and item.get("object_family")
-    }
+    object_families: dict[str, str] = {}
+    for object_type, _index, item in objects:
+        family = item.get("object_family")
+        if object_type == "stable_object" and isinstance(family, str):
+            # First occurrence wins, consistent with the duplicate-id report.
+            object_families.setdefault(str(item.get("stable_object_id")), family)
 
     for object_type, index, item in objects:
         tag = f"{object_type}[{index}]"
@@ -342,18 +346,25 @@ def validate_apu_dossier(dossier: dict[str, Any]) -> dict[str, Any]:
                     f"{tag}: identity relation remains candidate/review material"
                 )
         elif object_type == "requirement":
-            source = item.get("source") or {}
-            if source.get("source_type") == "program":
+            source = item.get("source")
+            if isinstance(source, dict) and source.get("source_type") == "program":
                 ref(source.get("source_ref"), f"{tag}.source.source_ref")
-            target = item.get("target") or {}
-            entity_ref(target.get("entity_ref"), f"{tag}.target.entity_ref")
-            constraint = item.get("constraint") or {}
-            related = constraint.get("related_target") or {}
+            target = item.get("target")
+            if isinstance(target, dict):
+                entity_ref(target.get("entity_ref"), f"{tag}.target.entity_ref")
+            constraint = item.get("constraint")
+            if not isinstance(constraint, dict):
+                constraint = {}
+            related = constraint.get("related_target")
+            if not isinstance(related, dict):
+                related = {}
             entity_ref(
                 related.get("entity_ref"),
                 f"{tag}.constraint.related_target.entity_ref",
             )
             if relation_profile is not None and constraint.get("relation_type"):
+                # Requirements are checked for type and status only; endpoint
+                # rules apply to relation claims, whose endpoints are explicit.
                 found, review_notes = relation_profile_findings(
                     relation_profile,
                     relation_type=constraint.get("relation_type"),

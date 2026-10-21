@@ -120,6 +120,41 @@ def test_deprecation_requires_a_live_replacement() -> None:
     assert any("architecture.connects_via: deprecated without" in item for item in failures)
 
 
+def test_inverse_pair_must_swap_endpoints() -> None:
+    module = _check_module()
+    profile = _profile()
+    _entry(profile, "structure.supports")["object_object_families"] = ["element"]
+    failures = module.coherence_failures(profile)
+    assert any("inverse 'structure.supports' does not swap the endpoints" in item
+               for item in failures)
+
+
+def test_symmetric_relation_needs_identical_endpoints() -> None:
+    module = _check_module()
+    profile = _profile()
+    _entry(profile, "spatial.adjacent_to")["object_object_families"] = ["element"]
+    failures = module.coherence_failures(profile)
+    assert any("spatial.adjacent_to: a symmetric relation needs identical endpoints" in item
+               for item in failures)
+
+
+def test_replaced_by_is_reserved_for_deprecated_entries() -> None:
+    module = _check_module()
+    profile = _profile()
+    _entry(profile, "architecture.separates")["replaced_by"] = "spatial.bounded_by"
+    failures = module.coherence_failures(profile)
+    assert any("architecture.separates: replaced_by is reserved" in item for item in failures)
+
+
+def test_activation_requires_naming_in_section_6() -> None:
+    module = _check_module()
+    profile = _profile()
+    _entry(profile, "spatial.bounded_by")["status"] = "active"
+    failures = module.doctrine_failures(profile, MODEL.read_text(encoding="utf-8"))
+    assert any("spatial.bounded_by: active in the profile but not named by section 6" in item
+               for item in failures)
+
+
 def test_allowed_qualifiers_need_a_vocabulary() -> None:
     module = _check_module()
     profile = _profile()

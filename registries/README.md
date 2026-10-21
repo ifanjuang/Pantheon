@@ -191,7 +191,9 @@ It declares the identifiers admitted for `relation_claim.relation_type` and `req
 
 Current consumers: the read-only APU validator in `mcp-server/pantheon_mcp/apu.py` (also served to external runtimes through the MCP `validate_apu_dossier` tool) and `.github/scripts/check_relation_profile.py`, which reuses it. Persistence-side consumption by `implementation/` is a later slice, because the packaged implementation currently carries only the `schemas/` tree.
 
-The registry stays `candidate` until the admission rule below is reviewed as satisfied.
+Versioning: the profile identifier `architecture@1` names the major contract; the registry `version` (semantic) tracks reviewed changes inside it. Adding a candidate type or a qualifier value is a minor change; activating a type requires naming it in section 6 of the model; removing or redefining a type requires deprecation with `replaced_by` first, and a breaking change opens `architecture@2`. Rollback is a Git revert of the registry and its doctrine lines together; claims already stored keep their type and stay addressable.
+
+The registry stays `candidate` until the admission rule below is reviewed as satisfied. Whether the CI check counts as a second real consumer, beside the validator it reuses, is an open review question; persistence-side consumption would settle it.
 
 ```text
 relation type declared != relation claim true
@@ -260,7 +262,7 @@ The historical `pantheon-mvp` repository remains valid provenance for the import
 Roles, Rites and governed Spaces remain document-owned until structured consumption is demonstrated.
 
 ```text
-empty governance index != no registries in the ecosystem
+governance index content != complete registry ecosystem
 implementation registry != semantic owner
 status label registry != canonical lifecycle
 future registry != automatic source of truth

@@ -171,6 +171,82 @@ class TestRelationProfileValidation(unittest.TestCase):
             report["vocabulary_errors"],
         )
 
+    def test_non_string_relation_type_is_a_schema_error_not_a_crash(self):
+        report = apu.validate_apu_dossier(
+            _dossier(_relation("RC-1", "DOOR-1", ["architecture.opens_to"], "ROOM-1"))
+        )
+        self.assertEqual(report["result"], "error")
+        self.assertTrue(report["schema_errors"], report)
+        self.assertEqual(report["vocabulary_errors"], [])
+
+    def test_non_mapping_requirement_parts_do_not_crash(self):
+        dossier = _dossier()
+        dossier["requirement"] = {
+            "requirement_id": "REQ-1",
+            "source": "DOC-CCTP",
+            "requirement_kind": "relation",
+            "target": "ROOM-1",
+            "constraint": ["must_relate_to"],
+            "source_authority": "project_working_document",
+            "proof_status": "candidate",
+        }
+        report = apu.validate_apu_dossier(dossier)
+        self.assertEqual(report["result"], "error")
+        self.assertTrue(report["schema_errors"], report)
+
+    def test_candidate_relation_type_in_requirement_yields_review_note(self):
+        dossier = _dossier()
+        dossier["requirement"] = {
+            "requirement_id": "REQ-1",
+            "source": {"source_type": "document", "source_ref": "DOC-CCTP"},
+            "requirement_kind": "relation",
+            "target": {"entity_ref": {"entity_type": "stable_object", "entity_id": "WALL-1"}},
+            "constraint": {
+                "operator": "must_relate_to",
+                "relation_type": "architecture.separates",
+                "related_target": {
+                    "entity_ref": {"entity_type": "stable_object", "entity_id": "ROOM-1"}
+                },
+            },
+            "source_authority": "project_working_document",
+            "proof_status": "candidate",
+        }
+        report = apu.validate_apu_dossier(dossier)
+        self.assertEqual(report["result"], "ok", report)
+        self.assertTrue(
+            any("constraint: relation type 'architecture.separates' is still candidate" in item
+                for item in report["gate"]["human_decisions_required"]),
+            report["gate"],
+        )
+
+    def test_deprecated_relation_type_is_rejected_with_its_replacement(self):
+        profile = apu.load_relation_profile()
+        for entry in profile["entries"]:
+            if entry["id"] == "architecture.connects_via":
+                entry["status"] = "deprecated"
+                entry["replaced_by"] = "architecture.opens_to"
+        errors, notes = apu.relation_profile_findings(
+            profile, relation_type="architecture.connects_via", label="rc"
+        )
+        self.assertEqual(notes, [])
+        self.assertEqual(len(errors), 1, errors)
+        self.assertIn("is deprecated in architecture@1; use 'architecture.opens_to'", errors[0])
+
+    def test_building_state_is_not_admitted_on_identity_relations(self):
+        errors, _notes = apu.relation_profile_findings(
+            apu.load_relation_profile(),
+            relation_type="identity.replaced_by",
+            qualifier={"ouvrage_state": "existing"},
+            label="rc",
+        )
+        self.assertEqual(errors, ["rc.qualifier.ouvrage_state is not admitted for 'identity.replaced_by'"])
+
+    def test_family_check_is_skipped_for_objects_outside_the_dossier(self):
+        report = apu.validate_apu_dossier(
+            _dossier(_relation("RC-1", "DOOR-1", "architecture.opens_to", "SO-ELSEWHERE"))
+        )
+        self.assertEqual(report["vocabulary_errors"], [])
+
     def test_missing_profile_fails_closed(self):
         with mock.patch.object(apu, "RELATION_PROFILE_PATH", "registries/missing.registry.json"):
             report = apu.validate_apu_dossier(

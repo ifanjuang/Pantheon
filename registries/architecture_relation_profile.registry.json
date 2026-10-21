@@ -20,8 +20,8 @@
     "id": "architecture@1",
     "governs": "Project Anatomy relation_claim.relation_type and requirement.constraint.relation_type",
     "excludes": [
-      "Information-entity relations owned by schemas/information_entity_relation.schema.yaml",
-      "Source-intake container relations owned by implementation source intake",
+      "Information-entity relations governed by schemas/entity_relation.schema.yaml",
+      "Source-intake container relations (contains between intake sources), not governed by this profile",
       "Governance-graph relations owned by docs/governance/PANTHEON_GRAPH_MODEL.md",
       "Epistemic relations (contradicts, derived_from, depends_on a decision), carried by Observation Bundles, derivation_refs, WorkIssues and Decision Requests"
     ]
@@ -216,7 +216,7 @@
       "subject_entity_types": ["stable_object"],
       "object_entity_types": ["stable_object"],
       "subject_object_families": ["spatial"],
-      "object_object_families": ["spatial", "element", "assembly", "system"],
+      "object_object_families": ["spatial", "element", "assembly"],
       "symmetric": false,
       "inverse": "spatial.located_in",
       "cardinality": "one_to_many",
@@ -259,7 +259,7 @@
       "definition": "The object (subject) is located in the spatial object (object). Reading inverse of spatial.contains.",
       "subject_entity_types": ["stable_object"],
       "object_entity_types": ["stable_object"],
-      "subject_object_families": ["spatial", "element", "assembly", "system"],
+      "subject_object_families": ["spatial", "element", "assembly"],
       "object_object_families": ["spatial"],
       "symmetric": false,
       "inverse": "spatial.contains",
@@ -318,7 +318,8 @@
       "bot": [
         {
           "term": "bot:interfaceOf",
-          "fidelity": "partial"
+          "fidelity": "derived",
+          "note": "Reached through a bot:Interface between the element and the zone."
         }
       ]
     },
@@ -583,7 +584,7 @@
         {
           "term": "IfcRelConnectsPathElements",
           "fidelity": "partial",
-          "note": "Walls and other path elements. Indicative, non-normative reading: corner = ATSTART/ATEND on both, tee = ATPATH/ATEND, cross = ATPATH/ATPATH. butt and mitre have no enumeration value."
+          "note": "Walls and other path elements. Indicative, non-normative reading: corner = ATSTART/ATEND on both, tee = ATPATH with ATSTART or ATEND, cross = ATPATH/ATPATH. butt and mitre have no enumeration value."
         },
         {
           "term": "IfcRelConnectsElements",

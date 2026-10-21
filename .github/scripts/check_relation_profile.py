@@ -37,16 +37,23 @@ EXAMPLE_DOSSIER = ROOT / "docs/examples/architecture_project_understanding_dossi
 COCKPIT_DEMO = ROOT / "implementation/mvp_vertical/cockpit/demo-data.json"
 
 
+ACTIVE_LIST_LABEL = "Active relation types (architecture@1):"
+
+
 def doctrine_relation_types(model_text: str) -> list[str]:
-    """Relation types listed in the first text block of section 6."""
+    """Relation types listed under the active-list label of section 6."""
     section = re.search(
         r"^## 6\. Relation claims\n(.*?)^## 7\.", model_text, re.MULTILINE | re.DOTALL
     )
     if not section:
         raise ValueError("PROJECT_ANATOMY_MODEL.md has no '## 6. Relation claims' section")
-    block = re.search(r"```text\n(.*?)```", section.group(1), re.DOTALL)
+    block = re.search(
+        re.escape(ACTIVE_LIST_LABEL) + r"\s*```text\n(.*?)```", section.group(1), re.DOTALL
+    )
     if not block:
-        raise ValueError("section 6 of PROJECT_ANATOMY_MODEL.md has no text block")
+        raise ValueError(
+            f"section 6 of PROJECT_ANATOMY_MODEL.md has no text block under {ACTIVE_LIST_LABEL!r}"
+        )
     return [line.strip() for line in block.group(1).splitlines() if line.strip()]
 
 
@@ -98,6 +105,13 @@ def coherence_failures(profile: dict[str, Any]) -> list[str]:
                 failures.append(f"{relation_id}: inverse {inverse!r} is not declared")
             elif other.get("inverse") != relation_id:
                 failures.append(f"{relation_id}: inverse {inverse!r} does not point back")
+            elif (
+                entry.get("subject_entity_types") != other.get("object_entity_types")
+                or entry.get("object_entity_types") != other.get("subject_entity_types")
+                or entry.get("subject_object_families") != other.get("object_object_families")
+                or entry.get("object_object_families") != other.get("subject_object_families")
+            ):
+                failures.append(f"{relation_id}: inverse {inverse!r} does not swap the endpoints")
 
         if entry.get("status") == "deprecated":
             replacement = entry.get("replaced_by")
@@ -117,13 +131,20 @@ def coherence_failures(profile: dict[str, Any]) -> list[str]:
 def doctrine_failures(profile: dict[str, Any], model_text: str) -> list[str]:
     entries = {entry.get("id"): entry for entry in profile.get("entries", [])}
     failures: list[str] = []
-    for relation_id in doctrine_relation_types(model_text):
+    named = doctrine_relation_types(model_text)
+    for relation_id in named:
         entry = entries.get(relation_id)
         if entry is None:
             failures.append(f"PROJECT_ANATOMY_MODEL.md section 6 names undeclared {relation_id!r}")
         elif entry.get("status") != "active":
             failures.append(
                 f"{relation_id}: named by section 6 but status is {entry.get('status')!r}"
+            )
+    for relation_id, entry in entries.items():
+        if entry.get("status") == "active" and relation_id not in named:
+            failures.append(
+                f"{relation_id}: active in the profile but not named by section 6; "
+                "activation is a doctrine change"
             )
     return failures
 
@@ -155,6 +176,19 @@ def _relation_claims(value: Any) -> Iterator[dict[str, Any]]:
             yield from _relation_claims(child)
 
 
+def _object_families(value: Any) -> Iterator[tuple[str, str]]:
+    """(object_id, object_family) pairs from projected Cockpit objects."""
+    if isinstance(value, dict):
+        object_id, family = value.get("object_id"), value.get("object_family")
+        if isinstance(object_id, str) and isinstance(family, str):
+            yield object_id, family
+        for child in value.values():
+            yield from _object_families(child)
+    elif isinstance(value, list):
+        for child in value:
+            yield from _object_families(child)
+
+
 def usage_failures(profile: dict[str, Any]) -> list[str]:
     failures: list[str] = []
     if EXAMPLE_DOSSIER.is_dir():
@@ -165,6 +199,7 @@ def usage_failures(profile: dict[str, Any]) -> list[str]:
         )
     if COCKPIT_DEMO.is_file():
         demo = json.loads(COCKPIT_DEMO.read_text(encoding="utf-8"))
+        demo_families = dict(_object_families(demo))
         for claim in _relation_claims(demo):
             found, _notes = apu.relation_profile_findings(
                 profile,
@@ -172,6 +207,7 @@ def usage_failures(profile: dict[str, Any]) -> list[str]:
                 subject_ref=claim.get("subject_ref"),
                 object_ref=claim.get("object_ref"),
                 qualifier=claim.get("qualifier"),
+                object_families=demo_families,
                 label=f"{COCKPIT_DEMO.relative_to(ROOT)} {claim.get('claim_id')}",
             )
             failures.extend(found)
