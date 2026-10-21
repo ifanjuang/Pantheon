@@ -340,3 +340,235 @@ def test_a_passage_shared_by_several_facts_is_quoted_once() -> None:
     assert "pointes inox de 2,5 mm" in first["quote"]
     assert "quote" not in second
     assert second["citation"] == first["citation"] == "Guide.pdf, 3.2 Fixations"
+
+
+def _alpha_tags(module, *extra: str) -> list[str]:
+    return ["source:project-sync", f"scope:project:{module.project_scope_token('Projet Alpha')}", *extra]
+
+
+def _fact(fact_id: str, text: str, document: str, tags: list[str], chunk: str = "", title: str = "") -> dict:
+    return {
+        "id": fact_id, "text": text, "type": "world",
+        "document_id": f"{document}:source", "chunk_id": chunk or f"{document}-chunk-1",
+        "tags": tags, "metadata": {"title": title or f"{document}.pdf"},
+    }
+
+
+def _recall(module, results, *, older_versions: bool = False, chunks=None):
+    client = module.ProjectRecallClient("http://127.0.0.1:8888", "PROJECTS")
+    with patch.object(client, "_post", return_value={"results": results, "chunks": chunks or {}}) as post:
+        payload = client.recall_project("Projet Alpha", "question", older_versions=older_versions)
+    return payload, post.call_args.args[0]
+
+
+def test_identical_passages_across_documents_are_grouped_without_loss() -> None:
+    module = _module()
+    tags = _alpha_tags(module)
+    results = [
+        _fact("f1", "Agence Exemple, 1 rue du Modèle.", "doc-1", tags),
+        _fact("f2", "Le lot 02 est attribué.", "doc-1", tags),
+        _fact("f3", "Agence  Exemple,\n1 rue du Modèle.", "doc-2", tags),
+        _fact("f4", "Agence Exemple, 1 rue du Modèle.", "doc-3", tags),
+    ]
+    payload, _ = _recall(module, results)
+
+    first, second = payload["results"]
+    assert first["document_id"] == "doc-1:source"
+    assert first["present_in_documents"] == 3
+    assert [(o["document_id"], o["chunk_id"], o["title"]) for o in first["also_in"]] == [
+        ("doc-2:source", "doc-2-chunk-1", "doc-2.pdf"),
+        ("doc-3:source", "doc-3-chunk-1", "doc-3.pdf"),
+    ]
+    assert second["text"] == "Le lot 02 est attribué."
+    assert "present_in_documents" not in second and "also_in" not in second
+
+
+def test_a_passage_repeated_inside_one_document_keeps_each_chunk() -> None:
+    module = _module()
+    tags = _alpha_tags(module)
+    results = [
+        _fact("f1", "En-tête de page répété.", "doc-1", tags, chunk="c1"),
+        _fact("f2", "En-tête de page répété.", "doc-1", tags, chunk="c2"),
+    ]
+    payload, _ = _recall(module, results)
+
+    (row,) = payload["results"]
+    assert row["present_in_documents"] == 1
+    assert [o["chunk_id"] for o in row["also_in"]] == ["c2"]
+
+
+def test_revision_labels_are_exposed_separately_and_never_filtered() -> None:
+    module = _module()
+    labelled = _alpha_tags(
+        module, "indice:B", "indice_fiche:c", "revision_hint:d", "date_document:2025-03",
+        "version:remplacee-sur-place", "revision:supplements:doc-0", "portee:propre_au_document",
+    )
+    results = [
+        _fact("f1", "Plan de niveau, indice B.", "doc-1", labelled),
+        _fact("f2", "Sans étiquette.", "doc-2", _alpha_tags(module)),
+    ]
+    payload, body = _recall(module, results)
+
+    assert body["tags"] == _alpha_tags(module)
+    first, second = payload["results"]
+    # Three indices from three origins (content, cartouche, filename) stay apart.
+    assert first["labels"] == {
+        "indice": ["B"], "indice_fiche": ["c"], "revision_hint": ["d"],
+        "date_document": ["2025-03"], "version": ["remplacee-sur-place"],
+        "revision": ["supplements:doc-0"], "portee": ["propre_au_document"],
+    }
+    assert "labels" not in second
+
+
+def test_general_conditions_come_after_project_specific_facts_with_a_notice() -> None:
+    module = _module()
+    results = [
+        _fact("f1", "Paiement à 30 jours fin de mois.", "devis-1", _alpha_tags(module, "portee:conditions_generales")),
+        _fact("f2", "Montant du devis : 12 400 € HT.", "devis-1", _alpha_tags(module, "portee:propre_au_document")),
+    ]
+    payload, _ = _recall(module, results)
+
+    specific, general = payload["results"]
+    assert specific["text"].startswith("Montant")
+    assert "notice" not in specific
+    assert "conditions générales d'entreprise, pas une règle" in general["notice"]
+
+
+def test_project_mode_presents_the_most_recent_family_member_first() -> None:
+    module = _module()
+    family = "family:family-0123456789abcdef01234567"
+    results = [
+        _fact("f1", "Hauteur sous plafond 2,50 m.", "plan-a", _alpha_tags(module, family, "date_document:2024-11", "indice:A")),
+        _fact("f2", "Hauteur sous plafond 2,60 m.", "plan-c", _alpha_tags(module, family, "date_document:2025-03", "indice:C")),
+        _fact("f3", "Toiture terrasse végétalisée.", "notice-1", _alpha_tags(module)),
+        _fact("f4", "Hauteur sous plafond 2,55 m.", "plan-b", _alpha_tags(module, family, "date_document:2025-03", "indice:B")),
+    ]
+    payload, _ = _recall(module, results)
+
+    order = [row["document_id"] for row in payload["results"]]
+    assert order == ["plan-c:source", "notice-1:source", "plan-b:source", "plan-a:source"]
+    newest = payload["results"][0]
+    assert newest["earlier_in_family"] == 2
+    for older in payload["results"][2:]:
+        assert "présentée après" in older["notice"]
+        assert "earlier_in_family" not in older
+
+
+def test_older_versions_on_request_keep_their_relevance_rank() -> None:
+    module = _module()
+    family = "family:family-0123456789abcdef01234567"
+    results = [
+        _fact("f1", "Hauteur 2,50 m.", "plan-a", _alpha_tags(module, family, "date_document:2024-11")),
+        _fact("f2", "Hauteur 2,60 m.", "plan-c", _alpha_tags(module, family, "date_document:2025-03")),
+    ]
+    payload, _ = _recall(module, results, older_versions=True)
+
+    assert [row["document_id"] for row in payload["results"]] == ["plan-a:source", "plan-c:source"]
+    assert payload["results"][1]["earlier_in_family"] == 1
+
+
+def test_family_member_without_a_read_date_or_index_is_not_ranked() -> None:
+    module = _module()
+    family = "family:family-0123456789abcdef01234567"
+    results = [
+        _fact("f1", "Sans date ni indice.", "plan-x", _alpha_tags(module, family)),
+        _fact("f2", "Daté.", "plan-y", _alpha_tags(module, family, "date_document:2025")),
+    ]
+    payload, _ = _recall(module, results)
+
+    first, second = payload["results"]
+    assert first["document_id"] == "plan-x:source" and "notice" not in first
+    assert "earlier_in_family" not in second
+
+
+def test_identical_passage_is_represented_by_its_most_recent_family_member() -> None:
+    module = _module()
+    family = "family:family-0123456789abcdef01234567"
+    results = [
+        _fact("f1", "Mentions types du cartouche.", "plan-a", _alpha_tags(module, family, "date_document:2024-11")),
+        _fact("f2", "Mentions types du cartouche.", "plan-b", _alpha_tags(module, family, "date_document:2025-03")),
+    ]
+    payload, _ = _recall(module, results)
+
+    (row,) = payload["results"]
+    assert row["document_id"] == "plan-b:source"
+    assert [o["document_id"] for o in row["also_in"]] == ["plan-a:source"]
+
+
+def test_knowledge_mode_demotes_but_never_drops_a_superseded_document() -> None:
+    module = _module()
+    client = module.ProjectRecallClient("http://127.0.0.1:8888", "KNOWLEDGE", source_kind="knowledge")
+    results = [
+        _fact("f1", "Ancienne règle de pose.", "guide-2019", ["source:knowledge", "revision:superseded-by:guide-2024"]),
+        _fact("f2", "Règle de pose en vigueur.", "guide-2024", ["source:knowledge", "revision:supersedes:guide-2019"]),
+    ]
+    with patch.object(client, "_post", return_value={"results": results}):
+        default = client.recall_knowledge("règle de pose ?")
+        requested = client.recall_knowledge("règle de pose ?", older_versions=True)
+
+    current, superseded = default["results"]
+    assert current["document_id"] == "guide-2024:source"
+    assert superseded["document_id"] == "guide-2019:source"
+    assert "consultable sur demande" in superseded["notice"]
+    assert [row["document_id"] for row in requested["results"]] == ["guide-2019:source", "guide-2024:source"]
+
+
+def test_text_layer_passage_is_a_quote_only_row_kept_at_its_relevance_rank() -> None:
+    module = _module()
+    text_tags = _alpha_tags(module, "representation:text")
+    results = [
+        {"id": "t1", "text": "Article 4.2 — Les menuiseries\nsont posées en applique.", "type": "world",
+         "document_id": "doc-1:text", "chunk_id": "doc-1-text-1", "tags": text_tags,
+         "metadata": {"title": "doc-1.pdf"}},
+        _fact("f1", "Les menuiseries sont posées en applique.", "doc-1", _alpha_tags(module)),
+    ]
+    payload, _ = _recall(module, results)
+
+    text, fact = payload["results"]
+    assert text["document_id"] == "doc-1:text"
+    assert text["representation"] == "text"
+    assert text["quote"] == "Article 4.2 — Les menuiseries sont posées en applique."
+    assert text["citation"] == "doc-1.pdf"
+    assert "text" not in text
+    assert fact["document_id"] == "doc-1:source" and "representation" not in fact
+
+
+def test_text_layer_and_facts_share_the_cap_in_hindsight_relevance_order() -> None:
+    # Measured on a bank holding both layers: putting every fact before the raw text
+    # discards the gain of combining them (precision@5 77 % -> 56 %), so the order
+    # Hindsight's reranker produced across the two layers is kept.
+    module = _module()
+    results = [
+        {"id": f"t{i}", "text": f"Passage {i}", "document_id": f"doc-{i}:text", "chunk_id": f"t{i}",
+         "tags": _alpha_tags(module, "representation:text")}
+        for i in range(3)
+    ] + [_fact(f"f{i}", f"Fait {i}", f"doc-{i}", _alpha_tags(module)) for i in range(10)]
+    payload, _ = _recall(module, results)
+
+    ids = [row["document_id"] for row in payload["results"]]
+    assert len(ids) == module.MAX_EVIDENCE_RESULTS
+    assert ids == [f"doc-{i}:text" for i in range(3)] + [f"doc-{i}:source" for i in range(5)]
+
+
+def test_text_layer_passage_is_quoted_whole_and_never_dropped_as_a_repeated_quote() -> None:
+    module = _module()
+    text_tags = _alpha_tags(module, "representation:text")
+    passage = "Les réserves sont levées dans un délai de deux semaines. " * 3
+    results = [
+        {"id": f"t{i}", "text": passage + str(i), "document_id": f"doc-{i}:text", "chunk_id": f"t{i}", "tags": text_tags}
+        for i in range(2)
+    ]
+    payload, _ = _recall(module, results)
+
+    assert all(row["quote"].startswith("Les réserves sont levées") for row in payload["results"])
+
+
+def test_out_of_scope_text_layer_chunk_fails_closed() -> None:
+    module = _module()
+    beta = ["source:project-sync", f"scope:project:{module.project_scope_token('Projet Beta')}", "representation:text"]
+    results = [
+        _fact("f1", "Fait Alpha", "doc-1", _alpha_tags(module)),
+        {"id": "t1", "text": "Passage Beta", "document_id": "doc-9:text", "chunk_id": "t1", "tags": beta},
+    ]
+    with pytest.raises(module.ProjectRecallError):
+        _recall(module, results)

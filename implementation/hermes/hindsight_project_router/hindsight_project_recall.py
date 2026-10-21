@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
+from dataclasses import dataclass, field
 import hashlib
 import json
 import re
@@ -39,6 +41,28 @@ _NOISE_RE = re.compile(
     r"https?://\S+|\b[\w.+-]+@[\w-]+\.[\w.]+\b|\bPage \d+ of \d+\b|(?:\+33|\b0)[1-9](?:[ .]?\d{2}){4}\b"
 )
 _HEADING_RE = re.compile(r"^\s*((?:\d+(?:\.\d+)+|[A-Z](?:\.\d+)+|Annexe\s+[A-Z]))\.?\s+(\S.{0,80}?)\s*$")
+
+
+# Document-level labels carried as tags (producer or promotion after extraction). They are exposed
+# apart from the passage and never used to filter or to exclude: they describe, they do not decide.
+LABEL_KEYS = frozenset({
+    "indice", "indice_fiche", "revision_hint", "date_document", "emetteur", "destinataire",
+    "version", "revision", "portee", "lot", "type", "phase",
+})
+# A text-layer passage is quoted whole; a fact is quoted by its supporting sentences.
+TEXT_QUOTE_MAX_CHARS = 1000
+GENERAL_CONDITIONS_NOTICE = (
+    "Reprise de conditions générales d'entreprise, pas une règle ni une obligation propre à cette affaire."
+)
+OLDER_MEMBER_NOTICE = (
+    "Version antérieure d'un même ensemble de pièces, présentée après la plus récente ; "
+    "consultable sur demande (older_versions)."
+)
+SUPERSEDED_NOTICE = (
+    "Édition remplacée par {successor} : présentée après les éditions en vigueur, "
+    "consultable sur demande (older_versions)."
+)
+_DATE_RE = re.compile(r"^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$")
 
 
 class ProjectRecallError(RuntimeError):
@@ -134,6 +158,112 @@ def _compact_evidence(result: dict[str, Any], chunk_text: str = "") -> dict[str,
     return row
 
 
+def _normalized_passage(text: str) -> str:
+    return " ".join(unicodedata.normalize("NFKC", text).split())
+
+
+def _tag_labels(tags: list[str]) -> dict[str, list[str]]:
+    """Group the descriptive label tags by key ("indice:B" -> {"indice": ["B"]})."""
+    labels: dict[str, list[str]] = {}
+    for tag in tags:
+        key, separator, value = tag.partition(":")
+        if separator and value and key in LABEL_KEYS and value not in labels.get(key, []):
+            labels.setdefault(key, []).append(value)
+    return labels
+
+
+def _date_key(value: str) -> tuple[int, int, int] | None:
+    """A read document date as a comparable key; a missing month or day sorts first."""
+    match = _DATE_RE.match(value.strip())
+    return tuple(int(part or 0) for part in match.groups()) if match else None
+
+
+def _latest_date(labels: dict[str, list[str]]) -> tuple[int, int, int] | None:
+    keys = [key for key in map(_date_key, labels.get("date_document", [])) if key]
+    return max(keys) if keys else None
+
+
+@dataclass(eq=False)
+class _Hit:
+    """One distinct passage in relevance order, with what ordering may use (never to drop it)."""
+
+    row: dict[str, Any]
+    tags: list[str]
+    document_id: str
+    chunk_id: str
+    title: str | None
+    key: tuple[str, str]
+    labels: dict[str, list[str]]
+    family: str | None
+    date: tuple[int, int, int] | None
+    pos: int = 0
+    notices: list[str] = field(default_factory=list)
+
+
+def _apply_family_recency(hits: list[_Hit], older_versions: bool) -> list[_Hit]:
+    """Present the most recent member of a document family first.
+
+    Recency is the document date read in the content; an index never orders (a higher index
+    is not newer). Members without a read date are not ranked. Older members are moved
+    behind the rest, never dropped; on request they keep their relevance rank.
+    """
+    families: dict[str, list[_Hit]] = defaultdict(list)
+    for hit in hits:
+        if hit.family and hit.date:
+            families[hit.family].append(hit)
+    promoted: dict[int, int] = {}
+    demoted: list[_Hit] = []
+    for members in families.values():
+        if len(members) < 2:
+            continue
+        # Equal dates fall back to relevance, never to the index.
+        newest = min(members, key=lambda hit: (tuple(-part for part in hit.date), hit.pos))
+        newest.row["earlier_in_family"] = len(members) - 1
+        if older_versions:
+            continue
+        promoted[id(newest)] = min(member.pos for member in members)
+        for member in members:
+            if member is not newest:
+                member.notices.append(OLDER_MEMBER_NOTICE)
+                demoted.append(member)
+    if older_versions or not demoted:
+        return hits
+    behind = {id(hit) for hit in demoted}
+    kept = sorted(
+        (hit for hit in hits if id(hit) not in behind),
+        key=lambda hit: (promoted.get(id(hit), hit.pos), hit.pos),
+    )
+    return kept + sorted(demoted, key=lambda hit: (tuple(-part for part in hit.date), hit.pos))
+
+
+def _apply_superseded(hits: list[_Hit], older_versions: bool) -> list[_Hit]:
+    """Knowledge vault: demote, never drop, an edition declared superseded."""
+    behind: list[_Hit] = []
+    for hit in hits:
+        successor = next(
+            (value.split(":", 1)[1] for value in hit.labels.get("revision", []) if value.startswith("superseded-by:")),
+            None,
+        )
+        if successor and not older_versions:
+            hit.notices.append(SUPERSEDED_NOTICE.format(successor=successor))
+            behind.append(hit)
+    if not behind:
+        return hits
+    ids = {id(hit) for hit in behind}
+    return [hit for hit in hits if id(hit) not in ids] + behind
+
+
+def _apply_general_conditions(hits: list[_Hit]) -> list[_Hit]:
+    """A company's boilerplate comes after what is specific to the matter, with a notice."""
+    general = [hit for hit in hits if "conditions_generales" in hit.labels.get("portee", [])]
+    if not general:
+        return hits
+    for hit in general:
+        hit.notices.append(GENERAL_CONDITIONS_NOTICE)
+    ids = {id(hit) for hit in general}
+    return [hit for hit in hits if id(hit) not in ids] + general
+
+
 def tag_value(value: str) -> str:
     decomposed = unicodedata.normalize("NFKD", value.strip().casefold())
     without_marks = "".join(
@@ -225,10 +355,15 @@ class ProjectRecallClient:
 
     @staticmethod
     def _bounded_evidence(
-        payload: dict[str, Any], required_tags: tuple[str, ...]
+        payload: dict[str, Any],
+        required_tags: tuple[str, ...],
+        *,
+        older_versions: bool = False,
+        mode: str = "project",
     ) -> list[dict[str, Any]]:
         # Defense in depth: never pass through a result whose returned scope does
-        # not prove that Hindsight applied every mandatory selector.
+        # not prove that Hindsight applied every mandatory selector. This covers the
+        # text layer as well: a passage outside the scope fails the whole recall.
         for result in payload["results"]:
             result_tags = result.get("tags") if isinstance(result, dict) else None
             if not isinstance(result_tags, list):
@@ -242,9 +377,8 @@ class ProjectRecallClient:
             for chunk_id, value in (raw_chunks.items() if isinstance(raw_chunks, dict) else ())
             if isinstance(value, dict) and isinstance(value.get("text"), str)
         }
-        evidence: list[dict[str, Any]] = []
+        hits: list[_Hit] = []
         seen: set[tuple[str, str, str]] = set()
-        quoted: set[str] = set()
         for result in payload["results"]:
             if not isinstance(result, dict):
                 continue
@@ -257,16 +391,72 @@ class ProjectRecallClient:
             if identity in seen:
                 continue
             seen.add(identity)
-            row = _compact_evidence(result, chunks.get(chunk_id, ""))
+            tags = [tag for tag in result["tags"] if isinstance(tag, str)]
+            is_text_layer = "representation:text" in tags or document_id.endswith(":text")
+            row = _compact_evidence(result, "" if is_text_layer else chunks.get(chunk_id, ""))
+            if is_text_layer:
+                # A raw passage is its own quotation: no summary is claimed over it.
+                passage = _normalized_passage(text)
+                if len(passage) > TEXT_QUOTE_MAX_CHARS:
+                    passage = passage[:TEXT_QUOTE_MAX_CHARS].rsplit(" ", 1)[0] + " …"
+                row.pop("text", None)
+                row["representation"] = "text"
+                row["quote"] = passage
+            labels = _tag_labels(tags)
+            if labels:
+                row["labels"] = labels
+            metadata = result.get("metadata")
+            hits.append(_Hit(
+                row=row, tags=tags, document_id=document_id, chunk_id=chunk_id,
+                title=metadata.get("title") if isinstance(metadata, dict) else None,
+                key=("text" if is_text_layer else "fact", _normalized_passage(text)),
+                labels=labels,
+                family=next((tag.split(":", 1)[1] for tag in tags if tag.startswith("family:")), None),
+                date=_latest_date(labels),
+            ))
+
+        # The same passage repeated across documents (letterheads, general conditions,
+        # title blocks) is one result that lists where else it appears: nothing is lost.
+        groups: dict[tuple[str, str], list[_Hit]] = {}
+        for hit in hits:
+            groups.setdefault(hit.key, []).append(hit)
+        grouped: list[_Hit] = []
+        for members in groups.values():
+            lead = members[0]
+            if lead.family and len(members) > 1 and all(m.family == lead.family and m.date for m in members):
+                lead = min(members, key=lambda m: (tuple(-part for part in m.date), m.pos))
+            others = [member for member in members if member is not lead]
+            if others:
+                lead.row["present_in_documents"] = len({member.document_id for member in members})
+                lead.row["also_in"] = [
+                    {"document_id": other.document_id, "chunk_id": other.chunk_id,
+                     **({"title": other.title} if other.title else {})}
+                    for other in others
+                ]
+            lead.pos = len(grouped)
+            grouped.append(lead)
+
+        if mode == "project":
+            ordered = _apply_family_recency(grouped, older_versions)
+        else:
+            ordered = _apply_superseded(grouped, older_versions)
+        ordered = _apply_general_conditions(ordered)
+
+        evidence: list[dict[str, Any]] = []
+        quoted: set[str] = set()
+        for hit in ordered[:MAX_EVIDENCE_RESULTS]:
+            row = hit.row
+            if hit.notices:
+                row["notice"] = " ".join(hit.notices)
             # Facts drawn from one passage would repeat it: quote it once; later
-            # rows keep their summary, section and citation.
-            if row.get("quote") in quoted:
-                del row["quote"]
-            elif "quote" in row:
-                quoted.add(row["quote"])
+            # rows keep their summary, section and citation. A raw text passage is
+            # never stripped: it is the only content of its row.
+            if row.get("representation") != "text":
+                if row.get("quote") in quoted:
+                    del row["quote"]
+                elif "quote" in row:
+                    quoted.add(row["quote"])
             evidence.append(row)
-            if len(evidence) >= MAX_EVIDENCE_RESULTS:
-                break
         return evidence
 
     def _list_tags(self, pattern: str, limit: int) -> list[dict[str, Any]]:
@@ -317,6 +507,7 @@ class ProjectRecallClient:
         *,
         folder: str = "",
         max_tokens: int = 2048,
+        older_versions: bool = False,
     ) -> dict[str, Any]:
         project_slug = tag_value(project)
         if not project_slug or project_slug == "pending-identification":
@@ -334,7 +525,9 @@ class ProjectRecallClient:
             tags.append(f"folder:{folder_slug}")
 
         payload = self._post(self._recall_body(query, tags, max_tokens))
-        evidence = self._bounded_evidence(payload, (source_tag, scope_tag))
+        evidence = self._bounded_evidence(
+            payload, (source_tag, scope_tag), older_versions=older_versions, mode="project"
+        )
 
         return {
             "status": "ok",
@@ -345,6 +538,7 @@ class ProjectRecallClient:
             "folder_scope": f"folder:{folder_slug}" if folder_slug else None,
             "tags_match": "all_strict",
             "max_results": MAX_EVIDENCE_RESULTS,
+            "older_versions": older_versions,
             "results": evidence,
         }
 
@@ -354,6 +548,7 @@ class ProjectRecallClient:
         *,
         folder: str = "",
         max_tokens: int = 2048,
+        older_versions: bool = False,
     ) -> dict[str, Any]:
         """Recall from the knowledge vault: one source, optional folder, no project."""
         query = query.strip()
@@ -365,7 +560,9 @@ class ProjectRecallClient:
         if folder_slug:
             tags.append(f"folder:{folder_slug}")
         payload = self._post(self._recall_body(query, tags, max_tokens))
-        evidence = self._bounded_evidence(payload, tuple(tags))
+        evidence = self._bounded_evidence(
+            payload, tuple(tags), older_versions=older_versions, mode="knowledge"
+        )
         return {
             "status": "ok",
             "bank_id": self.bank_id,
@@ -374,5 +571,6 @@ class ProjectRecallClient:
             "folder_scope": f"folder:{folder_slug}" if folder_slug else None,
             "tags_match": "all_strict",
             "max_results": MAX_EVIDENCE_RESULTS,
+            "older_versions": older_versions,
             "results": evidence,
         }

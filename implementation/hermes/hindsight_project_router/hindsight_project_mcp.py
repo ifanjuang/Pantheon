@@ -32,6 +32,15 @@ _SHARED_INSTRUCTIONS = (
     "share it; 'section' is the heading "
     "above it and 'citation' a ready reference. Quote only 'quote', cite only "
     "'citation', and never add an article, page or edition they do not contain. "
+    "A row with representation 'text' is a raw passage of a document, given only as 'quote'. "
+    "'present_in_documents' and 'also_in' mean the same passage appears in other documents "
+    "(each is listed); nothing is dropped. 'labels' are descriptive facts read from the "
+    "documents (indice, date_document, emetteur, destinataire, revision...): report them "
+    "with the source they come from, never infer a version, a validity or a replacement from "
+    "them, and never treat an index as ordering documents. A 'notice' qualifies a row "
+    "(general conditions of a company are not a rule; an earlier version is shown after the "
+    "most recent): repeat it when you use the row. Set older_versions only when the user "
+    "asks for earlier versions or what changed. "
     "This service cannot write to Hindsight."
 )
 if MODE == "project":
@@ -78,6 +87,7 @@ def recall_project_memory(
     query: str,
     folder: str = "",
     max_tokens: int = 2048,
+    older_versions: bool = False,
 ) -> str:
     """Recall up to eight facts from one exact project.
 
@@ -85,11 +95,13 @@ def recall_project_memory(
     (for example ``resolved-project-slug``); never put the generic word "project"
     there. Put the user's complete factual question and the designation in
     ``query``. Resolve a partial or ambiguous designation with
-    ``vault-read:find_vault_projects`` before calling this tool.
+    ``vault-read:find_vault_projects`` before calling this tool. The most recent
+    document of a family is presented first; set ``older_versions`` to true only when
+    the user asks for earlier versions or what changed, to get them in relevance order.
     """
     try:
         payload = _client().recall_project(
-            project, query, folder=folder, max_tokens=max_tokens
+            project, query, folder=folder, max_tokens=max_tokens, older_versions=older_versions
         )
     except (ProjectRecallError, OSError, ValueError) as exc:
         payload = {"status": "error", "reason": str(exc)}
@@ -109,7 +121,9 @@ def hindsight_project_list(limit: int = 100) -> str:
     return json.dumps(payload, ensure_ascii=False)
 
 
-def recall_knowledge_memory(query: str, folder: str = "", max_tokens: int = 2048) -> str:
+def recall_knowledge_memory(
+    query: str, folder: str = "", max_tokens: int = 2048, older_versions: bool = False
+) -> str:
     """Recall up to eight facts from the knowledge vault.
 
     Put the user's complete question in ``query``. Use ``folder`` only to narrow
@@ -117,10 +131,14 @@ def recall_knowledge_memory(query: str, folder: str = "", max_tokens: int = 2048
     standards or insurer folder); leave it empty to search the whole knowledge vault.
     A fact is a lead: open the document it cites, by the path it gives, rather than
     recalling again. Recall again only with terms the first results did not
-    contain; after two recalls, say what was not found instead of rephrasing.
+    contain; after two recalls, say what was not found instead of rephrasing. An
+    edition declared superseded is shown after the editions in force; set
+    ``older_versions`` to true only when the user asks for earlier editions.
     """
     try:
-        payload = _client().recall_knowledge(query, folder=folder, max_tokens=max_tokens)
+        payload = _client().recall_knowledge(
+            query, folder=folder, max_tokens=max_tokens, older_versions=older_versions
+        )
     except (ProjectRecallError, OSError, ValueError) as exc:
         payload = {"status": "error", "reason": str(exc)}
     return json.dumps(payload, ensure_ascii=False)
