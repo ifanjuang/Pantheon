@@ -22,7 +22,7 @@ jobs:
       run:
         working-directory: implementation
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -37,14 +37,14 @@ jobs:
       HINDSIGHT_BANK_ID: pantheon-o2-synthetic
     steps:
       - name: Checkout current monorepo candidate
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: monorepo
       - name: Load canonical Hindsight qualification pins
         shell: bash
         run: python3 monorepo/implementation/tools/export_external_qualification_pins.py --github-env "$GITHUB_ENV" hindsight hindsight-obsidian-sync
       - name: Checkout exact official Obsidian integration
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: ${{ env.HINDSIGHT_OBSIDIAN_REPOSITORY }}
           ref: ${{ env.HINDSIGHT_OBSIDIAN_REF }}

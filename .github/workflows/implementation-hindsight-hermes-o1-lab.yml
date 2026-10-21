@@ -22,7 +22,7 @@ jobs:
       run:
         working-directory: implementation
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -37,7 +37,7 @@ jobs:
       HINDSIGHT_BANK_ID: pantheon-o1-synthetic
     steps:
       - name: Checkout current monorepo candidate
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: monorepo
       - name: Load canonical Hermes and Hindsight qualification pins
@@ -47,7 +47,7 @@ jobs:
         shell: bash
         run: ln -s "$GITHUB_WORKSPACE/monorepo/implementation" "$GITHUB_WORKSPACE/pantheon-mvp"
       - name: Checkout exact qualified Hermes source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: ${{ env.HERMES_REPOSITORY }}
           ref: ${{ env.HERMES_REF }}

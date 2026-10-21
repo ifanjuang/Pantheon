@@ -25,7 +25,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout current Pantheon candidate
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: monorepo
 
@@ -42,7 +42,7 @@ jobs:
             hermes-agent harnessrouter
 
       - name: Checkout exact HarnessRouter candidate
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: ${{ env.HARNESSROUTER_REPOSITORY }}
           ref: ${{ env.HARNESSROUTER_REF }}

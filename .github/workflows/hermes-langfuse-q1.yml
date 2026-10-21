@@ -15,7 +15,7 @@ jobs:
   contract:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -30,12 +30,12 @@ jobs:
       HERMES_LANGFUSE_PLUGIN_BLOB: 4454fd5788969def17516a21cd8f9242216a95f9
     steps:
       - name: Checkout Pantheon candidate
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: monorepo
 
       - name: Checkout exact Hermes revision
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: NousResearch/hermes-agent
           ref: ${{ env.HERMES_COMMIT }}
