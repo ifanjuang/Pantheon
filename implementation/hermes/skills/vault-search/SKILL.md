@@ -57,8 +57,7 @@ change the answer, permitted action or consequence.
    only admitted Hindsight project route; do not substitute Mnemosyne.
 3. Open an exact Markdown source with `search_vault_markdown` followed by
    `read_vault_markdown_lines`; use the admitted reader for other formats when
-   source inspection is warranted. A router recall is an index lead, not an
-   inspected source.
+   source inspection is warranted. A router recall is an index lead, not an inspected source.
 4. Use Mnemosyne only as a bounded continuity lead after project-scope resolution
    and the project-router lookup, never as proof that a professional project is
    absent or present.
