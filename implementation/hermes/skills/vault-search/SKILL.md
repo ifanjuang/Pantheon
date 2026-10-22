@@ -1,9 +1,9 @@
 ---
 name: vault-search
-description: "Recherche les projets et documents dans les vaults agency."
+description: "Recherche les affaires/projets et leurs documents dès qu’une réponse dépend du contexte local, y compris les désignations informelles et les demandes d’état courant."
 license: MIT
 metadata:
-  version: 0.9.0
+  version: 0.9.1
   author: Agency
   hermes:
     tags: [agency, hindsight, vaults, projects, documents]
@@ -29,8 +29,9 @@ not Pantheon doctrine.
   without selecting a project.
 - Multi-project question: keep all requested projects in scope and preserve
   their identities separately.
-- Situated question with a known project: retain the conversation-local project
-  and search only its bounded source scope.
+- Any question whose answer depends on one or more agency projects, even when the
+  user does not explicitly ask for a document: retain the conversation-local
+  project and search only its bounded source scope.
 - Situated question with an informal designation: build a bounded candidate set
   from a first name, client, official name, street, commune, code, description
   or distinctive subject.
@@ -41,19 +42,26 @@ change the answer, permitted action or consequence.
 ## Search order
 
 0. When an exact source is already known **within an admitted project scope**,
-   inspect it directly through the reviewed reader; no new Hindsight discovery
-   is needed. Otherwise, for a named project, dossier or operation, call
-   `hindsight-project:recall_project_memory` as the first discovery lead.
-   This is the only admitted Hindsight project route; do not substitute Mnemosyne.
-1. When identity or source is unresolved, use `vault-read`:
-   `find_vault_projects` on the designation, then
-   `list_vault_project_sources` on the selected project. Retain ambiguous
-   candidates and ask one targeted question only if selection changes the answer.
-2. Open an exact Markdown source with `search_vault_markdown` followed by
-   `read_vault_markdown_lines`; use Docling for a source file requiring document
-   extraction. A router recall is an index lead, not an inspected source.
-3. Use Mnemosyne only as a bounded continuity lead after the project-router
-   lookup, never as proof that a professional project is absent or present.
+   use it directly if the request needs source inspection; skip redundant recall.
+1. Resolve the project target before a strict scoped recall. If the exact indexed
+   designation is already known from the conversation or an admitted project
+   identity, use it. If the user supplied an informal, partial, misspelled or
+   otherwise unverified designation, first call `vault-read:find_vault_projects`
+   and use the selected candidate's exact `project_ref`/designation. Do not pass a
+   guessed alias to `hindsight-project:recall_project_memory`: the router derives
+   one exact scope from the string, so a spelling variant can select a different
+   scope. Preserve multiple candidates or ask one targeted question only when
+   their distinction changes the answer or action.
+2. Once the exact project designation is known, call
+   `hindsight-project:recall_project_memory` as the discovery lead. This is the
+   only admitted Hindsight project route; do not substitute Mnemosyne.
+3. Open an exact Markdown source with `search_vault_markdown` followed by
+   `read_vault_markdown_lines`; use the admitted reader for other formats when
+   source inspection is warranted. A router recall is an index lead, not an
+   inspected source.
+4. Use Mnemosyne only as a bounded continuity lead after project-scope resolution
+   and the project-router lookup, never as proof that a professional project is
+   absent or present.
 
 ### Source coverage and inventory fallback
 
@@ -89,6 +97,37 @@ When an exact source is present on the NAS but absent from Hindsight, label it
 `source_present_not_indexed`, open it through the admitted reader or document
 binding if needed, and include it in the coverage receipt. This is an indexing
 gap, not a user error and not permission to invent its content.
+
+### Memory-first recall and source paths
+
+For a simple factual recall, a relevant Hindsight result may be sufficient. Answer
+as `orientation mémoire — non confirmée`, keep its source locator and version
+qualifiers, and do not open a PDF by default. Inspect the exact source when the
+user asks for verification, the answer will support a consequential decision or
+external communication, competing versions change the decision, or Hindsight
+lacks enough context. If several versions have different totals, show each
+supported memory result with its version label instead of silently choosing one;
+a date alone does not establish that one replaces another.
+
+If Hindsight returns a relative path, filename or other locator the reader cannot
+open directly, do not pass it repeatedly or reconstruct an absolute path. Inventory
+the already selected project with `list_vault_project_sources`, match the exact
+candidate, and pass the reader-ready path returned by that inventory. Treat an
+error such as “source_path must be an existing PDF file” as path-resolution
+failure, not proof of NAS outage; resolve via inventory and retry once with the
+exact path. Pass the same selected project's exact `project_ref` to project-file
+readers. Do not repeat an identical failed call.
+
+When source verification is warranted for a PDF total, first use a locator or
+page returned by Hindsight. If a targeted text search does not find the printed
+total, read a small bounded page range at the end of that exact PDF once. Do not
+repeat the same phrase search or convert the whole document by default.
+
+For a request to list projects currently active or in progress, do not treat
+`hindsight_project_list` as a status list: it enumerates indexed scopes and memory
+counts. Use the configured live project-state source when available. If no live
+inventory/status field is available, state that limit rather than infer activity
+from indexed folders, memory counts or recency.
 
 ### Session attachments and proposed filing
 
@@ -243,12 +282,14 @@ distinct Mnemosyne recall only when a freshness concern is observed and it can
 change the result. Attribute memory-only information to recent conversation and
 mark it unconfirmed until an admitted business source supports it.
 
-For a material professional factual answer, the applicable source lookup is
-mandatory before final synthesis: `projects` for dossier facts,
-`knowledge` for transversal professional facts, and both for a mixed
-question. A memory lead never satisfies this requirement. If the required
-binding is unavailable, return the limitation rather than substituting model
-recall.
+When a professional factual answer will support a consequential decision,
+external communication, payment or contractual position, exact source lookup is
+mandatory before final synthesis: `projects` for dossier facts, `knowledge` for
+transversal professional facts, and both for a mixed question. For simple recall,
+a relevant Hindsight result may be returned as unconfirmed memory with its source
+locator and limitations; it does not become source-confirmed by being retrieved.
+If a required source lookup is warranted but its binding is unavailable, state
+that limitation rather than substituting model recall.
 
 Never report that Hindsight is unavailable solely because a recall or search
 returned no match. Availability is established by the active MCP catalogue and
