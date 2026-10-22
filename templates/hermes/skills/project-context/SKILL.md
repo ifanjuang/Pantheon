@@ -10,10 +10,11 @@ metadata:
 
 # Agency project context
 
-Use one document-neutral route for project material: open an already identified,
-admitted exact source directly; otherwise use Hindsight to locate candidates,
-then resolve and inspect only what the task needs. Source format does not
-establish the method or authority of the result.
+Use one document-neutral route for project material: retain the project selected
+by the conversation, resolve an informal designation to an exact project
+candidate before calling a strict project-scoped router, then use Hindsight to
+locate candidates. Open an admitted exact source only to the level the request
+needs. Source format does not establish the method or authority of the result.
 
 For a multi-source, long-document or version-sensitive agency task, read
 [references/task-context-selection.md](references/task-context-selection.md)
@@ -35,19 +36,31 @@ visible milestone != MCP-prescribed tool sequence
 
 ## Core route
 
-1. For a named project or dossier, use the configured project Hindsight router
-   when the exact source is not already identified within the admitted project
-   scope. If that source is already known and accessible, open it directly without
-   redundant recall. Hindsight is a continuity/location lead, not authority.
-2. If the recalled material answers an orientation question with its source and
-   limitations intact, answer as `orientation mémoire — non confirmée`.
-3. For an exact fact, calculation, recommendation, clause, current status or
-   document-content claim, resolve and inspect the exact source through the
-   admitted vault route.
-4. Use an admitted representation only when the source or existing Hindsight
-   content is insufficient for the question. Prefer the least costly suitable
-   method; do not convert, OCR, inspect images or transcribe media by default.
-5. For technical, legal, regulatory, contractual or professional-rule testing,
+1. Select the conversation-local project. When its designation is informal,
+   partial, misspelled or otherwise not known to match the router's exact scope,
+   resolve it against an admitted project candidate or governed identity first.
+   Do not pass an unverified alias to a router that derives one exact scope from
+   the supplied string. If several candidates remain and the distinction matters,
+   preserve them or ask one targeted question.
+2. When the exact project scope is known and the source is not, use the configured
+   project Hindsight router as a continuity/location lead. If an exact source is
+   already known and accessible, open it directly without redundant recall.
+3. For simple recall, Hindsight may be sufficient when it returns the answer,
+   source locator and relevant version/limitations. Label it
+   `orientation mémoire — non confirmée`; do not open a PDF by default.
+4. Inspect the exact source when the user requests verification, the answer will
+   support a consequential decision or external communication, candidate versions
+   conflict in a way that changes the result, or Hindsight lacks enough context
+   to answer. Keep the source inspection bounded to the relevant passage/pages.
+5. For a request about current project status or a list of projects in progress,
+   use the configured live project-state source when available. Hindsight scope
+   counts and remembered documents do not establish that a project is active.
+   If no live inventory is available, state that limitation instead of inferring
+   activity from indexed content.
+6. Use an admitted representation only when needed for the source question.
+   Prefer the least costly suitable method; do not convert, OCR, inspect images
+   or transcribe media by default.
+7. For technical, legal, regulatory, contractual or professional-rule testing,
    consult the relevant DOCUMENTAIRES or authoritative source separately from
    the project source.
 

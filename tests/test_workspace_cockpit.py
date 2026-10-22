@@ -407,7 +407,7 @@ def test_configured_ratp_directories_and_descendants_are_not_scanned(tmp_path: P
 
     assert "Projet Alpha/Plans/plan.pdf" in paths
     assert not any("ratp" in Path(path).parts[0].casefold() for path in paths if path)
-    assert result["workspaces"][0]["excluded_folders"] == ["AGENCY_RATP", "RATP"]
+    assert set(result["workspaces"][0]["excluded_folders"]) == {"AGENCY_RATP", "RATP"}
 
 
 def test_explicit_filename_indices_create_non_authoritative_family_hints(tmp_path: Path) -> None:

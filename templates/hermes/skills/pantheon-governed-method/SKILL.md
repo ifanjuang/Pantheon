@@ -68,8 +68,12 @@ Skills merely because a project has several document types.
 
 Select by the reasoning required, not by the requested file format:
 
-- `construction-cost-review` for estimates, bids, quotes, invoices, variants,
-  lot coverage and financial comparability;
+- `construction-cost-review` only when the requested work requires economic
+  analysis: scope/lot coverage, exclusions, variants, normalization, tax-basis
+  reconciliation or price comparability. A simple request to recall or extract
+  one remembered amount does not activate this review; use `project-context`
+  and `vault-search` first, and return qualifying Hindsight memory when
+  sufficient;
 - `site-report-review` for site observations, prior minutes, photographs,
   decisions, reservations and open-point continuity;
 - `administrative-form-review` for CERFA or another filing form whose fields

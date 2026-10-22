@@ -18,6 +18,15 @@ Do not invent a project merely to make the task easier. When several candidates 
 
 Conversation context can select the intended working target without proving a governed project identity. When exact project identity matters, use Hindsight only as a discovery/continuity lead and confirm the candidate against admitted workspace/source material or an existing governed project identity when available.
 
+Before a project-scoped Hindsight call, distinguish an exact indexed project
+designation from a conversational alias. If the request uses a commune, client,
+person, street, operation name, spelling variant or partial label, resolve that
+designation against an admitted project candidate first. Pass the resolved
+designation expected by the router; a strict router may treat a spelling variant
+as a different scope. A successful recall confirms only that the scope returned
+matches the request well enough to continue discovery, not that the alias is a
+governed identity.
+
 ```text
 conversation target != governed identity
 Hindsight lead != source confirmation
@@ -48,6 +57,12 @@ Use aliases to discover candidate workspace material, then prefer an exact sourc
 
 An alias observed in a document or conversation may be reused as a search lead. Do not promote it into a permanent alias mapping merely because retrieval succeeded once.
 
+For a request to list projects that are currently active or in progress, resolve
+the list from the configured live project-state source when available. A list of
+Hindsight scopes, memories or folders is an index inventory, not a current-status
+list. If the live source or a status field is unavailable, say so and do not infer
+activity from recency, document counts or folder presence.
+
 ```text
 alias match != governed identity
 folder name != governed identity
@@ -59,4 +74,15 @@ conversation continuity != durable persistence
 
 Hindsight may recover a project name, chronology hint, actor or prior conversational statement. It does not prove the underlying professional fact.
 
-When a material answer depends on that fact, confirm it against the admitted `AFFAIRES` source material when available. If only conversational/Hindsight context supports the statement, label that limitation rather than silently presenting it as a confirmed dossier fact.
+For a simple recall, Hindsight may supply the answer without opening the source
+when its locator and version limitations are available; label that answer
+`orientation mémoire — non confirmée`. Inspect the source when the user asks for
+verification or the fact will support a consequential decision, payment,
+contractual position or external communication. If Hindsight returns competing
+versions, retain their separate values and qualifiers; do not silently select
+one as current.
+
+When a consequential answer depends on that fact, confirm it against the admitted
+`AFFAIRES` source material when available. If only conversational/Hindsight
+context supports the statement, label that limitation rather than silently
+presenting it as a confirmed dossier fact.

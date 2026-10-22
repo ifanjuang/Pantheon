@@ -17,7 +17,8 @@ The general contracts remain with `docs/governance/CONTEXT_PACKS.md`, `docs/gove
 | Work | Start with | Existing Skill to consider |
 |---|---|---|
 | Email / correspondence | Relevant message/thread and current project decision | `external-commitment-guard` when an external commitment is involved |
-| Devis / DPGF | Compared offers, quantities and relevant lot CCTP | `construction-cost-review` |
+| Devis / DPGF comparison | Offers, quantities and relevant lot CCTP | `construction-cost-review` only when scope, exclusions, variants, tax basis or price comparability must be analyzed |
+| Simple question about one remembered quote amount | Exact project scope and focused Hindsight recall | `project-context` + `vault-search`; answer as unconfirmed memory when sufficient, without opening the PDF by default |
 | CCTP drafting/revision | Current plans, choices, lot scope and interfaces | `technical-standard-review`, `contract-clause-review` if triggered |
 | Technical report analysis | Exact report and project assumptions | Applicable domain Skill |
 | Site meeting / compte rendu | Meeting notes, prior open items and verified facts | `site-report-review` |
