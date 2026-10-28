@@ -15,7 +15,7 @@ jobs:
   contract:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -55,12 +55,12 @@ jobs:
       DATABASE_URL: postgresql://postgres:pantheon-q2-postgres-only@postgres:5432/postgres
     steps:
       - name: Checkout Pantheon candidate
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: monorepo
 
       - name: Checkout exact Hermes revision
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: NousResearch/hermes-agent
           ref: ${{ env.HERMES_COMMIT }}
@@ -68,7 +68,7 @@ jobs:
           fetch-depth: 1
 
       - name: Checkout exact Langfuse revision
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: langfuse/langfuse
           ref: ${{ env.LANGFUSE_COMMIT }}
