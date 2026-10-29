@@ -37,7 +37,8 @@ def test_context_contrasts_are_present_without_new_phase_engine() -> None:
 
 
 def test_epistemic_and_authorization_boundaries_are_explicit() -> None:
-    text = _read()
+    # Markdown line wrapping is formatting, not a change of the invariant.
+    text = " ".join(_read().lower().split())
     for phrase in (
         "never infer approval",
         "actual execution",
@@ -46,4 +47,4 @@ def test_epistemic_and_authorization_boundaries_are_explicit() -> None:
         "an explicitly asked question",
         "not executed acceptance",
     ):
-        assert phrase.lower() in text.lower()
+        assert phrase.lower() in text
