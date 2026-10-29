@@ -183,6 +183,76 @@ Questions:
 Pass: keeps planned, executed, verified, compliant, received and reservation-free
 states distinct. A closed task does not close a physical defect.
 
+
+## Context-dependent relevance and maturity — cross-case acceptance
+
+Project phase is an orientation signal, **not** a gate that forbids questions.
+The current context is a combination of (1) contractual/design mission phase(s),
+(2) actual maturity and physical state of each relevant object or work package,
+and (3) operational circumstances: occupied site, safety, access, continuity of
+services, heritage constraints, live interventions and exceptional discoveries.
+
+These dimensions can diverge. An affair may simultaneously be in sketch design
+for an extension, procurement for windows and execution for interior renovation.
+Never assign one global phase to all objects. Phase or status extracted from a
+source remains a source-backed assertion; a schedule line is not execution proof.
+
+### Required contrast variants
+
+| Variant | Context | Same core question | Expected emphasis |
+| --- | --- | --- | --- |
+| C01-A | ESQ, unoccupied new build | How should plumbing and facade work be coordinated? | Identify conceptual feasibility/interfaces; do not demand detailed trade sequencing without a demonstrated need. |
+| C01-B | ESQ, occupied renovation | How should plumbing and facade work be coordinated? | Prioritize continuity of water, sanitation, safe access, temporary protection, occupancy windows and feasible staging. |
+| C01-C | DCE, occupied renovation | How should plumbing and facade work be coordinated? | Verify lot boundaries, temporary services, phasing obligations, site constraints and gaps between plans and CCTP. |
+| C01-D | DET, occupied renovation | How should plumbing and facade work be coordinated? | Use actual observations, dependencies, planned interventions, access and occupancy restrictions to suggest conditional adjustments. |
+| C03-A | ESQ, extension under design | What follows from widening an opening? | Focus on feasibility, architecture, structural assumptions and design options, not supplier-order claims. |
+| C03-B | ACT, opening with supplier offer | What follows from widening an opening? | Examine offer assumptions, revisions, contractual scope and procurement timing. |
+| C03-C | DET, ordered joinery | What follows from widening an opening? | Compare approved dimensions, structure, order and installation date; distinguish a possible change order from an authorized one. |
+| C08-A | APS, technical meeting | What was decided about insulation? | Distinguish hypotheses, options and design choices still requiring validation. |
+| C08-B | PRO/DCE, technical coordination | What was decided about insulation? | Reconcile chosen assembly, technical notes, CCTP, details and responsibility for unresolved interfaces. |
+| C08-C | DET, contractor exchange | What was decided about insulation? | Check formal instructions, executed work, contract variations, approval and follow-up. |
+
+### Additional competency questions
+
+- Given the same question and different project contexts, which sources and
+  dependencies are relevant *now*, and why?
+- Does a renovation in occupied premises require early sequencing questions
+  even when the declared mission is only at ESQ?
+- If an explicit user question concerns a low-priority phase topic, does Hermes
+  answer it with appropriate caveats instead of suppressing it?
+- Can Hermes distinguish the design maturity of an extension from the physical
+  completion status of a separate renovation package in the same affair?
+- Does a new discovery or emergency reprioritize the response without silently
+  changing contractual phase or approved programme?
+- When phase, occupancy or maturity is unknown, does Hermes state the missing
+  context rather than inventing a default phase or treating the site as vacant?
+
+### Evaluation rules
+
+- Relevance is a **retrieval/ranking decision**, not an admission rule, new
+  authority or a separate phase engine.
+- Never filter out an explicitly asked question because it is unusual for the
+  phase; answer it and indicate which detailed inputs are premature or missing.
+- Retrieve by project scope, affected object/work package, source coverage,
+  temporal applicability and operational constraints before generic phase priors.
+- A lower-ranked concern may become dominant when occupied-site safety,
+  continuity of essential services, critical technical risk or a live decision
+  makes it material. Do not infer a safety conclusion from missing documents.
+- Do not silently replace contractual phase with actual progress, or vice versa.
+- Measure false-positive retrieval of irrelevant execution documents at ESQ and
+  false-negative omission of essential occupied-site constraints at ESQ.
+- Compare answer quality and retrieval cost across context variants; improvement
+  is unproven until measured.
+
+### Minimal executable fixture proposal
+
+Reuse existing H5.8 fixture carriers and tests; vary only the source-backed
+project/work-package context and question across C01-A/B/C/D, C03-A/B/C and
+C08-A/B/C. Expected answers should differ in *prioritization*, not in
+fabricated project facts. Add an adversarial mixed-phase variant where the
+extension is in ESQ but the occupied existing building has ongoing DET works.
+The correct context slice must preserve both scopes and their distinct status.
+
 ## Cross-case evaluation matrix
 
 Each case should be evaluated for:
