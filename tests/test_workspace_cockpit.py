@@ -724,7 +724,11 @@ def test_unsupported_and_heavy_sources_are_not_scanned(tmp_path: Path) -> None:
     result = module.scan_workspaces([("Affaires", tmp_path)], max_depth=1)
     documents = [card for card in _cards(result) if card["kind"] == "document"]
 
-    assert documents == []
+    # Binary CAD and Revit runtime files stay out of the Hindsight source route.
+    # JPG is now discoverable for a future bounded vision adapter, not retained.
+    assert [card["name"] for card in documents] == ["photo.jpg"]
+    assert documents[0]["hindsight_eligible"] is False
+    assert documents[0]["hindsight_representation_candidate"] is None
 
 
 def test_invalid_optional_cartouche_does_not_block_supported_source(tmp_path: Path) -> None:
