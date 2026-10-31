@@ -52,7 +52,7 @@ Any request asking the server to perform such an effect is refused with a report
 | `check_external_action(description)` | blocked-by-default report with the legitimization path |
 | `validate_decision(decision_yaml)` | validates a *provided* human decision reference against a requirement (scope, approval ceiling, expiry, object identity, digest), refuses a non-human signer and — when an issuer key registry is configured (`PANTHEON_DECISION_ISSUER_KEYS_PATH`) — authenticates the human issuer by verifying an HMAC signature over the signed fields (`issuer_authenticated: true/false`); returns `verdict: valid / invalid` with per-check detail. Read-only: it fetches nothing, persists nothing and approves nothing — a valid verdict is not an authorization |
 | `run_doctor_checks()` | fail-closed read-only repo checks with explicit `pass`, `fail`, `not_run` or `capability_gap` outcomes, per-check counts and an aggregate result |
-| `validate_apu_dossier(dossier_yaml)` | validates a candidate Architecture Project Understanding dossier against the governance schemas and returns the gate posture as data: schema errors, unresolved references, `posture: candidate-only`, `canonical_effect: false`, regulatory claims lacking approval, and the human decisions required |
+| `validate_apu_dossier(dossier_yaml)` | validates a candidate Architecture Project Understanding dossier against the governance schemas and returns the gate posture as data: schema errors, unresolved references, relation-vocabulary errors against the governed relation profile `architecture@1` (`vocabulary_errors`; candidate relation types appear among the human decisions required), `posture: candidate-only`, `canonical_effect: false`, regulatory claims lacking approval, and the human decisions required |
 | `verify_install(evidence_yaml)` | classifies a component install from *provided* log / health / check evidence and returns the verdict as data (installed, answers, checks green; `green` / `degraded` / `absent` / `unknown`). Read-only: it probes nothing, accesses no NAS, installs nothing and decides nothing; insufficient evidence is a capability gap |
 | `verify_observability(evidence_yaml)` | classifies a component's observability posture from *provided* signal-inventory / freshness / error evidence and returns the verdict as data (can we see it: `observable` / `degraded` / `blind` / `unknown`). Read-only: it queries nothing, accesses no NAS and decides nothing; insufficient evidence is a capability gap |
 | `verify_backup(evidence_yaml)` | classifies a component's backup / recoverability posture from *provided* backup-presence / freshness / restore evidence and returns the verdict as data (if it dies, can we get it back: `protected` / `degraded` / `unprotected` / `unknown`). Read-only: it runs no backup or restore, accesses no NAS and decides nothing; insufficient evidence is a capability gap |
@@ -166,7 +166,7 @@ pantheon-apu-validate path/to/dossier.yaml   # or: cat dossier.yaml | pantheon-a
 ```
 
 It prints the gate posture report as JSON and exits `0` when the dossier is ok,
-`1` on schema / reference / gate errors (so it can gate a script). Like the tool,
+`1` on schema / reference / relation-vocabulary / gate errors (so it can gate a script). Like the tool,
 it validates and reports only; it executes, canonizes and approves nothing.
 
 ## Install verification CLI
