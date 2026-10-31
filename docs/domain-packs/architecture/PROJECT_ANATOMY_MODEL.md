@@ -661,3 +661,58 @@ raw observed != canonically retained
 ```
 
 This small core is intentional. Project Anatomy becomes more rigorous by limiting canonical carriers while retaining provenance, temporal history, explicit uncertainty and governed extension points.
+## 25. Boundary with ProjectClaim, Decisions and WorkIssues
+
+Status: proposed decision — requires maintainer review. It records an observed
+state and a proposed attribution rule; it changes no schema, code or contract.
+
+### 25.1 Observed state
+
+| | `ProjectClaim` | APU `attribute_claim` |
+| --- | --- | --- |
+| Subject | the Project (no object subject) | a `stable_object` or a `source_representation` |
+| Vocabulary | closed, declared per field in `implementation/mvp_vertical/agency_schema/project.json` (12 fiche fields today: budget, market amount, site/existing/project surface, footprint, parcels, PLU zone, permit number and date, reception date, ERP type) | open, namespaced predicates (§5) |
+| Value | one scalar | structured value with unit, scheme and basis |
+| Time | `observed_at`, explicit `effective_at`, implementation recording time; `as-of` readers exist | observation time lives on the `source_representation`; `validity.valid_from` / `valid_until` and `supersedes_claim_ref` are stored but no executable reader interprets them; no `as-of` reader |
+| Writes after initial import | yes, append-only with same-project / same-type supersession | none: the owner accepts one reviewed dossier per Project, then only identity matches |
+| Contradictions | scalar conflict candidates | preserved, not detected |
+
+A `ProjectClaim` may cite an APU object through `backing_ref` (`apu_object`).
+That identifies support; it is not an APU claim.
+
+### 25.2 Proposed attribution rule
+
+```text
+project fiche value                  -> ProjectClaim
+identified work element, its value
+  or state, per source               -> APU attribute_claim / relation_claim
+order, avenant, instruction,
+  reservation, delay, decision       -> Document revision, Decision Request / Decision, WorkIssue
+```
+
+- A project-level value derived from object-level claims (for example a project
+  surface summed from spaces) is a `derived` `ProjectClaim` citing its basis. The
+  computation is not an APU responsibility.
+- Do not add a `ProjectClaim` type for the state of one work element, and do not
+  add an APU predicate that duplicates a declared fiche field.
+- A physical state of an element (installed, verified) is an APU claim about that
+  element. Contractual, financial and procedural states are not claims about the
+  element; they stay with their own owners.
+
+```text
+project fiche field != state of a work element
+backing_ref to an APU object != APU claim
+APU claim != project fiche value
+APU claim != order, decision or reservation
+```
+
+### 25.3 Documented, not implemented (to verify before relying on this section)
+
+- Adding claims, new objects or superseding claims to an initialized Project
+  (the owner is import-once; `object_retired` exists in the event vocabulary but
+  has no writer).
+- An `as-of` reader for APU claims.
+- `ESQ` in the shared `phase_code` vocabulary, and `source_kind` values for
+  written documents (specification, bill of quantities, minutes, email) and DWG.
+- Link between a source version and a Project Document revision
+  (`doc_document_versions`).
