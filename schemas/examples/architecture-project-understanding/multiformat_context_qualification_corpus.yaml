@@ -1,0 +1,108 @@
+# Synthetic qualification material only; no real IFC, DWG, PDF or JPG is parsed.
+# Each entry describes the receipt an admitted specialist reader WOULD return.
+# The tests check canonical APU envelopes, not visual or geometric accuracy.
+corpus_id: h5.cross-format-context.v1
+status: qualification_only
+project_ref: project-synthetic-renovation
+known_stable_object_ref: OBJ-OPENING-004
+questions:
+  - "Quelle largeur est documentée pour cette baie et dans quelles sources ?"
+  - "La baie du séjour est-elle réellement terminée ?"
+  - "Que faut-il coordonner en esquisse si le logement reste occupé ?"
+context:
+  extension:
+    mission_phase: esq
+    actual_state: proposed
+  occupied_existing_building:
+    mission_phase: det
+    actual_state: works_in_progress
+    occupancy: occupied
+  priority_condition: maintain_access_and_water_during_works
+sources:
+  - id: ifc
+    filename: Modele.ifc
+    source_ref: source.ifc.synthetic-001
+    version_ref: ifc:snapshot-07
+    digest: "sha256:synthetic-ifc-07"
+    source_kind: ifc
+    identifier: {scheme: ifc.global_id, value: IFC_OPENING_001}
+    locator: {type: ifc_guid, value: IFC_OPENING_001}
+    coordinate_frame: MODEL_LOCAL
+    completeness: partial_for_declared_scope
+    exclusions: [linked_models_not_observed]
+    claim:
+      key: geometry.width
+      value: {value_type: number, value: 2.10, unit: m}
+      assertion_mode: observed
+      source_authority: project_working_document
+    limitations:
+      - "IFC property is not evidence of fabrication, installation or approval."
+  - id: dwg
+    filename: Plan-RDC-ind-C.dwg
+    source_ref: source.dwg.synthetic-002
+    version_ref: drawing:index-c
+    digest: "sha256:synthetic-dwg-c"
+    source_kind: drawing
+    identifier: {scheme: cad.entity_handle, value: "A01F"}
+    locator: {type: drawing_sheet, value: "A-101 / modelspace: A01F"}
+    coordinate_frame: MODEL_LOCAL
+    completeness: partial_for_declared_scope
+    exclusions: [external_references_not_resolved]
+    claim:
+      key: geometry.width
+      value: {value_type: number, value: 2.10, unit: m}
+      assertion_mode: derived
+      source_authority: model_interpretation_candidate
+    limitations:
+      - "Drawing geometry has unknown unit calibration and unresolved XREFs."
+      - "The numeric value here is illustrative, not a validated measurement."
+  - id: pdf
+    filename: Plan-RDC-ind-B.pdf
+    source_ref: source.pdf.synthetic-003
+    version_ref: drawing:index-b
+    digest: "sha256:synthetic-pdf-b"
+    source_kind: drawing
+    identifier: {scheme: drawing.local_label, value: BAIE-S01}
+    locator: {type: page_bbox, value: "page1:120,210,240,330", page: 1, bbox: [120, 210, 240, 330]}
+    coordinate_frame: PAGE
+    completeness: partial_for_declared_scope
+    exclusions: [other_pages_not_examined]
+    claim:
+      key: geometry.width
+      value: {value_type: number, value: 1.80, unit: m}
+      assertion_mode: observed
+      source_authority: project_working_document
+    limitations:
+      - "Width is explicitly dimensioned in a synthetic plan, not measured from uncalibrated pixels."
+  - id: jpg
+    filename: Photo-chantier.jpg
+    source_ref: source.jpg.synthetic-004
+    version_ref: photo:2026-10-01-01
+    digest: "sha256:synthetic-jpg-01"
+    source_kind: photo
+    identifier: {scheme: image.region, value: opening-left-half}
+    locator: {type: other, value: "image region: opening-left-half"}
+    coordinate_frame: PIXEL
+    completeness: partial_for_declared_scope
+    exclusions: [hidden_elements_not_visible, no_metric_calibration]
+    claim:
+      key: physical.apparent_condition
+      value: {value_type: text, value: opening_apparently_unfinished}
+      assertion_mode: derived
+      source_authority: model_interpretation_candidate
+    limitations:
+      - "Visible appearance is not an as-built measurement or a contractual reception."
+      - "A single JPG does not prove the identity of the pictured opening."
+acceptance:
+  candidate_only: true
+  source_native_identifiers_are_not_stable_object_id: true
+  common_project_is_not_automatic_identity_match: true
+  mixed_phase_must_be_preserved: true
+  occupied_site_priorities_may_override_esq_default: true
+  no_winner_from_recency_or_agreement: true
+  never_conclude_absence_from_partial_coverage: true
+  never_derive_metric_dimensions_from_uncalibrated_jpg: true
+  dwg_without_xrefs_or_units_is_not_complete: true
+  visual_observation_not_execution_or_reception: true
+  hindsight_memory_is_not_evidence: true
+  no_automatic_retain_or_apu_write: true
