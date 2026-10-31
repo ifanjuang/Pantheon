@@ -40,8 +40,9 @@ permission to invent another parser, tool or provider.
 
 When a project question spans native geometry, drawings and site photographs,
 first resolve the same admitted project and exact source versions. Treat
-Hindsight as a documentary lead only: the Workspace may inventory IFC/DWG/JPG
-files without retaining their binary or visual contents in Hindsight.
+Hindsight as a documentary lead only: the current Workspace source inventory
+does not admit IFC/DWG/JPG for Hindsight extraction, and this core-first
+change does not activate readers or expand the inventory.
 
 Choose an actually qualified, available **read-only** reader for the source,
 not a parser merely inferred from the file extension:
