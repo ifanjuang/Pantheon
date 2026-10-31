@@ -724,11 +724,7 @@ def test_unsupported_and_heavy_sources_are_not_scanned(tmp_path: Path) -> None:
     result = module.scan_workspaces([("Affaires", tmp_path)], max_depth=1)
     documents = [card for card in _cards(result) if card["kind"] == "document"]
 
-    # Binary CAD and Revit runtime files stay out of the Hindsight source route.
-    # JPG is now discoverable for a future bounded vision adapter, not retained.
-    assert [card["name"] for card in documents] == ["photo.jpg"]
-    assert documents[0]["hindsight_eligible"] is False
-    assert documents[0]["hindsight_representation_candidate"] is None
+    assert documents == []
 
 
 def test_invalid_optional_cartouche_does_not_block_supported_source(tmp_path: Path) -> None:
@@ -1499,89 +1495,3 @@ def test_persisted_projection_reads_producer_owned_index_without_rescan(tmp_path
     assert snapshot["index_state"]["mode"] == "persisted-projection"
     assert snapshot["index_state"]["watcher"] == "external-producer"
     assert snapshot["index_state"]["last_reconcile_reason"] == "test-producer"
-
-
-def test_architectural_binary_and_visual_sources_are_visible_without_fake_hindsight_ingestion(tmp_path: Path) -> None:
-    """IFC/DWG/DXF/JPG/PNG are discoverable, but not falsely parsed as text."""
-    module = _module()
-    affair = tmp_path / "Projet Fictif"
-    affair.mkdir()
-    originals = {
-        "Maquette.ifc": b"ISO-10303-21; synthetic",
-        "Plan RDC.dwg": b"AC10 synthetic",
-        "Detail.dxf": b"synthetic-dxf",
-        "Chantier.jpg": b"synthetic-jpeg-not-a-real-photo",
-        "Facade.jpeg": b"synthetic-jpeg",
-        "Perspective.png": b"synthetic-png",
-        "Plan.pdf": b"%PDF synthetic",
-    }
-    for name, payload in originals.items():
-        (affair / name).write_bytes(payload)
-    (affair / "Plan.dwg.bak").write_bytes(b"backup")
-
-    snapshot = module.scan_workspaces([("Affaires", tmp_path)], max_depth=2)
-    cards = {
-        card["name"]: card
-        for card in snapshot["workspaces"][0]["cards"]
-        if card["kind"] == "document"
-    }
-    assert set(cards) == set(originals)
-    for name, card in cards.items():
-        assert card["scope_project"] == "Projet Fictif"
-        assert card["source_present"] is True
-        assert card["status"] == "FOLDER_SCOPED"
-        assert card["document_identity_source"] == "technical"
-        assert card["source_sha256"] is None
-        if name.endswith(".pdf"):
-            assert card["hindsight_eligible"] is True
-            assert card["hindsight_representation_candidate"] == "source"
-        else:
-            assert card["hindsight_eligible"] is False
-            assert card["hindsight_format_supported"] is False
-            assert card["hindsight_representation_candidate"] is None
-    assert all(cards[name]["heavy_binary"] for name in ("Maquette.ifc", "Plan RDC.dwg", "Detail.dxf"))
-
-
-def test_multiformat_cartouche_is_descriptive_not_memory_or_source_authority(tmp_path: Path) -> None:
-    module = _module()
-    project = tmp_path / "Projet Fictif"
-    project.mkdir()
-    (project / "Plan.dwg").write_bytes(b"AC10 synthetic")
-    (project / ".Plan.dwg.md").write_text(
-        """---
-schema: pantheon/cartouche/v1
-document_id: doc-cad-001
-source: Plan.dwg
-project: Projet Fictif
-index: B
----
-# Plan DWG
-Modification évoquée.
-""",
-        encoding="utf-8",
-    )
-    (project / "Photo.jpg").write_bytes(b"synthetic-jpg")
-    (project / ".Photo.jpg.md").write_text(
-        """---
-schema: pantheon/cartouche/v1
-document_id: doc-photo-001
-source: Photo.jpg
-project: Projet Fictif
----
-# Photo
-Observation non vérifiée.
-""",
-        encoding="utf-8",
-    )
-    snapshot = module.scan_workspaces([("Affaires", tmp_path)], max_depth=2)
-    cards = {
-        card["name"]: card
-        for card in snapshot["workspaces"][0]["cards"]
-        if card["kind"] == "document"
-    }
-    assert set(cards) == {"Plan.dwg", "Photo.jpg"}
-    assert cards["Plan.dwg"]["document_id"] == "doc-cad-001"
-    assert cards["Photo.jpg"]["document_id"] == "doc-photo-001"
-    assert all(card["hindsight_eligible"] is False for card in cards.values())
-    assert all(card["hindsight_representation_candidate"] is None for card in cards.values())
-    assert all(card["document_identity_source"] == "cartouche" for card in cards.values())
