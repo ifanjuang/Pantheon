@@ -1505,9 +1505,7 @@ def test_architectural_binary_and_visual_sources_are_visible_without_fake_hindsi
     originals = {
         "Maquette.ifc": b"ISO-10303-21; synthetic",
         "Plan RDC.dwg": b"AC10 synthetic",
-        "Detail.dxf": b"0\
-SECTION\
-",
+        "Detail.dxf": b"synthetic-dxf",
         "Chantier.jpg": b"synthetic-jpeg-not-a-real-photo",
         "Facade.jpeg": b"synthetic-jpeg",
         "Perspective.png": b"synthetic-png",
@@ -1515,7 +1513,6 @@ SECTION\
     }
     for name, payload in originals.items():
         (affair / name).write_bytes(payload)
-    # Hidden metadata and backup files cannot leak into the active inventory.
     (affair / "Plan.dwg.bak").write_bytes(b"backup")
 
     snapshot = module.scan_workspaces([("Affaires", tmp_path)], max_depth=2)
@@ -1547,33 +1544,29 @@ def test_multiformat_cartouche_is_descriptive_not_memory_or_source_authority(tmp
     project.mkdir()
     (project / "Plan.dwg").write_bytes(b"AC10 synthetic")
     (project / ".Plan.dwg.md").write_text(
-        "---\
-schema: pantheon/cartouche/v1\
-document_id: doc-cad-001"
-        "\
-source: Plan.dwg\
-project: Projet Fictif\
-index: B\
----\
-"
-        "# Plan DWG\
-Modification évoquée.\
-",
+        """---
+schema: pantheon/cartouche/v1
+document_id: doc-cad-001
+source: Plan.dwg
+project: Projet Fictif
+index: B
+---
+# Plan DWG
+Modification évoquée.
+""",
         encoding="utf-8",
     )
     (project / "Photo.jpg").write_bytes(b"synthetic-jpg")
     (project / ".Photo.jpg.md").write_text(
-        "---\
-schema: pantheon/cartouche/v1\
-document_id: doc-photo-001"
-        "\
-source: Photo.jpg\
-project: Projet Fictif\
----\
-"
-        "# Photo\
-Observation non vérifiée.\
-",
+        """---
+schema: pantheon/cartouche/v1
+document_id: doc-photo-001
+source: Photo.jpg
+project: Projet Fictif
+---
+# Photo
+Observation non vérifiée.
+""",
         encoding="utf-8",
     )
     snapshot = module.scan_workspaces([("Affaires", tmp_path)], max_depth=2)
