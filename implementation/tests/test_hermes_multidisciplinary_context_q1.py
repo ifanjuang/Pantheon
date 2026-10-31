@@ -484,3 +484,176 @@ def test_q1_composed_context_reuses_existing_owners_without_new_lens_or_graph(co
             entity_id=f"stable_object:{state['unrelated']}",
             actor="hermes-runtime",
         )
+
+
+def test_q1_mixed_phase_occupied_context_uses_explicit_work_package_sources(conn) -> None:
+    """One affair can have ESQ design and ongoing DET works, without a phase engine."""
+    state = _scenario(conn)
+    new_extension = agency_information.create_information(
+        conn,
+        project_id=state["project_id"],
+        title="Extension en esquisse — hypothèse",
+        category="Programme",
+        source_type="document",
+        source_ref="fixture://situated/extension-esq",
+        index_label="ESQ",
+        summary="Extension : mission ESQ ; disposition proposée seulement.",
+        details=(
+            "La conception de l'extension est en ESQ. Aucun ordre ni calendrier "
+            "d'exécution des lots de l'extension n'est établi dans cette source."
+        ),
+        actor_kind="human",
+        author="human:test",
+    )
+    occupied_existing = agency_information.create_information(
+        conn,
+        project_id=state["project_id"],
+        title="Maison existante habitée — observation chantier",
+        category="Programme",
+        source_type="document",
+        source_ref="fixture://situated/occupied-det",
+        index_label="DET",
+        summary="Existant habité : rénovation en DET, alimentation en eau à maintenir.",
+        details=(
+            "Les habitants restent présents pendant les travaux de plomberie de "
+            "l'existant. L'accès, les sanitaires et la continuité de l'eau "
+            "doivent être pris en compte. Les interventions précises restent à vérifier."
+        ),
+        actor_kind="human",
+        author="human:test",
+    )
+    selected = [
+        _entity("stable_object", state["partition"]),
+        _entity("information", new_extension["information_id"]),
+        _entity("information", occupied_existing["information_id"]),
+    ]
+    admission, run_id = _admit_and_start(conn, state["project_id"], selected)
+    manifest = hermes_scoped_context.get_context_manifest(
+        conn,
+        admission_id=admission["admission_id"],
+        run_id=run_id,
+        actor="hermes-runtime",
+    )
+    assert {(row["entity_type"], row["entity_id"]) for row in manifest["entities"]} == {
+        ("project", f"project:{state['project_id']}"),
+        *{(row["entity_type"], row["entity_id"]) for row in selected},
+    }
+    assert manifest["global_search_available"] is False
+    assert manifest["global_listing_available"] is False
+    assert manifest["write_effect"] is False
+
+    esq = hermes_scoped_context.get_context_entity(
+        conn,
+        admission_id=admission["admission_id"],
+        run_id=run_id,
+        entity_type="information",
+        entity_id=f"information:{new_extension['information_id']}",
+        actor="hermes-runtime",
+    )
+    det = hermes_scoped_context.get_context_entity(
+        conn,
+        admission_id=admission["admission_id"],
+        run_id=run_id,
+        entity_type="information",
+        entity_id=f"information:{occupied_existing['information_id']}",
+        actor="hermes-runtime",
+    )
+    assert "ESQ" in esq["representation"]["details"]
+    assert "DET" not in esq["representation"]["details"]
+    assert "eau" in det["representation"]["details"]
+    assert "DET" not in det["representation"]["details"]  # phase is a separate source summary
+    assert "DET" in det["record"]["summary"]
+    assert all(
+        result["representation"]["working_assumptions_are_not_acted"] is True
+        for result in (esq, det)
+    )
+    assert esq["record_owner_system"] == det["record_owner_system"] == "postgres_agency_information"
+
+    # A different source is NOT implicitly included just because it belongs
+    # to the same project or because the APU object has related neighbours.
+    with pytest.raises(
+        hermes_scoped_context.ScopedContextConflict,
+        match="outside the exact admitted Context Pack",
+    ):
+        hermes_scoped_context.get_context_entity(
+            conn,
+            admission_id=admission["admission_id"],
+            run_id=run_id,
+            entity_type="information",
+            entity_id=f"information:{state['information_id']}",
+            actor="hermes-runtime",
+        )
+
+
+def test_q1_conflicting_opening_revisions_survive_owner_read_without_global_winner(conn) -> None:
+    """The existing APU owner exposes source-scoped revisions, not a current-value oracle."""
+    project = agency_data.create_project(
+        conn,
+        project_id=_id("project"),
+        code=_id("OPEN").upper(),
+        display_name="Ouverture révisée, fixture synthétique",
+        actor="human-reviewer",
+        actor_kind="human",
+        idempotency_key=_id("project-create"),
+    )
+    project_id = project["project_id"]
+    opening_id = _id("apu-opening")
+    representations = []
+    claims = []
+    for index, width in (("B", 1800), ("C", 2100)):
+        representation_id = _id("rep-" + index)
+        representation = _representation(project_id, representation_id)
+        representation["source_artifact_ref"] = f"fixture://plans/r{index}"
+        representation["freshness_token"] = f"fixture-opening-revision-{index}"
+        representation["identifiers"] = [
+            {"scheme": "drawing.fragment", "value": f"BAIE-01/r{index}"}
+        ]
+        representations.append(representation)
+        claims.append(
+            _attribute(
+                opening_id,
+                _id("width-" + index),
+                representation_id,
+                "geometry.width",
+                width,
+                "mm",
+            )
+        )
+    apu_owner.store_reviewed_dossier(
+        conn,
+        project_id=project_id,
+        stable_objects=[_stable(project_id, opening_id, "element", "Baie du séjour")],
+        source_representations=representations,
+        attribute_claims=claims,
+        relation_claims=[],
+        review_ref="review:architect:cross-source-opening",
+        actor="human:architect",
+        idempotency_key=_id("apu-opening-bootstrap"),
+    )
+    admission, run_id = _admit_and_start(
+        conn,
+        project_id,
+        [_entity("stable_object", opening_id)],
+    )
+    read = hermes_scoped_context.get_context_entity(
+        conn,
+        admission_id=admission["admission_id"],
+        run_id=run_id,
+        entity_type="stable_object",
+        entity_id=f"stable_object:{opening_id}",
+        actor="hermes-runtime",
+    )
+    record = read["record"]
+    widths = {
+        claim["value"]["value"]: claim["source_representation_refs"]
+        for claim in record["attribute_claims"]
+        if claim["attribute_key"] == "geometry.width"
+    }
+    assert set(widths) == {1800, 2100}
+    assert all(len(refs) == 1 for refs in widths.values())
+    assert widths[1800] != widths[2100]
+    assert len(record["source_representation_refs"]) == 2
+    assert record["scope"]["relation_traversal_performed"] is False
+    assert record["authority"]["projection_only"] is True
+    assert record["authority"]["creates_project_fact"] is False
+    assert read["write_effect"] is False
