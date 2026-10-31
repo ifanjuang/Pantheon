@@ -36,6 +36,48 @@ Hindsight content and any applicable representation state block redundant
 derivation. A missing or unusable representation is a limitation, not
 permission to invent another parser, tool or provider.
 
+## Architectural source formats: IFC, DWG, PDF, JPG
+
+When a project question spans native geometry, drawings and site photographs,
+first resolve the same admitted project and exact source versions. Treat
+Hindsight as a documentary lead only: the current Workspace source inventory
+does not admit IFC/DWG/JPG for Hindsight extraction, and this core-first
+change does not activate readers or expand the inventory.
+
+Choose an actually qualified, available **read-only** reader for the source,
+not a parser merely inferred from the file extension:
+
+- **IFC:** query the admitted IFC reader (IFClite is a candidate, not proof
+  of a live installation). Preserve GlobalId, element placement, representation
+  coverage, units, linked-model scope and the snapshot digest.
+- **DWG/DXF:** require an admitted CAD reader that reports handles, blocks,
+  layers, model/paper space, insertion transformations, XREFs and unit/calibration
+  state. This repository has **no qualified DWG reader binding**. If absent,
+  report `source_present_not_inspected`, not invented geometry, quantities,
+  objects or an implicitly extracted Hindsight memory.
+- **PDF:** textual extraction (Docling or the bounded native PDF reader) does
+  not inspect the graphics of a plan. For geometry or visual symbols, inspect
+  the exact page/region through an admitted visual or takeoff capability;
+  preserve the scale witnesses and withhold measurements if unresolved.
+- **JPG/JPEG/PNG:** inspect only the exact image/region with an admitted visual
+  reader, preserving occlusions and observation time. No native metric dimension,
+  as-built completion, work reception or stable-object identity may be inferred
+  solely from an uncalibrated photograph.
+
+Normalize useful inspected results to the **existing** APU Observation Bundle
+Candidate contract when a structured project claim is requested. A source
+representation may remain unlinked to any stable object. A photo, IFC GUID, DWG
+handle and PDF label sharing a subject are not automatically the same governed
+object. Preserve differing source revisions, measurements and physical/design
+states separately; do not rank a universal winner by recency, memory recall
+frequency or agreement between formats.
+
+If the reader is unavailable or only metadata is discoverable, answer with
+known source presence and the specific inspection gap; do not treat that as a
+failure of project identification. Use APU projections, WorkIssues and Decisions
+only through their existing admitted boundaries. Inspection, Hindsight retain,
+APU application and authorized consequential effects are separate operations.
+
 ## Source families and preflight
 
 ```text
