@@ -143,7 +143,7 @@ def test_core_excludes_unprovenanced_memory_instead_of_inventing_a_reader() -> N
         "cad vectors are geometric entities",
         "source_present_not_inspected",
         "observation bundle candidate",
-        "context pack is temporary task context",
+        "existing context pack is temporary task context",
         "no memory summary may be recycled as new source",
     ):
         assert boundary in core_contract
