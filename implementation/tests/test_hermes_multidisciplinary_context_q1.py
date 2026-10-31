@@ -489,7 +489,14 @@ def test_q1_composed_context_reuses_existing_owners_without_new_lens_or_graph(co
 
 
 def test_q1_mixed_phase_occupied_context_uses_explicit_work_package_sources(conn) -> None:
-    """One affair can have ESQ design and ongoing DET works, without a phase engine."""
+    """One affair can have ESQ design and ongoing DET works, without a phase engine.
+
+    This proves exact Context Pack admission and faithful owner reads for two
+    differently phased work packages. It does not prove phase-aware
+    prioritization of Hermes answers, which needs a live reasoning evaluation.
+    The mission phase is source content (summary), never the source revision
+    index carried by ``index_label``.
+    """
     state = _scenario(conn)
     new_extension = agency_information.create_information(
         conn,
@@ -498,7 +505,7 @@ def test_q1_mixed_phase_occupied_context_uses_explicit_work_package_sources(conn
         category="Programme",
         source_type="document",
         source_ref="fixture://situated/extension-esq",
-        index_label="ESQ",
+        index_label="A",
         summary="Extension : mission ESQ ; disposition proposée seulement.",
         details=(
             "La conception de l'extension est en ESQ. Aucun ordre ni calendrier "
@@ -514,7 +521,7 @@ def test_q1_mixed_phase_occupied_context_uses_explicit_work_package_sources(conn
         category="Programme",
         source_type="document",
         source_ref="fixture://situated/occupied-det",
-        index_label="DET",
+        index_label="A",
         summary="Existant habité : rénovation en DET, alimentation en eau à maintenir.",
         details=(
             "Les habitants restent présents pendant les travaux de plomberie de "
@@ -566,7 +573,7 @@ def test_q1_mixed_phase_occupied_context_uses_explicit_work_package_sources(conn
     assert "ESQ" in esq["representation"]["details"]
     assert "DET" not in esq["representation"]["details"]
     assert "eau" in det["representation"]["details"]
-    assert "DET" not in det["representation"]["details"]  # phase is a separate source summary
+    assert "DET" not in det["representation"]["details"]  # phase lives in the summary, not details or index
     assert "DET" in det["record"]["summary"]
     assert all(
         result["representation"]["working_assumptions_are_not_acted"] is True
