@@ -184,6 +184,50 @@ Pass: keeps planned, executed, verified, compliant, received and reservation-fre
 states distinct. A closed task does not close a physical defect.
 
 
+## Core-first composition — provider neutral
+
+The first implementation slice is a **read-only, source-neutral composition
+test**, not an IFC/DWG/image reader or a new persistence engine. It reuses the
+existing owner boundaries and Hermes Context Pack admission.
+
+1. **Scope:** resolve the governed affair and explicit work-package context
+   before retrieval. A filesystem folder and a Hindsight bank/tag are not
+   governed project identities; ambiguity prevents cross-project recall.
+2. **Discovery:** Hindsight, a semantic embedding index, or a filename can
+   suggest a source, but a retrieval hit remains a *lead*. Vector embeddings
+   encode similarity for search; **CAD vectors are geometric entities** and
+   require different specialist observation. Neither establishes an APU claim.
+3. **Inspection:** only an actually admitted reader can return a versioned,
+   localizable, coverage-aware source observation. Distinguish
+   `source_present_not_inspected`, `inspected_with_limits` and
+   `inspected`; do not infer a reader from an extension or treat successful
+   text extraction as inspection of drawn geometry.
+4. **Qualification:** reuse `Observation Bundle Candidate`, its exact
+   source/version/digest, locator, method, observed scope and gaps. A candidate
+   does not become a fact, an Evidence entry or a new stable identity.
+5. **Understanding:** reuse APU stable objects and claims, cross-family
+   Decision Requests/WorkIssues and existing source projections; retain
+   contradictory or unaligned representations rather than vote for a winner.
+6. **Context:** pass only selected, admitted project entities and relevant
+   source/memory excerpts to Hermes. Hindsight and Mnemosyne may orient the
+   question but are never a second APU owner. The existing Context Pack is
+   temporary task context, not persistent memory.
+7. **Effect:** Hermes answers or proposes the next review. Retain, source
+   mutation, APU application and external instructions remain distinct actions
+   under their current owners.
+
+The minimal proof has three distinct inputs: an exact document/IFC
+`source_representation` (observed or candidate as applicable), a source-scoped
+Hindsight recall lead, and an APU/decision context. The composed answer must
+cite inspected sources, preserve disagreement and expose unavailable readers
+or missing authorizations. No memory summary may be recycled as new source
+Evidence merely because Hermes previously generated it.
+
+**Implementation order:** core contracts and scoped context tests first;
+compare existing upstream readers and choose replaceable read-only adapters
+later (IFC, CAD vector, visual/PDF). The reader plug-in emits the existing
+contract; it never owns Project Anatomy or Hindsight persistence.
+
 ## Future source-adapter compatibility — IFC, DWG, PDF and JPG
 
 This corpus is **source-format neutral**. For future specialist readers, all
