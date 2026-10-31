@@ -49,13 +49,13 @@ sources:
     completeness: partial_for_declared_scope
     exclusions: [external_references_not_resolved]
     claim:
-      key: geometry.width
-      value: {value_type: number, value: 2.10, unit: m}
-      assertion_mode: derived
-      source_authority: model_interpretation_candidate
+      key: cad.layer
+      value: {value_type: text, value: A-OUVERTURES}
+      assertion_mode: observed
+      source_authority: project_working_document
     limitations:
-      - "Drawing geometry has unknown unit calibration and unresolved XREFs."
-      - "The numeric value here is illustrative, not a validated measurement."
+      - "DWG layer and handle do not prove semantic identity; XREFs are unresolved."
+      - "No metric width is emitted while drawing unit calibration is unknown."
   - id: pdf
     filename: Plan-RDC-ind-B.pdf
     source_ref: source.pdf.synthetic-003
