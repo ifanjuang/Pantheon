@@ -184,6 +184,52 @@ Pass: keeps planned, executed, verified, compliant, received and reservation-fre
 states distinct. A closed task does not close a physical defect.
 
 
+## Cross-format qualification — IFC, DWG, PDF and JPG
+
+The same architectural question may require observations from several file
+families. Never treat a filename extension as proof that a reader actually
+inspected the source. The canonical output remains the existing Observation
+Bundle Candidate, not a format-specific Anatomy graph or Hindsight fact.
+
+| Source | Preferred observation | Limits to preserve |
+| --- | --- | --- |
+| IFC | IFC native object/properties, GUID, placement and declared coverage via the selected read-only IFC adapter | IFC GlobalId is not an APU object id; snapshots and linked-model coverage matter |
+| DWG/DXF | CAD handles, blocks, layers, geometry, XREFs, units and layout/model-space scope from a qualified CAD reader | Unit calibration, XREF availability and block transformations must be proven before metric interpretation |
+| PDF | Exact text/annotations/dimensions and separately inspected graphical regions with page/local coordinate provenance | Text OCR is not plan geometry; pixels require valid scale witnesses |
+| JPG/JPEG/PNG | Visible state, camera/image region and free episodic observations via an admitted vision reader | No inferred metric dimensions, hidden-work completion, professional conformity or object identity from one photo |
+
+**Current repository boundary:** the Workspace inventory can now discover IFC,
+DWG/DXF and JPG/JPEG/PNG, but its Hindsight file producer still supports only
+its existing documentary formats. Inventory visibility **does not** activate a
+binary parser, vision model, source inspection, Hindsight retain, or APU
+application for those files. IFClite is the preferred IFC candidate in
+`IFC_REVIT_RUNTIME_SELECTION.md`; live runtime qualification is separate.
+DWG reading has no selected, qualified adapter in this PR.
+
+Synthetic fixture:
+`schemas/examples/architecture-project-understanding/multiformat_context_qualification_corpus.yaml`.
+Executable contract and scanner checks:
+`tests/test_apu_multiformat_context.py` and `tests/test_workspace_cockpit.py`.
+These validate four source-aware *candidate receipts* and inventory isolation,
+not live geometric/visual understanding.
+
+First cross-format questions:
+
+- Does the same opening have differing declared dimensions in IFC, DWG and PDF?
+  Report only inspected, calibrated values, with exact source revisions.
+- Does a JPG showing an apparently incomplete opening override a drawing, an
+  order, a site report, or a reception status? Never.
+- Can the project be in ESQ for an extension and DET for an occupied existing
+  house? Preserve both scopes and prioritize continuity of use when applicable.
+- If one CAD XREF, IFC linked model, PDF page or photo region was not inspected,
+  does Hermes keep that gap rather than reporting an object absent?
+- If a file is discovered but no reader is bound or usable, does Hermes say
+  `source_present_not_inspected` rather than inventing a source interpretation?
+
+**Live acceptance remains separate:** use real representative files with
+read-only qualified readers, explicit calibration/coverage and grounded answers
+to C01/C03/C08 before claiming Pantheon understands these formats end-to-end.
+
 ## Context-dependent relevance and maturity — cross-case acceptance
 
 Project phase is an orientation signal, **not** a gate that forbids questions.
