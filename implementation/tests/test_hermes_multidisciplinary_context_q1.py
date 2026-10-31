@@ -205,7 +205,9 @@ def _document_and_knowledge(conn, project_id: str) -> tuple[str, str]:
     return document_id, knowledge_id
 
 
-def _admit_and_start(conn, project_id: str, selected: list[dict[str, str]]) -> tuple[dict, str]:
+def _admit_and_start(
+    conn, project_id: str, selected: list[dict[str, str]], *, question: str = QUESTION
+) -> tuple[dict, str]:
     envelope = {
         "root_entity": {
             "entity_id": f"project:{project_id}",
@@ -218,7 +220,7 @@ def _admit_and_start(conn, project_id: str, selected: list[dict[str, str]]) -> t
         "scope_widened_implicitly": False,
     }
     preview = hermes_handoff_preview.build_preview(
-        question=QUESTION,
+        question=question,
         card_context_envelope=envelope,
         selected_context=selected,
     )
@@ -226,7 +228,7 @@ def _admit_and_start(conn, project_id: str, selected: list[dict[str, str]]) -> t
         conn,
         actor="ifan",
         idempotency_key=_id("handoff"),
-        question=QUESTION,
+        question=question,
         preview=preview,
         card_context_envelope=envelope,
         selected_context=selected,
@@ -527,7 +529,10 @@ def test_q1_mixed_phase_occupied_context_uses_explicit_work_package_sources(conn
         _entity("information", new_extension["information_id"]),
         _entity("information", occupied_existing["information_id"]),
     ]
-    admission, run_id = _admit_and_start(conn, state["project_id"], selected)
+    admission, run_id = _admit_and_start(
+        conn, state["project_id"], selected,
+        question="Comment organiser la plomberie dans cette rénovation habitée en ESQ ?",
+    )
     manifest = hermes_scoped_context.get_context_manifest(
         conn,
         admission_id=admission["admission_id"],
@@ -634,6 +639,7 @@ def test_q1_conflicting_opening_revisions_survive_owner_read_without_global_winn
         conn,
         project_id,
         [_entity("stable_object", opening_id)],
+        question="Quelles sont les deux dimensions documentées pour la baie du séjour ?",
     )
     read = hermes_scoped_context.get_context_entity(
         conn,
