@@ -52,12 +52,8 @@ FOLDER_CONTEXT_SCHEMA = "pantheon/folder-context/v1"
 MARKDOWN_EXTENSIONS = {".md", ".markdown"}
 LEGACY_MANIFEST_NAMES = {"document.yaml", "document.yml", "manifest.yaml", "manifest.yml"}
 HINDSIGHT_ELIGIBLE_EXTENSIONS = {".pdf", ".docx", ".xlsx", ".pptx", ".txt", ".md", ".markdown", ".html", ".htm"}
-# Architectural source occurrences are inventoried even when the document-memory
-# parser cannot ingest their binary/visual content. This is discovery only:
-# an IFC/DWG/JPG file must never silently become an extracted Hindsight fact.
-ARCHITECTURE_OBSERVATION_EXTENSIONS = {".ifc", ".dwg", ".dxf", ".jpg", ".jpeg", ".png"}
-SCANNED_SOURCE_EXTENSIONS = HINDSIGHT_ELIGIBLE_EXTENSIONS | {".eml"} | ARCHITECTURE_OBSERVATION_EXTENSIONS
-HEAVY_VISIBLE_EXTENSIONS = {".rvt", ".rfa", ".rte", ".psd", ".psb", ".ifc", ".dwg", ".dxf"}
+SCANNED_SOURCE_EXTENSIONS = HINDSIGHT_ELIGIBLE_EXTENSIONS | {".eml"}
+HEAVY_VISIBLE_EXTENSIONS = {".rvt", ".rfa", ".rte", ".psd", ".psb"}
 TEMP_SUFFIXES = {".bak", ".lock", ".lck", ".swp", ".tmp", ".temp", ".autosave"}
 ARCHIVE_STEM_MARKERS = {"archive", "bak", "backup", "old"}
 MAX_CARTOUCHE_BYTES = 512 * 1024
