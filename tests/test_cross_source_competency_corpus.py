@@ -138,7 +138,7 @@ def test_core_excludes_unprovenanced_memory_instead_of_inventing_a_reader() -> N
 
     # The existing router drops results with no exact document AND chunk.
     assert recalled["results"] == []
-    core_contract = _read().lower()
+    core_contract = " ".join(_read().lower().split())
     for boundary in (
         "cad vectors are geometric entities",
         "source_present_not_inspected",
