@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr" data-ui-version="20261101-otel-global-log-1">
+<html lang="fr" data-ui-version="20261101-hermes-card-chat-1">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -7,11 +7,11 @@
     <meta name="description" content="Navigation des dossiers et documents Affaires et Bibliothèque.">
     <title>Pantheon — Workspace</title>
     <base href="/workspace/">
-    <link rel="stylesheet" href="styles.css?v=20261101-otel-global-log-1">
+    <link rel="stylesheet" href="styles.css?v=20261101-menu-search-stack-1">
     <link rel="stylesheet" href="vendor/swiper-14.3.0-bundle.min.css" integrity="sha384-xkKzAc7JSlGq3SLCZHugx/i0gfYZf6kaFzg3v9/wz0HtsAFYPLz7aUvCFTac8KBk">
     <link rel="stylesheet" href="role_trace_graph.css">
     <script src="vendor/sortable-1.15.7.min.js" integrity="sha256-v0JBvHP+9/EcWaKDpp/oBRzdMcbY/1orm6IZ54Mfz3Y=" crossorigin="anonymous" defer></script>
-    <script src="app.js?v=20261101-otel-global-log-1" defer></script>
+    <script src="app.js?v=20261101-hermes-card-chat-1" defer></script>
   </head>
   <body>
     <main class="shell">
@@ -86,8 +86,12 @@
         <div class="search-field workspace-search">
           <label class="visually-hidden" for="search">Rechercher dans les dossiers, documents et métadonnées</label>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m2.1-5.4a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z"/></svg>
-          <input id="search" type="search" placeholder="Rechercher dossiers, documents, métadonnées…" autocomplete="off">
+          <input id="search" type="search" placeholder="Rechercher dossiers, documents, métadonnées…" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="search-suggestions-list" aria-expanded="false">
           <button id="search-clear" class="search-clear" type="button" aria-label="Effacer la recherche" title="Effacer la recherche" hidden>×</button>
+          <div id="search-suggestions" class="search-suggestions" hidden>
+            <div id="search-suggestions-list" role="listbox" aria-label="Correspondances dans le vault actif"></div>
+            <p id="search-suggestions-status" class="search-suggestions-status" role="status" hidden></p>
+          </div>
         </div>
       </header>
 
@@ -233,6 +237,25 @@
             <iframe id="document-reader-pdf" title="Lecteur PDF" hidden></iframe>
             <article id="document-reader-markdown" class="ocr-markdown" aria-live="polite" hidden></article>
           </div>
+        </div>
+      </dialog>
+
+      <dialog id="hermes-chat-dialog" class="metadata-dialog hermes-chat-dialog" aria-labelledby="hermes-chat-title">
+        <div class="metadata-dialog-content hermes-chat-content">
+          <div class="metadata-dialog-head hermes-chat-head">
+            <div class="hermes-chat-heading">
+              <img src="vendor/hermes-agent-light.svg" alt="" aria-hidden="true">
+              <div><h2 id="hermes-chat-title">Discussion Hermes</h2><p id="hermes-chat-context"></p></div>
+            </div>
+            <button type="button" data-close-hermes-chat aria-label="Fermer" title="Fermer">×</button>
+          </div>
+          <ol id="hermes-chat-messages" class="hermes-chat-messages" aria-live="polite"></ol>
+          <p id="hermes-chat-status" class="hermes-chat-status" role="status" aria-live="polite"></p>
+          <form id="hermes-chat-form" class="hermes-chat-form">
+            <label class="visually-hidden" for="hermes-chat-input">Votre message à Hermes</label>
+            <textarea id="hermes-chat-input" rows="3" maxlength="8000" placeholder="Écrire à Hermes à propos de cette fiche…" required></textarea>
+            <div class="hermes-chat-form-actions"><small>Hermes reçoit le vault et le chemin exact de cette fiche.</small><button id="hermes-chat-send" type="submit">Envoyer</button></div>
+          </form>
         </div>
       </dialog>
 
