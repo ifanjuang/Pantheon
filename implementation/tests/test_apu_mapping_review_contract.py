@@ -17,6 +17,19 @@ def test_mapping_review_vocabulary_and_authority_are_bounded() -> None:
         "mark_unmatched",
         "needs_clarification",
         "reject_mapping",
+        "accept_claim_candidate",
+    }
+    # Each candidate kind keeps its own bounded actions.
+    assert apu_mapping_reviews.IDENTITY_ACTIONS == {
+        "select_existing_object",
+        "mark_unmatched",
+        "needs_clarification",
+        "reject_mapping",
+    }
+    assert apu_mapping_reviews.CLAIM_ACTIONS == {
+        "accept_claim_candidate",
+        "needs_clarification",
+        "reject_mapping",
     }
     assert apu_mapping_reviews.AUTHORITY == {
         "confirms_stable_identity": False,

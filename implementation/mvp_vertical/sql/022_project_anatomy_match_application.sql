@@ -37,3 +37,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS agency_apu_source_match_command_once
 CREATE INDEX IF NOT EXISTS agency_apu_source_match_authorization_lookup
     ON agency_apu_events (authorization_ref)
     WHERE event_type = 'source_match_applied' AND authorization_ref IS NOT NULL;
+
+-- A claim command is applied at most once, like a match command.
+CREATE UNIQUE INDEX IF NOT EXISTS agency_apu_claim_write_command_once
+    ON agency_apu_events (command_ref)
+    WHERE event_type IN ('claim_added', 'claim_superseded') AND command_ref IS NOT NULL;

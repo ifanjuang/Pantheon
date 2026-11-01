@@ -7,9 +7,11 @@ CREATE TABLE IF NOT EXISTS apu_mapping_review_events (
     result_ref TEXT NOT NULL REFERENCES execution_result_items(result_id) ON DELETE RESTRICT,
     mapping_ref TEXT NOT NULL,
     action TEXT NOT NULL CHECK (action IN (
-        'select_existing_object', 'mark_unmatched', 'needs_clarification', 'reject_mapping'
+        'select_existing_object', 'mark_unmatched', 'needs_clarification', 'reject_mapping',
+        'accept_claim_candidate'
     )),
     selected_stable_object_ref TEXT,
+    superseded_claim_ref TEXT,
     clarification_question TEXT,
     note TEXT,
     reviewer TEXT NOT NULL,
@@ -23,6 +25,9 @@ CREATE TABLE IF NOT EXISTS apu_mapping_review_events (
     CHECK (
         (action = 'needs_clarification' AND clarification_question IS NOT NULL)
         OR action <> 'needs_clarification'
+    ),
+    CONSTRAINT apu_mapping_review_superseded_claim_scope CHECK (
+        superseded_claim_ref IS NULL OR action = 'accept_claim_candidate'
     )
 );
 
@@ -55,6 +60,44 @@ BEGIN
     ) THEN
         ALTER TABLE apu_mapping_review_events
             ALTER COLUMN occurred_at SET DEFAULT clock_timestamp();
+    END IF;
+END;
+$$;
+
+-- Claim-candidate acceptance joined the review vocabulary after the first
+-- installations. Each guard keys on what its block adds.
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+         WHERE table_name = 'apu_mapping_review_events'
+           AND column_name = 'superseded_claim_ref'
+    ) THEN
+        ALTER TABLE apu_mapping_review_events ADD COLUMN superseded_claim_ref TEXT;
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+         WHERE conname = 'apu_mapping_review_events_action_check'
+           AND conrelid = 'apu_mapping_review_events'::regclass
+           AND pg_get_constraintdef(oid) LIKE '%accept_claim_candidate%'
+    ) THEN
+        ALTER TABLE apu_mapping_review_events
+            DROP CONSTRAINT IF EXISTS apu_mapping_review_events_action_check;
+        ALTER TABLE apu_mapping_review_events
+            ADD CONSTRAINT apu_mapping_review_events_action_check CHECK (action IN (
+                'select_existing_object', 'mark_unmatched', 'needs_clarification',
+                'reject_mapping', 'accept_claim_candidate'
+            ));
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+         WHERE conname = 'apu_mapping_review_superseded_claim_scope'
+           AND conrelid = 'apu_mapping_review_events'::regclass
+    ) THEN
+        ALTER TABLE apu_mapping_review_events
+            ADD CONSTRAINT apu_mapping_review_superseded_claim_scope CHECK (
+                superseded_claim_ref IS NULL OR action = 'accept_claim_candidate'
+            );
     END IF;
 END;
 $$;

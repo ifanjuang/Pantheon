@@ -5,8 +5,11 @@ description: >-
   reviewed candidate may be produced by the legacy APU adapter mapping result or
   be one exact candidate identity.represents relation carried by a canonical
   Observation Bundle. The event can select one existing stable-object candidate,
-  mark the mapping unmatched, request clarification or reject the mapping. It
-  prepares no APU write and confirms no canonical identity.
+  mark the mapping unmatched, request clarification or reject the mapping. For a
+  non-identity attribute or relation claim candidate carried by an Observation
+  Bundle, accept_claim_candidate accepts it for a later bounded claim write and
+  may name the one existing claim it would replace. It prepares no APU write and
+  confirms no canonical identity.
 type: object
 additionalProperties: false
 required:
@@ -45,6 +48,13 @@ properties:
       - mark_unmatched
       - needs_clarification
       - reject_mapping
+      - accept_claim_candidate
+  superseded_claim_ref:
+    description: >-
+      Only with accept_claim_candidate: the existing claim the accepted candidate
+      would replace. Absent means the candidate is added beside existing claims.
+    type: string
+    minLength: 1
   selected_stable_object_ref:
     type: string
     minLength: 1
@@ -91,11 +101,19 @@ allOf:
   - if:
       properties:
         action:
-          enum: [mark_unmatched, needs_clarification, reject_mapping]
+          enum: [mark_unmatched, needs_clarification, reject_mapping, accept_claim_candidate]
       required: [action]
     then:
       not:
         required: [selected_stable_object_ref]
+  - if:
+      not:
+        properties:
+          action: { const: accept_claim_candidate }
+        required: [action]
+    then:
+      not:
+        required: [superseded_claim_ref]
 governance_refs:
   default:
     - docs/domain-packs/architecture/PROJECT_UNDERSTANDING_ADAPTER_CONTRACT.md

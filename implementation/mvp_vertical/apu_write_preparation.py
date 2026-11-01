@@ -18,7 +18,7 @@ from typing import Any
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-from . import apu_mapping_reviews, apu_owner, execution_results
+from . import apu_mapping_reviews, apu_owner, apu_owner_claims, execution_results
 
 
 MIGRATION = Path(__file__).resolve().parent / "sql" / "012_apu_write_preparation.sql"
@@ -354,6 +354,9 @@ def _validate_command_payload(command: dict[str, Any]) -> None:
         apu_owner._validate("write_command_candidate", command)
     except apu_owner.ApuOwnerError as exc:
         raise ApuWritePreparationError(str(exc)) from exc
+    if command.get("operation") in apu_owner_claims.CLAIM_OPERATIONS:
+        _validate_claim_command_payload(command)
+        return
     representation = command["source_representation"]
     relation = command["identity_relation_claim"]
     representation_id = _required(
@@ -388,6 +391,166 @@ def _validate_command_payload(command: dict[str, Any]) -> None:
         )
 
 
+def _validate_claim_command_payload(command: dict[str, Any]) -> None:
+    try:
+        apu_owner_claims.validate_claim_payload(command.get("claim_family"), command.get("claim"))
+    except apu_owner.ApuOwnerError as exc:
+        raise ApuWritePreparationError(str(exc)) from exc
+    if (command["operation"] == "supersede_claim") != bool(command.get("superseded_claim_ref")):
+        raise ApuWritePreparationError(
+            "only supersede_claim names a replaced claim, and it must"
+        )
+
+
+def _latest_claim_review(
+    conn,
+    *,
+    execution_result_id: str,
+    result_ref: str,
+    mapping_ref: str,
+) -> dict[str, Any]:
+    reviews = apu_mapping_reviews.list_mapping_reviews(
+        conn,
+        execution_result_id=execution_result_id,
+        result_ref=result_ref,
+        mapping_ref=mapping_ref,
+    )
+    if not reviews or reviews[-1].get("action") != "accept_claim_candidate":
+        raise ApuWritePreparationError("latest review must accept_claim_candidate")
+    return reviews[-1]
+
+
+def _owner_error(exc: Exception) -> Exception:
+    if isinstance(exc, apu_owner.ApuOwnerNotFound):
+        return ApuWritePreparationNotFound(str(exc))
+    if isinstance(exc, apu_owner.ApuOwnerConflict):
+        return ApuWriteApplicationConflict(str(exc))
+    return ApuWritePreparationError(str(exc))
+
+
+def _prepare_claim_write_command(
+    conn,
+    *,
+    execution_result_id: str,
+    result_ref: str,
+    mapping_ref: str,
+    candidate: dict[str, Any],
+    actor: str,
+    key: str,
+) -> dict[str, Any]:
+    """Prepare add_claim or supersede_claim from one accepted claim candidate."""
+    project_ref = _required(candidate.get("project_ref"), "observation bundle project_ref")
+    claim_family = candidate["claim_family"]
+    claim = dict(candidate["claim_candidate"])
+    review = _latest_claim_review(
+        conn,
+        execution_result_id=execution_result_id,
+        result_ref=result_ref,
+        mapping_ref=mapping_ref,
+    )
+    superseded = review.get("superseded_claim_ref") or None
+    try:
+        owner = apu_owner.get_project_anatomy(conn, project_id=project_ref)
+        apu_owner_claims.check_claim_write(
+            conn,
+            project_id=project_ref,
+            claim_family=claim_family,
+            claim=claim,
+            superseded_claim_ref=superseded,
+        )
+    except apu_owner.ApuOwnerError as exc:
+        raise _owner_error(exc) from exc
+    operation = "supersede_claim" if superseded else "add_claim"
+    command_id = _stable_id(
+        "apu-write-command",
+        execution_result_id,
+        result_ref,
+        mapping_ref,
+        review["review_id"],
+    )
+    rationale = (
+        str(review.get("note") or "").strip()
+        or str(claim.get("notes") or "").strip()
+        or "Candidat de claim accepté en revue."
+    )
+    limitations = [
+        "Une autorisation humaine distincte est requise avant toute application.",
+        "L'application doit refuser une révision APU devenue obsolète.",
+        "Le claim appliqué reste candidat et n'est pas validé professionnellement.",
+    ]
+    if superseded:
+        limitations.append(
+            "Le claim remplacé est conservé et lié au nouveau ; il n'est pas modifié."
+        )
+    command_payload = {
+        "command_id": command_id,
+        "operation": operation,
+        "project_ref": project_ref,
+        "source_execution_result_ref": execution_result_id,
+        "source_mapping_result_ref": result_ref,
+        "source_mapping_ref": mapping_ref,
+        "source_review_ref": review["review_id"],
+        "certainty": claim.get("certainty"),
+        "expected_owner_revision": owner["owner_revision"],
+        "claim_family": claim_family,
+        "claim": claim,
+        "superseded_claim_ref": superseded,
+        "rationale": rationale,
+        "prepared_by": actor,
+        "limitations": limitations,
+        "authority": dict(COMMAND_AUTHORITY),
+    }
+    command_payload = {k: v for k, v in command_payload.items() if v is not None}
+    digest = _digest(command_payload)
+    command_payload["payload_digest"] = digest
+    _validate_command_payload(command_payload)
+    claim_id = apu_owner_claims.claim_id_of(claim)
+
+    with conn.transaction():
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                "SELECT * FROM apu_write_command_candidates WHERE idempotency_key = %s",
+                (key,),
+            )
+            replay = cur.fetchone()
+            if replay is not None:
+                if replay["payload_digest"] != digest:
+                    raise execution_results.ExecutionResultConflict(
+                        "write-command idempotency key belongs to different content"
+                    )
+                return _jsonable(dict(replay)) | {
+                    "command": _jsonable(replay["command_payload"]),
+                    "authority": dict(COMMAND_AUTHORITY),
+                }
+        conn.execute(
+            """INSERT INTO apu_write_command_candidates (
+                command_id, execution_result_id, result_ref, mapping_ref, source_review_ref,
+                operation, project_ref, target_stable_object_ref, source_candidate_ref,
+                source_artifact_ref, certainty, rationale, command_payload, payload_digest,
+                expected_owner_revision, expected_object_revision,
+                prepared_by, idempotency_key
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, NULL, %s, NULL, %s, %s, %s, %s, %s, NULL, %s, %s)""",
+            (
+                command_id,
+                execution_result_id,
+                result_ref,
+                mapping_ref,
+                review["review_id"],
+                operation,
+                project_ref,
+                claim_id,
+                command_payload.get("certainty"),
+                rationale,
+                Jsonb(command_payload),
+                digest,
+                owner["owner_revision"],
+                actor,
+                key,
+            ),
+        )
+    return get_write_command(conn, command_id)
+
+
 def prepare_write_command(
     conn,
     *,
@@ -400,6 +563,17 @@ def prepare_write_command(
     key = _required(idempotency_key, "idempotency_key")
     actor = _required(prepared_by, "prepared_by")
     execution = execution_results.get_execution_result(conn, execution_result_id)
+    claim = apu_mapping_reviews.claim_candidate(execution, result_ref, mapping_ref)
+    if claim is not None:
+        return _prepare_claim_write_command(
+            conn,
+            execution_result_id=execution_result_id,
+            result_ref=result_ref,
+            mapping_ref=mapping_ref,
+            candidate=claim,
+            actor=actor,
+            key=key,
+        )
     payload, mapping, mapping_kind = _mapping(execution, result_ref, mapping_ref)
     project_ref = _required(payload.get("project_ref"), "mapping.project_ref")
     review = _latest_selected_review(
@@ -721,6 +895,8 @@ def apply_authorized_write_command(
         command_row = get_write_command(conn, command_id)
         command = dict(command_row["command"])
         _validate_command_payload(command)
+        if command.get("operation") in apu_owner_claims.CLAIM_OPERATIONS:
+            return _apply_claim_command(conn, command_row, command, actor=actor, key=key)
         representation = command["source_representation"]
         relation = command["identity_relation_claim"]
         source_candidate_ref = representation["representation_id"]
@@ -808,3 +984,69 @@ def apply_authorized_write_command(
             raise ApuWriteApplicationConflict(str(exc)) from exc
         except apu_owner.ApuOwnerError as exc:
             raise ApuWritePreparationError(str(exc)) from exc
+
+
+def _apply_claim_command(
+    conn,
+    command_row: dict[str, Any],
+    command: dict[str, Any],
+    *,
+    actor: str,
+    key: str,
+) -> dict[str, Any]:
+    """Re-check the reviewed claim chain under the command lock, then apply.
+
+    Runs inside the transaction of `apply_authorized_write_command`, which
+    already holds the command-row lock that `append_authorization` also takes.
+    """
+    claim = command["claim"]
+    claim_id = apu_owner_claims.claim_id_of(claim)
+    if command_row.get("operation") != command["operation"] or command_row.get(
+        "source_candidate_ref"
+    ) != claim_id:
+        raise ApuWriteApplicationConflict(
+            "stored command indexes differ from its exact embedded effect"
+        )
+    if command_row.get("expected_owner_revision") != command["expected_owner_revision"]:
+        raise ApuWriteApplicationConflict(
+            "stored APU write command revisions differ from its immutable payload"
+        )
+    execution = execution_results.get_execution_result(
+        conn, command["source_execution_result_ref"]
+    )
+    candidate = apu_mapping_reviews.claim_candidate(
+        execution, command["source_mapping_result_ref"], command["source_mapping_ref"]
+    )
+    if candidate is None:
+        raise ApuWriteApplicationConflict("the reviewed claim candidate no longer exists")
+    if candidate.get("project_ref") != command["project_ref"]:
+        raise ApuWriteApplicationConflict(
+            "source claim candidate Project differs from the authorized command"
+        )
+    if candidate["claim_family"] != command["claim_family"] or candidate["claim_candidate"] != claim:
+        raise ApuWriteApplicationConflict(
+            "Observation Bundle claim candidate changed after command preparation"
+        )
+    review = _latest_claim_review(
+        conn,
+        execution_result_id=command["source_execution_result_ref"],
+        result_ref=command["source_mapping_result_ref"],
+        mapping_ref=command["source_mapping_ref"],
+    )
+    if review["review_id"] != command["source_review_ref"]:
+        raise ApuWriteApplicationConflict("a newer review supersedes the authorized command")
+    if (review.get("superseded_claim_ref") or None) != command.get("superseded_claim_ref"):
+        raise ApuWriteApplicationConflict(
+            "latest review names another replaced claim"
+        )
+    authorization = _latest_application_authorization(conn, command)
+    try:
+        return apu_owner_claims.apply_claim_write(
+            conn,
+            command=command,
+            authorization_id=authorization["authorization_id"],
+            actor=actor,
+            idempotency_key=key,
+        )
+    except apu_owner.ApuOwnerError as exc:
+        raise _owner_error(exc) from exc

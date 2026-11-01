@@ -26,7 +26,12 @@ ACTIONS = {
     "mark_unmatched",
     "needs_clarification",
     "reject_mapping",
+    "accept_claim_candidate",
 }
+# Actions that make sense for each candidate kind. An identity candidate is
+# matched to a stable object; a claim candidate is accepted for a claim write.
+IDENTITY_ACTIONS = {"select_existing_object", "mark_unmatched", "needs_clarification", "reject_mapping"}
+CLAIM_ACTIONS = {"accept_claim_candidate", "needs_clarification", "reject_mapping"}
 AUTHORITY = {
     "confirms_stable_identity": False,
     "writes_apu": False,
@@ -102,6 +107,10 @@ def _mapping_candidate(execution: dict[str, Any], result_ref: str, mapping_ref: 
         ),
         None,
     )
+    if relation is None or relation.get("relation_type") != "identity.represents":
+        claim = claim_candidate(execution, result_ref, mapping_ref)
+        if claim is not None:
+            return claim
     if relation is None:
         raise ApuMappingReviewNotFound("unknown Observation Bundle identity candidate")
     if relation.get("relation_type") != "identity.represents":
@@ -130,6 +139,46 @@ def _mapping_candidate(execution: dict[str, Any], result_ref: str, mapping_ref: 
     }
 
 
+def claim_candidate(
+    execution: dict[str, Any], result_ref: str, candidate_ref: str
+) -> dict[str, Any] | None:
+    """Return one non-identity claim candidate of an Observation Bundle, or None.
+
+    The candidate is returned exactly as the bundle carries it, so a later write
+    can be compared with it field for field.
+    """
+    result = next(
+        (item for item in execution.get("results", []) if item.get("result_id") == result_ref),
+        None,
+    )
+    if result is None or result.get("result_kind") != "observation_bundle":
+        return None
+    payload = result.get("payload")
+    if not isinstance(payload, dict):
+        return None
+    for family, field, id_field in (
+        ("attribute", "attribute_claim_candidates", "attribute_claim_id"),
+        ("relation", "relation_claim_candidates", "relation_claim_id"),
+    ):
+        for item in payload.get(field) or []:
+            if not isinstance(item, dict) or item.get(id_field) != candidate_ref:
+                continue
+            if family == "relation" and str(item.get("relation_type") or "").startswith("identity."):
+                return None
+            if item.get("proof_status") != "candidate":
+                raise ApuMappingReviewError("Observation Bundle claim candidate must remain candidate")
+            return {
+                "mapping_id": candidate_ref,
+                "candidate_kind": "claim",
+                "claim_family": family,
+                "claim_candidate": item,
+                "project_ref": payload.get("project_ref"),
+                "rationale": item.get("notes") or "Observation Bundle claim candidate.",
+                "match_candidates": [],
+            }
+    return None
+
+
 def append_mapping_review(
     conn,
     *,
@@ -142,6 +191,7 @@ def append_mapping_review(
     note: str | None,
     reviewer: str,
     idempotency_key: str,
+    superseded_claim_ref: str | None = None,
 ) -> dict[str, Any]:
     if action not in ACTIONS:
         raise ApuMappingReviewError("unsupported mapping review action")
@@ -153,6 +203,16 @@ def append_mapping_review(
     selected = (selected_stable_object_ref or "").strip() or None
     question = (clarification_question or "").strip() or None
     normalized_note = (note or "").strip() or None
+    superseded = (superseded_claim_ref or "").strip() or None
+    is_claim = mapping.get("candidate_kind") == "claim"
+    allowed = CLAIM_ACTIONS if is_claim else IDENTITY_ACTIONS
+    if action not in allowed:
+        kind = "claim" if is_claim else "identity"
+        raise ApuMappingReviewError(f"{action} does not apply to a {kind} candidate")
+    if superseded is not None and action != "accept_claim_candidate":
+        raise ApuMappingReviewError("superseded_claim_ref is allowed only for claim acceptance")
+    if superseded is not None and superseded == mapping.get("mapping_id"):
+        raise ApuMappingReviewError("a claim candidate cannot replace itself")
     if action == "select_existing_object":
         if selected is None:
             raise ApuMappingReviewError("selected_stable_object_ref is required")
@@ -182,6 +242,10 @@ def append_mapping_review(
         "note": normalized_note,
         "reviewer": reviewer,
     }
+    # Added only when set, so the digest of every earlier review is unchanged
+    # and replaying its idempotency key still matches.
+    if superseded is not None:
+        payload["superseded_claim_ref"] = superseded
     payload_digest = _digest(payload)
     with conn.transaction():
         with conn.cursor(row_factory=dict_row) as cur:
@@ -202,8 +266,8 @@ def append_mapping_review(
             INSERT INTO apu_mapping_review_events (
                 review_id, execution_result_id, result_ref, mapping_ref, action,
                 selected_stable_object_ref, clarification_question, note,
-                reviewer, idempotency_key, payload_digest
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                reviewer, idempotency_key, payload_digest, superseded_claim_ref
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 review_id,
@@ -217,6 +281,7 @@ def append_mapping_review(
                 reviewer,
                 key,
                 payload_digest,
+                superseded,
             ),
         )
     return get_mapping_review(conn, review_id)

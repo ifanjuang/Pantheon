@@ -24,6 +24,9 @@ def _validator() -> jsonschema.Draft202012Validator:
     relation_claim = yaml.safe_load(
         (APU / "relation_claim.schema.yaml").read_text(encoding="utf-8")
     )
+    attribute_claim = yaml.safe_load(
+        (APU / "attribute_claim.schema.yaml").read_text(encoding="utf-8")
+    )
     registry = Registry().with_resources(
         [
             (
@@ -39,6 +42,10 @@ def _validator() -> jsonschema.Draft202012Validator:
             (
                 "relation_claim.schema.yaml",
                 Resource.from_contents(relation_claim, default_specification=DRAFT202012),
+            ),
+            (
+                "attribute_claim.schema.yaml",
+                Resource.from_contents(attribute_claim, default_specification=DRAFT202012),
             ),
         ]
     )
@@ -93,7 +100,11 @@ def test_write_command_refuses_non_positive_target_revisions() -> None:
 
 def test_write_command_remains_candidate_only() -> None:
     schema = yaml.safe_load((APU / "write_command_candidate.schema.yaml").read_text(encoding="utf-8"))
-    assert schema["properties"]["operation"]["const"] == "add_match_to_existing_object"
+    assert schema["properties"]["operation"]["enum"] == [
+        "add_match_to_existing_object",
+        "add_claim",
+        "supersede_claim",
+    ]
     assert schema["x-boundary"]["runtime_execution"] is False
     assert schema["x-boundary"]["automatic_apu_write"] is False
     assert schema["x-boundary"]["automatic_canonization"] is False
@@ -135,3 +146,66 @@ def test_effect_remains_candidate_identity_alignment() -> None:
         candidate[owner][field] = value
         errors = list(validator.iter_errors(candidate))
         assert errors, f"write command unexpectedly accepts {owner}.{field}={value}"
+
+
+def _claim_command(operation: str = "add_claim") -> dict:
+    example = _example()
+    for field in ("source_representation", "identity_relation_claim", "expected_object_revision", "match_axis"):
+        example.pop(field, None)
+    example["operation"] = operation
+    example["claim_family"] = "attribute"
+    example["claim"] = {
+        "attribute_claim_id": "claim.door-017.width.v2",
+        "subject_ref": {"entity_type": "stable_object", "entity_id": "OBJ-DOOR-017"},
+        "attribute_key": "geometry.width",
+        "value": {"value_type": "number", "value": 0.93},
+        "assertion_mode": "observed",
+        "source_authority": "model_interpretation_candidate",
+        "proof_status": "candidate",
+    }
+    if operation == "supersede_claim":
+        example["superseded_claim_ref"] = "claim.door-017.width.v1"
+    return example
+
+
+def test_claim_commands_validate_with_owner_freshness_only() -> None:
+    validator = _validator()
+    for operation in ("add_claim", "supersede_claim"):
+        validator.validate(_claim_command(operation))
+    candidate = _claim_command()
+    candidate.pop("expected_owner_revision")
+    assert list(validator.iter_errors(candidate))
+
+
+def test_claim_command_carries_one_candidate_claim_and_no_match_effect() -> None:
+    validator = _validator()
+    for mutate in (
+        lambda c: c.pop("claim"),
+        lambda c: c.pop("claim_family"),
+        lambda c: c["claim"].__setitem__("proof_status", "accepted_as_support"),
+        lambda c: c.__setitem__("expected_object_revision", 1),
+        lambda c: c.__setitem__("source_representation", _example()["source_representation"]),
+    ):
+        candidate = _claim_command()
+        mutate(candidate)
+        assert list(validator.iter_errors(candidate)), "claim command shape was not enforced"
+
+
+def test_only_supersede_claim_names_a_replaced_claim() -> None:
+    validator = _validator()
+    replacing = _claim_command("supersede_claim")
+    replacing.pop("superseded_claim_ref")
+    assert list(validator.iter_errors(replacing))
+    adding = _claim_command("add_claim")
+    adding["superseded_claim_ref"] = "claim.door-017.width.v1"
+    assert list(validator.iter_errors(adding))
+    match = _example()
+    match["superseded_claim_ref"] = "claim.door-017.width.v1"
+    assert list(validator.iter_errors(match))
+
+
+def test_identity_alignment_is_not_a_claim_write() -> None:
+    candidate = _claim_command()
+    candidate["claim_family"] = "relation"
+    candidate["claim"] = dict(_example()["identity_relation_claim"])
+    assert list(_validator().iter_errors(candidate))

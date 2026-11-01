@@ -695,12 +695,28 @@ state and a proposed attribution rule; it changes no schema, code or contract.
 | Subject | the Project (no object subject) | a `stable_object` or a `source_representation` |
 | Vocabulary | closed, declared per field in `implementation/mvp_vertical/agency_schema/project.json` (12 fiche fields today: budget, market amount, site/existing/project surface, footprint, parcels, PLU zone, permit number and date, reception date, ERP type) | open, namespaced predicates (§5) |
 | Value | one scalar | structured value with unit, scheme and basis |
-| Time | `observed_at`, explicit `effective_at`, implementation recording time; `as-of` readers exist | observation time lives on the `source_representation`; `validity.valid_from` / `valid_until` and `supersedes_claim_ref` are stored but no executable reader interprets them; no `as-of` reader |
-| Writes after initial import | yes, append-only with same-project / same-type supersession | none: the owner accepts one reviewed dossier per Project, then only identity matches |
+| Time | `observed_at`, explicit `effective_at`, implementation recording time; `as-of` readers exist | observation time lives on the `source_representation`; `validity.valid_from` / `valid_until` are stored but no executable reader interprets them; a reviewed replacement is read as "no longer in force" (see below); no `as-of` reader |
+| Writes after initial import | yes, append-only with same-project / same-type supersession | identity matches, and candidate claim additions and replacements through the reviewed write chain (see below); no new object, no retirement |
 | Contradictions | scalar conflict candidates | preserved, not detected |
 
 A `ProjectClaim` may cite an APU object through `backing_ref` (`apu_object`).
 That identifies support; it is not an APU claim.
+
+Progressive claim writes (candidate implementation in `implementation/`, not
+deployed): after the one reviewed dossier import, an attribute or relation
+claim candidate carried by an Observation Bundle can enter the APU through the
+existing chain — review `accept_claim_candidate` → write command `add_claim` or
+`supersede_claim` → separate human authorization → application, with the owner
+revision checked at application. A replacement must keep the subject and the
+attribute key (or relation type); the replaced claim is kept unchanged and
+linked, and a claim is replaced at most once. Applied claims stay `candidate`.
+Identity relations (`identity.*`) are not claim writes: alignment stays with
+the source match and the identity lifecycle of §16 is not opened by this path.
+
+```text
+claim replacement != claim edit
+applied claim     != validated claim
+```
 
 ### 25.2 Proposed attribution rule
 

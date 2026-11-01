@@ -80,4 +80,15 @@ def test_write_command_has_one_exact_effect_shape() -> None:
         (SCHEMAS / "write_command_candidate.schema.yaml").read_text(encoding="utf-8")
     )
     assert "target_model_version" not in schema["properties"]
-    assert {"source_representation", "identity_relation_claim"} <= set(schema["required"])
+    # Each operation carries one exact effect: the match carries its source
+    # representation and identity relation, a claim write its single claim.
+    shapes = {
+        rule["if"]["properties"]["operation"].get("const")
+        or tuple(rule["if"]["properties"]["operation"]["enum"]): set(rule["then"].get("required", []))
+        for rule in schema["allOf"]
+    }
+    assert {"source_representation", "identity_relation_claim"} <= shapes[
+        "add_match_to_existing_object"
+    ]
+    assert {"claim_family", "claim"} <= shapes[("add_claim", "supersede_claim")]
+    assert "superseded_claim_ref" in shapes["supersede_claim"]
