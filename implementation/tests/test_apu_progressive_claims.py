@@ -18,6 +18,7 @@ from mvp_vertical import (
     apu_mapping_reviews,
     apu_owner,
     apu_owner_claims,
+    apu_object_read,
     apu_write_preparation,
     execution_results,
 )
@@ -53,6 +54,7 @@ def _id(prefix: str) -> str:
 DOOR = "OBJ-DOOR-017"
 WALL = "OBJ-WALL-004"
 REP = "rep.drawing.door-017.t0"
+REP_B = "rep.drawing.door-017.t1"
 
 
 def _project(conn) -> str:
@@ -75,7 +77,7 @@ def _width(claim_id: str, value: float, **extra) -> dict:
         "assertion_mode": "observed",
         "source_authority": "project_working_document",
         "proof_status": "candidate",
-        "source_representation_refs": [REP],
+        "source_representation_refs": [REP_B],
         **extra,
     }
 
@@ -113,8 +115,18 @@ def _import(conn, project_id: str) -> None:
         conn,
         project_id=project_id,
         stable_objects=objects,
-        source_representations=[representation],
-        attribute_claims=[_width("claim.door.width.t0", 0.90)],
+        source_representations=[
+            representation,
+            dict(representation) | {
+                "representation_id": REP_B,
+                "source_version_ref": "drawing:a101:index-b",
+                "freshness_token": "sha256:a101-b",
+                "content_digest": "sha256:a101-p17-b",
+            },
+        ],
+        attribute_claims=[
+            _width("claim.door.width.t0", 0.90, source_representation_refs=[REP])
+        ],
         relation_claims=[],
         review_ref="review:claims:t0",
         actor="human:architect",
@@ -269,7 +281,7 @@ def test_supersede_and_add_claims_through_the_reviewed_chain(conn) -> None:
         "assertion_mode": "observed",
         "source_authority": "project_working_document",
         "proof_status": "candidate",
-        "source_representation_refs": [REP],
+        "source_representation_refs": [REP_B],
     }
     execution_id, result_id = _bundle(
         conn,
