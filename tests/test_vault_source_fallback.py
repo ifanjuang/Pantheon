@@ -231,7 +231,7 @@ def test_http_guard_rejects_requests_without_the_service_token() -> None:
     asyncio.run(exercise())
 
 
-def test_mcp_registers_only_the_five_read_only_tools() -> None:
+def test_mcp_registers_only_the_six_read_only_tools() -> None:
     pytest.importorskip("mcp")
     import vault_mcp
 
@@ -239,7 +239,7 @@ def test_mcp_registers_only_the_five_read_only_tools() -> None:
     assert {tool.name for tool in tools} == {
         "find_vault_projects", "list_vault_project_sources",
         "search_vault_markdown", "read_vault_markdown_lines", "read_vault_pdf_figures",
-        "read_vault_pdf_pages",
+        "read_vault_pdf_pages", "read_vault_ocr_markdown",
     }
     assert all(tool.annotations.read_only_hint is True for tool in tools)
     assert all(tool.annotations.destructive_hint is False for tool in tools)
