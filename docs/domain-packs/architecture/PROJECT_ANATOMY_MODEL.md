@@ -713,6 +713,23 @@ linked, and a claim is replaced at most once. Applied claims stay `candidate`.
 Identity relations (`identity.*`) are not claim writes: alignment stays with
 the source match and the identity lifecycle of §16 is not opened by this path.
 
+The progressive writer also checks that every referenced source representation
+has already been admitted for this Project and that its artifact and declared
+source version occur in the exact reviewed Observation Bundle basis. It checks
+declared source-version validity where supplied, and refuses a bundle carrying
+a different payload for an already admitted representation. A later revision's
+claim therefore cannot silently cite the older drawing representation.
+`freshness_token` and source artifact digests remain distinct contract fields
+and are not compared as if their meaning were interchangeable. Additional
+source representations must use the existing reviewed source-match path first.
+
+The global `get_project_anatomy` and bounded `get_stable_object_context`
+projections both expose non-superseded claims and the relevant
+`superseded_claims` event links. "Non-superseded" means **not explicitly
+replaced in the APU register**, not professionally approved, applicable as of
+a date or proven physically executed. Historical claim payloads remain stored;
+neither projection is an `as-of` reader.
+
 ```text
 claim replacement != claim edit
 applied claim     != validated claim
@@ -746,9 +763,9 @@ APU claim != order, decision or reservation
 
 ### 25.3 Documented, not implemented (to verify before relying on this section)
 
-- Adding claims, new objects or superseding claims to an initialized Project
-  (the owner is import-once; `object_retired` exists in the event vocabulary but
-  has no writer).
+- Creating new stable objects after the first reviewed dossier, or retiring
+  existing objects (`object_retired` still has no writer). Adding or replacing
+  claims has a bounded candidate-only path; it is **not** a new-object API.
 - An `as-of` reader for APU claims.
 - `ESQ` in the shared `phase_code` vocabulary, and `source_kind` values for
   written documents (specification, bill of quantities, minutes, email) and DWG.
