@@ -1,0 +1,692 @@
+{
+  "schema_version": "1",
+  "registry_id": "architecture_relation_profile",
+  "registry_kind": "vocabulary",
+  "version": "1.0.0",
+  "status": "candidate",
+  "owner": {
+    "id": "pantheon_project_anatomy",
+    "repository": "Pantheon-Next"
+  },
+  "authority_document": "docs/domain-packs/architecture/PROJECT_ANATOMY_MODEL.md",
+  "governance_refs": [
+    "docs/domain-packs/architecture/PROJECT_ANATOMY_MODEL.md",
+    "registries/README.md",
+    "schemas/architecture-project-understanding/relation_profile.schema.yaml",
+    "schemas/architecture-project-understanding/relation_claim.schema.yaml"
+  ],
+  "description": "Relation profile architecture@1: the controlled identifiers admitted for Project Anatomy relation_claim.relation_type and requirement constraint.relation_type. A declared relation type is governable, not true, admitted, Evidence or approved. Time, phase, variant and building state are dimensions of the claim (validity, qualifier.ouvrage_state), never encoded in relation names.",
+  "profile": {
+    "id": "architecture@1",
+    "governs": "Project Anatomy relation_claim.relation_type and requirement.constraint.relation_type",
+    "excludes": [
+      "Information-entity relations governed by schemas/entity_relation.schema.yaml",
+      "Source-intake container relations (contains between intake sources), not governed by this profile",
+      "Governance-graph relations owned by docs/governance/PANTHEON_GRAPH_MODEL.md",
+      "Epistemic relations (contradicts, derived_from, depends_on a decision), carried by Observation Bundles, derivation_refs, WorkIssues and Decision Requests"
+    ]
+  },
+  "naming_rules": {
+    "id_pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$",
+    "forbidden_name_prefixes": [
+      "was_",
+      "former_",
+      "previous_",
+      "existing_",
+      "projected_",
+      "future_",
+      "not_",
+      "no_",
+      "non_"
+    ]
+  },
+  "families": [
+    {
+      "id": "identity",
+      "description": "Source-to-project alignment and identity lifecycle (replacement, split, merge, supersession)."
+    },
+    {
+      "id": "spatial",
+      "description": "Topological relations between spaces, zones and the elements located in them."
+    },
+    {
+      "id": "architecture",
+      "description": "Architectural relations between elements and spaces: hosting, openings, separation, passage."
+    },
+    {
+      "id": "assembly",
+      "description": "Composition of an object from parts or layers."
+    },
+    {
+      "id": "model",
+      "description": "Typing of an occurrence by a type definition."
+    },
+    {
+      "id": "project",
+      "description": "Project grouping of objects (zones, sets, groups)."
+    },
+    {
+      "id": "construction",
+      "description": "Constructive junctions between elements, including deliberate absence of connection."
+    },
+    {
+      "id": "structure",
+      "description": "Physical load paths between elements. Not the structural analysis model."
+    },
+    {
+      "id": "site",
+      "description": "Relations between the project and its surroundings: neighbouring buildings, plots, public domain."
+    }
+  ],
+  "qualifier_vocabularies": [
+    {
+      "key": "ouvrage_state",
+      "description": "Physical state of the building to which the relation applies. Replacing a claim is only meaningful between claims on the same state; projected versus executed is compared, never superseded.",
+      "values": [
+        "existing",
+        "to_keep",
+        "to_demolish",
+        "temporary",
+        "projected",
+        "executed"
+      ],
+      "allowed_families": [
+        "spatial",
+        "architecture",
+        "assembly",
+        "construction",
+        "structure",
+        "site"
+      ]
+    },
+    {
+      "key": "containment",
+      "description": "Kind of containment, aligned with IFC: decomposition of spatial structure, primary containment of an element (at most one), or additional reference to further spatial structures.",
+      "values": [
+        "decomposition",
+        "primary",
+        "referenced"
+      ]
+    },
+    {
+      "key": "junction_type",
+      "description": "Junction typology between two elements. corner, tee and cross have indicative IFC path-connection readings; butt and mitre have no IFC enumeration value.",
+      "values": [
+        "corner",
+        "tee",
+        "cross",
+        "butt",
+        "mitre",
+        "unspecified"
+      ]
+    },
+    {
+      "key": "coverage",
+      "description": "Whether a source representation covers the whole stable object or only part of it.",
+      "values": [
+        "full",
+        "partial"
+      ]
+    },
+    {
+      "key": "legal_basis",
+      "description": "Basis of a party-wall statement: legal presumption, established by title, or unknown.",
+      "values": [
+        "presumed",
+        "title",
+        "unknown"
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "id": "identity.represents",
+      "status": "active",
+      "family": "identity",
+      "definition": "The source representation (subject) is an occurrence of the stable project object (object).",
+      "subject_entity_types": ["source_representation"],
+      "object_entity_types": ["stable_object"],
+      "symmetric": false,
+      "inverse": null,
+      "cardinality": "many_to_many",
+      "derivable": false,
+      "allowed_qualifiers": ["coverage"],
+      "ifc": [
+        {
+          "term": "IfcRoot.GlobalId",
+          "fidelity": "none",
+          "note": "The GlobalId stays a source-native identifier on the source representation; it never becomes Pantheon identity."
+        }
+      ],
+      "notes": "Several models (architecture, structure, MEP, survey, as-built) yield several representations of one object. A re-export with new GlobalIds yields new representations and new candidate matches, never a new object."
+    },
+    {
+      "id": "identity.replaced_by",
+      "status": "active",
+      "family": "identity",
+      "definition": "The stable object (subject) is retired and replaced by another stable object (object).",
+      "subject_entity_types": ["stable_object"],
+      "object_entity_types": ["stable_object"],
+      "symmetric": false,
+      "inverse": null,
+      "cardinality": "one_to_one",
+      "derivable": false
+    },
+    {
+      "id": "identity.split_into",
+      "status": "active",
+      "family": "identity",
+      "definition": "The stable object (subject) is split; the object is one of the resulting stable objects.",
+      "subject_entity_types": ["stable_object"],
+      "object_entity_types": ["stable_object"],
+      "symmetric": false,
+      "inverse": null,
+      "cardinality": "one_to_many",
+      "derivable": false
+    },
+    {
+      "id": "identity.merged_into",
+      "status": "active",
+      "family": "identity",
+      "definition": "The stable object (subject) is merged into the resulting stable object (object).",
+      "subject_entity_types": ["stable_object"],
+      "object_entity_types": ["stable_object"],
+      "symmetric": false,
+      "inverse": null,
+      "cardinality": "many_to_one",
+      "derivable": false
+    },
+    {
+      "id": "identity.supersedes",
+      "status": "active",
+      "family": "identity",
+      "definition": "The stable object (subject) supersedes an earlier stable object identity (object) while both remain addressable.",
+      "subject_entity_types": ["stable_object"],
+      "object_entity_types": ["stable_object"],
+      "symmetric": false,
+      "inverse": null,
+      "cardinality": "one_to_one",
+      "derivable": false
+    },
+    {
+      "id": "spatial.contains",
+      "status": "active",
+      "family": "spatial",
+      "definition": "The spatial object (subject) contains the object (object): a sub-space by decomposition, an element by primary containment, or an element by additional reference.",
+      "subject_entity_types": ["stable_object"],
+      "object_entity_types": ["stable_object"],
+      "subject_object_families": ["spatial"],
+      "object_object_families": ["spatial", "element", "assembly"],
+      "symmetric": false,
+      "inverse": "spatial.located_in",
+      "cardinality": "one_to_many",
+      "derivable": false,
+      "allowed_qualifiers": ["containment"],
+      "ifc": [
+        {
+          "term": "IfcRelAggregates",
+          "fidelity": "exact",
+          "note": "containment=decomposition: site, building, storey and space decomposition."
+        },
+        {
+          "term": "IfcRelContainedInSpatialStructure",
+          "fidelity": "exact",
+          "note": "containment=primary: an element is contained in at most one spatial structure."
+        },
+        {
+          "term": "IfcRelReferencedInSpatialStructure",
+          "fidelity": "exact",
+          "note": "containment=referenced: additional structures for elements spanning several storeys."
+        }
+      ],
+      "bot": [
+        {
+          "term": "bot:containsZone",
+          "fidelity": "partial",
+          "note": "Zone decomposition only."
+        },
+        {
+          "term": "bot:containsElement",
+          "fidelity": "partial",
+          "note": "Element containment."
+        }
+      ]
+    },
+    {
+      "id": "spatial.located_in",
+      "status": "active",
+      "family": "spatial",
+      "definition": "The object (subject) is located in the spatial object (object). Reading inverse of spatial.contains.",
+      "subject_entity_types": ["stable_object"],
+      "object_entity_types": ["stable_object"],
+      "subject_object_families": ["spatial", "element", "assembly"],
+      "object_object_families": ["spatial"],
+      "symmetric": false,
+      "inverse": "spatial.contains",
+      "cardinality": "many_to_one",
+      "derivable": false,
+      "allowed_qualifiers": ["containment"],
+      "notes": "At most one primary location per element; referenced locations may be several."
+    },
+    {
+      "id": "spatial.adjacent_to",
+      "status": "active",
+      "family": "spatial",
+      "definition": "Two spatial objects share a boundary.",
+      "subject_entity_types": ["stable_object"],
+      "object_entity_types": ["stable_object"],
+      "subject_object_families": ["spatial"],
+      "object_object_families": ["spatial"],
+      "symmetric": true,
+      "inverse": null,
+      "cardinality": "many_to_many",
+      "derivable": true,
+      "ifc": [
+        {
+          "term": "IfcRelSpaceBoundary2ndLevel.CorrespondingBoundary",
+          "fidelity": "derived",
+          "note": "No direct IFC space-to-space adjacency; derive from corresponding second-level boundaries or a shared bounding element."
+        }
+      ],
+      "bot": [
+        {
+          "term": "bot:adjacentZone",
+          "fidelity": "exact"
+        }
+      ]
+    },
+    {
+      "id": "architecture.opens_to",
+      "status": "active",
+      "family": "architecture",
+      "definition": "The opening element (subject), such as a door, window or opening, gives onto the spatial object (object).",
+      "subject_entity_types": ["stable_object"],
+      "object_entity_types": ["stable_object"],
+      "subject_object_families": ["element"],
+      "object_object_families": ["spatial"],
+      "symmetric": false,
+      "inverse": null,
+      "cardinality": "many_to_many",
+      "derivable": true,
+      "ifc": [
+        {
+          "term": "IfcRelSpaceBoundary",
+          "fidelity": "derived",
+          "note": "Derive from the boundaries of the door or opening toward each space."
+        }
+      ],
+      "bot": [
+        {
+          "term": "bot:interfaceOf",
+          "fidelity": "derived",
+          "note": "Reached through a bot:Interface between the element and the zone."
+        }
+      ]
+    },
+    {
+      "id": "architecture.hosted_by",
+      "status": "active",
+      "family": "architecture",
+      "definition": "The element (subject) is hosted by the host element (object), for example a door by a wall.",
+      "subject_entity_types": ["stable_object"],
+      "object_entity_types": ["stable_object"],
+      "subject_object_families": ["element"],
+      "object_object_families": ["element", "assembly"],
+      "symmetric": false,
+      "inverse": null,
+      "cardinality": "many_to_one",
+      "derivable": true,
+      "ifc": [
+        {
+          "term": "IfcRelFillsElement + IfcRelVoidsElement",
+          "fidelity": "derived",
+          "note": "IFC never relates the door to the wall directly: wall, opening, door."
+        }
+      ],
+      "bot": [
+        {
+          "term": "bot:hasSubElement",
+          "fidelity": "partial",
+          "note": "Reading from the host; bot:hostsElement is deprecated in BOT."
+        }
+      ]
+    },
+    {
+      "id": "assembly.part_of",
+      "status": "active",
+      "family": "assembly",
+      "definition": "The object (subject) is a part or layer of the composed object (object).",
+      "subject_entity_types": ["stable_object"],
+      "object_entity_types": ["stable_object"],
+      "subject_object_families": ["element", "assembly", "material", "system"],
+      "object_object_families": ["element", "assembly", "system"],
+      "symmetric": false,
+      "inverse": null,
+      "cardinality": "many_to_one",
+      "derivable": false,
+      "ifc": [
+        {
+          "term": "IfcRelAggregates",
+          "fidelity": "partial",
+          "note": "Element decomposition into parts; material layers are carried by material associations, not relations."
+        }
+      ]
+    },
+    {
+      "id": "model.instance_of",
+      "status": "active",
+      "family": "model",
+      "definition": "The occurrence (subject) is typed by the type definition (object).",
+      "subject_entity_types": ["stable_object"],
+      "object_entity_types": ["stable_object"],
+      "object_object_families": ["type_definition"],
+      "symmetric": false,
+      "inverse": null,
+      "cardinality": "many_to_one",
+      "derivable": false,
+      "ifc": [
+        {
+          "term": "IfcRelDefinesByType",
+          "fidelity": "exact"
+        }
+      ]
+    },
+    {
+      "id": "project.belongs_to_group",
+      "status": "active",
+      "family": "project",
+      "definition": "The object (subject) belongs to the project group or zone (object).",
+      "subject_entity_types": ["stable_object"],
+      "object_entity_types": ["stable_object"],
+      "object_object_families": ["group", "spatial"],
+      "symmetric": false,
+      "inverse": null,
+      "cardinality": "many_to_many",
+      "derivable": false,
+      "ifc": [
+        {
+          "term": "IfcRelAssignsToGroup",
+          "fidelity": "exact",
+          "note": "Includes IfcZone groupings of spaces."
+        }
+      ]
+    },
+    {
+      "id": "spatial.bounded_by",
+      "status": "candidate",
+      "family": "spatial",
+      "definition": "The spatial object (subject) is bounded by the element (object).",
+      "subject_entity_types": ["stable_object"],
+      "object_entity_types": ["stable_object"],
+      "subject_object_families": ["spatial"],
+      "object_object_families": ["element", "assembly"],
+      "symmetric": false,
+      "inverse": null,
+      "cardinality": "many_to_many",
+      "derivable": true,
+      "ifc": [
+        {
+          "term": "IfcRelSpaceBoundary",
+          "fidelity": "exact",
+          "note": "RelatingSpace to RelatedBuildingElement. Subtypes IfcRelSpaceBoundary1stLevel and 2ndLevel; physical or virtual and internal or external are attributes, not subtypes."
+        }
+      ],
+      "bot": [
+        {
+          "term": "bot:adjacentElement",
+          "fidelity": "exact"
+        }
+      ]
+    },
+    {
+      "id": "spatial.above",
+      "status": "candidate",
+      "family": "spatial",
+      "definition": "The object (subject) is vertically above the object (object).",
+      "subject_entity_types": ["stable_object"],
+      "object_entity_types": ["stable_object"],
+      "subject_object_families": ["spatial", "element"],
+      "object_object_families": ["spatial", "element"],
+      "symmetric": false,
+      "inverse": "spatial.below",
+      "cardinality": "many_to_many",
+      "derivable": true,
+      "ifc": [
+        {
+          "term": "IfcBuildingStorey.Elevation",
+          "fidelity": "derived",
+          "note": "No IFC relation; derive from storey elevation, slab boundaries or geometry. IfcRelAggregates implies no order."
+        }
+      ]
+    },
+    {
+      "id": "spatial.below",
+      "status": "candidate",
+      "family": "spatial",
+      "definition": "The object (subject) is vertically below the object (object). Reading inverse of spatial.above.",
+      "subject_entity_types": ["stable_object"],
+      "object_entity_types": ["stable_object"],
+      "subject_object_families": ["spatial", "element"],
+      "object_object_families": ["spatial", "element"],
+      "symmetric": false,
+      "inverse": "spatial.above",
+      "cardinality": "many_to_many",
+      "derivable": true
+    },
+    {
+      "id": "architecture.separates",
+      "status": "candidate",
+      "family": "architecture",
+      "definition": "The element (subject) separates the spatial object (object) from another one; one claim per separated space.",
+      "subject_entity_types": ["stable_object"],
+      "object_entity_types": ["stable_object"],
+      "subject_object_families": ["element", "assembly"],
+      "object_object_families": ["spatial"],
+      "symmetric": false,
+      "inverse": null,
+      "cardinality": "many_to_many",
+      "derivable": true,
+      "ifc": [
+        {
+          "term": "IfcRelSpaceBoundary",
+          "fidelity": "derived",
+          "note": "The element is the related element of a boundary of each space. Open-plan separations use IfcVirtualElement."
+        }
+      ],
+      "bot": [
+        {
+          "term": "bot:Interface",
+          "fidelity": "partial"
+        }
+      ],
+      "notes": "Basis for inherited requirements: a separating element inherits the requirements of the pair of spaces it separates."
+    },
+    {
+      "id": "architecture.connects_via",
+      "status": "candidate",
+      "family": "architecture",
+      "definition": "The spatial object (subject) is connected for passage through the element (object), such as a door or opening; one claim per connected space.",
+      "subject_entity_types": ["stable_object"],
+      "object_entity_types": ["stable_object"],
+      "subject_object_families": ["spatial"],
+      "object_object_families": ["element"],
+      "symmetric": false,
+      "inverse": null,
+      "cardinality": "many_to_many",
+      "derivable": true,
+      "ifc": [
+        {
+          "term": "IfcRelSpaceBoundary",
+          "fidelity": "derived",
+          "note": "IfcRelConnectsPortToElement is MEP-only and does not apply."
+        }
+      ],
+      "notes": "Chains of connects_via and opens_to support derived circulation and accessibility paths."
+    },
+    {
+      "id": "architecture.voids",
+      "status": "candidate",
+      "family": "architecture",
+      "definition": "The opening or void (subject) cuts through the host element (object).",
+      "subject_entity_types": ["stable_object"],
+      "object_entity_types": ["stable_object"],
+      "subject_object_families": ["element"],
+      "object_object_families": ["element", "assembly"],
+      "symmetric": false,
+      "inverse": null,
+      "cardinality": "many_to_one",
+      "derivable": false,
+      "ifc": [
+        {
+          "term": "IfcRelVoidsElement",
+          "fidelity": "exact",
+          "note": "RelatingBuildingElement is the host; RelatedOpeningElement is the opening. Read in reverse."
+        }
+      ],
+      "notes": "Covers reservations (trémies, fourreaux, réservations) as elements."
+    },
+    {
+      "id": "architecture.fills",
+      "status": "candidate",
+      "family": "architecture",
+      "definition": "The element (subject), such as a door or window, fills the opening (object).",
+      "subject_entity_types": ["stable_object"],
+      "object_entity_types": ["stable_object"],
+      "subject_object_families": ["element"],
+      "object_object_families": ["element"],
+      "symmetric": false,
+      "inverse": null,
+      "cardinality": "many_to_one",
+      "derivable": false,
+      "ifc": [
+        {
+          "term": "IfcRelFillsElement",
+          "fidelity": "exact",
+          "note": "RelatingOpeningElement is the opening; RelatedBuildingElement is the filling element. Read in reverse."
+        }
+      ]
+    },
+    {
+      "id": "construction.junction_with",
+      "status": "candidate",
+      "family": "construction",
+      "definition": "Two elements are constructively joined.",
+      "subject_entity_types": ["stable_object"],
+      "object_entity_types": ["stable_object"],
+      "subject_object_families": ["element", "assembly"],
+      "object_object_families": ["element", "assembly"],
+      "symmetric": true,
+      "inverse": null,
+      "cardinality": "many_to_many",
+      "derivable": false,
+      "allowed_qualifiers": ["junction_type"],
+      "ifc": [
+        {
+          "term": "IfcRelConnectsPathElements",
+          "fidelity": "partial",
+          "note": "Walls and other path elements. Indicative, non-normative reading: corner = ATSTART/ATEND on both, tee = ATPATH with ATSTART or ATEND, cross = ATPATH/ATPATH. butt and mitre have no enumeration value."
+        },
+        {
+          "term": "IfcRelConnectsElements",
+          "fidelity": "partial",
+          "note": "Generic connection without typology."
+        }
+      ],
+      "notes": "The junction is where most interfaces between work packages and most pathologies occur."
+    },
+    {
+      "id": "construction.isolated_from",
+      "status": "candidate",
+      "family": "construction",
+      "definition": "Two elements are deliberately kept unconnected, such as an acoustic decoupling or an expansion joint.",
+      "subject_entity_types": ["stable_object"],
+      "object_entity_types": ["stable_object"],
+      "subject_object_families": ["element", "assembly"],
+      "object_object_families": ["element", "assembly"],
+      "symmetric": true,
+      "inverse": null,
+      "cardinality": "many_to_many",
+      "derivable": false,
+      "ifc": [
+        {
+          "term": "none",
+          "fidelity": "none",
+          "note": "IFC has no relation for a deliberate absence of connection."
+        }
+      ],
+      "notes": "A positive named relation, because absence of a claim is not a negative claim."
+    },
+    {
+      "id": "structure.bears_on",
+      "status": "candidate",
+      "family": "structure",
+      "definition": "The element (subject) transfers load onto the element (object).",
+      "subject_entity_types": ["stable_object"],
+      "object_entity_types": ["stable_object"],
+      "subject_object_families": ["element", "assembly", "system"],
+      "object_object_families": ["element", "assembly"],
+      "symmetric": false,
+      "inverse": "structure.supports",
+      "cardinality": "many_to_many",
+      "derivable": false,
+      "ifc": [
+        {
+          "term": "IfcRelConnectsElements",
+          "fidelity": "partial",
+          "note": "No direction convention in IFC."
+        },
+        {
+          "term": "IfcRelConnectsWithRealizingElements",
+          "fidelity": "partial",
+          "note": "Support through a realizing element such as a bearing."
+        }
+      ],
+      "notes": "IfcRelConnectsStructuralMember belongs to the structural analysis model and is deliberately not mapped. Structural statements require validation by a structural engineer."
+    },
+    {
+      "id": "structure.supports",
+      "status": "candidate",
+      "family": "structure",
+      "definition": "The element (subject) carries the load of the element (object). Reading inverse of structure.bears_on.",
+      "subject_entity_types": ["stable_object"],
+      "object_entity_types": ["stable_object"],
+      "subject_object_families": ["element", "assembly"],
+      "object_object_families": ["element", "assembly", "system"],
+      "symmetric": false,
+      "inverse": "structure.bears_on",
+      "cardinality": "many_to_many",
+      "derivable": false
+    },
+    {
+      "id": "site.party_wall_with",
+      "status": "candidate",
+      "family": "site",
+      "definition": "The separating element (subject) is shared with, or bounds, a neighbouring building or plot (object).",
+      "subject_entity_types": ["stable_object"],
+      "object_entity_types": ["stable_object"],
+      "subject_object_families": ["element", "assembly"],
+      "object_object_families": ["spatial", "element", "group"],
+      "symmetric": false,
+      "inverse": null,
+      "cardinality": "many_to_many",
+      "derivable": false,
+      "allowed_qualifiers": ["legal_basis"],
+      "ifc": [
+        {
+          "term": "IfcRelSpaceBoundary to IfcExternalSpatialElement (EXTERNAL_FIRE)",
+          "fidelity": "partial",
+          "note": "Covers a neighbouring building only; a party wall with an unbuilt plot and legal co-ownership have no IFC representation."
+        }
+      ],
+      "notes": "The legal status is a qualifier: presumed, established by title or unknown. Neighbouring objects carry no third-party personal data."
+    }
+  ],
+  "x_boundary": {
+    "runtime_execution": false,
+    "provider_routing": false,
+    "task_authorization": false,
+    "approval": false,
+    "evidence_promotion": false,
+    "memory_promotion": false
+  }
+}

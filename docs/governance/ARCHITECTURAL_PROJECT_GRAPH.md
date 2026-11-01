@@ -85,6 +85,8 @@ located_in
 belongs_to_phase
 ```
 
+These plain names are orientation labels. The governed identifiers of project-world relations are the namespaced types of `docs/domain-packs/architecture/PROJECT_ANATOMY_MODEL.md` (section 6) and the relation profile `registries/architecture_relation_profile.registry.json` (for example `spatial.contains`, `spatial.adjacent_to`, `architecture.opens_to`). Phase membership is a claim dimension, not a relation type. `serves` and `affects` have no governed counterpart yet and remain orientation labels only.
+
 This layer answers:
 
 ```text

@@ -24,9 +24,14 @@ def test_registry_foundation_validator() -> None:
     assert result.returncode == 0, result.stdout + result.stderr
 
 
-def test_registry_foundation_starts_without_migrated_business_registries() -> None:
-    business_registries = sorted((ROOT / "registries").rglob("*.registry.json"))
-    assert business_registries == []
+def test_registry_foundation_holds_only_reviewed_governance_registries() -> None:
+    # No implementation instance is migrated here; the only governance-owned
+    # registry is the candidate Project Anatomy relation profile architecture@1.
+    business_registries = sorted(
+        path.relative_to(ROOT).as_posix()
+        for path in (ROOT / "registries").rglob("*.registry.json")
+    )
+    assert business_registries == ["registries/architecture_relation_profile.registry.json"]
 
 
 def test_fictional_registry_descriptor_validates() -> None:

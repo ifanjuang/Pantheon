@@ -11,6 +11,12 @@
   `vault-search`, `project-context`, `hindsight-project`, `AGENCY_PROJECTS`);
   host names, NAS paths and LAN addresses replaced by placeholders.
 - Archive issue/PR references qualified as `Pantheon-Next#<n>`.
+- Project Anatomy relation profile `architecture@1` (candidate registry under
+  `registries/`): the APU validator now reports undeclared or deprecated
+  relation types, inadmissible endpoints and out-of-vocabulary controlled
+  qualifiers as `vocabulary_errors`, and fails closed when the profile cannot
+  be read. Dossiers using off-doctrine types such as `opens_into` now fail
+  validation; the Cockpit demo fixture uses `architecture.opens_to`.
 
 ## 0.1.66 - 2026-09-10
 
