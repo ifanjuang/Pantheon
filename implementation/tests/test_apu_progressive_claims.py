@@ -482,6 +482,139 @@ def test_the_database_refuses_a_mismatched_supersession(conn) -> None:
             )
 
 
+def test_scoped_hermes_object_read_matches_global_supersession_and_preserves_history(conn) -> None:
+    """Hermes must not revive an explicitly superseded width as a live conflict."""
+    from mvp_vertical import hermes_scoped_context
+
+    project_id = _project(conn)
+    _import(conn, project_id)
+    execution_id, result_id = _bundle(
+        conn, project_id,
+        [_width("claim.door.width.t1", 0.93, supersedes_claim_ref="claim.door.width.t0")],
+        [],
+    )
+    _prepared, applied = _write(
+        conn, execution_id, result_id,
+        "claim.door.width.t1", superseded="claim.door.width.t0",
+    )
+    global_view = apu_owner.get_project_anatomy(conn, project_id=project_id)
+    object_view = apu_object_read.get_stable_object_context(conn, object_id=DOOR)
+    hermes_view = hermes_scoped_context.materialize_context_entity(
+        conn, entity_type="stable_object", entity_id=f"stable_object:{DOOR}"
+    )["record"]
+
+    expected = [claim for claim in global_view["attribute_claims"]
+                if claim["subject_ref"]["entity_id"] == DOOR]
+    assert object_view["attribute_claims"] == expected
+    assert hermes_view["attribute_claims"] == expected
+    assert [claim["value"]["value"] for claim in expected] == [0.93]
+    assert object_view["superseded_claims"] == global_view["superseded_claims"]
+    assert hermes_view["superseded_claims"] == global_view["superseded_claims"]
+    assert object_view["superseded_claims"][0]["event_ref"] == applied["event"]["event_id"]
+    assert object_view["source_representation_refs"] == [REP_B]
+    assert object_view["scope"]["relation_traversal_performed"] is False
+
+    historical = conn.execute(
+        "SELECT claim_payload FROM agency_apu_attribute_claims WHERE claim_id = %s",
+        ("claim.door.width.t0",),
+    ).fetchone()
+    assert historical[0]["value"]["value"] == 0.90
+
+
+def test_revision_a_source_cannot_be_attributed_to_version_b_bundle(conn) -> None:
+    project_id = _project(conn)
+    _import(conn, project_id)
+    wrong_source = _width(
+        "claim.door.width.wrong-revision", 0.93, source_representation_refs=[REP]
+    )
+    execution_id, result_id = _bundle(conn, project_id, [wrong_source], [])
+    _review(conn, execution_id, result_id, wrong_source["attribute_claim_id"])
+    with pytest.raises(
+        apu_write_preparation.ApuWritePreparationError,
+        match="source representation version is outside Observation Bundle basis",
+    ):
+        _prepare(conn, execution_id, result_id, wrong_source["attribute_claim_id"])
+
+
+def test_claim_validity_cannot_name_a_different_source_version(conn) -> None:
+    project_id = _project(conn)
+    _import(conn, project_id)
+    invalid = _width(
+        "claim.door.width.wrong-validity",
+        0.93,
+        validity={"source_version_ref": "drawing:a101:index-a"},
+    )
+    execution_id, result_id = _bundle(conn, project_id, [invalid], [])
+    _review(conn, execution_id, result_id, invalid["attribute_claim_id"])
+    with pytest.raises(
+        apu_write_preparation.ApuWritePreparationError,
+        match="validity source_version_ref disagrees",
+    ):
+        _prepare(conn, execution_id, result_id, invalid["attribute_claim_id"])
+
+
+def test_progressive_claim_requires_an_admitted_source_representation(conn) -> None:
+    project_id = _project(conn)
+    _import(conn, project_id)
+    source_free = _width(
+        "claim.door.width.without-source", 0.94, source_representation_refs=[]
+    )
+    execution_id, result_id = _bundle(conn, project_id, [source_free], [])
+    _review(conn, execution_id, result_id, source_free["attribute_claim_id"])
+    with pytest.raises(
+        apu_write_preparation.ApuWritePreparationError,
+        match="requires exact source representation provenance",
+    ):
+        _prepare(conn, execution_id, result_id, source_free["attribute_claim_id"])
+
+
+def test_claim_cannot_reference_a_representation_owned_by_another_project(conn) -> None:
+    project_id = _project(conn)
+    _import(conn, project_id)
+    other = _project(conn)
+    foreign_rep = "rep.other-project"
+    apu_owner.store_reviewed_dossier(
+        conn,
+        project_id=other,
+        stable_objects=[{
+            "stable_object_id": _id("other-object"),
+            "project_ref": other,
+            "object_family": "element",
+            "nomenclature": {"display_name": "Other project's opening"},
+        }],
+        source_representations=[{
+            "representation_id": foreign_rep,
+            "project_ref": other,
+            "source_artifact_ref": "source.pdf.a101",
+            "source_version_ref": "drawing:a101:index-b",
+            "source_kind": "drawing",
+            "identifiers": [{"scheme": "drawing.local_label", "value": "foreign"}],
+            "observed_at": "2026-03-02T10:00:00Z",
+            "binding_ref": "binding.synthetic.drawing",
+            "adapter_version": "1.0.0",
+            "freshness_token": "sha256:a101-b",
+            "proof_status": "candidate",
+        }],
+        attribute_claims=[],
+        relation_claims=[],
+        review_ref="review:claims:other",
+        actor="human:architect",
+        idempotency_key=_id("import-other"),
+    )
+    invalid = _width(
+        "claim.door.width.cross-project",
+        0.95,
+        source_representation_refs=[foreign_rep],
+    )
+    execution_id, result_id = _bundle(conn, project_id, [invalid], [])
+    _review(conn, execution_id, result_id, invalid["attribute_claim_id"])
+    with pytest.raises(
+        apu_write_preparation.ApuWritePreparationNotFound,
+        match="source_representation_ref is not in this Project",
+    ):
+        _prepare(conn, execution_id, result_id, invalid["attribute_claim_id"])
+
+
 def test_identity_relations_are_not_claim_writes() -> None:
     relation = {
         "relation_claim_id": "claim.door.merge",
