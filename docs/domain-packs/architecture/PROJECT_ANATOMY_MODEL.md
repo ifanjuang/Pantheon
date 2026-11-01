@@ -695,12 +695,45 @@ state and a proposed attribution rule; it changes no schema, code or contract.
 | Subject | the Project (no object subject) | a `stable_object` or a `source_representation` |
 | Vocabulary | closed, declared per field in `implementation/mvp_vertical/agency_schema/project.json` (12 fiche fields today: budget, market amount, site/existing/project surface, footprint, parcels, PLU zone, permit number and date, reception date, ERP type) | open, namespaced predicates (§5) |
 | Value | one scalar | structured value with unit, scheme and basis |
-| Time | `observed_at`, explicit `effective_at`, implementation recording time; `as-of` readers exist | observation time lives on the `source_representation`; `validity.valid_from` / `valid_until` and `supersedes_claim_ref` are stored but no executable reader interprets them; no `as-of` reader |
-| Writes after initial import | yes, append-only with same-project / same-type supersession | none: the owner accepts one reviewed dossier per Project, then only identity matches |
+| Time | `observed_at`, explicit `effective_at`, implementation recording time; `as-of` readers exist | observation time lives on the `source_representation`; `validity.valid_from` / `valid_until` are stored but no executable reader interprets them; a reviewed replacement is read as "no longer in force" (see below); no `as-of` reader |
+| Writes after initial import | yes, append-only with same-project / same-type supersession | identity matches, and candidate claim additions and replacements through the reviewed write chain (see below); no new object, no retirement |
 | Contradictions | scalar conflict candidates | preserved, not detected |
 
 A `ProjectClaim` may cite an APU object through `backing_ref` (`apu_object`).
 That identifies support; it is not an APU claim.
+
+Progressive claim writes (candidate implementation in `implementation/`, not
+deployed): after the one reviewed dossier import, an attribute or relation
+claim candidate carried by an Observation Bundle can enter the APU through the
+existing chain — review `accept_claim_candidate` → write command `add_claim` or
+`supersede_claim` → separate human authorization → application, with the owner
+revision checked at application. A replacement must keep the subject and the
+attribute key (or relation type); the replaced claim is kept unchanged and
+linked, and a claim is replaced at most once. Applied claims stay `candidate`.
+Identity relations (`identity.*`) are not claim writes: alignment stays with
+the source match and the identity lifecycle of §16 is not opened by this path.
+
+The progressive writer also checks that every referenced source representation
+has already been admitted for this Project and that its artifact and declared
+source version occur in the exact reviewed Observation Bundle basis. It checks
+declared source-version validity where supplied, and refuses a bundle carrying
+a different payload for an already admitted representation. A later revision's
+claim therefore cannot silently cite the older drawing representation.
+`freshness_token` and source artifact digests remain distinct contract fields
+and are not compared as if their meaning were interchangeable. Additional
+source representations must use the existing reviewed source-match path first.
+
+The global `get_project_anatomy` and bounded `get_stable_object_context`
+projections both expose non-superseded claims and the relevant
+`superseded_claims` event links. "Non-superseded" means **not explicitly
+replaced in the APU register**, not professionally approved, applicable as of
+a date or proven physically executed. Historical claim payloads remain stored;
+neither projection is an `as-of` reader.
+
+```text
+claim replacement != claim edit
+applied claim     != validated claim
+```
 
 ### 25.2 Proposed attribution rule
 
@@ -730,9 +763,9 @@ APU claim != order, decision or reservation
 
 ### 25.3 Documented, not implemented (to verify before relying on this section)
 
-- Adding claims, new objects or superseding claims to an initialized Project
-  (the owner is import-once; `object_retired` exists in the event vocabulary but
-  has no writer).
+- Creating new stable objects after the first reviewed dossier, or retiring
+  existing objects (`object_retired` still has no writer). Adding or replacing
+  claims has a bounded candidate-only path; it is **not** a new-object API.
 - An `as-of` reader for APU claims.
 - `ESQ` in the shared `phase_code` vocabulary, and `source_kind` values for
   written documents (specification, bill of quantities, minutes, email) and DWG.

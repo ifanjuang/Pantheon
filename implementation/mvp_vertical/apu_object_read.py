@@ -106,6 +106,46 @@ def get_stable_object_context(
         )
         relation_claims = [dict(row["claim_payload"]) for row in cur.fetchall()]
 
+        # Use the same non-superseded claim rule as get_project_anatomy:
+        # replaced assertions remain traceable, but not in the active lists.
+        # Only IDs for the selected object are queried; no graph traversal.
+        direct_claim_ids = [
+            *[claim["attribute_claim_id"] for claim in attribute_claims],
+            *[claim["relation_claim_id"] for claim in relation_claims],
+        ]
+        supersession_rows = []
+        if direct_claim_ids:
+            cur.execute(
+                """
+                SELECT superseded_claim_id, superseding_claim_id, claim_family, event_id
+                  FROM agency_apu_claim_supersessions
+                 WHERE project_id = %s
+                   AND superseded_claim_id = ANY(%s)
+                 ORDER BY created_at, superseded_claim_id
+                """,
+                (project_id, direct_claim_ids),
+            )
+            supersession_rows = [dict(row) for row in cur.fetchall()]
+
+    replaced_ids = {row["superseded_claim_id"] for row in supersession_rows}
+    attribute_claims = [
+        claim for claim in attribute_claims
+        if claim["attribute_claim_id"] not in replaced_ids
+    ]
+    relation_claims = [
+        claim for claim in relation_claims
+        if claim["relation_claim_id"] not in replaced_ids
+    ]
+    superseded_claims = [
+        {
+            "claim_family": row["claim_family"],
+            "superseded_claim_ref": row["superseded_claim_id"],
+            "superseding_claim_ref": row["superseding_claim_id"],
+            "event_ref": row["event_id"],
+        }
+        for row in supersession_rows
+    ]
+
     source_representation_refs: set[str] = set()
     for claim in [*attribute_claims, *relation_claims]:
         for ref in claim.get("source_representation_refs") or []:
@@ -122,6 +162,7 @@ def get_stable_object_context(
         "owner_revision": int(object_row["owner_revision"]),
         "attribute_claims": attribute_claims,
         "relation_claims": relation_claims,
+        "superseded_claims": superseded_claims,
         "source_representation_refs": sorted(source_representation_refs),
         "scope": {
             "exact_stable_object_only": True,

@@ -149,7 +149,8 @@ CREATE TABLE IF NOT EXISTS agency_apu_events (
     event_id TEXT PRIMARY KEY,
     project_id TEXT NOT NULL REFERENCES agency_projects(project_id) ON DELETE RESTRICT,
     event_type TEXT NOT NULL CHECK (event_type IN (
-        'reviewed_dossier_imported', 'source_match_applied', 'object_retired'
+        'reviewed_dossier_imported', 'source_match_applied', 'object_retired',
+        'claim_added', 'claim_superseded'
     )),
     expected_revision INTEGER NOT NULL CHECK (expected_revision >= 0),
     resulting_revision INTEGER NOT NULL CHECK (resulting_revision = expected_revision + 1),
@@ -164,6 +165,44 @@ CREATE TABLE IF NOT EXISTS agency_apu_events (
 
 CREATE INDEX IF NOT EXISTS agency_apu_events_project_lookup
     ON agency_apu_events (project_id, occurred_at, event_id);
+
+-- Progressive claim writes. An installation created before them still carries
+-- the three-value event vocabulary; widen it once. The guard keys on a value
+-- this block adds, so a fresh database (already at the target shape) skips it.
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+         WHERE conname = 'agency_apu_events_event_type_check'
+           AND conrelid = 'agency_apu_events'::regclass
+           AND pg_get_constraintdef(oid) LIKE '%claim_superseded%'
+    ) THEN
+        ALTER TABLE agency_apu_events
+            DROP CONSTRAINT IF EXISTS agency_apu_events_event_type_check;
+        ALTER TABLE agency_apu_events
+            ADD CONSTRAINT agency_apu_events_event_type_check CHECK (event_type IN (
+                'reviewed_dossier_imported', 'source_match_applied', 'object_retired',
+                'claim_added', 'claim_superseded'
+            ));
+    END IF;
+END;
+$$;
+
+-- One row per replaced claim. Claims stay append-only: a replacement is a new
+-- claim plus this link, never an edit. The primary key lets a claim be replaced
+-- once, so two concurrent replacements cannot both win.
+CREATE TABLE IF NOT EXISTS agency_apu_claim_supersessions (
+    superseded_claim_id TEXT PRIMARY KEY,
+    superseding_claim_id TEXT NOT NULL UNIQUE,
+    claim_family TEXT NOT NULL CHECK (claim_family IN ('attribute', 'relation')),
+    project_id TEXT NOT NULL REFERENCES agency_projects(project_id) ON DELETE RESTRICT,
+    event_id TEXT NOT NULL REFERENCES agency_apu_events(event_id) ON DELETE RESTRICT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+    CHECK (superseded_claim_id <> superseding_claim_id)
+);
+
+CREATE INDEX IF NOT EXISTS agency_apu_claim_supersessions_project_lookup
+    ON agency_apu_claim_supersessions (project_id, claim_family);
 
 CREATE OR REPLACE FUNCTION agency_apu_entity_exists(
     expected_project_id TEXT,
@@ -218,6 +257,55 @@ BEGIN
         NEW.project_id, NEW.object_entity_type, NEW.object_entity_id
     ) THEN
         RAISE EXCEPTION 'relation claim object is unknown or belongs to another Project';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION validate_agency_apu_claim_supersession()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    old_subject_type TEXT;
+    old_subject_id TEXT;
+    old_key TEXT;
+    new_subject_type TEXT;
+    new_subject_id TEXT;
+    new_key TEXT;
+BEGIN
+    IF NEW.claim_family = 'attribute' THEN
+        SELECT subject_entity_type, subject_entity_id, attribute_key
+          INTO old_subject_type, old_subject_id, old_key
+          FROM agency_apu_attribute_claims
+         WHERE claim_id = NEW.superseded_claim_id AND project_id = NEW.project_id;
+        SELECT subject_entity_type, subject_entity_id, attribute_key
+          INTO new_subject_type, new_subject_id, new_key
+          FROM agency_apu_attribute_claims
+         WHERE claim_id = NEW.superseding_claim_id AND project_id = NEW.project_id;
+    ELSE
+        SELECT subject_entity_type, subject_entity_id, relation_type
+          INTO old_subject_type, old_subject_id, old_key
+          FROM agency_apu_relation_claims
+         WHERE claim_id = NEW.superseded_claim_id AND project_id = NEW.project_id;
+        SELECT subject_entity_type, subject_entity_id, relation_type
+          INTO new_subject_type, new_subject_id, new_key
+          FROM agency_apu_relation_claims
+         WHERE claim_id = NEW.superseding_claim_id AND project_id = NEW.project_id;
+    END IF;
+    IF old_key IS NULL OR new_key IS NULL THEN
+        RAISE EXCEPTION 'claim supersession names a claim outside this Project and family';
+    END IF;
+    IF old_subject_type <> new_subject_type
+       OR old_subject_id <> new_subject_id
+       OR old_key <> new_key THEN
+        RAISE EXCEPTION 'a claim can only replace a claim on the same subject and key';
+    END IF;
+    IF EXISTS (
+        SELECT 1 FROM agency_apu_claim_supersessions
+         WHERE superseded_claim_id = NEW.superseding_claim_id
+    ) THEN
+        RAISE EXCEPTION 'a replaced claim cannot replace another claim';
     END IF;
     RETURN NEW;
 END;
@@ -286,6 +374,22 @@ BEGIN
     ) THEN
         CREATE TRIGGER agency_apu_relation_claims_append_only
         BEFORE UPDATE OR DELETE ON agency_apu_relation_claims
+        FOR EACH ROW EXECUTE FUNCTION reject_agency_apu_append_only_mutation();
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger WHERE tgname = 'agency_apu_claim_supersessions_validate'
+          AND tgrelid = 'agency_apu_claim_supersessions'::regclass
+    ) THEN
+        CREATE TRIGGER agency_apu_claim_supersessions_validate
+        BEFORE INSERT ON agency_apu_claim_supersessions
+        FOR EACH ROW EXECUTE FUNCTION validate_agency_apu_claim_supersession();
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger WHERE tgname = 'agency_apu_claim_supersessions_append_only'
+          AND tgrelid = 'agency_apu_claim_supersessions'::regclass
+    ) THEN
+        CREATE TRIGGER agency_apu_claim_supersessions_append_only
+        BEFORE UPDATE OR DELETE ON agency_apu_claim_supersessions
         FOR EACH ROW EXECUTE FUNCTION reject_agency_apu_append_only_mutation();
     END IF;
 END;

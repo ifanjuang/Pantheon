@@ -661,6 +661,27 @@ INVENTORY: dict[tuple[str, str], dict[str, object]] = {
             "Applies a match that a prior authorization already decided; the command shape is checked exactly, so this records a decision rather than taking one."
         ),
     },
+    ("apu_owner_claims.py", "apply_claim_write"): {
+        "gate": "none",
+        "local_guards": (
+            "prior authorization id, checked by apply_authorized_write_command under the command lock",
+            "exact command shape and candidate-only claim",
+            "expected owner revision under the owner row lock",
+            "subject, object and source representations must be live in the same Project",
+            "a replaced claim must share subject and key and be replaced only once (primary key and trigger)",
+            "append-only claims, events and supersessions",
+            "idempotency",
+        ),
+        "reviewed": (
+            "Applies an add_claim or supersede_claim command that a prior authorization "
+            "already decided, the same regime as apply_source_match: it records a "
+            "decision rather than taking one. Its only production caller is "
+            "apply_authorized_write_command, which re-reads the reviewed candidate, the "
+            "latest review and the latest authorization under the command-row lock "
+            "before calling it. The claim stays candidate; nothing is validated, "
+            "admitted or canonized."
+        ),
+    },
     ("apu_owner.py", "store_reviewed_dossier"): {
         "gate": "enforce_consequential",
         "local_guards": (

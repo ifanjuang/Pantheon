@@ -17,6 +17,16 @@
   qualifiers as `vocabulary_errors`, and fails closed when the profile cannot
   be read. Dossiers using off-doctrine types such as `opens_into` now fail
   validation; the Cockpit demo fixture uses `architecture.opens_to`.
+- Project Anatomy progressive claim writes (candidate implementation, not
+  deployed): after the reviewed dossier import, an Observation Bundle attribute
+  or relation claim candidate can be added, or can replace one claim on the same
+  subject and key, through review (`accept_claim_candidate`), write command
+  (`add_claim` / `supersede_claim`), human authorization and application. Claims
+  stay append-only and candidate; replacements are recorded in
+  `agency_apu_claim_supersessions` and `get_project_anatomy` lists only claims
+  in force plus `superseded_claims`. Identity relations stay out of this path.
+  APU write authorizations are now ordered by write time (`clock_timestamp()`),
+  so a rejection written after an authorization always wins.
 
 ## 0.1.66 - 2026-09-10
 

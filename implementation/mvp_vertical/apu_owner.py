@@ -336,42 +336,56 @@ def _insert_dossier(conn, dossier: dict[str, Any], *, actor: str) -> None:
             ),
         )
     for claim in dossier["attribute_claims"]:
-        subject = claim["subject_ref"]
-        conn.execute(
-            """
-            INSERT INTO agency_apu_attribute_claims (
-                claim_id, project_id, subject_entity_type, subject_entity_id,
-                attribute_key, assertion_mode, source_authority, proof_status,
-                claim_payload, payload_digest, created_by
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """,
-            (
-                claim["attribute_claim_id"], dossier["project_ref"],
-                subject["entity_type"], subject["entity_id"], claim["attribute_key"],
-                claim["assertion_mode"], claim["source_authority"], claim["proof_status"],
-                Jsonb(claim), _digest(claim), actor,
-            ),
-        )
+        _insert_attribute_claim(conn, claim, project_id=dossier["project_ref"], actor=actor)
     for claim in dossier["relation_claims"]:
-        subject = claim["subject_ref"]
-        target = claim["object_ref"]
-        conn.execute(
-            """
-            INSERT INTO agency_apu_relation_claims (
-                claim_id, project_id, subject_entity_type, subject_entity_id,
-                relation_type, object_entity_type, object_entity_id,
-                assertion_mode, source_authority, proof_status,
-                claim_payload, payload_digest, created_by
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """,
-            (
-                claim["relation_claim_id"], dossier["project_ref"],
-                subject["entity_type"], subject["entity_id"], claim["relation_type"],
-                target["entity_type"], target["entity_id"], claim["assertion_mode"],
-                claim["source_authority"], claim["proof_status"], Jsonb(claim),
-                _digest(claim), actor,
-            ),
-        )
+        _insert_relation_claim(conn, claim, project_id=dossier["project_ref"], actor=actor)
+
+
+def _insert_attribute_claim(conn, claim: dict[str, Any], *, project_id: str, actor: str) -> None:
+    """Insert one already-validated attribute claim row.
+
+    Shared by the dossier import and the progressive claim writer
+    (`apu_owner_claims`). It checks nothing itself: each caller validates first.
+    """
+    subject = claim["subject_ref"]
+    conn.execute(
+        """
+        INSERT INTO agency_apu_attribute_claims (
+            claim_id, project_id, subject_entity_type, subject_entity_id,
+            attribute_key, assertion_mode, source_authority, proof_status,
+            claim_payload, payload_digest, created_by
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """,
+        (
+            claim["attribute_claim_id"], project_id,
+            subject["entity_type"], subject["entity_id"], claim["attribute_key"],
+            claim["assertion_mode"], claim["source_authority"], claim["proof_status"],
+            Jsonb(claim), _digest(claim), actor,
+        ),
+    )
+
+
+def _insert_relation_claim(conn, claim: dict[str, Any], *, project_id: str, actor: str) -> None:
+    """Insert one already-validated relation claim row (see `_insert_attribute_claim`)."""
+    subject = claim["subject_ref"]
+    target = claim["object_ref"]
+    conn.execute(
+        """
+        INSERT INTO agency_apu_relation_claims (
+            claim_id, project_id, subject_entity_type, subject_entity_id,
+            relation_type, object_entity_type, object_entity_id,
+            assertion_mode, source_authority, proof_status,
+            claim_payload, payload_digest, created_by
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """,
+        (
+            claim["relation_claim_id"], project_id,
+            subject["entity_type"], subject["entity_id"], claim["relation_type"],
+            target["entity_type"], target["entity_id"], claim["assertion_mode"],
+            claim["source_authority"], claim["proof_status"], Jsonb(claim),
+            _digest(claim), actor,
+        ),
+    )
 
 
 def store_reviewed_dossier(
@@ -578,6 +592,16 @@ def get_project_anatomy(conn: psycopg.Connection, *, project_id: str) -> dict[st
             (project_id,),
         )
         relation_rows = [dict(row) for row in cur.fetchall()]
+        cur.execute(
+            "SELECT superseded_claim_id, superseding_claim_id, claim_family, event_id "
+            "FROM agency_apu_claim_supersessions WHERE project_id = %s "
+            "ORDER BY created_at, superseded_claim_id",
+            (project_id,),
+        )
+        supersession_rows = [dict(row) for row in cur.fetchall()]
+    # A replaced claim is kept in its table and listed under superseded_claims;
+    # the claim lists carry only the claims in force.
+    superseded = {row["superseded_claim_id"] for row in supersession_rows}
     return {
         "project_ref": project_id,
         "model_version": 2,
@@ -597,8 +621,25 @@ def get_project_anatomy(conn: psycopg.Connection, *, project_id: str) -> dict[st
             dict(row["representation_payload"]) | {"revision": int(row["revision"])}
             for row in representation_rows
         ],
-        "attribute_claims": [dict(row["claim_payload"]) for row in attribute_rows],
-        "relation_claims": [dict(row["claim_payload"]) for row in relation_rows],
+        "attribute_claims": [
+            dict(row["claim_payload"])
+            for row in attribute_rows
+            if row["claim_id"] not in superseded
+        ],
+        "relation_claims": [
+            dict(row["claim_payload"])
+            for row in relation_rows
+            if row["claim_id"] not in superseded
+        ],
+        "superseded_claims": [
+            {
+                "claim_family": row["claim_family"],
+                "superseded_claim_ref": row["superseded_claim_id"],
+                "superseding_claim_ref": row["superseding_claim_id"],
+                "event_ref": row["event_id"],
+            }
+            for row in supersession_rows
+        ],
         "authority": dict(AUTHORITY),
     }
 

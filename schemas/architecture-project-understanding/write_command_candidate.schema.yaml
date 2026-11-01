@@ -1,12 +1,14 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
 title: Architecture Project Understanding Write Command Candidate
 description: >-
-  Immutable preparation of one bounded APU write from a reviewed mapping. It is
+  Immutable preparation of one bounded APU write from a reviewed candidate. It is
   not executable and does not itself confirm identity, mutate APU, admit Evidence
   or authorize an external effect. Target revisions freeze the freshness posture
-  observed at preparation time; application must refuse stale revisions. The
-  operation carries the exact candidate source representation and identity
-  relation that the server may apply after separate authorization.
+  observed at preparation time; application must refuse stale revisions.
+  add_match_to_existing_object carries the exact candidate source representation
+  and identity relation. add_claim and supersede_claim carry one exact candidate
+  attribute or relation claim from a reviewed Observation Bundle; supersede_claim
+  also names the one claim it replaces. Every applied claim stays candidate.
 type: object
 additionalProperties: false
 required:
@@ -17,15 +19,14 @@ required:
   - source_mapping_result_ref
   - source_mapping_ref
   - source_review_ref
-  - source_representation
-  - identity_relation_claim
   - expected_owner_revision
-  - expected_object_revision
   - payload_digest
   - authority
 properties:
   command_id: { type: string, minLength: 1 }
-  operation: { const: add_match_to_existing_object }
+  operation:
+    type: string
+    enum: [add_match_to_existing_object, add_claim, supersede_claim]
   project_ref: { type: string, minLength: 1 }
   source_execution_result_ref: { type: string, minLength: 1 }
   source_mapping_result_ref: { type: string, minLength: 1 }
@@ -66,6 +67,33 @@ properties:
     type: integer
     minimum: 1
     description: Target stable-object revision observed when the command was prepared.
+  claim_family:
+    type: string
+    enum: [attribute, relation]
+  claim:
+    description: >-
+      Exact candidate claim selected by the review, copied unchanged from the
+      reviewed Observation Bundle. Identity relations (identity.*) are not claim
+      writes: alignment stays with add_match_to_existing_object and the identity
+      lifecycle (merge, split, supersession of objects) is not opened here.
+    oneOf:
+      - allOf:
+          - $ref: "attribute_claim.schema.yaml"
+          - properties:
+              proof_status: { const: candidate }
+            required: [proof_status]
+      - allOf:
+          - $ref: "relation_claim.schema.yaml"
+          - properties:
+              proof_status: { const: candidate }
+              relation_type: { not: { pattern: "^identity\\." } }
+            required: [proof_status, relation_type]
+  superseded_claim_ref:
+    description: >-
+      The one claim of the same family, subject and attribute key (or relation
+      type) that this claim replaces. The replaced claim is kept, never edited.
+    type: string
+    minLength: 1
   rationale: { type: string, minLength: 3 }
   payload_digest: { type: string, pattern: "^[a-f0-9]{64}$" }
   prepared_by: { type: string, minLength: 1 }
@@ -91,6 +119,38 @@ properties:
       is_memory: { const: false }
       is_apu_write: { const: false }
       authorizes_external_effect: { const: false }
+allOf:
+  - if:
+      properties:
+        operation: { const: add_match_to_existing_object }
+      required: [operation]
+    then:
+      required: [source_representation, identity_relation_claim, expected_object_revision]
+      not:
+        anyOf:
+          - required: [claim]
+          - required: [claim_family]
+          - required: [superseded_claim_ref]
+  - if:
+      properties:
+        operation: { enum: [add_claim, supersede_claim] }
+      required: [operation]
+    then:
+      required: [claim_family, claim]
+      not:
+        anyOf:
+          - required: [source_representation]
+          - required: [identity_relation_claim]
+          - required: [expected_object_revision]
+  - if:
+      properties:
+        operation: { const: supersede_claim }
+      required: [operation]
+    then:
+      required: [superseded_claim_ref]
+    else:
+      not:
+        required: [superseded_claim_ref]
 x-boundary:
   runtime_execution: false
   provider_routing: false

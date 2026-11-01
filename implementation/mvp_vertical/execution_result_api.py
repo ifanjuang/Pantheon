@@ -255,6 +255,7 @@ def install_execution_result_routes(
                     mapping_ref=mapping_ref,
                     action=str(payload.get("action") or ""),
                     selected_stable_object_ref=payload.get("selected_stable_object_ref"),
+                    superseded_claim_ref=payload.get("superseded_claim_ref"),
                     clarification_question=payload.get("clarification_question"),
                     note=payload.get("note"),
                     reviewer=actor,
@@ -268,7 +269,7 @@ def install_execution_result_routes(
             "review": review,
             "mapping_review_recorded": True,
             "write_preparation_allowed": review["action"] in {
-                "select_existing_object", "mark_unmatched"
+                "select_existing_object", "mark_unmatched", "accept_claim_candidate"
             },
             "apu_mutated": False,
             "stable_identity_confirmed": False,
