@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "max_depth": 8,
+  "reconcile_seconds": 300,
+  "watch_debounce_ms": 500,
+  "settle_observations": 2,
+  "missing_source_grace_seconds": 86400,
+  "excluded_folders": [
+    "Archive",
+    "Archives"
+  ],
+  "vaults": [
+    {
+      "name": "Affaires",
+      "root": "/mnt/AGENCY/PROJECTS/AFFAIRES",
+      "mount_root": "/mnt/AGENCY/PROJECTS",
+      "bank_id": "PROJECTS",
+      "source_kind": "project-sync",
+      "metadata_profile": "affaires",
+      "max_depth": 8,
+      "parser": "markitdown",
+      "max_file_mb": 100,
+      "project_overview_prompt": "Rédige en français un aperçu concis du projet « {project} » à partir uniquement des observations Hindsight consolidées dans le périmètre exact de ce projet. Organise la réponse en rubriques courtes : objet et localisation si établis ; maître d’ouvrage et intervenants nommés avec leurs rôles ; phase et état connus ; décisions et contraintes importantes ; dates et échéances ; principaux sujets techniques ou lots ; questions ouvertes et risques explicitement signalés. Distingue les faits établis des éléments incertains, contradictoires ou anciens. Pour les éléments importants, indique le titre de la pièce source et son indice, sa date ou son émetteur seulement si ces informations sont présentes dans les observations. Ne déduis pas quelle version est la plus récente sans preuve, ne résous pas silencieusement les contradictions, ne fabrique ni faits ni liens vers les fichiers et ne formule pas d’avis juridique ou technique. Si les observations sont insuffisantes, indique-le clairement. Reste bref et rappelle que les pièces originales font foi."
+    },
+    {
+      "name": "Bibliotheque",
+      "root": "/mnt/AGENCY/LIBRARY",
+      "mount_root": "/mnt/AGENCY/LIBRARY",
+      "bank_id": "KNOWLEDGE",
+      "source_kind": "knowledge",
+      "metadata_profile": "bibliotheque",
+      "max_depth": 1,
+      "parser": "markitdown",
+      "max_file_mb": 100
+    }
+  ]
+}
