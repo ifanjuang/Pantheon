@@ -28,6 +28,15 @@
   APU write authorizations are now ordered by write time (`clock_timestamp()`),
   so a rejection written after an authorization always wins.
 
+- Workspace Cockpit multi-vault (catch-up of the state running on the
+  reference node): one coordinator producer for Affaires and Bibliotheque with
+  a shared SQLite index and processing queue (preflight, OCR, Hindsight lanes,
+  per-lane/per-document pause, retry/continue), metadata preflight (date, index,
+  issuer candidates with page and evidence), retained OCR derivatives, worker
+  observability and a read-only OTEL span log. Node values (roots, mounts,
+  banks, state database, vision model) are bindings outside Git. The unused
+  per-file raw-text representation of #64 is retired.
+
 ## 0.1.66 - 2026-09-10
 
 Hermes-first test checkpoint after the post-0.1.65 convergence cycle. This

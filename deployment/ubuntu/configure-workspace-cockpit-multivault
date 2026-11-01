@@ -1,0 +1,233 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+INSTALL_ROOT="/opt/pantheon-workspace-cockpit"
+COCKPIT_UNIT="pantheon-workspace-cockpit.service"
+DROPIN_DIR="/etc/systemd/system/${COCKPIT_UNIT}.d"
+DROPIN="${DROPIN_DIR}/50-multivault.conf"
+STATE_DB="${WORKSPACE_STATE_DB:-/var/lib/pantheon-workspace-cockpit/multivault.sqlite3}"
+PROFILE_CONFIG="/etc/pantheon-workspace-producers/vaults.json"
+BIND_ADDRESS="127.0.0.1"
+PORT="8189"
+SOURCE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../implementation/workspace_cockpit" && pwd)"
+MODE="check"
+
+usage() {
+  cat <<'EOF'
+Usage: configure-workspace-cockpit-multivault [--check|--apply] [--state-db FILE] [--profile-config FILE]
+
+Vault roots and NAS mounts are read from the node's producer profile
+(default /etc/pantheon-workspace-producers/vaults.json, installed by
+configure-workspace-multivault-producer). The state database defaults to
+$WORKSPACE_STATE_DB or /var/lib/pantheon-workspace-cockpit/multivault.sqlite3.
+
+Configure the read-only Cockpit to use the shared Affaires/Bibliotheque index
+and processing queue database. --apply backs up the prior UI assets and drop-in,
+installs the queue view and multivault status, restarts only Cockpit, and rolls back on failed checks.
+The queue must remain globally paused; this command never starts a producer or
+Hindsight and never changes bank data.
+EOF
+}
+
+die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+
+while (($#)); do
+  case "$1" in
+    --check) MODE=check ;;
+    --apply) MODE=apply ;;
+    --state-db) STATE_DB="${2:?missing SQLite path}"; shift ;;
+    --profile-config) PROFILE_CONFIG="${2:?missing profile path}"; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) die "unknown option: $1" ;;
+  esac
+  shift
+done
+
+[[ -f "$STATE_DB" ]] || die "shared state database missing: $STATE_DB"
+[[ -f "$SOURCE_ROOT/static/index.html" ]] || die "source index.html missing"
+[[ -f "$SOURCE_ROOT/static/vendor/sortable-1.15.7.min.js" ]] || die "local SortableJS asset missing"
+[[ -f "$SOURCE_ROOT/static/vendor/COOLICONS-LICENSE.txt" ]] || die "Coolicons license missing"
+[[ -f "$SOURCE_ROOT/processing_queue.py" ]] || die "source processing_queue.py missing"
+[[ -f "$SOURCE_ROOT/server.py" ]] || die "source server.py missing"
+[[ -f "$INSTALL_ROOT/server.py" ]] || die "Cockpit runtime missing"
+[[ -f "$PROFILE_CONFIG" ]] || die "vault profile missing: $PROFILE_CONFIG"
+# Read the Affaires and Bibliotheque roots and their mounts from the node profile.
+vault_lines="$(PYTHONPATH="$SOURCE_ROOT" python3 - "$PROFILE_CONFIG" <<'PY'
+import sys
+from pathlib import Path
+from vault_profiles import load_vault_configuration
+config = load_vault_configuration(Path(sys.argv[1]))
+by_profile = {v.metadata_profile: v for v in config.vaults}
+missing = {"affaires", "bibliotheque"} - set(by_profile)
+if missing:
+    raise SystemExit("vault profile lacks: " + ", ".join(sorted(missing)))
+for key in ("affaires", "bibliotheque"):
+    v = by_profile[key]
+    print(f"{v.root}\t{v.mount_root}")
+PY
+)" || die "vault profile is invalid: $PROFILE_CONFIG"
+IFS=$'\t' read -r AFFAIRES_ROOT AFFAIRES_MOUNT <<<"$(sed -n 1p <<<"$vault_lines")"
+IFS=$'\t' read -r LIBRARY_ROOT LIBRARY_MOUNT <<<"$(sed -n 2p <<<"$vault_lines")"
+mountpoint -q "$AFFAIRES_MOUNT" || die "Affaires NAS mount is unavailable: $AFFAIRES_MOUNT"
+mountpoint -q "$LIBRARY_MOUNT" || die "Bibliotheque NAS mount is unavailable: $LIBRARY_MOUNT"
+[[ -d "$AFFAIRES_ROOT" && -d "$LIBRARY_ROOT" ]] || die "a configured vault root is unavailable"
+
+python3 - "$STATE_DB" <<'PY'
+import sqlite3, sys
+p = sys.argv[1]
+c = sqlite3.connect(f"file:{p}?mode=ro", uri=True)
+if c.execute("PRAGMA quick_check").fetchone()[0] != "ok":
+    raise SystemExit("shared database quick_check failed")
+try:
+    rows = c.execute("SELECT scope, paused FROM processing_controls").fetchall()
+except sqlite3.Error as exc:
+    raise SystemExit(f"queue controls unavailable: {exc}")
+if ("global", 1) not in rows:
+    raise SystemExit("global processing pause is not active; refusing Cockpit cutover")
+for workspace in ("Affaires", "Bibliotheque"):
+    count = c.execute("SELECT count(*) FROM hindsight_sync WHERE workspace=?", (workspace,)).fetchone()[0]
+    if count < 1:
+        raise SystemExit(f"shared index has no Hindsight sync rows for {workspace}")
+print("Shared index healthy; both vaults present; global processing pause active.")
+PY
+
+if [[ "$MODE" == check ]]; then
+  printf '%s\n' "Cockpit source HTML: $SOURCE_ROOT/static/index.html" \
+    "Shared DB: $STATE_DB" \
+    "Roots: Affaires=$AFFAIRES_ROOT; Bibliotheque=$LIBRARY_ROOT" \
+    "Would install drop-in: $DROPIN" \
+    'Would restart only pantheon-workspace-cockpit.service; producers and Hindsight remain untouched.'
+  exit 0
+fi
+
+[[ "$(id -u)" -eq 0 ]] || die "run --apply with sudo"
+systemctl is-active --quiet "$COCKPIT_UNIT" || die "Cockpit must be active before applying the reversible cutover"
+COORDINATOR_STATE="$(systemctl is-active pantheon-workspace-multivault-producer.service || true)"
+for unit in pantheon-affaires-producer.service pantheon-bibliotheque-producer.service pantheon-hindsight-native.service; do
+  if systemctl is-active --quiet "$unit"; then die "$unit is active; stop before Cockpit cutover"; fi
+done
+
+backup="/srv/pantheon/backups/cockpit-multivault-cutover-$(date -u +%Y%m%dT%H%M%SZ)"
+install -d -m 0750 "$backup"
+install -d -m 0755 "$INSTALL_ROOT/static/vendor"
+for relative in server.py hermes_workspace_chat.py otel_projection.py processing_queue.py worker_observability.py static/app.js static/index.html static/styles.css static/vendor/hermes-agent-light.svg static/vendor/sortable-1.15.7.min.js static/vendor/SORTABLE-LICENSE.txt static/vendor/COOLICONS-LICENSE.txt; do
+  install -d -m 0755 "$backup/$(dirname "$relative")"
+  if [[ -f "$INSTALL_ROOT/$relative" ]]; then
+    cp -a "$INSTALL_ROOT/$relative" "$backup/$relative.before"
+  else
+    : >"$backup/$relative.was-absent"
+  fi
+done
+if [[ -e "$DROPIN" ]]; then cp -a "$DROPIN" "$backup/50-multivault.conf.before"; else : >"$backup/dropin-was-absent"; fi
+printf 'Backup: %s\n' "$backup"
+
+rollback() {
+  local rc=$?
+  if ((rc != 0)); then
+    printf '%s\n' 'Cutover verification failed; restoring previous Cockpit assets/drop-in.' >&2
+    for relative in server.py otel_projection.py processing_queue.py worker_observability.py static/app.js static/index.html static/styles.css static/vendor/sortable-1.15.7.min.js static/vendor/SORTABLE-LICENSE.txt static/vendor/COOLICONS-LICENSE.txt; do
+      if [[ -f "$backup/$relative.was-absent" ]]; then
+        rm -f "$INSTALL_ROOT/$relative"
+      else
+        install -D -m 0644 "$backup/$relative.before" "$INSTALL_ROOT/$relative" || true
+      fi
+    done
+    if [[ -f "$backup/dropin-was-absent" ]]; then rm -f "$DROPIN"; else install -m 0644 "$backup/50-multivault.conf.before" "$DROPIN"; fi
+    systemctl daemon-reload || true
+    systemctl restart "$COCKPIT_UNIT" || true
+    printf 'Rollback backup: %s\n' "$backup" >&2
+  fi
+  exit "$rc"
+}
+trap rollback EXIT
+
+for relative in server.py otel_projection.py processing_queue.py worker_observability.py static/app.js static/index.html static/styles.css static/vendor/sortable-1.15.7.min.js static/vendor/SORTABLE-LICENSE.txt static/vendor/COOLICONS-LICENSE.txt; do
+  install -m 0644 "$SOURCE_ROOT/$relative" "$INSTALL_ROOT/$relative"
+  cmp -s "$SOURCE_ROOT/$relative" "$INSTALL_ROOT/$relative" || die "installed file differs from source: $relative"
+done
+install -d -m 0755 "$DROPIN_DIR"
+cat >"$DROPIN" <<EOF
+[Unit]
+Requires=
+After=
+After=network.target
+RequiresMountsFor=$AFFAIRES_ROOT $LIBRARY_ROOT
+
+[Service]
+EnvironmentFile=-/etc/pantheon-workspace-cockpit/hermes-chat.env
+ExecStart=
+ExecStart=/usr/bin/python3 $INSTALL_ROOT/server.py --projection-only --host $BIND_ADDRESS --port $PORT --max-depth 8 --state-db $STATE_DB --processing-queue-db $STATE_DB --root Affaires=$AFFAIRES_ROOT --root Bibliotheque=$LIBRARY_ROOT
+EOF
+chmod 0644 "$DROPIN"
+systemctl daemon-reload
+systemctl restart "$COCKPIT_UNIT"
+
+python3 - "$BIND_ADDRESS" "$PORT" "$SOURCE_ROOT/static/vendor/sortable-1.15.7.min.js" <<'PY'
+import hashlib, json, pathlib, sys, time, urllib.request
+base = f"http://{sys.argv[1]}:{sys.argv[2]}/workspace"
+source_sortable_sha256 = hashlib.sha256(pathlib.Path(sys.argv[3]).read_bytes()).hexdigest()
+last = None
+for _ in range(30):
+    try:
+        with urllib.request.urlopen(base + "/api/processing-queue", timeout=2) as r:
+            data = json.load(r)
+        if not isinstance(data.get("items"), list):
+            raise RuntimeError("queue response has no items array")
+        if not any(c.get("scope") == "global" and c.get("paused") for c in data.get("controls", [])):
+            raise RuntimeError("global pause not visible in Cockpit queue API")
+        with urllib.request.urlopen(base + "/", timeout=2) as r:
+            html = r.read().decode("utf-8")
+        if 'id="processing-view"' not in html or 'id="processing-toggle"' not in html or 'id="processing-errors"' in html:
+            raise RuntimeError("deployed Cockpit HTML does not include the processing view")
+        with urllib.request.urlopen(base + "/app.js", timeout=2) as r:
+            app = r.read().decode("utf-8")
+        if "Coordinateur multivault arrêté" not in app or "Source Bibliothèque" not in app:
+            raise RuntimeError("deployed Cockpit JavaScript does not include multivault status")
+        if 'const processingErrors' in app or 'processing-errors' in app or 'processingErrors.replaceChildren' in app:
+            raise RuntimeError("deployed Cockpit still separates errors from the shared processing list")
+        if 'move: { workspace: movedItem[0], document_id: movedItem[1] }' not in app:
+            raise RuntimeError("deployed Cockpit does not use compact single-item ordering")
+        with urllib.request.urlopen(base + "/vendor/sortable-1.15.7.min.js", timeout=2) as r:
+            sortable_bytes = r.read()
+            sortable = sortable_bytes.decode("utf-8")
+        if "Sortable 1.15.7" not in sortable:
+            raise RuntimeError("deployed local SortableJS asset is missing or unexpected")
+        if hashlib.sha256(sortable_bytes).hexdigest() != source_sortable_sha256:
+            raise RuntimeError("deployed Cockpit serves a different local SortableJS asset")
+        if 'handle: "[data-processing-handle]"' not in app or "forceFallback: true" not in app:
+            raise RuntimeError("deployed Cockpit list is not configured for handle-only touch sorting")
+        if 'sortable-1.15.7.min.js' not in html or 'app.js?' not in html:
+            raise RuntimeError("deployed Cockpit HTML does not request the current local sorting assets")
+        with urllib.request.urlopen(base + "/styles.css", timeout=2) as r:
+            css = r.read().decode("utf-8")
+        dark_palette = (
+            "color-scheme: dark;",
+            "--ink: #d0d2d5;",
+            "--paper: #1d1f22;",
+            "--surface: #26282c;",
+            "--line: #55585e;",
+        )
+        if not all(token in css for token in dark_palette):
+            raise RuntimeError("deployed Cockpit stylesheet does not serve the expected dark palette")
+        with urllib.request.urlopen(base + "/api/producers/status", timeout=2) as r:
+            status = json.load(r)
+        if status.get("coordinator", {}).get("unit") != "pantheon-workspace-multivault-producer.service":
+            raise RuntimeError("Cockpit is not observing the installed multivault coordinator unit")
+        print(f"Cockpit queue API ready; {len(data['items'])} item(s); global pause visible.")
+        break
+    except Exception as exc:
+        last = exc
+        time.sleep(1)
+else:
+    raise SystemExit(f"Cockpit multivault verification failed: {last}")
+PY
+
+for unit in pantheon-affaires-producer.service pantheon-bibliotheque-producer.service pantheon-hindsight-native.service; do
+  if systemctl is-active --quiet "$unit"; then die "$unit unexpectedly became active"; fi
+done
+if [[ "$(systemctl is-active pantheon-workspace-multivault-producer.service || true)" != "$COORDINATOR_STATE" ]]; then
+  die "coordinator state changed during Cockpit-only cutover"
+fi
+trap - EXIT
+printf '%s\n' 'Cockpit multivault cutover complete; queue remains paused; producer and Hindsight states were not changed.'
+printf 'Backup: %s\n' "$backup"

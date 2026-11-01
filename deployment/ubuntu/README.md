@@ -598,18 +598,18 @@ A failure observed in use is fixed in the preset when it concerns every
 organization, and in the overlay when it is specific to one.
 
 Both presets also declare a named retain strategy, `text` (raw passages of 800
-characters, no fact extraction). It is never the bank's default: it only takes
-effect when a producer asks for it per file. To also keep a raw-text copy of each
-source, searchable within minutes while facts are still being extracted, converge the
-bank first and then enable the producer option:
+characters, no fact extraction). It is never the bank's default and no producer
+currently requests it: the per-file raw-text option was retired in favour of the
+retained OCR derivative path (see `implementation/workspace_cockpit/README.md`).
+
+When a node keeps a local Knowledge-bank context overlay (agency language and
+vocabulary, outside the repository), include it in both checks and future
+convergence commands:
 
 ```bash
-deployment/ubuntu/configure-hindsight-bank --usage projects --apply
-deployment/ubuntu/configure-workspace-producer --set NAME --root PATH --bank BANK --text-strategy text --apply
+sudo deployment/ubuntu/configure-hindsight-bank --usage projects --bank <PROJECTS_BANK> --check
+sudo deployment/ubuntu/configure-hindsight-bank --usage knowledge --bank <KNOWLEDGE_BANK> --overlay /etc/pantheon-workspace-producers/hindsight-knowledge-overlay.json --check
 ```
-
-The producer option is off by default; the search routers must be current before it is
-enabled so that raw passages are presented as quotes, not as fact summaries.
 
 Its project material is not exposed through the direct multi-bank Hindsight MCP.
 Hermes uses the authenticated project router installed by
