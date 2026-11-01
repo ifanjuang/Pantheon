@@ -193,6 +193,94 @@ def check_claim_write(
             raise ApuOwnerConflict(f"claim was already replaced: {superseded_claim_ref}")
 
 
+def check_claim_source_basis(
+    conn: psycopg.Connection,
+    *,
+    project_id: str,
+    claim: dict[str, Any],
+    observation_bundle: dict[str, Any],
+) -> None:
+    """Bind a progressive claim to the exact versioned source in its bundle.
+
+    The owner checks that source representations exist in this Project.
+    This boundary additionally checks that the *reviewed Observation Bundle*
+    actually includes those artifact/version identities. Source freshness
+    tokens and artifact digests are deliberately not equated: they have
+    different, adapter-defined meanings in the existing contracts.
+    """
+    basis = observation_bundle.get("basis")
+    if not isinstance(basis, dict):
+        raise ApuOwnerError("claim Observation Bundle has no source basis")
+    artifact_refs = set(basis.get("source_artifact_refs") or [])
+    version_refs = set(basis.get("source_version_refs") or [])
+    digests = basis.get("exact_digests") or []
+    representations = observation_bundle.get("source_representations") or []
+    if not isinstance(representations, list):
+        raise ApuOwnerError("invalid Observation Bundle source representations")
+
+    refs = list(claim.get("source_representation_refs") or [])
+    subject = claim.get("subject_ref") or {}
+    if subject.get("entity_type") == "source_representation":
+        refs.append(subject.get("entity_id"))
+    refs = list(dict.fromkeys(refs))
+    if not refs or any(not isinstance(ref, str) or not ref for ref in refs):
+        raise ApuOwnerError("progressive claim requires exact source representation provenance")
+
+    linked_versions: set[str] = set()
+    for representation_id in refs:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                "SELECT representation_payload FROM agency_apu_source_representations "
+                "WHERE project_id = %s AND representation_id = %s",
+                (project_id, representation_id),
+            )
+            row = cur.fetchone()
+        if row is None:
+            raise ApuOwnerNotFound(
+                f"source representation is not admitted in this Project: {representation_id}"
+            )
+        stored = dict(row["representation_payload"])
+        artifact = stored.get("source_artifact_ref")
+        version = stored.get("source_version_ref")
+        if artifact not in artifact_refs:
+            raise ApuOwnerError(
+                f"claim source representation is outside Observation Bundle basis: {representation_id}"
+            )
+        if version_refs and version not in version_refs:
+            raise ApuOwnerError(
+                f"claim source representation version is outside Observation Bundle basis: {representation_id}"
+            )
+        if digests:
+            matching = [
+                item for item in digests
+                if isinstance(item, dict) and item.get("source_artifact_ref") == artifact
+            ]
+            if not matching:
+                raise ApuOwnerError(
+                    f"claim source artifact has no exact digest in Observation Bundle basis: {representation_id}"
+                )
+            if any(item.get("source_version_ref") for item in matching) and not any(
+                item.get("source_version_ref") == version for item in matching
+            ):
+                raise ApuOwnerError(
+                    f"claim source version disagrees with Observation Bundle digest basis: {representation_id}"
+                )
+        in_bundle = [
+            item for item in representations
+            if isinstance(item, dict) and item.get("representation_id") == representation_id
+        ]
+        if in_bundle and any(item != stored for item in in_bundle):
+            raise ApuOwnerError(
+                f"claim source representation differs from its admitted version: {representation_id}"
+            )
+        if version:
+            linked_versions.add(version)
+
+    declared_version = (claim.get("validity") or {}).get("source_version_ref")
+    if declared_version and declared_version not in linked_versions:
+        raise ApuOwnerError("claim validity source_version_ref disagrees with its admitted source")
+
+
 def _event_payload(
     command: dict[str, Any],
     *,
