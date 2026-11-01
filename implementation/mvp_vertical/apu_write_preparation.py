@@ -402,6 +402,16 @@ def _validate_claim_command_payload(command: dict[str, Any]) -> None:
         )
 
 
+def _claim_observation_bundle(execution: dict[str, Any], result_ref: str) -> dict[str, Any]:
+    """Recover the exact stored source envelope; a claim is not a free-standing write."""
+    for item in execution.get("results") or []:
+        if item.get("result_id") == result_ref and item.get("result_kind") == "observation_bundle":
+            payload = item.get("payload")
+            if isinstance(payload, dict):
+                return payload
+    raise ApuWritePreparationError("reviewed claim has no exact Observation Bundle source")
+
+
 def _latest_claim_review(
     conn,
     *,
@@ -435,6 +445,7 @@ def _prepare_claim_write_command(
     result_ref: str,
     mapping_ref: str,
     candidate: dict[str, Any],
+    execution: dict[str, Any],
     actor: str,
     key: str,
 ) -> dict[str, Any]:
@@ -457,6 +468,12 @@ def _prepare_claim_write_command(
             claim_family=claim_family,
             claim=claim,
             superseded_claim_ref=superseded,
+        )
+        apu_owner_claims.check_claim_source_basis(
+            conn,
+            project_id=project_ref,
+            claim=claim,
+            observation_bundle=_claim_observation_bundle(execution, result_ref),
         )
     except apu_owner.ApuOwnerError as exc:
         raise _owner_error(exc) from exc
@@ -571,6 +588,7 @@ def prepare_write_command(
             result_ref=result_ref,
             mapping_ref=mapping_ref,
             candidate=claim,
+            execution=execution,
             actor=actor,
             key=key,
         )
@@ -1041,6 +1059,14 @@ def _apply_claim_command(
         )
     authorization = _latest_application_authorization(conn, command)
     try:
+        apu_owner_claims.check_claim_source_basis(
+            conn,
+            project_id=command["project_ref"],
+            claim=claim,
+            observation_bundle=_claim_observation_bundle(
+                execution, command["source_mapping_result_ref"]
+            ),
+        )
         return apu_owner_claims.apply_claim_write(
             conn,
             command=command,
