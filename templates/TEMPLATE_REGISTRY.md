@@ -35,6 +35,8 @@ Pantheon Cockpit     -> governed Cards/navigation/decision/status projections
 | Technical standard review skill candidate | `templates/hermes/skills/technical-standard-review/SKILL.md` | Hermes | exact-edition applicability review | externally installable; bounded conclusions only |
 | Construction schedule review skill candidate | `templates/hermes/skills/construction-schedule-review/SKILL.md` | Hermes | works sequencing and replanning | externally installable; no contractor instruction |
 | Agency project context skill candidate | `templates/hermes/skills/project-context/SKILL.md` | Hermes | skill candidate | externally installable; no authority |
+| Architectural issue framing skill candidate | `templates/hermes/skills/architectural-issue-framing/SKILL.md` | Hermes | professional framing skill candidate | externally installable; no authority |
+| Pantheon distributed work skill candidate | `templates/hermes/skills/pantheon-distributed-work/SKILL.md` | Hermes | runtime work-shape skill candidate | externally installable; no authority |
 | Source research skill candidate | `templates/hermes/skills/source-research/SKILL.md` | Hermes | skill candidate | non-executable |
 | Source research summary Workflow Manifest | `templates/source_research_summary_workflow_manifest.template.yaml` | Pantheon | workflow governance candidate | non-executable |
 | Visual focus skill candidate | `templates/hermes/skills/visual-focus/SKILL.md` | Hermes | skill candidate | non-executable |

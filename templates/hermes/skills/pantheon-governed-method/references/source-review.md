@@ -27,12 +27,15 @@ persisted or spilled over, stay on the Docling route and repeat the request with
 targeted searches and bounded anchor reads. Process one consequential document
 at a time and keep only the extracts needed for the coverage matrix.
 
-For a comparison, resolve the reference source and its comparison perimeter
-before converting candidates. Do not launch several conversions in parallel.
-Complete and classify one bounded read before selecting the next; a tool result
-that merely names a document is not a read. Do not announce a provisional
-comparison, a future result, or an "in progress" table: return only completed
-observations, or state the remaining reads and `ready_with_limits`.
+For a comparison, resolve the reference source and its perimeter before reading
+candidates. Do not run several Docling conversions in parallel. A direct reader
+should complete and classify each dependent read before selecting the next. If
+bounded source questions are independent, parallel readers may be used only when
+`pantheon-distributed-work` confirms effective concurrency and a likely time
+benefit; assign each an exact source/section and do not duplicate conversions.
+A tool result that merely names a document is not a read. Do not announce a
+provisional comparison or an "in progress" table: return completed observations
+or state the remaining reads and `ready_with_limits`.
 
 ### Docling latency and failure posture
 
@@ -115,15 +118,15 @@ derived analysis != source artifact replaced
 
 ## Bounded delegated source review
 
-Use `delegate_task` only for an independent, bounded source question that would
-otherwise flood parent context. Begin with one child at a time. The parent owns
-clarification, synthesis and verification.
+Use `pantheon-distributed-work` for the decision to delegate, worker count,
+dispatch lifecycle and wait/stop behavior. This source-review reference adds
+only the source-specific boundaries below.
 
 Give the child only the needed toolsets:
 
 ```text
 mcp-vault-read
-mcp-hindsight-project
+Hindsight project-recall tool from the configured project vault
 mcp-docling — only after the parent supplies an exact bounded document list
 ```
 
@@ -139,8 +142,10 @@ missing_or_unreadable_material
 limits
 ```
 
-The parent reopens material supporting passages. It may make one corrective
-request with the same scope; then it surfaces the gap.
+The parent reopens material supporting decisive passages. It may make one
+corrective request with the same scope; then it surfaces the gap. A child result
+does not establish that a skill, MCP, Bot, Rite, Space or source route worked;
+verify each capability through its observable runtime trace and owner contract.
 
 ```text
 subagent result != source verification

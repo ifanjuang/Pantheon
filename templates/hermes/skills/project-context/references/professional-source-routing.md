@@ -6,16 +6,24 @@ or professional answer.
 ## Resolve before inspecting
 
 When a task already identifies an accessible exact source in the admitted project,
-read it through `vault-read` without repeating discovery. Otherwise use
-`hindsight-project:recall_project_memory` as the first project lead,
-then `vault-read` to resolve and inspect candidates. Mnemosyne may provide
-continuity after the router; it never proves presence, absence or dossier facts.
+read it through `vault-read` without repeating discovery. Otherwise, if the
+project identity is ambiguous, resolve it first through
+`vault-read:find_vault_projects`; the scoped project recall requires a confirmed
+project identity. For a confirmed project, use the configured
+`hindsight-vault:recall_project_memory` as the first project memory lead, then
+`vault-read` to resolve and inspect candidates. For general references, use
+`hindsight-vault:recall_knowledge_memory`; consult its folder listing only to
+narrow an unsuccessful or explicitly folder-scoped search. Mnemosyne may provide
+conversation continuity, but never proves presence, absence or dossier facts.
 
 If recall supplies a matching document identifier, vault path or filename,
 open the candidate next after verifying its project scope. Do not repeat
 discovery or list a whole dossier first.
 When the identity is materially ambiguous, retain the candidate set and ask one
 targeted question rather than silently selecting a project.
+
+For a named source or bounded request, do not call a full source inventory unless
+the exact source cannot be resolved or completeness across candidates matters.
 
 For a known source whose Hindsight entry is missing, treat this as an indexing
 gap: open it through the admitted local route rather than declaring it absent.
@@ -25,9 +33,48 @@ admitted source location.
 
 ## Sufficiency and representation
 
-An orientation answer may rely on a clearly labelled memory lead when no exact
-fact, current status, calculation, recommendation, rule or action is asked.
-Otherwise inspect the exact source and retain an exact locator.
+For a simple lookup, a sufficiently complete Hindsight/Mnemosyne memory or
+conversation context may answer even when the user requests an exact fact, list
+or count, provided the relevant content, source identity and requested locator
+are already available and the user has not asked to verify the source. Label it
+`de mémoire`, identify the source using its returned or previously established
+title/name and locator (the filesystem filename is not required), and say that
+the document was not reopened. Do not infer completeness or a total from partial
+memory. Offer direct verification as an optional next step.
+
+For a professional, technical, contractual, regulatory or compliance opinion,
+consult the relevant admitted Knowledge/library reference automatically; do not
+ask the user whether to search first. Inspect the exact underlying document when
+the recalled item is truncated, ambiguous, incomplete, edition-sensitive, or
+when the conclusion depends on its exact criteria, wording, completeness or
+applicability. A complete, sufficiently specific Knowledge entry can guide the
+comparison without reopening its original only when the task does not depend on
+those exact-source properties; attribute the guidance to the returned Knowledge
+item, never to an uninspected original. Project-specific facts still require
+inspection of the exact project source when material to the conclusion.
+
+If the user asks to verify or quote the original, confirm its edition or
+completeness, or rely on current authoritative wording/applicability, inspect
+the exact underlying or authoritative source. If the Knowledge entry is
+ambiguous, incomplete or possibly stale, retrieve only the missing evidence and
+state the limitation. A project fact or clause requires inspection of the exact
+project source when it materially supports a professional conclusion. This
+does not apply to a simple lookup that is not being used to support such a
+conclusion.
+
+Keep retrieval bounded: make one focused recall per needed source family, then
+stop when the returned item supports the requested comparison. Make at most one
+targeted follow-up for a named missing criterion. Do not repeat near-identical
+queries or search alternate phrasings without stating what material information
+is still missing; follow any stricter configured recall budget.
+
+If the first Knowledge recall does not identify the reference or leaves a
+material criterion unsupported, one different bounded recovery is allowed:
+inspect the indexed Knowledge folder list once, then make one focused recall
+using the exact relevant folder or a materially different title/acronym. Do not
+keep broadening queries indefinitely. A memory preview or folder listing is a
+locator, not proof of exact document wording, complete library coverage, or
+absence. Report only what the returned scope supports.
 
 Use the least costly admitted representation that can answer the question:
 native text or structured data first; a bounded extraction, visual inspection
@@ -86,11 +133,33 @@ technical/standard/regulatory/legal/method question -> DOCUMENTAIRES
 dossier fact tested against a transversal rule -> AFFAIRES + DOCUMENTAIRES
 ```
 
-Keep the project source and external rule distinct in the return. Record the
-actual binding, exact reference, locator and limitation for every material
-source family. A search result, filename or memory lead without source
-inspection leaves the preflight incomplete. Use the source-preflight receipt
-shape when the task needs a material professional conclusion.
+Keep the vault roles distinct in the return:
+
+- `knowledge` supports transversal concepts, methods, standards and references.
+  Cite the returned document title/name and its available provenance (such as
+  collection/folder, publisher or source context, and version/date when
+  returned). A filename is optional. A memory-only answer must say `de mémoire`
+  and must not imply the source file was opened.
+- `projects` supports facts and records about a specific dossier. Cite the
+  document title, provenance, revision/index and date when available, plus a
+  clickable link to the exact project file when the admitted interface provides
+  one. Do not fabricate a link or turn a raw path into an unsupported URI; if
+  the reader exposes no clickable link, give its exact source locator and say
+  that no clickable link was returned.
+
+For a project fact tested against a transversal reference, report both sources
+separately. Record the actual binding, exact reference, locator and limitation
+for every material source family. A search result, filename or memory lead
+without source inspection leaves the preflight incomplete when the claim
+requires document inspection. Use the source-preflight receipt shape when the
+task needs a material professional conclusion.
+
+Always disclose the evidence mode without waiting to be asked: say `de mémoire`
+when the answer relies on recall and the source was not reopened; say `vérifié
+dans [source, locator]` when directly inspected. For partial reading, qualify
+the statement as verified only in the passages actually read. In mixed answers,
+label recalled context and verified findings separately. Keep this disclosure
+concise; it is a provenance label, not a request for permission to answer.
 
 Before returning a material budget, status, obligation or recommendation,
 surface missing support, freshness, contradiction and capability limits. Use
@@ -105,14 +174,18 @@ two claim families separate through retrieval, inspection and the final answer:
 
 | Claim | Source family | What it can establish |
 |---|---|---|
-| What is specified, observed, decided or recorded for this project | `projects` | The project record, within its date, revision, issuer and validation status |
-| What a law, regulation, standard or professional reference says | `knowledge` or the current official source | The cited text, edition/date, scope and conditions; not project compliance by itself |
+| What is specified, observed, decided or recorded for this project | `projects` | The project record, with title, provenance, revision/date and clickable file link when exposed; not facts beyond the inspected scope |
+| What an admitted Knowledge entry represents | `knowledge` | The returned summary/criteria and available provenance, cited by source title/name; not exact wording of an uninspected original |
+| What a law, regulation, standard or current authoritative reference says | `knowledge` or the current official source | The inspected text, edition/date, scope and conditions; not project compliance by itself |
 | Whether the project condition satisfies the applicable rule | Both, plus applicability facts | A bounded comparison candidate; not professional approval or certification |
 
 Do not treat project memory as the project source: use recall to locate the
 record, then inspect the exact project document for a material project fact.
-Likewise, a standards recall locates a reference but does not establish its
-wording, edition or applicability; inspect the exact passage.
+A Knowledge entry can be used as the comparison basis when the requested
+question is about that stored guidance; it does not establish exact wording,
+edition, completeness or current applicability of its underlying source. For
+those claims, inspect the exact passage in the original or current authoritative
+reference.
 
 When two inspected sources appear inconsistent, compare the same claim and
 conditions before calling it a contradiction. Check that they concern the same
