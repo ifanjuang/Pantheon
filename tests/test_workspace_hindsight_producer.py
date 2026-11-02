@@ -944,6 +944,23 @@ def test_one_producer_routes_each_vault_to_its_own_hindsight_bank(tmp_path: Path
     assert library_client.retains[0]["metadata"]["metadata_preflight_profile"] == "bibliotheque"
 
 
+def test_missing_pdftotext_still_retains_the_pdf_without_preflight_metadata(tmp_path: Path) -> None:
+    """A missing Poppler utility leaves the normal source-retain path untouched."""
+    module = _module()
+    (tmp_path / "Notice.pdf").write_bytes(b"%PDF-no-poppler")
+    client = FakeClient()
+    producer = module.HindsightProducer(
+        roots=[("Affaires", tmp_path)],
+        state_db=tmp_path / "state.sqlite3",
+        client=client,
+        processing_queue_db=tmp_path / "queue.sqlite3",
+    )
+    with patch("shutil.which", return_value=None):
+        _first_queued_reconcile(producer, _snapshot(_card()))
+    assert len(client.retains) == 1
+    assert client.retains[0]["metadata"]["metadata_preflight_status"] == "extractor_unavailable"
+
+
 def test_raw_status_preserves_existing_derived_ocr_state() -> None:
     module = _module()
     assert module._with_raw_ocr_status(["project:alpha", "ocr:partial"]) == [

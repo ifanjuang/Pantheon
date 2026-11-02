@@ -2539,7 +2539,11 @@ class HindsightProducer:
                 cached = json.loads(str(row["result_json"]))
                 if isinstance(cached, dict):
                     result = PreflightResult.from_dict(cached)
-                    if result.status != "extractor_unavailable":
+                    # A cached unavailable extractor is a valid result for dispatch: the
+                    # source is retained without preflight metadata (README contract).
+                    # Only the worker path re-extracts, so installing Poppler later
+                    # refreshes the candidates.
+                    if result.status != "extractor_unavailable" or not allow_extract:
                         if source_path is not None:
                             self._link_preflight_source(
                                 workspace, source_path, source_sha256, cache_key

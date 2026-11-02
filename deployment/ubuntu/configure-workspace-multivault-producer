@@ -60,6 +60,10 @@ done
   || die "state database path must be absolute and contain no whitespace"
 [[ -d "$SOURCE_ROOT" && -f "$SOURCE_ROOT/producer_daemon.py" ]] || die "multi-vault producer source is incomplete"
 command -v python3 >/dev/null || die "python3 is required"
+for tool in pdftotext pdfinfo; do
+  command -v "$tool" >/dev/null \
+    || log "warning: $tool (poppler-utils) is missing; PDFs are retained without metadata preflight"
+done
 [[ -n "$SERVICE_USER" ]] || die "service user is required: pass --user USER or run through sudo"
 id "$SERVICE_USER" >/dev/null 2>&1 || die "service user does not exist: $SERVICE_USER"
 [[ -r "$ENV_PATH" ]] || die "shared Hindsight environment file is missing: $ENV_PATH"
