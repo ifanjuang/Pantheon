@@ -3961,12 +3961,9 @@ class HindsightProducer:
             and self._submission_dispatcher_thread is not None
             and self._submission_dispatcher_thread.is_alive()
         )
-        if dispatcher_enabled:
-            with self._submission_cache_lock:
-                self._submission_candidates = dict(candidates)
-            self.wake_submission_dispatcher()
-
-        for key, candidate in ([] if dispatcher_enabled else ordered_candidates):
+        # With the dispatcher running, reconciliation still observes stability,
+        # prepares preflight and queues documents; only the upload is delegated.
+        for key, candidate in ordered_candidates:
             # Keep the single Hindsight submission lane on the document that
             # observed the last connection refusal until that request succeeds.
             if unavailable_retry_keys and key not in unavailable_retry_keys:
@@ -4205,7 +4202,7 @@ class HindsightProducer:
                     preflight_status="ANALYZED", clear_error=True,
                 )
 
-            if submitted >= self.max_submits_per_reconcile:
+            if dispatcher_enabled or submitted >= self.max_submits_per_reconcile:
                 self._save(
                     candidate,
                     hindsight_document_id=key,
@@ -4456,6 +4453,11 @@ class HindsightProducer:
                 "last_error": None,
                 "tags_json": json.dumps(tags, ensure_ascii=False),
             }
+
+        if dispatcher_enabled:
+            with self._submission_cache_lock:
+                self._submission_candidates = dict(candidates)
+            self.wake_submission_dispatcher()
 
         available_workspaces = {
             str(workspace.get("name"))
