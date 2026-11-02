@@ -92,13 +92,6 @@ manual professional descriptions
 scans / point clouds
 ```
 
-The `source_kind` vocabulary is closed: `revit`, `ifc`, `drawing`,
-`drawing_takeoff`, `cad_drawing` (DWG/DXF), `document` (written documents:
-specification, bill of quantities, minutes, reports), `email`, `image`, `photo`,
-`manual`, `scan`, `point_cloud`, `other`. A kind names the family of source, not
-a reader: naming `cad_drawing` or `email` does not mean that a qualified reader
-exists for it.
-
 A representation may exist before Pantheon knows which stable object it represents.
 
 Where applicable it preserves:
@@ -785,5 +778,14 @@ APU claim != order, decision or reservation
   (`doc_document_versions`).
 - Persistence-side enforcement of the `architecture@1` relation vocabulary.
 
-Implemented since the first version of this section: `ESQ` in the phase
-vocabularies, and the `document`, `email` and `cad_drawing` source kinds (§4).
+Vocabularies — decided 2026-11-02, not implemented. The phase codes (for
+example `ESQ`, missing today from the Project Anatomy and proof-register
+schemas) and the `source_kind` values (for example written documents, e-mails
+and CAD drawings, which are labelled `other` today) move out of the schemas into
+governed vocabulary registries under `registries/`, in the manner of the
+`architecture@1` relation profile. The agency may add values through a local
+file kept outside the public repository, add-only: it cannot change or remove a
+value of the repository registry. The phases a project goes through are declared
+per project as it advances, with the date each declaration takes effect; a claim
+whose phase is not among the phases declared by its project is reported as a
+limitation, not refused. Until then the closed lists stay in force.

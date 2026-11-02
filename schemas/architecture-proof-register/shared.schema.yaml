@@ -35,7 +35,7 @@ $defs:
     minimum: 0
   phase_code:
     type: string
-    enum: [DIAG, ESQ, APS, APD, PRO, DCE, ACT, EXE, VISA, DET, OPC, AOR, DOE, GPA, AGENCY_LIBRARY, GLOBAL_REFERENCE]
+    enum: [DIAG, APS, APD, PRO, DCE, ACT, EXE, VISA, DET, OPC, AOR, DOE, GPA, AGENCY_LIBRARY, GLOBAL_REFERENCE]
   scope_type:
     type: string
     enum: [project, phase, lot, agency_library, global_reference, external_project_subset]

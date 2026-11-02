@@ -54,8 +54,7 @@ CREATE TABLE IF NOT EXISTS agency_apu_source_representations (
     project_id TEXT NOT NULL REFERENCES agency_projects(project_id) ON DELETE RESTRICT,
     source_kind TEXT NOT NULL CHECK (
         source_kind IN (
-            'revit', 'ifc', 'drawing', 'drawing_takeoff', 'cad_drawing',
-            'document', 'email', 'image',
+            'revit', 'ifc', 'drawing', 'drawing_takeoff', 'image',
             'photo', 'manual', 'scan', 'point_cloud', 'other'
         )
     ),
@@ -75,30 +74,6 @@ CREATE TABLE IF NOT EXISTS agency_apu_source_representations (
     CHECK (representation_payload ->> 'source_kind' = source_kind),
     CHECK (representation_payload ->> 'proof_status' = proof_status)
 );
-
--- An owner installed before cad_drawing / document / email were admitted keeps
--- the narrower source_kind check (CREATE TABLE IF NOT EXISTS does not change an
--- existing table). Replace it once; later runs find the new definition and skip.
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint
-         WHERE conrelid = 'agency_apu_source_representations'::regclass
-           AND conname = 'agency_apu_source_representations_source_kind_check'
-           AND pg_get_constraintdef(oid) LIKE '%cad_drawing%'
-    ) THEN
-        ALTER TABLE agency_apu_source_representations
-            DROP CONSTRAINT IF EXISTS agency_apu_source_representations_source_kind_check;
-        ALTER TABLE agency_apu_source_representations
-            ADD CONSTRAINT agency_apu_source_representations_source_kind_check
-            CHECK (source_kind IN (
-                'revit', 'ifc', 'drawing', 'drawing_takeoff', 'cad_drawing',
-                'document', 'email', 'image',
-                'photo', 'manual', 'scan', 'point_cloud', 'other'
-            ));
-    END IF;
-END;
-$$;
 
 CREATE INDEX IF NOT EXISTS agency_apu_source_representations_project_lookup
     ON agency_apu_source_representations (project_id, source_kind, representation_id);
