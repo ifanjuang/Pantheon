@@ -7,10 +7,14 @@ sources independently, without granting a document any governance status.
 from __future__ import annotations
 
 import difflib
+import json
+from urllib.error import HTTPError, URLError
 import os
 import re
 import unicodedata
 from pathlib import Path
+from urllib.parse import urlencode, urlparse
+from urllib.request import urlopen
 
 
 MAX_PROJECTS = 12
@@ -245,6 +249,48 @@ class VaultSources:
         if path.stat().st_size > MAX_MARKDOWN_BYTES:
             raise VaultSourceError("Markdown source exceeds the bounded reader limit")
         return path, family
+
+    def read_ocr_markdown(
+        self, workspace: str, document_id: str, source_sha256: str,
+        start_line: int = 1, max_lines: int = 24,
+    ) -> dict:
+        """Read a bounded OCR derivative through Cockpit's identity-scoped endpoint."""
+        if not isinstance(workspace, str) or not workspace.strip() or len(workspace) > 128 or any(ord(char) < 32 for char in workspace):
+            raise VaultSourceError("workspace must be an exact vault name")
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,159}", document_id):
+            raise VaultSourceError("document_id must be an exact technical identity")
+        if not re.fullmatch(r"[0-9a-fA-F]{64}", source_sha256):
+            raise VaultSourceError("source_sha256 must be an exact 64-character checksum")
+        start = _bounded(start_line, 2**31 - 1, "start_line")
+        count = _bounded(max_lines, MAX_LINES, "max_lines")
+        endpoint = os.environ.get(
+            "VAULT_OCR_API_URL",
+            "http://127.0.0.1:8189/workspace/api/ocr-markdown",
+        ).strip()
+        parsed = urlparse(endpoint)
+        if parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost", "::1"} or not parsed.path:
+            raise VaultSourceError("VAULT_OCR_API_URL must use the local Cockpit HTTP endpoint")
+        query = urlencode({
+            "workspace": workspace,
+            "document_id": document_id,
+            "source_sha256": source_sha256.casefold(),
+            "format": "json",
+            "start_line": str(start),
+            "max_lines": str(count),
+        })
+        try:
+            with urlopen(f"{endpoint}?{query}", timeout=8) as response:
+                payload = json.loads(response.read(512 * 1024).decode("utf-8"))
+        except HTTPError as exc:
+            reason = "ocr_artifact_not_found" if exc.code == 404 else f"cockpit_http_{exc.code}"
+            raise VaultSourceError(reason) from exc
+        except (URLError, TimeoutError, OSError) as exc:
+            raise VaultSourceError("cockpit_ocr_reader_unavailable") from exc
+        except (UnicodeError, json.JSONDecodeError) as exc:
+            raise VaultSourceError("cockpit_ocr_reader_invalid_response") from exc
+        if not isinstance(payload, dict) or payload.get("status") != "ocr_source":
+            raise VaultSourceError("cockpit_ocr_reader_invalid_response")
+        return payload
 
     def _located(self, source_path: str, project_ref: str, suffix: str, kind: str) -> tuple[Path, str]:
         supplied = Path(source_path)

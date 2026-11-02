@@ -2168,6 +2168,16 @@ class HindsightProducer:
         finally:
             connection.close()
 
+    def _sync_row(self, key: str) -> dict[str, Any] | None:
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                f"SELECT * FROM {SYNC_TABLE} WHERE hindsight_document_id = ?", (key,)
+            ).fetchone()
+            return dict(row) if row is not None else None
+        finally:
+            connection.close()
+
     def _states(self) -> dict[str, dict[str, Any]]:
         connection = self._connect()
         try:
@@ -2539,7 +2549,11 @@ class HindsightProducer:
                 cached = json.loads(str(row["result_json"]))
                 if isinstance(cached, dict):
                     result = PreflightResult.from_dict(cached)
-                    if result.status != "extractor_unavailable":
+                    # A cached unavailable extractor is a valid result for dispatch: the
+                    # source is retained without preflight metadata (README contract).
+                    # Only the worker path re-extracts, so installing Poppler later
+                    # refreshes the candidates.
+                    if result.status != "extractor_unavailable" or not allow_extract:
                         if source_path is not None:
                             self._link_preflight_source(
                                 workspace, source_path, source_sha256, cache_key
@@ -3701,6 +3715,16 @@ class HindsightProducer:
             for key, candidate in candidates.items():
                 row = states.get(key)
                 sync_status = str(row.get("status") or "") if row else ""
+                if (
+                    sync_status == "COMPLETED"
+                    and row.get("source_sha256")
+                    and row.get("source_sha256") != candidate.source_sha256
+                ):
+                    # Only an older source version is memorized. Do not project it
+                    # onto the queue: that would mark the new version ANALYZED /
+                    # MEMORIZED, so its preflight would never run and it would never
+                    # be retained again.
+                    sync_status = ""
                 queue_status = (
                     "MEMORIZED" if sync_status == "COMPLETED"
                     else "VERIFYING" if sync_status == "VERIFYING"
@@ -3957,12 +3981,9 @@ class HindsightProducer:
             and self._submission_dispatcher_thread is not None
             and self._submission_dispatcher_thread.is_alive()
         )
-        if dispatcher_enabled:
-            with self._submission_cache_lock:
-                self._submission_candidates = dict(candidates)
-            self.wake_submission_dispatcher()
-
-        for key, candidate in ([] if dispatcher_enabled else ordered_candidates):
+        # With the dispatcher running, reconciliation still observes stability,
+        # prepares preflight and queues documents; only the upload is delegated.
+        for key, candidate in ordered_candidates:
             # Keep the single Hindsight submission lane on the document that
             # observed the last connection refusal until that request succeeds.
             if unavailable_retry_keys and key not in unavailable_retry_keys:
@@ -4201,37 +4222,55 @@ class HindsightProducer:
                     preflight_status="ANALYZED", clear_error=True,
                 )
 
-            if submitted >= self.max_submits_per_reconcile:
-                self._save(
-                    candidate,
-                    hindsight_document_id=key,
-                    document_id=candidate.document_id,
-                    workspace=candidate.workspace,
-                    source_path=candidate.relative_path,
-                    source_sha256=candidate.source_sha256,
-                    fingerprint=candidate.fingerprint,
-                    operation_id=None,
-                    status="QUEUED",
-                    tags=tags,
-                )
-                if self.processing_queue is not None:
-                    self.processing_queue.set_status(
-                        candidate.workspace, candidate.document_id,
-                        preflight_status="ANALYZED", hindsight_status="QUEUED",
+            if dispatcher_enabled or submitted >= self.max_submits_per_reconcile:
+                dispatch_lock_held = False
+                if dispatcher_enabled:
+                    # Re-check under the dispatcher lock: the dispatcher may have
+                    # claimed this document since `states` was read, and writing
+                    # QUEUED over its SUBMITTING/SUBMITTED row would upload it twice.
+                    self._submission_dispatch_lock.acquire()
+                    dispatch_lock_held = True
+                try:
+                    if dispatch_lock_held:
+                        current = self._sync_row(key)
+                        if key in self._submission_inflight or (
+                            current is not None
+                            and current.get("status") in ACTIVE_STATUSES | {"VERIFY"}
+                        ):
+                            continue
+                    self._save(
+                        candidate,
+                        hindsight_document_id=key,
+                        document_id=candidate.document_id,
+                        workspace=candidate.workspace,
+                        source_path=candidate.relative_path,
+                        source_sha256=candidate.source_sha256,
+                        fingerprint=candidate.fingerprint,
                         operation_id=None,
+                        status="QUEUED",
+                        tags=tags,
                     )
-                states[key] = {
-                    "hindsight_document_id": key,
-                    "document_id": candidate.document_id,
-                    "workspace": candidate.workspace,
-                    "source_path": candidate.relative_path,
-                    "source_sha256": candidate.source_sha256,
-                    "fingerprint": candidate.fingerprint,
-                    "operation_id": None,
-                    "status": "QUEUED",
-                    "last_error": None,
-                    "tags_json": json.dumps(tags, ensure_ascii=False),
-                }
+                    if self.processing_queue is not None:
+                        self.processing_queue.set_status(
+                            candidate.workspace, candidate.document_id,
+                            preflight_status="ANALYZED", hindsight_status="QUEUED",
+                            operation_id=None,
+                        )
+                    states[key] = {
+                        "hindsight_document_id": key,
+                        "document_id": candidate.document_id,
+                        "workspace": candidate.workspace,
+                        "source_path": candidate.relative_path,
+                        "source_sha256": candidate.source_sha256,
+                        "fingerprint": candidate.fingerprint,
+                        "operation_id": None,
+                        "status": "QUEUED",
+                        "last_error": None,
+                        "tags_json": json.dumps(tags, ensure_ascii=False),
+                    }
+                finally:
+                    if dispatch_lock_held:
+                        self._submission_dispatch_lock.release()
                 continue
 
             # Persist intent before the remote POST. If the process dies after
@@ -4452,6 +4491,11 @@ class HindsightProducer:
                 "last_error": None,
                 "tags_json": json.dumps(tags, ensure_ascii=False),
             }
+
+        if dispatcher_enabled:
+            with self._submission_cache_lock:
+                self._submission_candidates = dict(candidates)
+            self.wake_submission_dispatcher()
 
         available_workspaces = {
             str(workspace.get("name"))

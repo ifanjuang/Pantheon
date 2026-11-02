@@ -53,6 +53,8 @@ def test_governed_method_is_general_condition_driven_and_bounded() -> None:
     ):
         assert readiness in text
     assert "Classify by material conditions, not by object names" in entrypoint
+    assert "Use a policy route once for the materially unchanged request" in entrypoint
+    assert "returned object\nwill be used by the next step" in entrypoint
     assert "one primary method" in text
     assert "one guardrail method" in text
     assert "one verification method" in text
@@ -63,17 +65,17 @@ def test_governed_method_is_general_condition_driven_and_bounded() -> None:
     assert "## Two clarification gates" in text
     assert "Gate 1 — after initial familiarization" in text
     assert "Gate 2 — after bounded synthesis, before production" in text
-    assert "three mutually distinct" in text
-    assert "use up to five choices" in flat
+    assert "one targeted question" in flat
+    assert "do not turn optional depth" in flat
     assert "Do not draft first and seek confirmation afterward" in flat
     assert "## Bounded delegated source review" in text
     assert "mcp-vault-read" in text
-    assert "mcp-hindsight-project" in text
+    assert "Hindsight project-recall tool from the configured project vault" in text
     assert "mcp-docling" in text
     assert "Do not export an entire Docling document to Markdown" in text
-    assert "Do not launch several conversions in parallel." in text
-    assert "a tool result that merely names a document is not a read" in flat
-    assert "Do not announce a provisional" in text
+    assert "Do not run several Docling conversions in parallel" in text
+    assert "merely names a document is not a read" in flat
+    assert "Do not announce a provisional" in flat
     assert "A slow conversion is not an unavailable service." in text
     assert "Do not invent an outage" in text
     assert "Never use `terminal`" in text
@@ -88,7 +90,6 @@ def test_governed_method_is_general_condition_driven_and_bounded() -> None:
     assert "ocr:quality:poor" in text
     assert "ocr_source_sha256" in text
     assert "`force_ocr=true`" in text
-    assert "Begin with one child at a time" in flat
     assert "subagent result != source verification" in text
     assert "Never compare a partial aggregate with a broader reference total" in flat
     assert "Normalize a\ncommon basis before any numerical comparison" in text
@@ -100,9 +101,17 @@ def test_governed_method_is_general_condition_driven_and_bounded() -> None:
     cost_review = (
         ROOT / "templates/hermes/skills/construction-cost-review/SKILL.md"
     ).read_text(encoding="utf-8")
-    assert "enumerate the complete candidate-source\n   family" in cost_review
-    assert "all received quotes" in cost_review
-    assert "do not silently drop it" in cost_review
+    assert "If a specific offer is named" in cost_review
+    assert "do not inventory the whole dossier" in cost_review
+    assert "only when the user asks for all offers" in cost_review
+    assert "do not silently drop them" in cost_review
+    routing = (
+        ROOT / "templates/hermes/skills/project-context/references/professional-source-routing.md"
+    ).read_text(encoding="utf-8")
+    routing_flat = " ".join(routing.split())
+    assert "do not call a full source inventory" in routing
+    assert "one focused recall per needed source family" in routing_flat
+    assert "at most one targeted follow-up" in routing_flat
     claim_level = (
         ROOT / "templates/hermes/skills/construction-cost-review/references/claim-level.md"
     ).read_text(encoding="utf-8")
@@ -117,19 +126,27 @@ def test_governed_method_is_general_condition_driven_and_bounded() -> None:
     assert "plan displayed != worker dispatched" in text
     assert "material observation != silent replanning" in text
     assert "no more than four short steps" in text
-    assert "at most three lines" in text
+    assert "at most three lines" in flat
     assert "## Pantheon viewpoints" in text
     for role in ("ATHENA", "ARGOS", "MNEMOSYNE", "THEMIS", "APOLLO", "HEPHAISTOS", "IRIS", "ZEUS"):
         assert role in text
-    assert "## Intervenants délégués visibles" in text
-    for intervenant in ("Palamède", "Ariane", "Diomède", "Antigone"):
-        assert intervenant in text
-    assert "Ariane reconstitue la chronologie des échanges." in text
-    assert 'Never prefix the sentence with a category such as\n"intervenant", "figure" or "rôle"' in text
-    assert "intervenant délégué != runtime identity" in text
-    assert "no delegated child -> no intervenant label" in text
-    assert "unselected viewpoint -> no god label" in text
-    assert len(entrypoint.split()) < 700
+    assert "## Delegated workers" in text
+    assert "runtime identifier only when" in text
+    distributed = (
+        ROOT / "templates/hermes/skills/pantheon-distributed-work/SKILL.md"
+    ).read_text(encoding="utf-8")
+    assert "Do not invent personal names" in distributed
+    assert "effective worker limit and child timeout" in distributed
+    assert "worker's timeout exceeds the remaining user budget" in distributed
+    assert "Limit the wave to the observed concurrent-worker cap" in distributed
+    source_review = (
+        REFERENCES / "source-review.md"
+    ).read_text(encoding="utf-8")
+    assert "Do not run several Docling conversions in parallel" in source_review
+    assert "effective concurrency and a likely time" in source_review
+    # Budget raised from 700 when the 2026-10-23 skill revision moved routing
+    # into the entry point; it still caps further growth.
+    assert len(entrypoint.split()) < 1100
 
 
 def test_governed_method_routes_by_reasoning_and_keeps_workers_distinct() -> None:
@@ -189,7 +206,8 @@ def test_domain_owner_skills_have_distinct_claim_boundaries() -> None:
         assert "status: candidate_template_only" in text
         for phrase in required_phrases:
             assert phrase in text
-        assert len(text.split()) < 500
+        # contract-clause-review grew to ~600 words in the 2026-10-23 revision.
+        assert len(text.split()) < 650
 
     legacy = (skill_root / "quote-variation-review/SKILL.md").read_text(encoding="utf-8")
     assert "compatibility_target: construction-cost-review" in legacy

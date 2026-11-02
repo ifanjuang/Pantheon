@@ -19,7 +19,7 @@ def test_activity_projection_skill_has_bounded_visible_contract() -> None:
     assert "summary rationale != hidden chain-of-thought" in text
     assert "one compact initial plan" in text
     assert "only meaningful milestones" in text
-    assert "do not invent one merely" in text
+    assert "invent one merely" in text
     assert "Pantheon Roles are governance jurisdictions, not runtime identities" in text
     assert "Use `⚙ Hermes` for observable runtime milestones" in text
     assert "Posture: Ulysse" in text
@@ -52,8 +52,10 @@ def test_governed_profile_supplement_bounds_professional_answers() -> None:
     for block in ("**Réponse**", "**À vérifier**", "**Sources**"):
         assert block in text
     assert "**Conditions**" not in text and "**Et ensuite**" not in text
-    assert "Detail conditions and risks\nonly when asked" in text
-    assert "A follow-up answers only what it asks, under 200 words" in text
+    assert "concise by default" in text
+    assert "Follow-ups answer only what they ask" in text
+    assert "Ask a targeted clarification only when a missing user choice blocks progress" in text
+    assert "without a fixed tool-call quota" in text
     assert "in the user's language" in text
     assert "structure, fire, fall or ERP\nsafety point" in text
     assert "search the admitted sources\nbefore answering" in text
@@ -61,14 +63,8 @@ def test_governed_profile_supplement_bounds_professional_answers() -> None:
     assert "Never write a standard, article, edition, page, value, zone or class\nnot read" in text
     assert "not even as an assumption or range; name the\ntable still to read" in text
     assert "A derived value shows its operation and units" in text
-    assert "answer the common case from what was read" in text
     assert "common case as an inferred" not in text
     assert "`assumption_only`" in text and "never `validated_for_scope`" in text
-    assert "four follow-ups drawn from this answer's own" in text and "never a written list" in text
-    assert "« Autre / reformuler »" in text
-    assert "Use `clarify` only after the answer is shown" in text
-    assert "about six tool calls\nbefore a first answer" in text and "never item by item" in text
-    assert "under 120 words besides Sources" in text
     assert "Show a figure or image met in what you read" in text and "seek one only when asked" in text
     assert "Find a standard detail, never draw it" in text
     assert "Draw only organisations, processes or a project-specific detail no\nsource shows" in text
@@ -150,9 +146,9 @@ def test_governed_local_mcp_binding_is_explicit_filtered_and_fail_closed() -> No
         assert server in text
     assert '"Doclin"' not in text
     assert "required local Hindsight bindings are absent; refusing partial inheritance" in text
-    assert 'del(."hindsight-affaires", ."hindsight-documentaires", ."hindsight-memory")' in text
+    assert 'del(."hindsight-affaires", ."hindsight-documentaires", ."hindsight-knowledge", ."hindsight-memory", ."hindsight-project", ."hindsight-vault")' in text
     assert 'config set --force mcp_servers "$merged"' in text
-    assert 'tools enable --platform cli hindsight-project:recall_project_memory' in text
+    assert 'tools enable --platform cli "${HINDSIGHT_TOOL_NAMES[@]}"' in text
     assert 'cp -a "$PROFILE_CONFIG_TARGET" "$backup_root/profile-config.yaml"' in text
     for tool in (
         "route_governed_request",
@@ -191,10 +187,18 @@ def test_hindsight_legacy_bindings_are_removed_from_governed_profile() -> None:
     assert '."hindsight-affaires".tools.include' not in text
     assert '."hindsight-documentaires".tools.include' not in text
     assert 'HINDSIGHT_PROJECT_TOOLS_JSON=' in text
-    assert '["recall_project_memory","hindsight_project_list"]' in text
-    assert 'has("hindsight-project")' in text
-    assert '."hindsight-project".tools.include == $project_tools' in text
+    assert '["recall_project_memory","hindsight_project_list","hindsight_project_overview"]' in text
+    assert 'HINDSIGHT_VAULT_TOOLS_JSON=' in text
+    assert 'has($hindsight_name)' in text
+    assert '.[ $hindsight_name ].tools.include == $hindsight_tools' in text
     assert 'HINDSIGHT_PROJECT_MCP_URL="http://127.0.0.1:8022/mcp"' in text
+    assert '--combined-hindsight' in text
+    assert 'HINDSIGHT_MCP_URL="http://127.0.0.1:8024/mcp"' in text
+    assert 'HINDSIGHT_TOKEN_FILE="/srv/pantheon/hindsight-vault-router/token"' in text
+    assert 'HINDSIGHT_OTHER_BINDING_NAME="hindsight-vault"' in text
+    assert 'HINDSIGHT_OTHER_BINDING_NAME="hindsight-project"' in text
+    assert 'del(."hindsight-affaires", ."hindsight-documentaires", ."hindsight-knowledge", ."hindsight-memory", ."hindsight-project", ."hindsight-vault")' in text
+    assert 'has($hindsight_other_name) | not' in text
 
 
 def test_curated_default_capabilities_remain_bounded_and_searchable() -> None:
@@ -270,3 +274,14 @@ def test_work_postures_never_become_runtime_or_governance_branch_keys() -> None:
                     )
 
     assert checked
+
+
+def test_governed_reader_binding_exposes_retained_ocr():
+    import json
+    import re
+    text = CONFIGURE.read_text(encoding="utf-8")
+    match = re.search(r"^VAULT_TOOLS_JSON='([^']+)'", text, re.MULTILINE)
+    assert match
+    tools = json.loads(match.group(1))
+    assert "read_vault_ocr_markdown" in tools
+    assert "read_vault_pdf_pages" in tools

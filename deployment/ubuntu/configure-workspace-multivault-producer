@@ -60,6 +60,10 @@ done
   || die "state database path must be absolute and contain no whitespace"
 [[ -d "$SOURCE_ROOT" && -f "$SOURCE_ROOT/producer_daemon.py" ]] || die "multi-vault producer source is incomplete"
 command -v python3 >/dev/null || die "python3 is required"
+for tool in pdftotext pdfinfo; do
+  command -v "$tool" >/dev/null \
+    || log "warning: $tool (poppler-utils) is missing; PDFs are retained without metadata preflight"
+done
 [[ -n "$SERVICE_USER" ]] || die "service user is required: pass --user USER or run through sudo"
 id "$SERVICE_USER" >/dev/null 2>&1 || die "service user does not exist: $SERVICE_USER"
 [[ -r "$ENV_PATH" ]] || die "shared Hindsight environment file is missing: $ENV_PATH"
@@ -114,7 +118,7 @@ service_group="$(id -gn "$SERVICE_USER")"
 if ((APPLY)); then
   ((EUID == 0)) || die "--apply requires root"
   runtime_files=(producer_daemon.py hindsight_producer.py document_metadata_preflight.py document_ocr.py \
-    processing_queue.py vault_profiles.py worker_observability.py memory_reconciliation.py server.py)
+    processing_queue.py vault_profiles.py worker_observability.py memory_reconciliation.py otel_projection.py server.py)
   for file in "${runtime_files[@]}"; do
     [[ -f "$SOURCE_ROOT/$file" ]] || die "required producer runtime module is missing: $file"
   done

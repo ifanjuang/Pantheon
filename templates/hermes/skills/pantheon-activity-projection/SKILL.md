@@ -36,19 +36,32 @@ For non-trivial work, keep the presentation contract small and explicit:
 4. every documentary claim cites its task-local source [Sx];
 5. Méthode / Skill / Outil remain separate categories;
 6. quantitative conclusions state their perimeter and reconcile displayed components;
-7. a work posture is shown only when the governed method actually selects it;
-8. finish with a compact result / open-points summary when useful.
+7. selected Pantheon viewpoints and required Rites are shown at the relevant
+   milestone only when the governed route/method actually returns or selects
+   them and the viewpoint/procedure is used;
+8. a work posture is shown only when the governed method actually selects it;
+9. finish with a compact result / open-points summary when useful.
 ```
 
-If the governed method does not select a work posture, do not invent one merely
-to satisfy the display format. Never synthesize a Pantheon Role label from runtime prose.
+If the governed method does not select a work posture or Pantheon viewpoint, do
+not invent one merely to satisfy the display format. Never synthesize a Role
+label from runtime prose. A selected viewpoint is an analytical lens, not proof
+that a separate god-agent was consulted. Show a Rite only when its actual
+procedure was selected and applied; tool availability or a skill load is not
+proof that a Rite ran.
 
 ## When to use it
 
-Keep simple requests quiet. For a bounded non-trivial task, normally show one
-initial plan, 2-4 meaningful milestones, then a compact final summary. Show more
-only when a new material finding, source, contradiction, blocker, responsibility,
+Keep simple requests quiet. For a bounded non-trivial task, show one initial plan
+before the first material tool call, then a milestone after the first material
+retrieval and after any finding that changes the source or next step; finish with
+a compact final summary. Usually 2-4 milestones are enough. Show more only when a
+new material finding, source, contradiction, blocker, responsibility,
 approval posture or result actually changes the user's understanding.
+
+Do not narrate upcoming tool calls, internal search plans, repeated hypotheses or
+self-corrections. After the initial objective, report only observable status or
+result changes; if nothing material changed, stay quiet.
 
 Do not publish every tool call, retrieval attempt, retry, token, internal branch
 or unchanged runtime state.
@@ -96,6 +109,15 @@ Sources attendues: ...        # only when already known
 Méthode prévue: ...           # only when already selected/required
 Posture: ...                  # optional: only when actually selected
 ```
+
+For a project or professional task, the plan names the original objective, the
+source/memory sequence, and the relevant skills actually selected. After policy
+routing, include selected Pantheon viewpoints and any required Rite only when the
+returned object records them. If no Role/Rite was returned, say so briefly when
+the user expects to see them; never fill the line by guessing. After Hindsight or
+another material recall, show what was found, its provenance, what remains missing
+or conflicting, and the changed next step. Do not present a planned step as already
+performed.
 
 If new evidence materially invalidates the plan, show one short adjustment.
 
@@ -172,28 +194,10 @@ posture omitted != missing validation
 
 ## Source citation and provenance
 
-When a source materially supports or limits a milestone, assign stable task-local
-references and reuse them consistently.
-
-```text
-[S1] <observed title>
-     Indice/révision: <observed value or non identifié>
-     Date du document: <observed value or non identifiée>
-     Origine: <observed repository/vault/location>
-     Page/section: <observed locator when useful>
-```
-
-Keep document metadata distinct from ingestion/runtime metadata. A Hindsight
-creation/update timestamp is not the document date unless the source contract
-explicitly says so.
-
-Every factual claim attributed to another document requires its own `[Sx]`
-reference before or with that claim. Do not mention a CCTP, DPGF, contract,
-estimate or other source as support if only a different source has been cited.
-
-Include metadata only when it is present in the source or returned by the
-qualified retrieval path. Never infer a missing title, date, index, revision,
-author or version from context.
+Use stable task-local `[Sx]` references for material sources and reuse them.
+For exact metadata, locator and quantitative presentation, read
+`references/complex-presentation.md` when needed. Do not infer missing source
+metadata or cite a source that was not observed to support the claim.
 
 ```text
 source returned != source verified
@@ -224,49 +228,9 @@ infer unrelated skill use.
 Repeated low-level calls may be collapsed into one factual summary only when the
 count/result is observable.
 
-## Quantitative consistency
-
-Before a quantitative conclusion, reconcile every displayed component that
-materially affects that conclusion.
-
-State the perimeter explicitly, for example:
-
-```text
-travaux seuls
-travaux + aléas
-travaux + aléas + études
-```
-
-Show the formula when inclusion/exclusion changes the answer. Keep source values
-separate from derived arithmetic and label rounded values as derived.
-
-Keep monetary bases coherent. Label each component `HT`, `TVA`, `TTC` or
-`non identifié` from the source or from an explicit derivation. Never add an HT
-amount directly to a TTC amount. When a percentage such as an aléa is applied,
-show the percentage, its base and whether that base is HT or TTC before naming
-the derived amount.
-
-If two reasonable perimeters produce different conclusions, do not choose one
-silently. Report both and identify the missing scope decision.
-
-Before recommending an envelope as `prudente`, `haute` or as covering identified
-uncertainties, reconcile the scenario it claims to cover. Its upper bound must
-not be lower than a displayed high-case total that is inside that stated
-perimeter. If the recommendation intentionally excludes a component, state that
-exclusion beside the recommendation.
-
-Any allowance, market range, contingency percentage or impact amount that is not
-present in an identified source must be labelled as an assumption or derived
-estimate. Do not present it at the same evidentiary level as a sourced amount.
-
-```text
-component listed separately != component excluded from global budget
-rounded total != source-stated total
-calculation correct != contractual perimeter established
-HT amount + TTC amount != coherent total
-reasonable allowance != sourced project fact
-prudence label != reconciled high-case coverage
-```
+Quantitative checks belong to the selected domain method. Keep the presentation
+contract concise: label derived results and do not imply a calculation was
+reconciled unless it was.
 
 ## Progressive delivery
 
@@ -281,83 +245,14 @@ editing, color or another channel-specific feature.
 
 ## Final summary
 
-When useful, close non-trivial work with only the categories actually present:
-
-```text
-Plan / réalisation
-✓ ...
-✕ ...
-
-Sources
-[S1] ...
-[S2] ...
-
-Méthodes
-- ...
-
-Skills utilisés
-- ...
-
-Outils utilisés
-- ...
-
-Parcours responsabilité / exécution
-... only when actually established/observed ...
-
-Résultat
-...
-
-Ouvert
-...
-```
-
-Do not manufacture a complete-looking path, source set, method or tool list.
-Do not claim that no data was extrapolated when the answer contains derived
-rounding, arithmetic or interpretation; identify those elements as derived.
-
-## Professional source-verification acceptance shape
-
-For a real professional source-verification task, use only corpus facts actually
-retrieved during that run, regardless of the dossier or deliverable type:
-
-```text
-Plan
-Objectif: vérifier l'affirmation demandée à partir des pièces applicables.
-
-Sources
-[S1] <document réel> — <indice observé> — <date observée/non identifiée>
-[S2] <second document réel if actually used>
-
-Action: identifier la pièce pertinente.
-Raison: l'affirmation nécessite une source identifiable.
-But: déterminer le document applicable, son indice, sa date et son périmètre.
-Outil: <outil réellement invoqué>
-Skill: <skill réellement utilisé>
-Résultat: <constat réellement supporté>.
-
-Calcul dérivé, si nécessaire
-Périmètre: <explicit>
-Base monétaire: <HT/TTC/non identifié>
-Formule: <displayed source components>
-Résultat calculé: <derived result>
-Hypothèses: <none or explicitly labelled derived assumptions>
-```
-
-If a work posture has actually been selected, it may be shown around the same
-factual content. Otherwise keep the direct Hermes presentation. Do not invent
-Pantheon Role theatre.
-
-This is a general presentation shape, not a dossier-specific workflow or a claim
-about any real corpus.
+Answer the original question first. Add only useful source references, limits
+and readiness. Use a longer presentation shape only when it materially helps;
+the selected domain method owns evidence requirements and calculations.
 
 ## Final invariant
 
 ```text
-Show what changed, why it matters, what was sought and what was observed.
-Cite only real sources and observed metadata.
-Give every supporting document its own source reference.
-Name only methods, skills and tools actually selected or used.
-Reconcile quantitative components and monetary bases before drawing a quantitative conclusion.
-Make materially changed next steps explicit without inventing dispatch or Pantheon Role state.
-Never expose hidden reasoning and never turn presentation into authority.
+Show the useful result, its source basis and limits. Name only observed methods,
+skills, tools and worker states. Keep presentation separate from authority and
+never expose hidden reasoning.
 ```

@@ -41,26 +41,58 @@ change the answer, permitted action or consequence.
 
 ## Search order
 
-0. When an exact source is already known **within an admitted project scope**,
-   use it directly if the request needs source inspection; skip redundant recall.
-1. Resolve the project target before a strict scoped recall. If the exact indexed
-   designation is already known from the conversation or an admitted project
-   identity, use it. If the user supplied an informal, partial, misspelled or
-   otherwise unverified designation, first call `vault-read:find_vault_projects`
-   and use the selected candidate's exact `project_ref`/designation. Do not pass a
-   guessed alias to `hindsight-project:recall_project_memory`: the router derives
-   one exact scope from the string, so a spelling variant can select a different
-   scope. Preserve multiple candidates or ask one targeted question only when
-   their distinction changes the answer or action.
-2. Once the exact project designation is known, call
-   `hindsight-project:recall_project_memory` as the discovery lead. This is the
-   only admitted Hindsight project route; do not substitute Mnemosyne.
-3. Open an exact Markdown source with `search_vault_markdown` followed by
-   `read_vault_markdown_lines`; use the admitted reader for other formats when
-   source inspection is warranted. A router recall is an index lead, not an inspected source.
-4. Use Mnemosyne only as a bounded continuity lead after project-scope resolution
-   and the project-router lookup, never as proof that a professional project is
-   absent or present.
+0. When an exact source and admitted scope are already known, inspect it
+   directly through the reviewed `vault-read` reader; no discovery call is
+   needed.
+1. If a project is named but its identity is ambiguous or unresolved, call
+   `vault-read:find_vault_projects` first and retain its candidate set. Resolve
+   the exact project before calling `hindsight-vault:recall_project_memory`,
+   whose scope filter requires one confirmed project. If choosing between
+   candidates changes the answer or consequence, ask one targeted question.
+2. For a confirmed project, use the configured
+   `hindsight-vault:recall_project_memory` as a bounded discovery lead. Use
+   `hindsight-vault:hindsight_project_list` only to resolve a project-scope
+   designation that remains unknown; it is not a routine first call. Do not
+   substitute Mnemosyne for project retrieval.
+   For a quick introduction, `hindsight-vault:hindsight_project_overview` reads
+   the single Knowledge Page carrying that exact project's scope tag. Treat it
+   as orientation only; if it is missing or stale, continue with scoped recall,
+   and inspect the source for material facts.
+3. For transversal references, call
+   `hindsight-vault:recall_knowledge_memory` first. Use
+   `hindsight-vault:hindsight_knowledge_folders` only to narrow a search after
+   a broad recall misses or when a folder is part of the user's request.
+4. When recall identifies an exact source, open it through `vault-read`:
+   `search_vault_markdown` then `read_vault_markdown_lines` for Markdown, or
+   `read_vault_pdf_pages` for PDF. Use Docling only when the admitted reader
+   cannot answer the bounded question. A recall is an index lead, not an
+   inspected source.
+   If the exact Hindsight source is marked as OCR-derived and its result supplies
+   the exact `workspace`, `pantheon_document_id` and raw `source_sha256`, use
+   `vault-read:read_vault_ocr_markdown` for bounded passages from the retained
+   transcription. Cite the original source path and make clear that the text is
+   an OCR derivative; the NAS source remains authoritative. Never guess an ID or
+   checksum. Reuse a matching retained OCR derivative and do not invoke Docling,
+   vision, or another OCR pass for that source version. If the derivative is
+   unavailable, inspect the original source; start OCR only through the explicit
+   Cockpit OCR action when the user has requested that processing. If the required
+   identity is absent, continue from Hindsight's retrieved content or inspect the
+   original source by its admitted path. Cockpit links to the original source;
+   OCR Markdown is for Hermes reading only.
+5. Use `mnemosyne_recall` only as a bounded conversation-continuity lead; it
+   never establishes a professional project fact or source presence/absence.
+
+### Hindsight document labels
+
+When recall returns a `labels` object, preserve its keys and values as supplied.
+Current Hindsight project labels include `document_family`, `document_type`,
+`document_emetteur`, `document_destinataire`, `document_indice` and
+`document_date`; older memories may use `type`, `emetteur`, `destinataire`,
+`indice` or `date_document`. Treat labels as retrieval aids, not source
+authority. Label extraction is optional and can vary between memories from the
+same document; a missing label does not prove that the source lacks that fact.
+Use source metadata and inspect the original document before resolving a date,
+issuer, type or revision when it matters.
 
 ### Source coverage and inventory fallback
 
@@ -321,7 +353,7 @@ document opened != Evidence admitted
   permits, plans, schedules and administrative material.
 - Use the `knowledge` vault for transversal technical, regulatory, legal, contractual
   and professional references. Its Hindsight lead is
-  `hindsight-knowledge:recall_knowledge_memory`; open the cited document with
+  the configured Hindsight vault's `recall_knowledge_memory` tool; open the cited document with
   `vault-read` before relying on it.
 - Use both when a project-specific fact must be tested against a transversal
   rule. Keep their contributions distinguishable.
@@ -378,10 +410,12 @@ not invent `filepath` or `file_path` for the Hermes conversion wrapper; if the
 selected binding exposes a different schema, inspect that schema before calling
 it rather than guessing.
 
-The same rule applies to Hindsight resource/introspection calls: use
-`get_document` for an identified document and `get_knowledge_page` for an
-identified knowledge page. A `read_resource` result is not a document
-consultation and must not be cited as one.
+The locally configured `hindsight-vault` MCP exposes only the retrieval, scope
+and project-overview tools named in `references/organization-profile.yaml`.
+Its overview tool reads one project-scoped Hindsight Knowledge Page; it does
+not expose arbitrary `get_document` or `get_knowledge_page` calls. For exact
+source text, use the corresponding `vault-read` reader. MCP introspection is
+not document reading.
 
 The `source` path is resolved by the Docling service, not by the model. Use the
 operator-configured NAS root shared with that service or another reviewed
