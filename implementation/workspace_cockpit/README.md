@@ -52,16 +52,20 @@ pending intent, never as a remote read-back. Hindsight remains the
 memory/retrieval service, not the folder listing index.
 
 Sibling documents and folders appear in one horizontal Swiper deck for the
-currently loaded folder. Selecting a folder requests its immediate children;
-breadcrumbs and explicit folder controls provide navigation back to ancestors.
-Large folders are paginated. Card details use an explicit accessible control.
-Previous/next controls remain available if the pinned Swiper asset cannot load.
+currently loaded folder. Folder buttons open their contents; breadcrumbs and an
+explicit parent button return to ancestors. Large folders are paginated. Card
+details use an explicit accessible control. Swiper handles horizontal slide
+movement only. If its pinned asset cannot load, the cards remain readable as a
+static list and folders remain navigable through buttons and breadcrumbs.
 
 The bounded UI endpoints are `/api/workspace-overview` and
 `/api/workspace-children`; `/api/workspaces` remains available as a legacy full
 projection endpoint for existing local consumers.
 
-The Ubuntu installer bundles pinned Swiper 14.3.0 assets under `static/vendor`.
+The Ubuntu installer bundles pinned Swiper 14.3.0 and SortableJS 1.15.7 assets
+under `static/vendor`. SortableJS is served locally (including its MIT notice),
+and the processing queue uses its dedicated drag handle, touch fallback and
+edge auto-scroll; the card hierarchy continues to use Swiper.
 The browser uses the `/workspace/` base path for assets and API calls; the local
 server accepts both that mounted prefix and its root path so Tailscale Serve can
 keep `/workspace` without rewriting the application.
@@ -80,6 +84,34 @@ WORKSPACE_COCKPIT_MNEMOSYNE_URL=
 
 Each link opens in a new tab. The menu never exposes the Hermes API and does
 not infer a dashboard from a service merely being installed.
+
+### Scoped Hermes discussions on cards
+
+Folder and document cards can hold durable Hermes conversations tied to that
+card's exact vault and relative path. The browser never receives the API key;
+Cockpit creates, reads, chats with and deletes sessions through Hermes' authenticated
+Sessions API. The local SQLite registry stores only the card-to-session binding,
+the display title, a short transcript preview and the Cockpit archive flag.
+
+The feature stays disabled until both settings are supplied to the Cockpit service.
+On the systemd installation, the optional protected file is
+`/etc/pantheon-workspace-cockpit/hermes-chat.env`; the multivault installer reads it
+without placing its contents in the unit. In Compose, pass the same variables through
+the external environment. For example:
+
+```text
+WORKSPACE_HERMES_CHAT_URL=http://127.0.0.1:8642
+WORKSPACE_HERMES_CHAT_KEY=<API_SERVER_KEY for the intended Hermes profile>
+WORKSPACE_HERMES_CHAT_TIMEOUT_SECONDS=300
+```
+
+The endpoint must be a local Hermes API Server profile that has the Pantheon
+vault-search capability needed to read the requested source. Do not point this at
+the no-tool reconciliation profile. Keep the key in the Cockpit service's protected
+environment, never in HTML or JavaScript. Conversations are first created only when
+the operator sends a message; each turn includes the card's exact vault/path scope.
+Archiving hides a discussion from the active list in Cockpit and can be reversed;
+deleting removes its Hermes session and transcript after confirmation.
 
 A document may still carry an optional enrichment cartouche:
 
@@ -282,6 +314,7 @@ The current local HTTP process exposes:
 - `/` for the Cockpit interface;
 - `/api/workspaces` for the current filesystem projection;
 - `/api/health` for service supervision;
+- `/api/processing-workers` for persisted preflight-worker heartbeats, active document, last success/error, and stale-heartbeat detection;
 - `/api/role-traces/*` as the existing compatibility route for the optional same-origin, read-only observable-stage sidecar.
 
 The browser never receives the Hermes Runs key or internal sidecar keys. The sidecar is in-memory only and cannot create, approve, retry or stop a run.
@@ -358,14 +391,26 @@ bundle still present but no longer eligible
 → BLOCKED
 
 bundle absent
-→ first available scan: QUARANTINED, source/project recall tags removed
-→ second available scan: ARCHIVED, exact derived Hindsight document deleted
+→ first complete scan with source mount verified: QUARANTINED, source/project recall tags removed
+→ after the configured missing-source grace period and a later complete scan: ARCHIVED, exact derived Hindsight document deleted
 → source returns before deletion: tags restored without duplicate retention
 ```
 
-The lifecycle is bounded to derived Hindsight state. It pauses when the workspace is
-unavailable and refuses a large disappearance affecting more than 25% of at least 20
-known sources. It never deletes or changes a mounted source file.
+The multi-vault profile requires an explicit `mount_root` for every source. The scan
+must confirm that mount and finish without traversal errors before absence can change
+Hindsight lifecycle state; an inaccessible directory, truncated scan, or unavailable
+mount never counts as a missing source. The default grace period is 24 hours and is
+configurable as `missing_source_grace_seconds`. The lifecycle is bounded to derived
+Hindsight state and refuses a large disappearance affecting more than 25% of at least
+20 known sources. It never deletes or changes a mounted source file.
+
+A Hindsight connection refusal holds the single submission lane on the affected
+document and retries that document before sending another. If an upload may have
+reached Hindsight before the connection failed, the durable `SUBMITTING` intent is
+reconciled against Hindsight operations before another upload is allowed.
+An OCR/preflight queue item that never reached Hindsight is archived only after a
+complete scan confirms its source path is absent; a source that reappears is
+re-stabilized and can be processed again.
 
 The emitted tag vocabulary and the mandatory project-scoped Hermes query rules are
 defined in
@@ -383,16 +428,100 @@ HINDSIGHT_API_STORE_DOCUMENT_TEXT=true
 
 After a PDF retain completes, the producer performs one read-only quality check on
 Hindsight's extracted text. Empty text and characteristic `(cid:…)` corruption are
-projected as `OCR_NEEDED` in Cockpit. This is advisory and never blocks the source
-document, launches OCR, or replaces the retained source. Marker OCR remains an
-explicit per-file operator action; any resulting text is a derived representation,
-not the professional source of authority.
+projected as `OCR_NEEDED` in Cockpit. This is advisory and never starts OCR by itself.
+For a parser failure or unusable extraction, the operator can request OCR on that row.
+The queue continues while the operator decides; once started, one OCR job runs at a
+time and new Hindsight submissions wait for it to release the shared GPU lane.
+
+Manual OCR tries the local Docling MCP conversion first. If the Markdown contains no
+usable text (for example, only image placeholders), the producer renders the PDF pages
+and transcribes them sequentially with the configured local Ollama vision model
+(`qwen3.8:27b` by default; set `WORKSPACE_OCR_VISION_MODEL` for a node-specific variant). The derived Markdown is cached outside the source
+vault under a deterministic content-addressed name derived from vault, technical
+document ID and raw-source SHA-256. It is kept after Hindsight confirms the retain;
+re-running OCR for the same PDF atomically replaces that Markdown. A changed source
+gets a different artifact name, preserving the previous transcription for a memory
+that cites its old checksum. These retained derivatives need an eventual explicit
+retention/cleanup policy.
+
+Cockpit opens the indexed original source file from the document card; it does not
+expose OCR derivatives as user-facing source documents. Hermes can read bounded,
+line-numbered passages with `vault-read:read_vault_ocr_markdown` when the Hindsight
+result supplies the exact vault, technical document ID and source checksum.
+The MCP and Cockpit resolve the artifact through the same identity-derived filename;
+they do not accept an arbitrary filesystem path. Re-running OCR after a Hindsight
+retain marks the queue item `MODIFIED`: the retained transcription is newer, while
+the Hindsight memory has not been re-retained. The skill directs Hermes to inspect
+the current Markdown and cite the original NAS path; the PDF remains authoritative.
+Before the first OCR retain, the producer still requires the exact stable Hindsight
+document ID to be absent and retains the Markdown under that same ID, with OCR engine
+and raw-source checksum metadata. The PDF is never edited.
 
 A PDF conversion that terminates with an explicit `No content extracted` or
 `No text extracted` parser error is classified the same way as `OCR_NEEDED`, rather
 than as a generic producer failure. It is not automatically retried or OCR-processed.
+The operator may instead mark a pending document `Non mémorisé`; it remains visible in
+the queue, is skipped by future automatic submits, and can be re-included explicitly.
+That decision is cleared if the source path or checksum changes. An uncertain Hindsight
+submission cannot be excluded until its remote outcome is checked.
 A transient document-read failure during the post-retain quality check remains
 `CHECK_ERROR` and is retried on the next reconcile without retaining the source again.
+
+Before retaining a PDF, the producer now performs a bounded, read-only metadata
+preflight with Poppler `pdftotext`, when available. It samples up to three opening
+pages for retrieval facets; date, index, issuer and recipient extraction stays on
+the first two pages, with the existing conditional final-page fallback.
+Its result is cached by source checksum and profile, so unchanged PDFs are not re-read on each
+reconciliation. It does not OCR
+or alter the source; a missing utility, image-only PDF, timeout or parse error leaves
+the normal source-retain path untouched. Only one unambiguous value next to an
+explicit label can fill `document_date`, `index` or `issuer`; simple cover revision
+tables with an `Indice`/`Date` heading are also supported. The earliest page with a
+candidate takes precedence; conflicting values on that page remain unresolved.
+`recipient` is considered only for the Affaires profile. Values read
+from source text use the agreed `document_*` metadata names; cartouche values stay
+separately namespaced and are not overwritten. Hindsight metadata also records the
+profile, preflight status and short page-level evidence. The same bounded pass
+records provisional construction-trade and technical-subject candidates from
+prominent first-page titles, explicit contents headings, and explicit lot
+headings through page 3. The controlled
+trade vocabulary distinguishes `menuiserie_interieure` from
+`menuiserie_exterieure`; candidates retain their page/evidence and are sent as
+`metadata_preflight_corps_etat_candidates` and
+`metadata_preflight_sujets_techniques_candidates`, with compact labels in the
+Hindsight context for retrieval. They are not promoted to confirmed document
+fields or emitted as entity tags. This adds at most one opening page to the
+existing Poppler extraction; no model call is added, and date/index/issuer
+extraction remains limited to the first two pages plus the existing final-page
+fallback.
+An explicitly labelled document title on page 1 is also recorded as an
+unconfirmed candidate with its evidence; absent or ambiguous titles leave the
+source filename/cartouche title as the display fallback. No title is inferred
+from an `Objet` line or incidental prose.
+The preflight cache is versioned; changing extraction rules causes one bounded
+re-read per unchanged PDF, without changing the source file.
+If no date is explicitly readable in the PDF text, the producer may expose the
+PDF Info `CreationDate` separately as `document_creation_date`. Its source is
+`pdf_info_creation_date` (page `0` means PDF metadata, not a document page), so
+it must not be presented as a date printed on or issued by the document. This
+fallback is also available for image-only PDFs when `pdfinfo` can read them.
+The context sent for extraction labels this explicitly as PDF creation metadata,
+so it is not silently treated as the document's issue date.
+
+When no explicit issuer label is found, a separate review-only candidate scan reads
+native text in the top and bottom 18% of the first two pages. It recognizes short
+text logos, names tied to addresses/contact details, organization email domains,
+dated letterheads and copyright notices. Candidates include the page, evidence
+line and explicit `candidate_unconfirmed` status under
+`metadata_preflight_issuer_candidates`; they never populate `document_emetteur`.
+Recipient names, software/licence text and weak address-like
+body text are filtered. Image-only logos are not OCRed.
+
+The profile is inferred from the configured source kind/workspace name: library-like
+names select `bibliotheque`; other names select `affaires`. Library documents keep
+their source path/folder provenance and do not receive a recipient field. This is a
+metadata aid, not OCR, document classification or professional validation. It leaves
+the existing replacement, move and two-observation disappearance lifecycle intact.
 
 The retain mission asks Hindsight to preserve explicit chronology stated by the source itself: document date, revision/index/version token and explicit supersession relationships. It also tells Hindsight to preserve conflicting chronology statements rather than silently resolving them. The producer sends `timestamp: "unset"` for these reference documents so ingestion time is never presented to the extraction model as the document's event date.
 
@@ -417,30 +546,6 @@ WORKSPACE_HINDSIGHT_SOURCE_KIND=project-sync
 ```
 
 `WORKSPACE_HINDSIGHT_AUTHORIZATION` may be supplied there when the selected Hindsight exposure requires it. The environment file is optional; absence keeps the producer inactive.
-
-### Optional raw-text representation
-
-By default each source is retained once, as `<document_id>:source`. Setting `WORKSPACE_HINDSIGHT_TEXT_STRATEGY=<name>` (or `--hindsight-text-strategy`; `configure-workspace-producer --text-strategy`) also retains the same source a second time as `<document_id>:text`, through the retain strategy `<name>` that the **bank must define** (for example raw chunks without fact extraction). The second document carries the same tags plus `representation:text`, and is the part a reader can search within minutes while facts are still being extracted.
-
-```text
-the raw text is searchable even when no fact was extracted
-a failed raw-text retain never blocks, delays or repeats the source retain
-sources already indexed before the option was set get their raw text without being extracted again
-quarantine, tag updates and deletion apply to both documents; a missing twin is not an error
-```
-
-Each projected card gains `hindsight_text_status`, `hindsight_fact_count` and `hindsight_piece_state`:
-
-| `hindsight_piece_state` | Meaning |
-|---|---|
-| `indexed` | the source is retained and, with the option on, so is its raw text |
-| `searchable_text` | the raw text is searchable although the source has no fact yet (or none was extracted) |
-| `partial` | retained, but without any fact or without its raw text |
-| `extraction_failed` | nothing could be retained |
-| `ocr_needed` | no text could be read; manual OCR remains a per-file decision |
-| `in_progress` | a retain is waiting or running |
-
-The fact count is read once per source version and only with the option on. A source with no fact is a signal, never an error: it stays listed and its raw text stays searchable. Without the option the producer behaves exactly as before.
 
 ```text
 filesystem present != professionally validated
@@ -594,6 +699,30 @@ candidate returned != candidate persisted
 Exact NAS-source verification remains a later, separate path through a bounded admitted
 source reference. It is deliberately not hidden inside this button.
 
+## Node bindings (multi-vault deployment)
+
+The repository carries generic defaults only. Each node supplies its own values,
+outside Git:
+
+| Value | Where it is read | Generic default |
+| --- | --- | --- |
+| Vault roots, NAS mounts, bank IDs, source tags, metadata profiles | `/etc/pantheon-workspace-producers/vaults.json` (`configure-workspace-multivault-producer` installs it; `configure-workspace-cockpit-multivault` reads it) | `deployment/ubuntu/hindsight-vault-profiles.example.json` (template only) |
+| Shared state / queue SQLite database | `--state-db` or `WORKSPACE_STATE_DB` | `/var/lib/pantheon-workspace-cockpit/multivault.sqlite3` |
+| Service account | `--user` or `sudo` invoker | none (required) |
+| Vision OCR fallback model | `WORKSPACE_OCR_VISION_MODEL` | `qwen3.8:27b` |
+| Expected Bibliotheque scope shown by worker health | `WORKSPACE_EXPECTED_BIBLIOTHEQUE_SOURCE`, `WORKSPACE_EXPECTED_BIBLIOTHEQUE_ROOT` | empty: scope reported "à vérifier" until set |
+
+A node that was installed before these defaults were generalized must pass its
+existing state database and profile explicitly on the next `--check`/`--apply`.
+
+## Retired: per-file raw-text representation
+
+The optional raw-text retain (`--text-strategy`, #64) was never enabled on a
+running node and is removed. PDFs without a usable text layer go through the
+retained OCR derivative path instead (`document_ocr.py`, Cockpit OCR action,
+`vault-read:read_vault_ocr_markdown`). The bank presets still declare the
+named `text` retain strategy; no producer requests it.
+
 ## Linux NAS mount qualification
 
 From the Linux host that mounts AFFAIRES and runs the Workspace/Hindsight stack:
@@ -688,3 +817,39 @@ filesystem path
 The producer-generated technical occurrence id does not establish declared
 document identity. Explicitly declared document identity continues to follow
 its existing guarded semantics.
+
+### Content format before upload
+
+The producer checks the already bounded upload bytes independently of the source
+extension: PDF signature, Office/EPUB ZIP directory, legacy OLE container, HTML
+and text. A recognized extension mismatch changes only the multipart filename
+and MIME type, never the NAS file, its locator, ID or checksum. The submitted
+metadata records `source_detected_format` and, when different, `extraction_filename`.
+Format recognition does not validate the complete document or guarantee conversion.
+
+CSV, TSV, JSON, XML, XLS, MSG and EPUB join the existing PDF, DOCX, XLSX, PPTX,
+text, Markdown and HTML source inventory. Availability of an installed converter
+and its dependencies still determines extraction success. Empty, unidentified
+binary, ambiguous ZIP/OLE and unsupported image/RTF content produces an explicit
+per-document error before upload; it never triggers OCR automatically. The worker
+continues with other eligible files. Unknown executable/binary extensions are
+not admitted merely because a general file detector exists. No ZIP member is
+extracted during format inspection.
+
+
+### Local OTEL activity projection
+
+`WORKSPACE_OTEL_SNAPSHOT` optionally points to a fresh JSON snapshot generated by
+`otel_projection.py --database <existing-hermes-otel-db> --output <snapshot>`.
+Run the exporter as the telemetry store owner; grant Cockpit read access only to
+the snapshot directory, keeping both applications’ private state directories private.
+The exporter opens SQLite with `mode=ro` and `query_only`, reads indexed span columns
+only (never the content blob), and atomically replaces a maximum 200-span snapshot.
+The Cockpit endpoint `/workspace/api/telemetry` refuses snapshots older than 60 seconds.
+The Cockpit menu shows a global Hermes activity log for the spans present in the
+snapshot (up to 200), grouped by trace, with counts, safe span kind, status, timestamps,
+duration and shortened correlation IDs. It polls every ten seconds only while open
+and the page is visible. The log does not expose span names, attributes, prompts,
+responses, tool arguments or content blobs; it is not a document-ingestion log.
+No plugin import, schema migration, extra network listener, model call or external
+exporter is involved.
