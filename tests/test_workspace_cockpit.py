@@ -1435,7 +1435,6 @@ def test_document_notes_are_saved_only_same_origin_and_can_be_deleted(tmp_path: 
         handler.roots, handler.workspace_index = old_roots, old_index
 
 
-@pytest.mark.xfail(strict=True, reason="inherited from the local checkout: test and deployed code disagree; reconcile in a follow-up (see PR body)")
 def test_document_metadata_overrides_are_saved_projected_and_marked_stale(tmp_path: Path) -> None:
     module = _module()
     root = tmp_path / "AFFAIRES"
@@ -1514,8 +1513,32 @@ def test_document_metadata_overrides_are_saved_projected_and_marked_stale(tmp_pa
         )
         assert document["metadata_override"]["stale"] is True
 
-        status, response = post({key: "" if isinstance(value, str) else [] for key, value in values.items()})
-        assert status == 200 and response["status"] == "deleted"
+        # An emptied field is a deliberate clear: it is kept, not dropped.
+        status, response = post({key: None for key in values})
+        assert status == 200 and response["status"] == "saved"
+        assert response["values"] == {key: None for key in values}
+
+        # Restoring automatic values removes every correction and clear.
+        def reset(body):
+            request = Request(
+                f"{origin}/workspace/api/document-metadata-overrides",
+                data=json.dumps(body).encode("utf-8"),
+                headers={
+                    "Content-Type": "application/json", "Origin": origin,
+                    "X-Pantheon-Intent": "document-metadata-save",
+                },
+                method="POST",
+            )
+            with urlopen(request, timeout=5) as reply:
+                return reply.status, json.loads(reply.read().decode("utf-8"))
+
+        status, response = reset({"workspace": "Affaires", "path": "Notice.pdf", "reset": True})
+        assert status == 200 and response == {**response, "status": "deleted", "values": {}}
+        document = next(
+            card for card in handler.workspace_index.children("Affaires", "")["cards"]
+            if card["kind"] == "document"
+        )
+        assert not document.get("metadata_override")
     finally:
         server.shutdown()
         server.server_close()

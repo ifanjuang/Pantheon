@@ -2990,7 +2990,13 @@ class CockpitHandler(BaseHTTPRequestHandler):
         ):
             self._json({"error": "invalid_document_path"}, HTTPStatus.BAD_REQUEST)
             return
-        if not isinstance(values, dict):
+        # `reset` removes every correction and explicit clear for this document, so
+        # the Cockpit shows the automatically detected values again. An emptied
+        # field is a deliberate clear and is kept by a normal save.
+        reset = body.get("reset") is True
+        if reset:
+            values = {}
+        elif not isinstance(values, dict):
             self._json({"error": "values_must_be_object"}, HTTPStatus.BAD_REQUEST)
             return
         allowed_fields = {
@@ -3069,7 +3075,7 @@ class CockpitHandler(BaseHTTPRequestHandler):
                         self._json({"error": "metadata_identity_conflict"}, HTTPStatus.CONFLICT)
                         return
                     merged = {}
-                    if existing:
+                    if existing and not reset:
                         try:
                             prior = json.loads(str(existing["overrides_json"]))
                             if isinstance(prior, dict):
