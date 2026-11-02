@@ -3747,6 +3747,43 @@ class HindsightProducer:
                     ),
                     hindsight_status=queue_status,
                 )
+                # Older rows can have a finished OCR artifact but no OCR-derived
+                # metadata preflight: a previous Hindsight attempt sent the PDF and
+                # failed with "no content extracted". Re-arm that exact cached .md
+                # once, after confirming the source identity and artifact path.
+                if (
+                    row is not None
+                    and sync_status in {"FAILED", "CANCELLED", "OCR_NEEDED", "SUBMIT_ERROR"}
+                    and queue_row.get("hindsight_status") in {"FAILED", "OCR_NEEDED"}
+                    and queue_row.get("ocr_status") == "DONE"
+                    and queue_row.get("source_sha256") == candidate.source_sha256
+                    and queue_row.get("user_decision") != "DO_NOT_SEND"
+                    and self.ocr_processor is not None
+                ):
+                    artifact_name = str(queue_row.get("ocr_filename") or "")
+                    try:
+                        cache_dir = Path(self.ocr_processor.cache_dir).resolve(strict=True)
+                        artifact_path = cache_dir / artifact_name
+                        artifact_resolved = artifact_path.resolve(strict=True)
+                        artifact_resolved.relative_to(cache_dir)
+                        artifact_available = (
+                            bool(artifact_name)
+                            and Path(artifact_name).name == artifact_name
+                            and artifact_name.endswith(".md")
+                            and not artifact_path.is_symlink()
+                            and artifact_path.is_file()
+                        )
+                    except (OSError, RuntimeError, ValueError):
+                        artifact_available = False
+                    if artifact_available and self.processing_queue.queue_cached_ocr_after_parse_failure(
+                        candidate.workspace, candidate.document_id, candidate.source_sha256
+                    ):
+                        refreshed = self.processing_queue.get_item(
+                            candidate.workspace, candidate.document_id
+                        )
+                        if refreshed is not None:
+                            queue_row = refreshed
+                            queue_rows[(candidate.workspace, candidate.document_id)] = refreshed
                 # The queue may predate the producer's durable sync state (for
                 # example, a failed Hindsight submission while the Cockpit was
                 # offline). Keep its visible status aligned without retrying or
@@ -3776,6 +3813,35 @@ class HindsightProducer:
                 retry_pending = (
                     queue_row.get("hindsight_status") == "QUEUED"
                     and sync_status in {"FAILED", "CANCELLED", "OCR_NEEDED", "SUBMIT_ERROR"}
+                )
+                # Retry through the OCR derivative only after a failed source (PDF)
+                # attempt. An OCR attempt is tagged ocr:complete; when that attempt
+                # itself failed, retrying it automatically would loop forever, so
+                # the failure stays terminal for the automatic chain.
+                failed_attempt_was_ocr = False
+                if row is not None:
+                    try:
+                        failed_attempt_was_ocr = "ocr:complete" in json.loads(
+                            str(row.get("tags_json") or "[]")
+                        )
+                    except (TypeError, ValueError):
+                        failed_attempt_was_ocr = False
+                retry_ocr_after_failure = (
+                    sync_status in {"FAILED", "CANCELLED", "OCR_NEEDED", "SUBMIT_ERROR"}
+                    and not failed_attempt_was_ocr
+                    and not (
+                        sync_status == "SUBMIT_ERROR"
+                        and row is not None
+                        and row.get("last_error")
+                        == "Hindsight document already exists; OCR replacement requires operator review"
+                    )
+                    and queue_row.get("ocr_status") == "READY"
+                    and str(queue_row.get("ocr_filename") or "").endswith(".md")
+                    and (
+                        queue_row.get("ocr_preflight_source_sha256") == candidate.source_sha256
+                        or queue_row.get("preflight_status") in {"TO_PROCESS", "ANALYZING", "STABILIZING"}
+                    )
+                    and queue_row.get("user_decision") != "DO_NOT_SEND"
                 )
                 # An explicitly approved OCR replacement is also durable retry
                 # intent. Preserve OCR_READY here: projecting the old SUBMIT_ERROR
@@ -3813,7 +3879,53 @@ class HindsightProducer:
                     if refreshed is not None:
                         queue_row = refreshed
                         queue_rows[(candidate.workspace, candidate.document_id)] = refreshed
-                retry_pending = retry_pending or approved_ocr_replacement
+                operator_review_pending = (
+                    sync_status == "SUBMIT_ERROR"
+                    and row is not None
+                    and row.get("last_error")
+                    == "Hindsight document already exists; OCR replacement requires operator review"
+                    and not row.get("operation_id")
+                    and not bool(queue_row.get("ocr_replace_approved"))
+                    and queue_row.get("ocr_status") == "READY"
+                    and str(queue_row.get("ocr_filename") or "").endswith(".md")
+                    and queue_row.get("ocr_preflight_source_sha256") == candidate.source_sha256
+                    and queue_row.get("user_decision") != "DO_NOT_SEND"
+                )
+                if operator_review_pending and queue_row.get("hindsight_status") != "VERIFY":
+                    self.processing_queue.set_status(
+                        candidate.workspace,
+                        candidate.document_id,
+                        preflight_status="ANALYZED",
+                        hindsight_status="VERIFY",
+                        clear_operation_id=True,
+                        error="Hindsight document already exists; OCR replacement requires operator review",
+                    )
+                    refreshed = self.processing_queue.get_item(
+                        candidate.workspace, candidate.document_id
+                    )
+                    if refreshed is not None:
+                        queue_row = refreshed
+                        queue_rows[(candidate.workspace, candidate.document_id)] = refreshed
+                retry_ocr_submission = approved_ocr_replacement or retry_ocr_after_failure
+                if retry_ocr_submission and queue_row.get("hindsight_status") != "OCR_READY":
+                    # A completed OCR preflight is a durable retry source after a
+                    # failed PDF ingestion. Keep its Markdown eligible for Hindsight
+                    # instead of projecting the older terminal sync error over it.
+                    self.processing_queue.set_status(
+                        candidate.workspace,
+                        candidate.document_id,
+                        preflight_status="ANALYZED",
+                        hindsight_status="OCR_READY",
+                        clear_operation_id=True,
+                        clear_error=True,
+                    )
+                    refreshed = self.processing_queue.get_item(
+                        candidate.workspace, candidate.document_id
+                    )
+                    if refreshed is not None:
+                        queue_row = refreshed
+                        queue_rows[(candidate.workspace, candidate.document_id)] = refreshed
+                retry_pending = retry_pending or retry_ocr_submission or operator_review_pending
                 if projected_status is not None and not retry_pending:
                     projected_error = str(row.get("last_error") or "")[:1200]
                     clear_operation = sync_status in {
