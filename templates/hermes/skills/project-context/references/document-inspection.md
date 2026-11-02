@@ -76,6 +76,27 @@ statement: report the returned candidates and its limit. It does not support
 "only these documents exist" or an absence conclusion. A path/filename match
 is a source candidate, never proof of the requested content.
 
+If the admitted inventory call itself errors, do not repeat the same call or
+translate the error into a missing-source finding. When an exact source path is
+already supplied or returned by an admitted locator for the same scope, try
+that exact path once with the admitted reader. Otherwise make at most one
+distinct, focused locator lookup, then try its exact result once. Do not guess
+paths or widen the source scope silently. If recovery fails, report the source
+as inaccessible or unresolved in the attempted route; absence remains
+unestablished. Repeat only after a relevant path, scope, mount or service-state
+change.
+
+### Recover from reader errors without looping
+
+Read the actual tool error and correct the failed parameter or scope before one
+retry. Respect declared limits such as required arguments and maximum page
+windows; do not repeat a call rejected for the same reason. If the tool reports
+that it is paused after repeated failures, stop calling it in that turn. Use
+one different admitted route only if it can answer the same unresolved question;
+otherwise return the supported partial result and the specific access limit.
+An error, timeout or pause is not evidence that the source or requested content
+is absent.
+
 If the exact source is present in the admitted workspace but absent from the
 index, state `source_present_not_indexed` and use the suitable admitted
 inspection route. This is an indexing gap, not a reason to invent content or
@@ -100,4 +121,11 @@ index enrichment != source-file move
 
 ## Return with provenance
 
-For material document-based conclusions, keep source identity and locator visible when available, and distinguish observed content from interpretation, inference and remaining uncertainty.
+For material project-document conclusions, keep the document title, source
+provenance, revision/index and date visible when available, together with a
+clickable link to the exact project file when the admitted interface exposes
+one. Never fabricate a link; if none is exposed, provide the exact reader
+locator and say so. Distinguish observed content from interpretation, inference
+and remaining uncertainty. For transversal Knowledge sources, cite the
+returned document title/name and available provenance; a filename or clickable
+file link is not required unless the user specifically asks for the original.

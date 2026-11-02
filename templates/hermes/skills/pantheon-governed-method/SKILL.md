@@ -6,7 +6,7 @@ metadata:
   status: candidate_template_only
   governed_by: docs/governance/GOVERNED_METHOD_STANDARD.md
   policy_contract: mcp-server/docs/HERMES_INTEGRATION_CONTRACT.md
-  related_skills: [pantheon-request-intake, pantheon-activity-projection]
+  related_skills: [pantheon-request-intake, pantheon-activity-projection, architectural-issue-framing]
   upstream: "agentskills.io SKILL.md standard; exact Hermes runtime compatibility must be qualified before admission"
 ---
 
@@ -44,12 +44,18 @@ Pantheon governs; Hermes executes; the human decides consequential effects.
 
 ## Load only what the task needs
 
-- Read [references/interaction.md](references/interaction.md) when the task
-  needs a visible plan, clarification, a selected Pantheon viewpoint, a work
-  posture, delegation or a revised plan.
+- For every non-trivial task, read [references/interaction.md](references/interaction.md)
+  and apply its visible plan and milestone rules. For agency project facts or
+  documents, also load `project-context`; for non-trivial chat work, load and
+  apply `pantheon-activity-projection`. Do this before the first material
+  retrieval or source call. Simple, bounded factual questions stay lightweight.
 - Read [references/source-review.md](references/source-review.md) when factual
   claims depend on workspace sources, candidates must be compared, completeness
   must be established, or a source-review child may be useful.
+- Read the `pantheon-distributed-work` skill when the task may benefit from
+  bounded parallel readers, persistent specialist Bots, or durable Kanban
+  coordination. It selects a runtime work shape; it does not create a profile
+  or activate a Pantheon Role or Rite.
 - Read [references/execution.md](references/execution.md) for consequential
   policy routing, Task Contracts, Context Packs, production, verification,
   source-preflight receipts or final readiness.
@@ -58,13 +64,39 @@ Do not load every reference merely because the skill was selected. For a simple
 bounded factual review, `source-review.md` plus the relevant portions of
 `execution.md` are normally sufficient.
 
+Use a policy route once for the materially unchanged request. If its `next_action`
+requires a changed request candidate, revise the candidate once using the returned
+conditions and route that changed candidate before source discovery; do not silently
+skip the instruction or repeat an unchanged route. When its returned object selects
+Role viewpoints, Rite requirements or doctrine keys, follow the returned next action
+as applicable, consult only the selected doctrine needed for the task, and use those
+viewpoints in the analysis. Surface selected viewpoints in the visible plan; a Role
+is an analytical lens, not a separate agent or independent opinion unless a real
+worker was dispatched and returned. Name a Rite only after its prescribed procedure
+was actually applied. If the route returns none, state briefly that no Role/Rite was
+selected when that explains their absence; never invent one. Call Task Contract,
+Evidence Pack, Context Pack or validation tools only when their returned object
+will be used by the next step or a governing rule requires it; their availability
+alone is not a reason to call them. A bounded review can keep a compact source
+receipt without creating unused skeletons.
+
 ## Route to one domain owner when justified
 
 For a material agency project task with competing source versions or many possible
 inputs, use the existing `project-context` skill for bounded source selection
-before choosing the specific reasoning owner. It adds no separate agent/profile,
+before choosing the specific reasoning owner. For any project-specific factual
+answer, comparison or professional conclusion based on project records, load
+`project-context` even when the exact document is already known; it chooses whether
+memory alone is enough or direct source inspection is needed. It adds no separate agent/profile,
 Context Pack authority or mandatory workflow graph. Do not preload all domain
 Skills merely because a project has several document types.
+
+When the user explicitly asks for an architect's opinion, project implications,
+sufficiency or the points that matter in a document or situation, use
+`architectural-issue-framing` as a short framing step before selecting any
+deeper domain owner. It identifies the principal project issue and priorities;
+it does not replace the owner skill or turn a simple factual question into a
+full review.
 
 Select by the reasoning required, not by the requested file format:
 
@@ -99,6 +131,9 @@ dimension `not_reviewed` instead of improvising expertise.
   consequential source.
 - Do not transmit, publish, persist canonical memory or cause another external
   effect without the applicable explicit authorization.
+- Treat a user deadline as a work budget: reserve time to verify and synthesize,
+  stop optional discovery when the budget is used, and return a bounded partial
+  result with its remaining gaps. A prompt deadline is not a runtime kill switch.
 
 Finish with the smallest useful result, sources, limits, readiness and next safe
 action. Use only: `ready`, `ready_with_limits`, `needs_revision`,
