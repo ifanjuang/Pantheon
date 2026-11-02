@@ -92,6 +92,18 @@ manual professional descriptions
 scans / point clouds
 ```
 
+The `source_kind` of a representation names a family of sources, not a reader: a
+kind such as `cad_drawing` or `email` does not mean that a qualified reader exists
+for it. The kinds are declared by the governed registry
+`registries/architecture_source_kind_profile.registry.json` (`document` for
+written documents — specification, bill of quantities, minutes, reports —
+`email`, `cad_drawing` for DWG/DXF, `drawing`, `ifc`, `revit`, `image`, `photo`,
+`scan`, `point_cloud`, `manual`, `other`, …). The schema checks the shape of the
+identifier; the validator and the owner check that it is declared. An agency may
+add kinds through a local file kept outside the repository, named by
+`PANTHEON_SOURCE_KIND_OVERLAY`; that file is add-only and cannot change or
+remove a kind of the registry.
+
 A representation may exist before Pantheon knows which stable object it represents.
 
 Where applicable it preserves:
@@ -778,14 +790,15 @@ APU claim != order, decision or reservation
   (`doc_document_versions`).
 - Persistence-side enforcement of the `architecture@1` relation vocabulary.
 
-Vocabularies — decided 2026-11-02, not implemented. The phase codes (for
-example `ESQ`, missing today from the Project Anatomy and proof-register
-schemas) and the `source_kind` values (for example written documents, e-mails
-and CAD drawings, which are labelled `other` today) move out of the schemas into
-governed vocabulary registries under `registries/`, in the manner of the
-`architecture@1` relation profile. The agency may add values through a local
-file kept outside the public repository, add-only: it cannot change or remove a
-value of the repository registry. The phases a project goes through are declared
-per project as it advances, with the date each declaration takes effect; a claim
-whose phase is not among the phases declared by its project is reported as a
-limitation, not refused. Until then the closed lists stay in force.
+Vocabularies — decided 2026-11-02.
+
+- **Source kinds: implemented** (§4). The kinds moved out of the schema into the
+  governed registry, with an add-only local agency file. `document`, `email` and
+  `cad_drawing` are declared. The owner refuses an undeclared kind; the database
+  checks only the shape of the identifier, so an agency kind needs no migration.
+- **Phase codes: not implemented.** The phase codes (for example `ESQ`, missing
+  today from the Project Anatomy and proof-register schemas) move to a governed
+  registry in the same way. The phases a project goes through are declared per
+  project as it advances, with the date each declaration takes effect; a claim
+  whose phase is not among the phases declared by its project is reported as a
+  limitation, not refused. Until then the closed phase lists stay in force.

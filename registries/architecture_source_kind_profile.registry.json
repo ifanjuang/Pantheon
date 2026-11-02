@@ -1,0 +1,126 @@
+{
+ "schema_version": "1",
+ "registry_id": "architecture_source_kind_profile",
+ "registry_kind": "vocabulary",
+ "version": "1.0.0",
+ "status": "candidate",
+ "owner": {
+  "id": "pantheon_project_anatomy",
+  "repository": "Pantheon-Next"
+ },
+ "authority_document": "docs/domain-packs/architecture/PROJECT_ANATOMY_MODEL.md",
+ "governance_refs": [
+  "docs/domain-packs/architecture/PROJECT_ANATOMY_MODEL.md",
+  "registries/README.md",
+  "schemas/architecture-project-understanding/source_kind_profile.schema.yaml",
+  "schemas/architecture-project-understanding/source_representation.schema.yaml"
+ ],
+ "description": "Source kind profile architecture@1: the controlled identifiers admitted for Project Anatomy source_representation.source_kind. A kind names a family of sources, never a reader, a parser or a provider: declaring cad_drawing or email does not mean a qualified reader exists for it. A declared kind is governable, not true, admitted, Evidence or approved. An agency may add kinds through a local file kept outside the repository; that file is add-only and cannot change or remove a kind declared here.",
+ "profile": {
+  "id": "architecture@1",
+  "governs": "Project Anatomy source_representation.source_kind",
+  "agency_file": {
+   "environment_variable": "PANTHEON_SOURCE_KIND_OVERLAY",
+   "registry_kind": "vocabulary_overlay",
+   "extends": "architecture_source_kind_profile",
+   "rules": [
+    "add-only: an id declared by this registry cannot be redeclared, changed or deprecated",
+    "ids follow naming_rules.id_pattern",
+    "status is active or candidate",
+    "an unreadable or invalid file makes the vocabulary unavailable instead of being ignored"
+   ]
+  }
+ },
+ "naming_rules": {
+  "id_pattern": "^[a-z][a-z0-9_]{1,39}$",
+  "max_agency_entries": 200
+ },
+ "entries": [
+  {
+   "id": "revit",
+   "status": "active",
+   "label": "Revit",
+   "description": "Observation read from a Revit model by an admitted Revit adapter."
+  },
+  {
+   "id": "ifc",
+   "status": "active",
+   "label": "IFC",
+   "description": "Observation read from an IFC model."
+  },
+  {
+   "id": "drawing",
+   "status": "active",
+   "label": "Plan (PDF)",
+   "description": "A drawing sheet: plan, section, elevation or detail, read from a PDF or an image of a sheet."
+  },
+  {
+   "id": "drawing_takeoff",
+   "status": "active",
+   "label": "Relevé de plan",
+   "description": "Output of a drawing take-off (quantities and geometry measured on a drawing)."
+  },
+  {
+   "id": "cad_drawing",
+   "status": "active",
+   "label": "Dessin CAO (DWG, DXF)",
+   "description": "A native CAD drawing. Naming this kind does not mean a qualified reader exists for it."
+  },
+  {
+   "id": "document",
+   "status": "active",
+   "label": "Pièce écrite",
+   "description": "A written document: specification (CCTP), bill of quantities (DPGF), meeting minutes, report, letter, any text or office document."
+  },
+  {
+   "id": "email",
+   "status": "active",
+   "label": "Courriel",
+   "description": "An e-mail message or one of its attachments taken as the source."
+  },
+  {
+   "id": "image",
+   "status": "active",
+   "label": "Image",
+   "description": "A raster image that is not a photograph of the site."
+  },
+  {
+   "id": "photo",
+   "status": "active",
+   "label": "Photographie",
+   "description": "A photograph of the site or of a work."
+  },
+  {
+   "id": "manual",
+   "status": "active",
+   "label": "Saisie manuelle",
+   "description": "A professional description entered by a human."
+  },
+  {
+   "id": "scan",
+   "status": "active",
+   "label": "Numérisation",
+   "description": "A scan of a paper document or of a site."
+  },
+  {
+   "id": "point_cloud",
+   "status": "active",
+   "label": "Nuage de points",
+   "description": "A point cloud."
+  },
+  {
+   "id": "other",
+   "status": "active",
+   "label": "Autre",
+   "description": "A source that no other kind describes. Prefer a declared kind: add one through the agency file when a family of sources recurs."
+  }
+ ],
+ "x_boundary": {
+  "runtime_execution": false,
+  "provider_routing": false,
+  "task_authorization": false,
+  "approval": false,
+  "evidence_promotion": false,
+  "memory_promotion": false
+ }
+}

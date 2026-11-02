@@ -29,6 +29,7 @@ MANIFEST_PATH = PACKAGE_ROOT / "contract_manifest.py"
 
 _manifest_module = runpy.run_path(str(MANIFEST_PATH))
 CONTRACT_PATHS: dict[str, str] = dict(_manifest_module["CONTRACT_PATHS"])
+REGISTRY_PATHS: dict[str, str] = dict(_manifest_module["REGISTRY_PATHS"])
 CANONICAL_REPOSITORY = str(_manifest_module["CANONICAL_REPOSITORY"])
 
 
@@ -54,7 +55,9 @@ def _git_revision() -> str | None:
 
 
 def _schema_tree_dirty() -> bool | None:
-    result = _git_run("status", "--porcelain", "--untracked-files=all", "--", "schemas")
+    result = _git_run(
+        "status", "--porcelain", "--untracked-files=all", "--", "schemas", "registries"
+    )
     if result is None or result.returncode != 0:
         return None
     return bool(result.stdout.strip())
@@ -82,7 +85,9 @@ def _verify_existing_payload() -> None:
         if _sha256(path) != expected:
             raise RuntimeError(f"generated Pantheon contract payload drifted: {relative}")
     missing_contracts = [
-        relative for relative in CONTRACT_PATHS.values() if not (GENERATED_ROOT / relative).is_file()
+        relative
+        for relative in (*CONTRACT_PATHS.values(), *REGISTRY_PATHS.values())
+        if not (GENERATED_ROOT / relative).is_file()
     ]
     if missing_contracts:
         raise RuntimeError(
@@ -101,9 +106,19 @@ def _stage_contracts() -> None:
 
     shutil.rmtree(GENERATED_ROOT, ignore_errors=True)
     shutil.copytree(canonical_root, GENERATED_SCHEMAS)
+    # Only the registries a consumer declares are carried, not the whole tree.
+    for name, relative in REGISTRY_PATHS.items():
+        source = MONOREPO_ROOT / relative
+        if not source.is_file():
+            raise RuntimeError(
+                f"canonical Pantheon registry declared by {name!r} is missing: {relative}"
+            )
+        target = GENERATED_ROOT / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
 
     files: dict[str, str] = {}
-    for path in sorted(GENERATED_SCHEMAS.rglob("*")):
+    for path in sorted(GENERATED_ROOT.rglob("*")):
         if path.is_file():
             relative = path.relative_to(GENERATED_ROOT).as_posix()
             files[relative] = _sha256(path)

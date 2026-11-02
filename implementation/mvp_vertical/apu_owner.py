@@ -22,7 +22,7 @@ from psycopg.types.json import Jsonb
 from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
 
-from . import pantheon_contracts
+from . import apu_vocabulary, pantheon_contracts
 from .policy_gate import OBJECT_IDENTITY_KEY, PolicyClient, enforce_consequential
 
 
@@ -123,6 +123,11 @@ def _validate(name: str, payload: dict[str, Any]) -> None:
             for error in errors
         )
         raise ApuOwnerError(f"{name} violates its governed contract: {rendered}")
+    if name == "source_representation":
+        try:
+            apu_vocabulary.require_source_kind(payload.get("source_kind"))
+        except (apu_vocabulary.VocabularyRefused, apu_vocabulary.VocabularyUnavailable) as exc:
+            raise ApuOwnerError(f"{name} violates the governed vocabulary: {exc}") from exc
 
 
 def ensure_schema(conn: psycopg.Connection) -> None:
