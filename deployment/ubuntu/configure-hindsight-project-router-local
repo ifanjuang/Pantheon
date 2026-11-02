@@ -7,7 +7,6 @@ REPO_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
 source "$SCRIPT_DIR/release.env"
 MCP_VERSION="${RELEASE_HINDSIGHT_PROJECT_MCP_VERSION:?release.env missing router MCP version}"
 SOURCE_ROOT="$REPO_ROOT/implementation/hermes/hindsight_project_router"
-APP_ROOT="/opt/pantheon-node/hindsight-project-router"
 UV="/opt/pantheon-node/uv/bin/uv"
 # Copies, not hard links to root's uv cache: a chown of one venv would otherwise
 # re-own the same files in every other venv on the node, Hermes' included.
@@ -28,6 +27,8 @@ Usage:
   sudo deployment/ubuntu/configure-hindsight-project-router-local --apply [--enable]
   deployment/ubuntu/configure-hindsight-project-router-local --knowledge --check
   sudo deployment/ubuntu/configure-hindsight-project-router-local --knowledge --apply [--enable]
+  deployment/ubuntu/configure-hindsight-project-router-local --combined --check
+  sudo deployment/ubuntu/configure-hindsight-project-router-local --combined --apply [--enable]
 
 Installs an authenticated loopback MCP service that exposes only project-scoped
 Project-platform recall. It always applies source:project-sync, one scope:project:* tag and
@@ -40,6 +41,11 @@ knowledge source tag (default source:knowledge) and an optional folder tag, with
 tags_match=all_strict, on 127.0.0.1:8023 with its own bearer token. Bank and
 source are deployment values: set HINDSIGHT_KNOWLEDGE_BANK_ID and
 HINDSIGHT_KNOWLEDGE_SOURCE_KIND from the local installation bindings.
+
+--combined stages one read-only MCP endpoint with all four scoped tools while
+keeping project and knowledge bank IDs/source tags independent. It uses port
+8024 and its own bearer token. Both bank IDs must be set and distinct. It does
+not replace or disable the split services or bind itself into Hermes.
 USAGE
 }
 
@@ -49,6 +55,7 @@ while (($#)); do
     --apply) APPLY=1 ;;
     --enable) ENABLE=1 ;;
     --knowledge) MODE="knowledge" ;;
+    --combined) MODE="combined" ;;
     -h|--help) usage; exit 0 ;;
     *) die "unknown argument: $1" ;;
   esac
@@ -57,18 +64,62 @@ done
 
 if [[ "$MODE" == knowledge ]]; then
   INSTANCE="pantheon-hindsight-knowledge-router"
+  APP_ROOT="/opt/pantheon-node/hindsight-knowledge-router"
   STATE_ROOT="/srv/pantheon/hindsight-knowledge-router"
   PORT=8023
   HINDSIGHT_BANK_ID="${HINDSIGHT_KNOWLEDGE_BANK_ID:-KNOWLEDGE}"
   HINDSIGHT_SOURCE_KIND="${HINDSIGHT_KNOWLEDGE_SOURCE_KIND:-knowledge}"
   DESCRIPTION="Knowledge-vault Hindsight MCP router for Hermes"
+elif [[ "$MODE" == combined ]]; then
+  INSTANCE="pantheon-hindsight-vault-router"
+  APP_ROOT="/opt/pantheon-node/hindsight-vault-router"
+  STATE_ROOT="/srv/pantheon/hindsight-vault-router"
+  PORT=8024
+  HINDSIGHT_PROJECT_BANK_ID="${HINDSIGHT_PROJECT_BANK_ID:-}"
+  HINDSIGHT_KNOWLEDGE_BANK_ID="${HINDSIGHT_KNOWLEDGE_BANK_ID:-}"
+  HINDSIGHT_PROJECT_SOURCE_KIND="${HINDSIGHT_PROJECT_SOURCE_KIND:-}"
+  HINDSIGHT_KNOWLEDGE_SOURCE_KIND="${HINDSIGHT_KNOWLEDGE_SOURCE_KIND:-}"
+  DESCRIPTION="Read-only multi-vault Hindsight MCP router for Hermes"
 else
   INSTANCE="pantheon-hindsight-project-router"
+  APP_ROOT="/opt/pantheon-node/hindsight-project-router"
   STATE_ROOT="/srv/pantheon/hindsight-project-router"
   PORT=8022
   HINDSIGHT_BANK_ID="${HINDSIGHT_PROJECT_BANK_ID:-PROJECTS}"
   HINDSIGHT_SOURCE_KIND="${HINDSIGHT_PROJECT_SOURCE_KIND:-project-sync}"
   DESCRIPTION="Project-scoped Hindsight MCP router for Hermes"
+fi
+if [[ "$MODE" == combined ]]; then
+  [[ -n "$HINDSIGHT_PROJECT_BANK_ID" && -n "$HINDSIGHT_KNOWLEDGE_BANK_ID" ]] \
+    || die "--combined requires HINDSIGHT_PROJECT_BANK_ID and HINDSIGHT_KNOWLEDGE_BANK_ID"
+  [[ -n "$HINDSIGHT_PROJECT_SOURCE_KIND" && -n "$HINDSIGHT_KNOWLEDGE_SOURCE_KIND" ]] \
+    || die "--combined requires explicit HINDSIGHT_PROJECT_SOURCE_KIND and HINDSIGHT_KNOWLEDGE_SOURCE_KIND matching producer source tags"
+  [[ "$HINDSIGHT_PROJECT_BANK_ID" != "$HINDSIGHT_KNOWLEDGE_BANK_ID" ]] \
+    || die "project and knowledge bank IDs must be distinct"
+  [[ "$HINDSIGHT_PROJECT_BANK_ID" =~ ^[A-Za-z0-9_.-]{1,64}$ && "$HINDSIGHT_KNOWLEDGE_BANK_ID" =~ ^[A-Za-z0-9_.-]{1,64}$ ]] \
+    || die "bank IDs may contain only letters, digits, dot, underscore and hyphen"
+  [[ -n "$HINDSIGHT_PROJECT_SOURCE_KIND" && -n "$HINDSIGHT_KNOWLEDGE_SOURCE_KIND" ]] \
+    || die "both source kinds must be non-empty"
+  [[ "$HINDSIGHT_PROJECT_SOURCE_KIND" != "$HINDSIGHT_KNOWLEDGE_SOURCE_KIND" ]] \
+    || die "project and knowledge source kinds must be distinct"
+  [[ "$HINDSIGHT_PROJECT_SOURCE_KIND" =~ ^[A-Za-z0-9_.-]{1,64}$ && "$HINDSIGHT_KNOWLEDGE_SOURCE_KIND" =~ ^[A-Za-z0-9_.-]{1,64}$ ]] \
+    || die "source kinds may contain only letters, digits, dot, underscore and hyphen"
+  HINDSIGHT_BANK_ID="$HINDSIGHT_PROJECT_BANK_ID,$HINDSIGHT_KNOWLEDGE_BANK_ID"
+  HINDSIGHT_SOURCE_KIND="$HINDSIGHT_PROJECT_SOURCE_KIND,$HINDSIGHT_KNOWLEDGE_SOURCE_KIND"
+fi
+# Split-mode services read the project-prefixed unit variables for their own
+# vault, so they must carry the bank/source selected by --project/--knowledge.
+# Only the combined service carries independent project and knowledge values.
+if [[ "$MODE" == combined ]]; then
+  UNIT_PROJECT_BANK_ID="$HINDSIGHT_PROJECT_BANK_ID"
+  UNIT_PROJECT_SOURCE_KIND="$HINDSIGHT_PROJECT_SOURCE_KIND"
+  UNIT_KNOWLEDGE_BANK_ID="$HINDSIGHT_KNOWLEDGE_BANK_ID"
+  UNIT_KNOWLEDGE_SOURCE_KIND="$HINDSIGHT_KNOWLEDGE_SOURCE_KIND"
+else
+  UNIT_PROJECT_BANK_ID="$HINDSIGHT_BANK_ID"
+  UNIT_PROJECT_SOURCE_KIND="$HINDSIGHT_SOURCE_KIND"
+  UNIT_KNOWLEDGE_BANK_ID=""
+  UNIT_KNOWLEDGE_SOURCE_KIND=""
 fi
 TOKEN_FILE="$STATE_ROOT/token"
 UNIT_FILE="/etc/systemd/system/$INSTANCE.service"
@@ -129,10 +180,15 @@ User=$SERVICE_USER
 Group=$SERVICE_USER
 WorkingDirectory=$APP_ROOT
 Environment=HINDSIGHT_PROJECT_URL=$HINDSIGHT_URL
-Environment=HINDSIGHT_PROJECT_BANK_ID=$HINDSIGHT_BANK_ID
-Environment=HINDSIGHT_PROJECT_SOURCE_KIND=$HINDSIGHT_SOURCE_KIND
+Environment=HINDSIGHT_URL=$HINDSIGHT_URL
+Environment=HINDSIGHT_PROJECT_BANK_ID=$UNIT_PROJECT_BANK_ID
+Environment=HINDSIGHT_PROJECT_SOURCE_KIND=$UNIT_PROJECT_SOURCE_KIND
 Environment=HINDSIGHT_PROJECT_TOKEN_FILE=$TOKEN_FILE
 Environment=HINDSIGHT_PROJECT_MCP_PORT=$PORT
+Environment=HINDSIGHT_KNOWLEDGE_BANK_ID=$UNIT_KNOWLEDGE_BANK_ID
+Environment=HINDSIGHT_KNOWLEDGE_SOURCE_KIND=$UNIT_KNOWLEDGE_SOURCE_KIND
+Environment=HINDSIGHT_VAULT_TOKEN_FILE=$TOKEN_FILE
+Environment=HINDSIGHT_VAULT_MCP_PORT=$PORT
 Environment=HINDSIGHT_ROUTER_MODE=$MODE
 ExecStart=$APP_ROOT/.venv/bin/python $APP_ROOT/hindsight_project_mcp.py --http
 Restart=on-failure

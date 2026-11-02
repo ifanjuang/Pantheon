@@ -146,9 +146,9 @@ def test_governed_local_mcp_binding_is_explicit_filtered_and_fail_closed() -> No
         assert server in text
     assert '"Doclin"' not in text
     assert "required local Hindsight bindings are absent; refusing partial inheritance" in text
-    assert 'del(."hindsight-affaires", ."hindsight-documentaires", ."hindsight-memory")' in text
+    assert 'del(."hindsight-affaires", ."hindsight-documentaires", ."hindsight-knowledge", ."hindsight-memory", ."hindsight-project", ."hindsight-vault")' in text
     assert 'config set --force mcp_servers "$merged"' in text
-    assert 'tools enable --platform cli hindsight-project:recall_project_memory' in text
+    assert 'tools enable --platform cli "${HINDSIGHT_TOOL_NAMES[@]}"' in text
     assert 'cp -a "$PROFILE_CONFIG_TARGET" "$backup_root/profile-config.yaml"' in text
     for tool in (
         "route_governed_request",
@@ -187,10 +187,18 @@ def test_hindsight_legacy_bindings_are_removed_from_governed_profile() -> None:
     assert '."hindsight-affaires".tools.include' not in text
     assert '."hindsight-documentaires".tools.include' not in text
     assert 'HINDSIGHT_PROJECT_TOOLS_JSON=' in text
-    assert '["recall_project_memory","hindsight_project_list"]' in text
-    assert 'has("hindsight-project")' in text
-    assert '."hindsight-project".tools.include == $project_tools' in text
+    assert '["recall_project_memory","hindsight_project_list","hindsight_project_overview"]' in text
+    assert 'HINDSIGHT_VAULT_TOOLS_JSON=' in text
+    assert 'has($hindsight_name)' in text
+    assert '.[ $hindsight_name ].tools.include == $hindsight_tools' in text
     assert 'HINDSIGHT_PROJECT_MCP_URL="http://127.0.0.1:8022/mcp"' in text
+    assert '--combined-hindsight' in text
+    assert 'HINDSIGHT_MCP_URL="http://127.0.0.1:8024/mcp"' in text
+    assert 'HINDSIGHT_TOKEN_FILE="/srv/pantheon/hindsight-vault-router/token"' in text
+    assert 'HINDSIGHT_OTHER_BINDING_NAME="hindsight-vault"' in text
+    assert 'HINDSIGHT_OTHER_BINDING_NAME="hindsight-project"' in text
+    assert 'del(."hindsight-affaires", ."hindsight-documentaires", ."hindsight-knowledge", ."hindsight-memory", ."hindsight-project", ."hindsight-vault")' in text
+    assert 'has($hindsight_other_name) | not' in text
 
 
 def test_curated_default_capabilities_remain_bounded_and_searchable() -> None:
@@ -266,3 +274,14 @@ def test_work_postures_never_become_runtime_or_governance_branch_keys() -> None:
                     )
 
     assert checked
+
+
+def test_governed_reader_binding_exposes_retained_ocr():
+    import json
+    import re
+    text = CONFIGURE.read_text(encoding="utf-8")
+    match = re.search(r"^VAULT_TOOLS_JSON='([^']+)'", text, re.MULTILINE)
+    assert match
+    tools = json.loads(match.group(1))
+    assert "read_vault_ocr_markdown" in tools
+    assert "read_vault_pdf_pages" in tools

@@ -23,6 +23,8 @@ mcp = MCPServer(
         "Read-only agency vault mirror discovery. Paths are source leads, not project "
         "identity or Evidence. Search previews are not inspected passages; use "
         "read_vault_markdown_lines for line-located source content. read_vault_pdf_pages "
+        "read_vault_ocr_markdown for an exact retained OCR derivative when Hindsight supplies "
+        "its workspace, technical document ID and raw-source checksum. "
         "returns the text layer of a few pages of one exact PDF (a scan as an image); "
         "the separately admitted Docling binding converts whole documents and tables; "
         "read_vault_pdf_figures returns caption-located figure crops from one exact PDF."
@@ -83,6 +85,21 @@ def read_vault_markdown_lines(
     """Read a bounded line-located passage from one exact Markdown source."""
     return _reply(lambda: VaultSources.from_environment().read_markdown_lines(
         source_path, start_line, max_lines, project_ref
+    ))
+
+
+@mcp.tool(annotations=READ_ONLY, structured_output=False)
+def read_vault_ocr_markdown(
+    workspace: str, document_id: str, source_sha256: str,
+    start_line: int = 1, max_lines: int = 24,
+) -> str:
+    """Read a bounded OCR Markdown passage for one exact Hindsight source identity.
+
+    Use only the exact workspace, technical document ID and raw-source SHA-256
+    returned with the Hindsight memory. The PDF remains the authoritative source.
+    """
+    return _reply(lambda: VaultSources.from_environment().read_ocr_markdown(
+        workspace, document_id, source_sha256, start_line, max_lines
     ))
 
 
