@@ -83,3 +83,37 @@ def test_cockpit_cutover_installs_processing_move_backend_and_single_list_assets
     assert '<details id="summary-disclosure"' in html
     assert "Producteurs · Affaires et Bibliothèque" not in html
     assert 'aria-label="Filtrer par vault"' in html
+
+
+def _profile_install_calls(tmp_path: Path, *, same_file: bool) -> list[str]:
+    """Run the installer's own profile-install block with recorded commands."""
+    import subprocess
+
+    lines = INSTALLER.read_text(encoding="utf-8").splitlines()
+    start = lines.index('  if [[ "$PROFILE_SOURCE" -ef "$PROFILE_TARGET" ]]; then')
+    end = start + lines[start:].index("  fi") + 1
+    target = tmp_path / "vaults.json"
+    target.write_text("{}", encoding="utf-8")
+    source = target if same_file else tmp_path / "staged.json"
+    if not same_file:
+        source.write_text("{}", encoding="utf-8")
+    script = "\n".join([
+        'install() { echo "install $*"; }',
+        'chown() { echo "chown $*"; }',
+        'chmod() { echo "chmod $*"; }',
+        f'PROFILE_SOURCE="{source}"',
+        f'PROFILE_TARGET="{target}"',
+        'service_group="svc"',
+        *lines[start:end],
+    ])
+    result = subprocess.run(["bash", "-c", script], capture_output=True, text=True, check=True)
+    return result.stdout.splitlines()
+
+
+def test_reapply_keeps_the_live_profile_instead_of_copying_it_onto_itself(tmp_path: Path) -> None:
+    calls = _profile_install_calls(tmp_path, same_file=True)
+    assert not any(call.startswith("install ") for call in calls)
+    assert any(call.startswith("chown root:svc ") for call in calls)
+    assert any(call.startswith("chmod 0640 ") for call in calls)
+    staged = _profile_install_calls(tmp_path, same_file=False)
+    assert len(staged) == 1 and staged[0].startswith("install -m 0640 -o root -g svc ")
