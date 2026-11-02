@@ -575,7 +575,7 @@ function cardTemplate(card) {
   return `<article class="${classes}" data-status="${escapeHtml(card.status)}" data-card-path="${escapeHtml(card.path)}">
     <div class="card-heading">
       <div class="card-head">
-        <div class="card-kicker"><span class="card-label-icons">${stage ? cardLabelIcon(stage.icon, stage.label, stage.color, stage.pulse) : ""}${cardLabelIcon(STATUS[card.status]?.icon, STATUS[card.status]?.label || card.status, STATUS[card.status]?.color || "")}</span>${actions}</div>
+        <div class="card-kicker"><span class="card-label-icons">${stage ? cardLabelIcon(stage.icon, stage.label, stage.color, stage.pulse) : ""}${isFolder ? "" : cardLabelIcon(STATUS[card.status]?.icon, STATUS[card.status]?.label || card.status, STATUS[card.status]?.color || "")}</span>${actions}</div>
         ${title ? `<h2${isFolder ? ' class="folder-card-title"' : ""} title="${escapeHtml(`${title}${isFolder ? "/" : ""}`)}">${heading}</h2>` : ""}
       </div>
       ${visibleSubtitle ? `<p class="subtitle card-subtitle">${escapeHtml(visibleSubtitle)}</p>` : ""}
