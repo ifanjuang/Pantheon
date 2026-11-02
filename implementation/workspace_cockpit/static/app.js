@@ -335,9 +335,9 @@ function documentMetadataEditor(card, preflight) {
         ${list("sujet_technique", "Sujets techniques", listValue("sujet_technique", preflight.sujet_technique_candidates))}
         <label class="metadata-field metadata-field-wide"><span>Résumé</span>${fieldControl("summary", `<textarea rows="3" maxlength="1200" data-metadata-field="summary" data-metadata-previous-value="${escapeHtml(candidate("summary", summaryCandidate))}">${escapeHtml(candidate("summary", summaryCandidate))}</textarea>`, "Résumé")}</label>
       </div>
-      <div class="document-note-actions"><button type="button" data-save-document-metadata>Enregistrer les métadonnées</button><span role="status" aria-live="polite" data-document-metadata-status></span></div>
+      <div class="document-note-actions"><button type="button" data-save-document-metadata>Enregistrer les métadonnées</button><button type="button" class="secondary" data-restore-automatic-metadata${Object.keys(values).length ? "" : " disabled"}>Rétablir les valeurs automatiques</button><span role="status" aria-live="polite" data-document-metadata-status></span></div>
       ${syncActions}
-      <small>Effacer un champ puis enregistrer retire sa correction et réaffiche le résultat de l’analyse.</small>
+      <small>Vider un champ puis enregistrer l’efface volontairement. « Rétablir les valeurs automatiques » supprime toutes les corrections et tous les effacements de ce document.</small>
     </div>
   </details>`;
 }
@@ -1173,6 +1173,52 @@ async function saveDocumentMetadata(button) {
   }
 }
 
+async function restoreAutomaticMetadata(button) {
+  const editor = button.closest("[data-document-metadata]");
+  const status = editor?.querySelector("[data-document-metadata-status]");
+  if (!editor || !status) return;
+  const confirmed = window.confirm("Rétablir les valeurs détectées automatiquement ? Toutes les corrections et tous les effacements enregistrés pour ce document seront supprimés.");
+  if (!confirmed) return;
+  const workspace = editor.dataset.metadataWorkspace;
+  const path = editor.dataset.metadataPath;
+  button.disabled = true;
+  status.textContent = "Rétablissement…";
+  try {
+    const response = await fetch(workspaceUrl("api/document-metadata-overrides"), {
+      method: "POST",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json", "X-Pantheon-Intent": "document-metadata-save" },
+      body: JSON.stringify({ workspace, path, reset: true }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+    const card = allCards().find((item) => item.workspace === workspace && item.path === path);
+    const queued = processingData.items.find((item) => item.workspace === workspace && item.source_path === path);
+    for (const item of [card, queued]) {
+      if (!item) continue;
+      delete item.metadata_override;
+      delete item.hindsight_metadata_sync;
+    }
+    const source = card || queued;
+    const template = document.createElement("template");
+    template.innerHTML = source
+      ? documentMetadataEditor({ ...source, workspace, path, source_present: source.source_present !== false }, source.preflight_metadata || {}).trim()
+      : "";
+    const replacement = template.content.firstElementChild;
+    if (replacement) {
+      replacement.open = editor.open;
+      editor.replaceWith(replacement);
+      const replacementStatus = replacement.querySelector("[data-document-metadata-status]");
+      if (replacementStatus) replacementStatus.textContent = "Valeurs automatiques rétablies.";
+    } else {
+      status.textContent = "Valeurs automatiques rétablies.";
+    }
+  } catch (error) {
+    status.textContent = `Échec du rétablissement : ${error.message || error}`;
+    button.disabled = false;
+  }
+}
+
 async function syncDocumentMetadata(button) {
   const editor = button.closest("[data-document-metadata]");
   const status = editor?.querySelector("[data-hindsight-metadata-sync-status]");
@@ -1251,6 +1297,11 @@ elements.cards.addEventListener("click", (event) => {
   const noteButton = event.target.closest("[data-save-document-note]");
   if (noteButton) {
     void saveDocumentNote(noteButton);
+    return;
+  }
+  const restoreMetadataButton = event.target.closest("[data-restore-automatic-metadata]");
+  if (restoreMetadataButton) {
+    void restoreAutomaticMetadata(restoreMetadataButton);
     return;
   }
   const metadataButton = event.target.closest("[data-save-document-metadata]");
@@ -2885,6 +2936,11 @@ document.addEventListener("click", (event) => {
         .then(() => { processingMessage.textContent = "Suite annulée ; le document reste disponible sans être mémorisé."; })
         .catch((error) => { processingMessage.textContent = error.message || "Exclusion impossible."; });
     }
+    return;
+  }
+  const restoreMetadataButton = event.target.closest("[data-restore-automatic-metadata]");
+  if (restoreMetadataButton) {
+    void restoreAutomaticMetadata(restoreMetadataButton);
     return;
   }
   const saveButton = event.target.closest("[data-save-document-metadata]");
