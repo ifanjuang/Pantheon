@@ -3,8 +3,13 @@ FROM ${HERMES_IMAGE}
 
 WORKDIR /app
 COPY workspace_cockpit/server.py /app/server.py
+COPY workspace_cockpit/otel_projection.py /app/otel_projection.py
 COPY workspace_cockpit/producer_daemon.py /app/producer_daemon.py
 COPY workspace_cockpit/hindsight_producer.py /app/hindsight_producer.py
+COPY workspace_cockpit/document_metadata_preflight.py /app/document_metadata_preflight.py
+COPY workspace_cockpit/document_ocr.py /app/document_ocr.py
+COPY workspace_cockpit/processing_queue.py /app/processing_queue.py
+COPY workspace_cockpit/vault_profiles.py /app/vault_profiles.py
 COPY workspace_cockpit/hindsight_enrichment_hook.py /app/hindsight_enrichment_hook.py
 COPY workspace_cockpit/memory_reconciliation.py /app/memory_reconciliation.py
 COPY workspace_cockpit/role_server.py /app/role_server.py

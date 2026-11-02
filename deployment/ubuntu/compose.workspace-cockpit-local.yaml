@@ -102,12 +102,17 @@ services:
       WORKSPACE_RECONCILE_HERMES_KEY: ${WORKSPACE_RECONCILE_HERMES_KEY:-}
       WORKSPACE_RECONCILE_HERMES_TIMEOUT_SECONDS: ${WORKSPACE_RECONCILE_HERMES_TIMEOUT_SECONDS:-120}
       WORKSPACE_RECONCILE_MAX_CONTEXT_CHARS: ${WORKSPACE_RECONCILE_MAX_CONTEXT_CHARS:-48000}
+      WORKSPACE_HERMES_CHAT_URL: ${WORKSPACE_HERMES_CHAT_URL:-}
+      WORKSPACE_HERMES_CHAT_KEY: ${WORKSPACE_HERMES_CHAT_KEY:-}
+      WORKSPACE_HERMES_CHAT_DB: ${WORKSPACE_HERMES_CHAT_DB:-/chat-state/hermes-card-discussions.sqlite3}
+      WORKSPACE_HERMES_CHAT_TIMEOUT_SECONDS: ${WORKSPACE_HERMES_CHAT_TIMEOUT_SECONDS:-300}
     depends_on:
       role-trace:
         condition: service_healthy
     volumes:
       - ${PROJECTS_ROOT:?set PROJECTS_ROOT to the Linux-mounted NAS AFFAIRES path}:/workspace/affaires:ro
       - workspace-cockpit-state:/state:ro
+      - workspace-cockpit-chat-state:/chat-state
     healthcheck:
       test:
         - CMD-SHELL
@@ -181,3 +186,4 @@ services:
 
 volumes:
   workspace-cockpit-state:
+  workspace-cockpit-chat-state:

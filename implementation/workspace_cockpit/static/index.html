@@ -1,68 +1,146 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-ui-version="20261101-otel-global-log-1">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="color-scheme" content="light">
-    <meta name="description" content="Vue locale en lecture seule des dossiers, sources et cartouches AFFAIRES.">
-    <title>Pantheon — AFFAIRES</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta name="color-scheme" content="dark">
+    <meta name="description" content="Navigation des dossiers et documents Affaires et Bibliothèque.">
+    <title>Pantheon — Workspace</title>
     <base href="/workspace/">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=20261101-otel-global-log-1">
     <link rel="stylesheet" href="vendor/swiper-14.3.0-bundle.min.css" integrity="sha384-xkKzAc7JSlGq3SLCZHugx/i0gfYZf6kaFzg3v9/wz0HtsAFYPLz7aUvCFTac8KBk">
     <link rel="stylesheet" href="role_trace_graph.css">
-    <script src="app.js" defer></script>
+    <script src="vendor/sortable-1.15.7.min.js" integrity="sha256-v0JBvHP+9/EcWaKDpp/oBRzdMcbY/1orm6IZ54Mfz3Y=" crossorigin="anonymous" defer></script>
+    <script src="app.js?v=20261101-otel-global-log-1" defer></script>
   </head>
   <body>
     <main class="shell">
-      <header class="topbar">
-        <div>
-          <p class="eyebrow">Pantheon · Workspace</p>
-          <h1>AFFAIRES</h1>
+      <header class="workspace-header">
+        <div class="workspace-header-toolbar">
+          <div class="workspace-header-left">
+          <nav id="workspace-view-switch" class="workspace-view-switch" aria-label="Vues de l’espace de travail">
+            <button id="folder-view-toggle" class="workspace-view-button" type="button" aria-label="Vue des dossiers · afficher l’autre vue" title="Vue des dossiers · afficher l’autre vue" aria-pressed="true" aria-expanded="false" aria-controls="processing-toggle">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5h6l2 2h9v9h-17zM3.5 8.5v-2a1 1 0 0 1 1-1h5l2 2h8a1 1 0 0 1 1 1"/></svg>
+            </button>
+            <button id="processing-toggle" class="workspace-view-button" type="button" aria-label="Liste de traitement" title="Liste de traitement" aria-pressed="false" hidden>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h12M8 12h12M8 19h12M3.5 5h.01M3.5 12h.01M3.5 19h.01"/></svg>
+            </button>
+          </nav>
+          <nav id="workspace-vault-switch" class="workspace-vault-switch" aria-label="Afficher ou masquer les vaults"></nav>
+          </div>
+          <div class="workspace-header-actions">
+          <nav id="processing-lane-status" class="processing-lane-status" aria-label="État des traitements">
+            <button class="workspace-view-button processing-lane-indicator" type="button" data-processing-lane="preflight" data-state="unknown" aria-label="État Analyse indisponible" title="Analyse · état indisponible">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3H5V21H19V11M11 3L19 11M11 3V11H19M14 16L16 18L21 13"></path></svg>
+            </button>
+            <button class="workspace-view-button processing-lane-indicator" type="button" data-processing-lane="ocr" data-state="unknown" aria-label="État OCR indisponible" title="OCR · état indisponible">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3H14L19 8V21H5V3ZM14 3V8H19M8 12H16M8 16H13"></path></svg>
+            </button>
+            <button class="workspace-view-button processing-lane-indicator" type="button" data-processing-lane="hindsight" data-state="unknown" aria-label="État Hindsight indisponible" title="Hindsight · état indisponible">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3H14L19 8V21H5V3ZM14 3V8H19M8 13H16M8 17H16"></path></svg>
+            </button>
+          </nav>
+          <button id="refresh" class="workspace-view-button" type="button" aria-label="Actualiser" title="Actualiser">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7V3L17 6M20 7H15M4 17V21L7 18M4 17H9M6.1 8.1A7 7 0 0 1 18 6M17.9 15.9A7 7 0 0 1 6 18"/></svg>
+          </button>
+          <details id="workspace-menu" class="workspace-menu">
+            <summary class="workspace-menu-trigger" aria-label="Menu principal">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+              <span>Menu</span>
+            </summary>
+            <div class="workspace-menu-panel">
+              <nav id="tool-links" class="tool-links" aria-label="Outils locaux" hidden></nav>
+
+              <details class="producer-panel" id="producer-panel">
+                <summary><strong>Producteur source</strong><span id="producer-scope-state">Vérification…</span></summary>
+                <div class="producer-panel-body">
+                  <p id="producer-warning" class="producer-warning" role="status"></p>
+                  <dl id="producer-status" class="producer-status"></dl>
+                  <div class="producer-config">
+                    <button id="producer-configure" type="button">Limiter Affaires au dossier attendu</button>
+                    <small>Arrête le worker Affaires et prépare sa nouvelle portée. L’ingestion restera arrêtée jusqu’à la remise au propre du vault.</small>
+                    <p id="producer-config-message" role="status"></p>
+                  </div>
+                  <div class="producer-log-controls">
+                    <label for="producer-log-unit">Journaux</label>
+                    <select id="producer-log-unit"><option value="affaires">Affaires</option><option value="bibliotheque">Bibliothèque</option></select>
+                    <button id="producer-log-refresh" type="button">Actualiser les journaux</button>
+                  </div>
+                  <pre id="producer-logs" class="producer-logs" aria-live="polite">Ouvrez ce panneau pour lire les dernières lignes.</pre>
+                </div>
+              </details>
+
+              <details id="otel-panel" class="producer-panel">
+                <summary><strong>Journal OTEL</strong><span id="otel-state">Ouvrir pour consulter</span></summary>
+                <div class="producer-panel-body">
+                  <p>Journal global de l’activité Hermes · 200 spans récents au maximum · contenu métier masqué.</p>
+                  <p id="otel-updated" role="status"></p>
+                  <div id="otel-summary" class="otel-summary" aria-live="polite"></div>
+                  <ol id="otel-spans" class="otel-spans"></ol>
+                </div>
+              </details>
+            </div>
+          </details>
+          </div>
         </div>
-        <div class="sync-state" aria-label="État de la source">
-          <span class="sync-dot" aria-hidden="true"></span>
-          <span>Lecture seule · source AFFAIRES</span>
+        <div class="search-field workspace-search">
+          <label class="visually-hidden" for="search">Rechercher dans les dossiers, documents et métadonnées</label>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m2.1-5.4a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z"/></svg>
+          <input id="search" type="search" placeholder="Rechercher dossiers, documents, métadonnées…" autocomplete="off">
+          <button id="search-clear" class="search-clear" type="button" aria-label="Effacer la recherche" title="Effacer la recherche" hidden>×</button>
         </div>
       </header>
 
-      <nav id="tool-links" class="tool-links" aria-label="Outils locaux" hidden></nav>
-
-      <details class="producer-panel" id="producer-panel">
-        <summary><strong>Producteurs et sources</strong><span id="producer-scope-state">Vérification…</span></summary>
-        <div class="producer-panel-body">
-          <p id="producer-warning" class="producer-warning" role="status"></p>
-          <dl id="producer-status" class="producer-status"></dl>
-          <div class="producer-config">
-            <button id="producer-configure" type="button">Limiter Affaires au dossier attendu</button>
-            <small>Arrête le worker Affaires et prépare sa nouvelle portée. L’ingestion restera arrêtée jusqu’à la remise au propre du vault.</small>
-            <p id="producer-config-message" role="status"></p>
-          </div>
-          <div class="producer-log-controls">
-            <label for="producer-log-unit">Journaux</label>
-            <select id="producer-log-unit"><option value="affaires">Affaires</option><option value="bibliotheque">Bibliothèque</option></select>
-            <button id="producer-log-refresh" type="button">Actualiser les journaux</button>
-          </div>
-          <pre id="producer-logs" class="producer-logs" aria-live="polite">Ouvrez ce panneau pour lire les dernières lignes.</pre>
-        </div>
-      </details>
-
-      <details class="summary-disclosure">
-        <summary><strong><span id="package-count">—</span> éléments indexés</strong><span>Répartition par état</span></summary>
+      <details id="summary-disclosure" class="summary-disclosure">
+        <summary><strong><span id="package-count">—</span> éléments</strong><span>États</span></summary>
         <section class="summary" aria-label="Résumé de l’espace de travail">
           <div id="status-counts" class="status-counts"></div>
         </section>
       </details>
 
-      <section class="controls" aria-label="Filtres">
-        <label class="search-field">
-          <span class="visually-hidden">Rechercher un dossier ou document</span>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m2.1-5.4a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z"/></svg>
-          <input id="search" type="search" placeholder="Rechercher un dossier ou document…" autocomplete="off">
-        </label>
-        <button id="refresh" class="refresh" type="button">Actualiser</button>
+      <section id="processing-view" class="processing-view" aria-label="File de traitement" hidden>
+        <div class="processing-toolbar">
+          <div class="processing-title">
+            <h2>File de traitement</h2>
+          </div>
+          <div class="processing-controls">
+            <div class="processing-filters">
+              <label class="processing-filter">Projet
+                <select id="processing-project-filter" aria-label="Filtrer par projet">
+                  <option value="">Tous les projets</option>
+                </select>
+              </label>
+            </div>
+            <div class="processing-actions">
+              <button id="processing-retry-all" type="button" hidden>Tout reprendre</button>
+              <button id="processing-pause-list" type="button">Pause de la liste</button>
+              <button id="processing-resume-list" type="button">Reprise de la liste</button>
+            </div>
+          </div>
+        </div>
+        <nav id="processing-stage-tabs" class="processing-stage-tabs" role="tablist" aria-label="Filtrer la file par étape ou état">
+          <button type="button" class="processing-stage-tab" role="tab" data-stage="preflight" aria-label="Analyser" title="Analyser" aria-selected="false" tabindex="-1" aria-controls="processing-items">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M11 3H5V21H19V11M11 3L19 11M11 3V11H19M14 16L16 18L21 13"></path></svg>
+            <span class="processing-stage-label">Analyser</span>
+            <span id="processing-count-preflight" class="processing-stage-count">(0)</span>
+          </button>
+          <button type="button" class="processing-stage-tab" role="tab" data-stage="hindsight" aria-label="Mémoriser" title="Mémoriser" aria-selected="true" tabindex="0" aria-controls="processing-items">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 3H14L19 8V21H5V3ZM14 3V8H19M8 13H16M8 17H16"></path></svg>
+            <span class="processing-stage-label">Mémoriser</span>
+            <span id="processing-count-hindsight" class="processing-stage-count">(0)</span>
+          </button>
+          <button type="button" class="processing-stage-tab" role="tab" data-stage="failed" aria-label="Erreurs" title="Erreurs" aria-selected="false" tabindex="-1" aria-controls="processing-items">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 12C3 16.97056 7.02944 21 12 21C16.97056 21 21 16.97056 21 12C21 7.02944 16.97056 3 12 3C7.02944 3 3 7.02944 3 12ZM9 9L15 15M15 9L9 15"></path></svg>
+            <span class="processing-stage-label">Erreurs</span>
+            <span id="processing-count-failed" class="processing-stage-count">(0)</span>
+          </button>
+        </nav>
+        <p class="processing-flow-hint">Le flux avance automatiquement : analyser, décrypter si le PDF ne contient pas de texte, puis mémoriser si du texte exploitable est disponible. Vous pouvez mettre une étape en pause ou relancer un échec.</p>
+        <p id="processing-message" class="processing-message" role="status" aria-live="polite">Chargement de la file…</p>
+        <ol id="processing-items" class="processing-items" aria-label="Ordre de traitement"></ol>
+        <p id="processing-empty" class="message" hidden>Aucun document dans la file.</p>
       </section>
 
-      <nav id="workspace-tabs" class="tabs" aria-label="Espaces documentaires"></nav>
       <details class="filter-disclosure">
         <summary id="filter-summary">Filtrer par état</summary>
         <div id="status-filters" class="filters" aria-label="Filtrer par état"></div>
@@ -70,7 +148,10 @@
       <nav id="breadcrumbs" class="breadcrumbs" aria-label="Chemin du dossier"></nav>
 
       <section aria-live="polite">
-        <div id="loading" class="message">Lecture d’AFFAIRES…</div>
+        <div id="loading" class="loading-indicator" role="status" aria-live="polite" aria-label="Chargement des dossiers">
+          <span class="loading-spinner" aria-hidden="true"></span>
+          <span class="visually-hidden">Chargement des dossiers…</span>
+        </div>
         <div id="error" class="message error" hidden></div>
         <div id="cards" class="cards" hidden></div>
         <div id="folder-pager" class="folder-pager" hidden>
@@ -80,6 +161,80 @@
         </div>
         <div id="empty" class="message" hidden>Aucun élément ne correspond à ces filtres.</div>
       </section>
+
+      <dialog id="metadata-editor-dialog" class="metadata-dialog" aria-labelledby="metadata-dialog-title">
+        <div class="metadata-dialog-content">
+          <div class="metadata-dialog-head">
+            <h2 id="metadata-dialog-title">Métadonnées du document</h2>
+            <button type="button" data-close-metadata-dialog aria-label="Fermer">×</button>
+          </div>
+          <div id="metadata-editor-mount"></div>
+        </div>
+      </dialog>
+
+      <dialog id="processing-action-dialog" class="metadata-dialog processing-action-dialog" aria-labelledby="processing-action-title" aria-describedby="processing-action-description">
+        <form id="processing-action-form" class="metadata-dialog-content">
+          <div class="metadata-dialog-head">
+            <h2 id="processing-action-title">Relancer le traitement</h2>
+            <button type="button" data-close-processing-action aria-label="Fermer">×</button>
+          </div>
+          <p id="processing-action-description" class="processing-action-description"></p>
+          <fieldset id="processing-replacement-options" class="processing-replacement-options" hidden>
+            <legend>Analyse avant ingestion</legend>
+            <label><input id="processing-reanalyze-before-ingest" type="checkbox"><span><strong>Réactualiser les métadonnées avant l’ingestion</strong><small>Relance le préflight à partir du texte OCR avant de remplacer le document et ses mémoires dans Hindsight.</small></span></label>
+            <p id="processing-replacement-analysis-hint" class="processing-action-hint"></p>
+            <p class="processing-action-hint">Dans les deux cas, Hindsight remplace la mémoire existante par le contenu OCR. Si le traitement échoue après le remplacement, l’ancienne mémoire peut ne pas être récupérable automatiquement.</p>
+          </fieldset>
+          <div id="processing-action-note-group">
+            <label for="processing-action-note">Remarque pour cette relance <span>(facultatif)</span></label>
+            <textarea id="processing-action-note" maxlength="1000" rows="4" placeholder="Ex. : pages à traiter, titre à privilégier, élément à vérifier…"></textarea>
+            <p class="processing-action-hint">La remarque reste associée à la demande dans la file. Elle ne change pas automatiquement les paramètres du traitement.</p>
+          </div>
+          <p id="processing-action-status" class="processing-action-status" role="status" aria-live="polite"></p>
+          <div class="processing-action-buttons">
+            <button type="button" data-cancel-processing-action>Annuler</button>
+            <button id="processing-action-submit" type="submit">Confirmer</button>
+          </div>
+        </form>
+      </dialog>
+
+      <dialog id="processing-lane-dialog" class="metadata-dialog processing-lane-dialog" aria-labelledby="processing-lane-dialog-title" aria-describedby="processing-lane-dialog-description">
+        <div class="metadata-dialog-content">
+          <div class="metadata-dialog-head">
+            <h2 id="processing-lane-dialog-title">Contrôle du traitement</h2>
+            <button type="button" data-close-processing-lane aria-label="Fermer">×</button>
+          </div>
+          <p id="processing-lane-dialog-description" class="processing-action-description"></p>
+          <div class="processing-lane-controls" role="group" aria-label="Action sur cette étape">
+            <button type="button" data-lane-state="disabled">Arrêter</button>
+            <button type="button" data-lane-state="paused">Pause</button>
+            <button type="button" data-lane-state="active">Reprendre</button>
+          </div>
+          <section class="processing-lane-activity" aria-labelledby="processing-lane-activity-title">
+            <h3 id="processing-lane-activity-title">Activité récente</h3>
+            <p>Derniers documents touchés par cette étape et leur diagnostic. Ce résumé ne remplace pas le journal système.</p>
+            <ol id="processing-lane-activity-list"></ol>
+          </section>
+          <p id="processing-lane-dialog-status" class="processing-action-status" role="status" aria-live="polite"></p>
+        </div>
+      </dialog>
+
+      <dialog id="document-reader-dialog" class="metadata-dialog document-reader-dialog" aria-labelledby="document-reader-title">
+        <div class="metadata-dialog-content">
+          <div class="metadata-dialog-head document-reader-head">
+            <h2 id="document-reader-title">Lecture du document</h2>
+            <div class="document-reader-actions">
+              <button id="document-reader-share" type="button" class="icon-action" aria-label="Partager le document" title="Partager le document"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V3M7 8L12 3L17 8M5 13V20H19V13"></path></svg></button>
+              <button type="button" data-close-document-reader aria-label="Fermer" title="Fermer">×</button>
+            </div>
+          </div>
+          <p id="document-reader-status" class="document-reader-status" role="status" aria-live="polite"></p>
+          <div class="document-reader-pane">
+            <iframe id="document-reader-pdf" title="Lecteur PDF" hidden></iframe>
+            <article id="document-reader-markdown" class="ocr-markdown" aria-live="polite" hidden></article>
+          </div>
+        </div>
+      </dialog>
 
       <details class="role-disclosure">
         <summary>Jalons d’exécution</summary>
@@ -107,5 +262,6 @@
         </section>
       </details>
     </main>
+    <footer id="asset-version-footer" class="asset-version-footer" aria-label="Versions de l’interface"></footer>
   </body>
 </html>

@@ -1,0 +1,264 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
+SOURCE_ROOT="$REPO_ROOT/implementation/workspace_cockpit"
+PROFILE_TARGET="/etc/pantheon-workspace-producers/vaults.json"
+# The node's own vault profile (roots, mounts, banks, source tags) lives outside
+# the repository. The example is a credential-free template, not a node binding.
+if [[ -f "$PROFILE_TARGET" ]]; then
+  PROFILE_SOURCE="$PROFILE_TARGET"
+else
+  PROFILE_SOURCE="$SCRIPT_DIR/hindsight-vault-profiles.example.json"
+fi
+INSTALL_ROOT="/opt/pantheon-workspace-cockpit"
+UNIT_PATH="/etc/systemd/system/pantheon-workspace-multivault-producer.service"
+ENV_PATH="/etc/pantheon-workspace-cockpit.env"
+STATE_DB="${WORKSPACE_STATE_DB:-/var/lib/pantheon-workspace-cockpit/multivault.sqlite3}"
+SERVICE_USER="${SUDO_USER:-}"
+APPLY=0
+
+log() { printf '[workspace-multivault] %s\n' "$*"; }
+die() { printf '[workspace-multivault] ERROR: %s\n' "$*" >&2; exit 1; }
+
+usage() {
+  cat <<'EOF'
+Usage:
+  deployment/ubuntu/configure-workspace-multivault-producer --check [--profile-config FILE] [--state-db FILE] [--user USER]
+  sudo deployment/ubuntu/configure-workspace-multivault-producer --apply [--profile-config FILE] [--state-db FILE] [--user USER]
+
+Installs one coordinator for multiple vaults, preserving the legacy producer
+units and indexes. It never starts or enables the new service. The supplied
+state database must be a new, backed-up merge output or a deliberately chosen
+existing index. Stop both legacy producers before applying.
+
+Options:
+  --profile-config FILE  credential-free multi-vault profile JSON
+  --state-db FILE        shared producer/preflight/queue SQLite database
+  --user USER            unprivileged service account (default invoking user)
+  --check                validate inputs and print a plan (default)
+  --apply                install runtime/config/unit and daemon-reload only
+EOF
+}
+
+while (($#)); do
+  case "$1" in
+    --profile-config) PROFILE_SOURCE="${2:?missing profile path}"; shift 2 ;;
+    --state-db) STATE_DB="${2:?missing SQLite path}"; shift 2 ;;
+    --user) SERVICE_USER="${2:?missing service user}"; shift 2 ;;
+    --check) APPLY=0; shift ;;
+    --apply) APPLY=1; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) die "unknown option: $1" ;;
+  esac
+done
+
+[[ "$PROFILE_SOURCE" = /* && -f "$PROFILE_SOURCE" && ! -L "$PROFILE_SOURCE" ]] \
+  || die "profile config must be an absolute regular file, not a symlink"
+[[ "$STATE_DB" = /* && "$STATE_DB" != *[$'\t\n ']* ]] \
+  || die "state database path must be absolute and contain no whitespace"
+[[ -d "$SOURCE_ROOT" && -f "$SOURCE_ROOT/producer_daemon.py" ]] || die "multi-vault producer source is incomplete"
+command -v python3 >/dev/null || die "python3 is required"
+for tool in pdftotext pdfinfo; do
+  command -v "$tool" >/dev/null \
+    || log "warning: $tool (poppler-utils) is missing; PDFs are retained without metadata preflight"
+done
+[[ -n "$SERVICE_USER" ]] || die "service user is required: pass --user USER or run through sudo"
+id "$SERVICE_USER" >/dev/null 2>&1 || die "service user does not exist: $SERVICE_USER"
+[[ -r "$ENV_PATH" ]] || die "shared Hindsight environment file is missing: $ENV_PATH"
+
+profile_report="$(PYTHONPATH="$SOURCE_ROOT" python3 - "$PROFILE_SOURCE" "$STATE_DB" "$SERVICE_USER" <<'PY'
+import json
+import os
+import sqlite3
+import sys
+from pathlib import Path
+from vault_profiles import load_vault_configuration
+
+profile_path = Path(sys.argv[1])
+state_path = Path(sys.argv[2])
+config = load_vault_configuration(profile_path)
+if len(config.vaults) < 2:
+    raise SystemExit("multi-vault profile must configure at least two vaults")
+for vault in config.vaults:
+    if not os.path.ismount(vault.mount_root):
+        raise SystemExit(f"configured source mount is unavailable: {vault.mount_root}")
+    if not vault.root.is_dir():
+        raise SystemExit(f"configured source root is unavailable: {vault.root}")
+    if not os.access(vault.root, os.R_OK | os.X_OK):
+        raise SystemExit(f"source root is not readable by the current operator: {vault.root}")
+    resolved_state = state_path.resolve(strict=False)
+    for guarded in (vault.root, vault.mount_root):
+        if resolved_state == guarded or guarded in resolved_state.parents:
+            raise SystemExit("state database must remain outside every watched source root and NAS mount")
+if state_path.exists():
+    if state_path.is_symlink() or not state_path.is_file():
+        raise SystemExit("state database must be a regular file, not a symlink")
+    with sqlite3.connect(f"file:{state_path}?mode=ro", uri=True) as db:
+        status = db.execute("PRAGMA quick_check").fetchone()[0]
+    if status != "ok":
+        raise SystemExit(f"SQLite quick_check failed: {status}")
+print(json.dumps({
+    "vaults": [{"name": v.name, "root": str(v.root),
+                "mount_root": str(v.mount_root),
+                "bank_id": v.bank_id,
+                "source_kind": v.source_kind, "metadata_profile": v.metadata_profile,
+                "project_overview_enabled": bool(v.project_overview_prompt)}
+               for v in config.vaults],
+    "state_db": str(state_path),
+    "state_db_exists": state_path.exists(),
+    "coordinator_lock": str(state_path.with_name(state_path.name + ".coordinator.lock")),
+}, ensure_ascii=False))
+PY
+)" || die "profile or state database validation failed"
+
+service_group="$(id -gn "$SERVICE_USER")"
+
+if ((APPLY)); then
+  ((EUID == 0)) || die "--apply requires root"
+  runtime_files=(producer_daemon.py hindsight_producer.py document_metadata_preflight.py document_ocr.py \
+    processing_queue.py vault_profiles.py worker_observability.py memory_reconciliation.py otel_projection.py server.py)
+  for file in "${runtime_files[@]}"; do
+    [[ -f "$SOURCE_ROOT/$file" ]] || die "required producer runtime module is missing: $file"
+  done
+  roots="$(PYTHONPATH="$SOURCE_ROOT" python3 - "$PROFILE_SOURCE" <<'PY'
+import sys
+from vault_profiles import load_vault_configuration
+for item in load_vault_configuration(sys.argv[1]).vaults:
+    print(item.root)
+PY
+)"
+  while IFS= read -r source_root; do
+    [[ -n "$source_root" ]] || continue
+    [[ "$source_root" != *[$' \t\n']* ]] || die "source roots containing whitespace are not supported in the systemd mount list"
+    runuser -u "$SERVICE_USER" -- test -r "$source_root" \
+      && runuser -u "$SERVICE_USER" -- test -x "$source_root" \
+      || die "service user cannot read or traverse source root: $source_root"
+  done <<< "$roots"
+  if [[ -e "$STATE_DB" ]] && command -v fuser >/dev/null && fuser -s "$STATE_DB"; then
+    die "state database is in use; stop its reader before installation"
+  fi
+  for unit in pantheon-affaires-producer.service pantheon-bibliotheque-producer.service; do
+    if systemctl is-active --quiet "$unit"; then
+      die "$unit is active; stop legacy producers before installing the coordinator"
+    fi
+  done
+  [[ -r "$PROFILE_SOURCE" ]] || die "profile config is not readable"
+  [[ -r "$ENV_PATH" ]] || die "Hindsight environment is not readable"
+  python3 - "$ENV_PATH" <<'PY'
+import sys
+from pathlib import Path
+
+values = {}
+for line in Path(sys.argv[1]).read_text(encoding="utf-8").splitlines():
+    stripped = line.strip()
+    if not stripped or stripped.startswith("#") or "=" not in stripped:
+        continue
+    key, value = stripped.split("=", 1)
+    values[key.strip()] = value.strip().strip('"').strip("'")
+for key in ("WORKSPACE_HINDSIGHT_URL",):
+    if not values.get(key):
+        raise SystemExit(f"required Hindsight setting is missing: {key}")
+PY
+
+  stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+  backup="/srv/pantheon/backups/multivault-producer-install-$stamp"
+  install -d -m 0750 "$backup" "$backup/runtime"
+  install -d -m 0755 "$INSTALL_ROOT" /etc/pantheon-workspace-producers
+  for file in "${runtime_files[@]}"; do
+    if [[ -f "$INSTALL_ROOT/$file" ]]; then cp -a "$INSTALL_ROOT/$file" "$backup/runtime/$file"; fi
+    install -m 0644 "$SOURCE_ROOT/$file" "$INSTALL_ROOT/$file"
+  done
+  [[ ! -e "$PROFILE_TARGET" ]] || cp -a "$PROFILE_TARGET" "$backup/vaults.json"
+  [[ ! -e "$UNIT_PATH" ]] || cp -a "$UNIT_PATH" "$backup/pantheon-workspace-multivault-producer.service"
+  install -m 0640 -o root -g "$service_group" "$PROFILE_SOURCE" "$PROFILE_TARGET"
+
+  state_parent="$(dirname -- "$STATE_DB")"
+  install -d -m 0750 -o "$SERVICE_USER" -g "$service_group" "$state_parent"
+  if [[ -e "$STATE_DB" ]]; then
+    python3 - "$STATE_DB" "$backup/database-before-permissions.sqlite3" <<'PY'
+import sqlite3
+import sys
+from pathlib import Path
+
+source = sqlite3.connect(f"file:{Path(sys.argv[1])}?mode=ro", uri=True)
+target = sqlite3.connect(sys.argv[2])
+try:
+    source.backup(target)
+    result = target.execute("PRAGMA quick_check").fetchone()[0]
+    if result != "ok":
+        raise SystemExit(f"database backup failed quick_check: {result}")
+finally:
+    target.close()
+    source.close()
+PY
+    chown "$SERVICE_USER:$service_group" "$STATE_DB"
+    chmod 0600 "$STATE_DB"
+    # A newly merged index may not yet contain queue controls. Seed its first
+    # control as globally paused so starting the staged coordinator cannot
+    # immediately retry the historic backlog before the operator can canary it.
+    runuser -u "$SERVICE_USER" -- env PYTHONPATH="$INSTALL_ROOT" python3 - "$STATE_DB" <<'PY'
+import sqlite3
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+with sqlite3.connect(path) as db:
+    has_controls = db.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='processing_controls'"
+    ).fetchone() is not None
+if not has_controls:
+    from processing_queue import ProcessingQueue
+    queue = ProcessingQueue(path)
+    queue.set_paused("global", True)
+    print("initialized shared processing queue in global pause")
+else:
+    print("preserved existing processing queue controls")
+PY
+  fi
+  mounts="${roots//$'\n'/ }"
+  unit_tmp="$(mktemp)"
+  trap 'rm -f "$unit_tmp"' EXIT
+  cat > "$unit_tmp" <<EOF
+[Unit]
+Description=Pantheon multi-vault Hindsight producer coordinator
+After=network-online.target pantheon-hindsight-native.service
+Wants=network-online.target
+RequiresMountsFor=$mounts
+
+[Service]
+Type=simple
+User=$SERVICE_USER
+Group=$service_group
+WorkingDirectory=$INSTALL_ROOT
+EnvironmentFile=$ENV_PATH
+ExecStart=/usr/bin/python3 $INSTALL_ROOT/producer_daemon.py --vault-config $PROFILE_TARGET --state-db $STATE_DB --processing-queue-db $STATE_DB
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectSystem=strict
+ReadWritePaths=$state_parent
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  install -m 0644 "$unit_tmp" "$UNIT_PATH"
+  systemctl daemon-reload
+  log "installed inactive coordinator; legacy units and Hindsight banks were not changed"
+  log "backup=$backup"
+fi
+
+log "validated plan: $profile_report"
+if ((!APPLY)); then log "check only; no state changed"; fi

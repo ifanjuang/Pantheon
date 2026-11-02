@@ -21,7 +21,7 @@ import sys
 import threading
 import time
 import unicodedata
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Iterable, Mapping
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, unquote, urlparse
 from urllib.request import Request, urlopen
@@ -35,6 +35,8 @@ _MODULE_ROOT = Path(__file__).resolve().parent
 if str(_MODULE_ROOT) not in sys.path:
     sys.path.insert(0, str(_MODULE_ROOT))
 from hindsight_producer import HindsightHTTPClient, HindsightProducer
+from otel_projection import read_snapshot as read_otel_snapshot
+from processing_queue import ProcessingQueue
 from memory_reconciliation import (
     HermesReconciliationClient,
     MemoryReconciliationService,
@@ -51,7 +53,12 @@ CARTOUCHE_SCHEMA = "pantheon/cartouche/v1"
 FOLDER_CONTEXT_SCHEMA = "pantheon/folder-context/v1"
 MARKDOWN_EXTENSIONS = {".md", ".markdown"}
 LEGACY_MANIFEST_NAMES = {"document.yaml", "document.yml", "manifest.yaml", "manifest.yml"}
-HINDSIGHT_ELIGIBLE_EXTENSIONS = {".pdf", ".docx", ".xlsx", ".pptx", ".txt", ".md", ".markdown", ".html", ".htm"}
+# Only formats with an installed extraction route are submitted automatically.
+# Other binary sources require a deliberate converter, never an extension rename.
+HINDSIGHT_ELIGIBLE_EXTENSIONS = {
+    ".pdf", ".docx", ".xlsx", ".xls", ".pptx", ".txt", ".md", ".markdown",
+    ".html", ".htm", ".csv", ".tsv", ".json", ".xml", ".msg", ".epub",
+}
 SCANNED_SOURCE_EXTENSIONS = HINDSIGHT_ELIGIBLE_EXTENSIONS | {".eml"}
 HEAVY_VISIBLE_EXTENSIONS = {".rvt", ".rfa", ".rte", ".psd", ".psb"}
 TEMP_SUFFIXES = {".bak", ".lock", ".lck", ".swp", ".tmp", ".temp", ".autosave"}
@@ -899,6 +906,11 @@ def _folder_match_key(value: str) -> str:
     return unicodedata.normalize("NFKC", value).casefold().strip(" ._-")
 
 
+def _search_fold(value: Any) -> str:
+    decomposed = unicodedata.normalize("NFKD", str(value or "")).casefold()
+    return "".join(character for character in decomposed if not unicodedata.combining(character))
+
+
 def _folder_is_excluded(value: str, excluded_folder_names: set[str]) -> bool:
     key = _folder_match_key(value)
     if key in excluded_folder_names:
@@ -948,12 +960,23 @@ def _walk_workspace_entries(
     max_depth: int,
     excluded_folder_names: set[str],
     excluded_paths: list[str],
+    scan_errors: list[str] | None = None,
 ) -> Iterable[tuple[Path, int, list[Path]]]:
     """Walk once per SMB directory and return its direct regular files.
 
     The earlier scan separately listed subdirectories and files, doubling remote
     directory enumeration. ``os.scandir`` lets the traversal reuse one listing.
     """
+
+    scan_error_limit = 100
+
+    def record_error(message: str) -> None:
+        if scan_errors is None:
+            return
+        if len(scan_errors) < scan_error_limit:
+            scan_errors.append(message)
+        elif len(scan_errors) == scan_error_limit:
+            scan_errors.append("Autres erreurs de lecture omises")
 
     def visit(folder: Path, depth: int) -> Iterable[tuple[Path, int, list[Path]]]:
         directories: list[Path] = []
@@ -975,8 +998,15 @@ def _walk_workspace_entries(
                         elif entry.is_file(follow_symlinks=False):
                             files.append(path)
                     except OSError:
+                        relative = path.relative_to(root).as_posix()
+                        record_error(f"Entrée illisible: {relative}")
                         continue
         except OSError:
+            try:
+                relative = folder.relative_to(root).as_posix() or "."
+            except ValueError:
+                relative = "."
+            record_error(f"Dossier illisible: {relative}")
             return
 
         files.sort(key=lambda item: item.name.casefold())
@@ -1134,8 +1164,9 @@ def _project_catalogue(
 
 def scan_workspaces(
     roots: list[tuple[str, Path]],
-    max_depth: int = 2,
+    max_depth: int | dict[str, int] = 2,
     excluded_folder_names: Iterable[str] = DEFAULT_EXCLUDED_FOLDERS,
+    required_mounts: Mapping[str, Path] | None = None,
 ) -> dict[str, Any]:
     workspaces: list[dict[str, Any]] = []
     excluded_names = {
@@ -1145,19 +1176,28 @@ def scan_workspaces(
     }
 
     for label, root in roots:
+        workspace_max_depth = max_depth.get(label, 2) if isinstance(max_depth, dict) else max_depth
         cards: list[dict[str, Any]] = []
         errors: list[str] = []
         excluded_paths: list[str] = []
-        root_available = root.is_dir() and os.access(root, os.R_OK | os.X_OK)
+        mount_root = (required_mounts or {}).get(label)
+        mount_available = mount_root is None or os.path.ismount(mount_root)
+        root_available = mount_available and root.is_dir() and os.access(root, os.R_OK | os.X_OK)
+        scan_complete = root_available
         if not root_available:
-            errors.append("Source AFFAIRES indisponible")
+            errors.append(
+                f"Montage source indisponible: {mount_root}"
+                if not mount_available and mount_root is not None
+                else "Source AFFAIRES indisponible"
+            )
         else:
             candidates: list[dict[str, Any]] = []
             for folder, depth, direct_files in _walk_workspace_entries(
                 root,
-                max_depth,
+                workspace_max_depth,
                 excluded_names,
                 excluded_paths,
+                errors,
             ):
                 if depth > 0:
                     candidates.append(_folder_card(label, root, folder))
@@ -1166,13 +1206,16 @@ def scan_workspaces(
                 )
                 if len(candidates) >= MAX_ITEMS:
                     errors.append(f"Inventaire limité aux {MAX_ITEMS} premiers éléments")
+                    scan_complete = False
                     break
 
             cards.extend(candidates[:MAX_ITEMS])
+            scan_complete = scan_complete and not errors
 
         workspaces.append({
             "name": label,
             "available": root_available,
+            "complete": scan_complete,
             "cards": cards,
             "errors": errors,
             "excluded_folders": excluded_paths,
@@ -1274,12 +1317,16 @@ class _InotifyWatcher:
     def __init__(
         self,
         roots: list[tuple[str, Path]],
-        max_depth: int,
+        max_depth: int | dict[str, int],
         on_event: Callable[[], None],
         excluded_folder_names: Iterable[str] = DEFAULT_EXCLUDED_FOLDERS,
     ) -> None:
         self._roots = [root for _, root in roots]
         self._max_depth = max_depth
+        self._root_depths = {
+            root: max_depth.get(name, 2) if isinstance(max_depth, dict) else max_depth
+            for name, root in roots
+        }
         self._excluded_folder_names = {
             key
             for value in excluded_folder_names
@@ -1301,7 +1348,7 @@ class _InotifyWatcher:
                 depth = len(path.relative_to(root).parts)
             except ValueError:
                 continue
-            if depth <= self._max_depth:
+            if depth <= self._root_depths[root]:
                 return True
         return False
 
@@ -1338,7 +1385,7 @@ class _InotifyWatcher:
             self._add_watch(root)
             for folder in _walk_directories(
                 root,
-                self._max_depth,
+                self._root_depths[root],
                 self._excluded_folder_names,
             ):
                 self._add_watch(folder)
@@ -1452,7 +1499,7 @@ class WorkspaceIndex:
     def __init__(
         self,
         roots: list[tuple[str, Path]],
-        max_depth: int,
+        max_depth: int | dict[str, int],
         state_db: Path,
         *,
         reconcile_seconds: float = 60.0,
@@ -1460,6 +1507,7 @@ class WorkspaceIndex:
         enable_watcher: bool = True,
         producer: HindsightProducer | None = None,
         excluded_folder_names: Iterable[str] = DEFAULT_EXCLUDED_FOLDERS,
+        required_mounts: Mapping[str, Path] | None = None,
     ) -> None:
         self.roots = roots
         self.max_depth = max_depth
@@ -1469,6 +1517,7 @@ class WorkspaceIndex:
         self.enable_watcher = enable_watcher
         self.producer = producer
         self.excluded_folder_names = tuple(excluded_folder_names)
+        self.required_mounts = dict(required_mounts or {})
         self._snapshot: dict[str, Any] = {
             "generated_at": None,
             "projection": PROJECTION_ID,
@@ -1488,6 +1537,12 @@ class WorkspaceIndex:
         self._reconcile_lock = threading.Lock()
         self._dirty = threading.Event()
         self._stop = threading.Event()
+        if self.producer is not None:
+            self.producer.on_work_available = (
+                self.producer.wake_submission_dispatcher
+                if self.producer._submission_dispatcher_thread is not None
+                else self.mark_dirty
+            )
         self._coordinator: threading.Thread | None = None
         self._watcher = _InotifyWatcher(
             roots,
@@ -1503,7 +1558,9 @@ class WorkspaceIndex:
             self.state_db.parent.mkdir(parents=True, exist_ok=True)
             connection = sqlite3.connect(self.state_db, timeout=5)
             try:
-                connection.execute("PRAGMA journal_mode=DELETE")
+                # This database is shared with ProcessingQueue, which uses WAL.
+                # Do not switch journal modes during a reconcile transaction: the
+                # mode belongs to the database, not this connection.
                 connection.execute("PRAGMA synchronous=NORMAL")
                 connection.execute(
                     """
@@ -1594,6 +1651,7 @@ class WorkspaceIndex:
                 self.roots,
                 self.max_depth,
                 self.excluded_folder_names,
+                self.required_mounts,
             )
             if self.producer is None:
                 snapshot["hindsight_producer"] = {"enabled": False}
@@ -1617,6 +1675,11 @@ class WorkspaceIndex:
             if persistence_error:
                 index_state["state_error"] = persistence_error
                 self._last_error = persistence_error
+                print(
+                    f"workspace-cockpit: index persistence failed: {persistence_error}",
+                    file=sys.stderr,
+                    flush=True,
+                )
             else:
                 self._last_error = None
             with self._snapshot_lock:
@@ -1705,6 +1768,130 @@ class PersistedWorkspaceProjection:
 
     def stop(self) -> None:
         return
+
+    def _preflight_metadata(self, workspace_name: str, source_paths: list[str]) -> dict[str, dict[str, Any]]:
+        """Read digest-matched preflight cache entries independently of Hindsight sync state."""
+        if not source_paths:
+            return {}
+        placeholders = ",".join("?" for _ in source_paths)
+        try:
+            connection = sqlite3.connect(self.state_db, timeout=2)
+            connection.row_factory = sqlite3.Row
+            try:
+                connection.execute("PRAGMA query_only=ON")
+                rows = connection.execute(
+                    f"""
+                    SELECT link.source_path, cached.result_json
+                    FROM hindsight_metadata_preflight_source AS link
+                    JOIN hindsight_metadata_preflight AS cached
+                      ON cached.cache_key = link.cache_key
+                    JOIN workspace_document_identity AS identity
+                      ON identity.workspace = link.workspace
+                     AND identity.source_path = link.source_path
+                     AND identity.source_sha256 = link.source_sha256
+                    WHERE link.workspace = ?
+                      AND link.source_path IN ({placeholders})
+                    """,
+                    [workspace_name, *source_paths],
+                ).fetchall()
+            finally:
+                connection.close()
+        except (OSError, sqlite3.Error):
+            # Older producer indexes may not contain the optional preflight tables.
+            return {}
+        result: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            try:
+                parsed = json.loads(str(row["result_json"]))
+            except (TypeError, json.JSONDecodeError):
+                continue
+            if isinstance(parsed, dict):
+                result[str(row["source_path"])] = parsed
+        return result
+
+    def _document_notes(self, workspace_name: str, source_paths: list[str]) -> dict[str, str]:
+        """Load manually maintained notes by current technical identity/path."""
+        if not source_paths:
+            return {}
+        placeholders = ",".join("?" for _ in source_paths)
+        try:
+            connection = sqlite3.connect(self.state_db, timeout=2)
+            connection.row_factory = sqlite3.Row
+            try:
+                connection.execute("PRAGMA query_only=ON")
+                rows = connection.execute(
+                    f"""
+                    SELECT COALESCE(identity.source_path, note.source_path) AS current_path,
+                           note.note
+                    FROM workspace_document_notes AS note
+                    LEFT JOIN workspace_document_identity AS identity
+                      ON identity.workspace = note.workspace
+                     AND identity.document_id = note.document_id
+                    WHERE note.workspace = ?
+                      AND (note.source_path IN ({placeholders})
+                           OR identity.source_path IN ({placeholders}))
+                    """,
+                    [workspace_name, *source_paths, *source_paths],
+                ).fetchall()
+            finally:
+                connection.close()
+        except (OSError, sqlite3.Error):
+            # Notes are optional for indexes created before the notes migration.
+            return {}
+        allowed = set(source_paths)
+        return {
+            str(row["current_path"]): str(row["note"])
+            for row in rows
+            if row["current_path"] in allowed
+        }
+
+    def _document_metadata_overrides(
+        self, workspace_name: str, source_paths: list[str]
+    ) -> dict[str, dict[str, Any]]:
+        """Load user-confirmed metadata separately from the automatic preflight."""
+        if not source_paths:
+            return {}
+        placeholders = ",".join("?" for _ in source_paths)
+        try:
+            connection = sqlite3.connect(self.state_db, timeout=2)
+            connection.row_factory = sqlite3.Row
+            try:
+                connection.execute("PRAGMA query_only=ON")
+                rows = connection.execute(
+                    f"""
+                    SELECT COALESCE(identity.source_path, override.source_path) AS current_path,
+                           override.source_sha256, override.overrides_json,
+                           identity.source_sha256 AS current_sha256, override.updated_at
+                    FROM workspace_document_metadata_overrides AS override
+                    LEFT JOIN workspace_document_identity AS identity
+                      ON identity.workspace = override.workspace
+                     AND identity.document_id = override.document_id
+                    WHERE override.workspace = ?
+                      AND (override.source_path IN ({placeholders})
+                           OR identity.source_path IN ({placeholders}))
+                    """,
+                    [workspace_name, *source_paths, *source_paths],
+                ).fetchall()
+            finally:
+                connection.close()
+        except (OSError, sqlite3.Error):
+            # The editor remains unavailable until the producer schema is migrated.
+            return {}
+        allowed = set(source_paths)
+        result: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            current_path = str(row["current_path"] or "")
+            try:
+                values = json.loads(str(row["overrides_json"]))
+            except (TypeError, json.JSONDecodeError):
+                continue
+            if current_path in allowed and isinstance(values, dict):
+                result[current_path] = {
+                    "values": values,
+                    "stale": bool(row["current_sha256"] and row["source_sha256"] != row["current_sha256"]),
+                    "updated_at": row["updated_at"],
+                }
+        return result
 
     def _empty(self, error: str | None = None) -> dict[str, Any]:
         workspaces = [
@@ -1846,7 +2033,7 @@ class PersistedWorkspaceProjection:
         }
 
     def children(self, workspace_name: str, relative_folder: str, *, offset: int = 0, limit: int = 100, query: str = "") -> dict[str, Any]:
-        """Read one indexed directory level; never recurse or scan the NAS here."""
+        """Read one directory level, or search indexed entries throughout a workspace."""
         if not self.state_db.is_file():
             raise RuntimeError("workspace_index_unavailable")
         if offset < 0 or limit < 1 or limit > 200:
@@ -1858,8 +2045,9 @@ class PersistedWorkspaceProjection:
             connection.row_factory = sqlite3.Row
             try:
                 connection.execute("PRAGMA query_only=ON")
+                connection.create_function("pantheon_search_fold", 1, _search_fold, deterministic=True)
                 folder_card = None
-                if relative_folder:
+                if relative_folder and not query.strip():
                     row = connection.execute(
                         "SELECT payload_json FROM workspace_entries WHERE workspace=? AND kind='folder' AND path=? LIMIT 1",
                         (workspace_name, relative_folder),
@@ -1872,16 +2060,54 @@ class PersistedWorkspaceProjection:
                     (workspace_name,),
                 ).fetchone() is None:
                     raise ValueError("workspace_not_indexed")
-                clauses = "workspace=? AND parent_path=?"
-                parameters: list[Any] = [workspace_name, relative_folder]
-                search_pattern = "%"
-                if query:
-                    clauses += " AND lower(payload_json) LIKE lower(?) ESCAPE '\\'"
-                    escaped_query = query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-                    search_pattern = f"%{escaped_query}%"
-                    parameters.append(search_pattern)
+                clauses = ["e.workspace=?"]
+                parameters: list[Any] = [workspace_name]
+                if not query.strip():
+                    clauses.append("e.parent_path=?")
+                    parameters.append(relative_folder)
+                else:
+                    tables = {
+                        str(row[0])
+                        for row in connection.execute(
+                            "SELECT name FROM sqlite_master WHERE type='table'"
+                        ).fetchall()
+                    }
+                    has_preflight = {
+                        "hindsight_metadata_preflight_source",
+                        "hindsight_metadata_preflight",
+                        "workspace_document_identity",
+                    }.issubset(tables)
+                    has_overrides = "workspace_document_metadata_overrides" in tables
+                    for token in dict.fromkeys(query.split()):
+                        escaped_token = _search_fold(token).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+                        token_pattern = f"%{escaped_token}%"
+                        matches = ["pantheon_search_fold(e.payload_json) LIKE ? ESCAPE '\\'"]
+                        token_parameters: list[Any] = [token_pattern]
+                        if has_preflight:
+                            matches.append(
+                                "(e.kind='document' AND EXISTS ("
+                                "SELECT 1 FROM hindsight_metadata_preflight_source AS link "
+                                "JOIN hindsight_metadata_preflight AS cached ON cached.cache_key=link.cache_key "
+                                "JOIN workspace_document_identity AS identity "
+                                "ON identity.workspace=link.workspace AND identity.source_path=link.source_path "
+                                "AND identity.source_sha256=link.source_sha256 "
+                                "WHERE link.workspace=e.workspace AND link.source_path=e.path "
+                                "AND pantheon_search_fold(cached.result_json) LIKE ? ESCAPE '\\'))"
+                            )
+                            token_parameters.append(token_pattern)
+                        if has_overrides:
+                            matches.append(
+                                "(e.kind='document' AND EXISTS ("
+                                "SELECT 1 FROM workspace_document_metadata_overrides AS override "
+                                "WHERE override.workspace=e.workspace AND override.source_path=e.path "
+                                "AND pantheon_search_fold(override.overrides_json) LIKE ? ESCAPE '\\'))"
+                            )
+                            token_parameters.append(token_pattern)
+                        clauses.append("(" + " OR ".join(matches) + ")")
+                        parameters.extend(token_parameters)
+                where_sql = " AND ".join(clauses)
                 total = int(connection.execute(
-                    f"SELECT COUNT(*) FROM workspace_entries WHERE {clauses}",
+                    f"SELECT COUNT(*) FROM workspace_entries AS e WHERE {where_sql}",
                     parameters,
                 ).fetchone()[0])
                 rows = connection.execute(
@@ -1892,10 +2118,8 @@ class PersistedWorkspaceProjection:
                                   AND child.parent_path=e.path
                               ) AS has_children
                        FROM workspace_entries e
-                       WHERE e.workspace=? AND e.parent_path=?
-                         AND (?='' OR lower(e.payload_json) LIKE lower(?) ESCAPE '\\')
-                       ORDER BY e.path COLLATE NOCASE LIMIT ? OFFSET ?""",
-                    (workspace_name, relative_folder, query, search_pattern, limit, offset),
+                       WHERE """ + where_sql + " ORDER BY e.path COLLATE NOCASE LIMIT ? OFFSET ?",
+                    [*parameters, limit, offset],
                 ).fetchall()
             finally:
                 connection.close()
@@ -1913,6 +2137,30 @@ class PersistedWorkspaceProjection:
                 if card.get("kind") == "folder":
                     card["has_children"] = bool(row["has_children"])
                 cards.append(card)
+        preflight = self._preflight_metadata(
+            workspace_name,
+            [str(card["path"]) for card in cards if card.get("kind") == "document" and card.get("path")],
+        )
+        for card in cards:
+            metadata = preflight.get(str(card.get("path") or ""))
+            if metadata is not None:
+                card["preflight_metadata"] = metadata
+        notes = self._document_notes(
+            workspace_name,
+            [str(card["path"]) for card in cards if card.get("kind") == "document" and card.get("path")],
+        )
+        for card in cards:
+            note = notes.get(str(card.get("path") or ""))
+            if note is not None:
+                card["document_note"] = note
+        overrides = self._document_metadata_overrides(
+            workspace_name,
+            [str(card["path"]) for card in cards if card.get("kind") == "document" and card.get("path")],
+        )
+        for card in cards:
+            override = overrides.get(str(card.get("path") or ""))
+            if override is not None:
+                card["metadata_override"] = override
         return {
             "workspace": workspace_name,
             "path": relative_folder,
@@ -2101,6 +2349,7 @@ class CockpitHandler(BaseHTTPRequestHandler):
     max_depth = 2
     excluded_folder_names: tuple[str, ...] = DEFAULT_EXCLUDED_FOLDERS
     workspace_index: WorkspaceIndex | PersistedWorkspaceProjection | WorkspaceProjectionRouter | None = None
+    otel_snapshot: Path | None = None
     role_trace_url = ""
     role_trace_key = ""
     memory_reconciliation: MemoryReconciliationService | None = None
@@ -2108,6 +2357,8 @@ class CockpitHandler(BaseHTTPRequestHandler):
     expected_worker_root = ""
     expected_worker_source = ""
     scope_request_path = Path("/var/lib/pantheon-workspace-cockpit/apply-affaires-scope.request")
+    processing_queue: ProcessingQueue | None = None
+    ocr_cache_root: Path | None = None
 
     def _headers(self, status: HTTPStatus, content_type: str, *, csp: str | None = None) -> None:
         self.send_response(status)
@@ -2129,6 +2380,208 @@ class CockpitHandler(BaseHTTPRequestHandler):
         body = json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         self._headers(status, "application/json; charset=utf-8")
         self.wfile.write(body)
+
+    def _processing_json_body(self) -> dict[str, Any] | None:
+        if self.headers.get("X-Pantheon-Intent", "").strip() != "processing-control":
+            self._json({"error": "explicit_intent_required"}, HTTPStatus.FORBIDDEN)
+            return None
+        origin = self.headers.get("Origin", "")
+        if origin and urlparse(origin).netloc != self.headers.get("Host", ""):
+            self._json({"error": "same_origin_required"}, HTTPStatus.FORBIDDEN)
+            return None
+        if self.headers.get("Content-Type", "").split(";", 1)[0].strip().casefold() != "application/json":
+            self._json({"error": "application_json_required"}, HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
+            return None
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            if length < 0 or length > 8192:
+                raise ValueError("request_too_large")
+            body = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
+        except ValueError as exc:
+            status = HTTPStatus.REQUEST_ENTITY_TOO_LARGE if str(exc) == "request_too_large" else HTTPStatus.BAD_REQUEST
+            self._json({"error": str(exc) or "invalid_json"}, status)
+            return None
+        except (UnicodeError, json.JSONDecodeError):
+            self._json({"error": "invalid_json"}, HTTPStatus.BAD_REQUEST)
+            return None
+        if not isinstance(body, dict):
+            self._json({"error": "json_object_required"}, HTTPStatus.BAD_REQUEST)
+            return None
+        return body
+
+    def _processing_queue_required(self) -> bool:
+        if self.processing_queue is not None:
+            return True
+        self._json({"error": "processing_queue_not_configured"}, HTTPStatus.NOT_FOUND)
+        return False
+
+    def _processing_worker_health(self) -> list[dict[str, Any]]:
+        if self.processing_queue is None:
+            return []
+        try:
+            return self.processing_queue.worker_health()
+        except (OSError, sqlite3.Error):
+            return [{"worker": "preflight", "stale": True, "state_error": "health_unavailable"}]
+
+    def _processing_queue_post(self, path: str) -> None:
+        if not self._processing_queue_required():
+            return
+        body = self._processing_json_body()
+        if body is None:
+            return
+        note = body.get("note")
+        if note is not None:
+            if not isinstance(note, str):
+                self._json({"error": "request_note_must_be_string"}, HTTPStatus.BAD_REQUEST)
+                return
+            if len(note) > 1000:
+                self._json({"error": "request_note_too_long"}, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+                return
+            note = note.strip() or None
+        try:
+            assert self.processing_queue is not None
+            if path == "/api/processing-queue/lane-control":
+                lane = body.get("lane")
+                state = body.get("state")
+                revision = body.get("revision")
+                if not isinstance(lane, str) or not isinstance(state, str):
+                    raise ValueError("lane_and_state_required")
+                if revision is not None and (not isinstance(revision, int) or isinstance(revision, bool)):
+                    raise ValueError("control_revision_must_be_integer")
+                result = self.processing_queue.set_lane_state(
+                    lane, state, expected_revision=revision
+                )
+                self._json(result, HTTPStatus.ACCEPTED)
+                return
+            if path == "/api/processing-queue/pause":
+                raw_items = body.get("items")
+                lane = body.get("lane")
+                if raw_items is not None:
+                    paused = body.get("paused")
+                    if not isinstance(raw_items, list) or not isinstance(paused, bool):
+                        raise ValueError("items_and_boolean_paused_required")
+                    if lane not in {"preflight", "ocr", "hindsight"}:
+                        raise ValueError("valid_processing_lane_required")
+                    items: list[tuple[str, str]] = []
+                    for item in raw_items:
+                        if (
+                            not isinstance(item, dict)
+                            or not isinstance(item.get("workspace"), str)
+                            or not isinstance(item.get("document_id"), str)
+                            or not item["document_id"]
+                        ):
+                            raise ValueError("items_require_workspace_and_document_id")
+                        if item["workspace"] not in dict(self.roots):
+                            self._json({"error": "vault_not_found"}, HTTPStatus.NOT_FOUND)
+                            return
+                        items.append((item["workspace"], item["document_id"]))
+                    result = self.processing_queue.set_items_paused(items, lane, paused)
+                    self._json(result)
+                    return
+                scope = body.get("scope")
+                paused = body.get("paused")
+                if not isinstance(scope, str) or not isinstance(paused, bool):
+                    raise ValueError("scope_and_boolean_paused_required")
+                if scope.startswith("vault:") and scope[6:] not in dict(self.roots):
+                    self._json({"error": "vault_not_found"}, HTTPStatus.NOT_FOUND)
+                    return
+                revision = body.get("revision")
+                result = self.processing_queue.set_paused(
+                    scope, paused, expected_revision=revision if isinstance(revision, int) else None
+                )
+            elif path == "/api/processing-queue/order":
+                revision = body.get("revision")
+                expected_revision = revision if isinstance(revision, int) else None
+                move = body.get("move")
+                if isinstance(move, dict):
+                    workspace = move.get("workspace")
+                    document_id = move.get("document_id")
+                    position = body.get("position")
+                    if not isinstance(workspace, str) or not isinstance(document_id, str) or not document_id:
+                        raise ValueError("move_requires_workspace_and_document_id")
+                    if workspace not in dict(self.roots):
+                        raise ValueError("known_workspace_required")
+                    if not isinstance(position, int) or isinstance(position, bool):
+                        raise ValueError("move_requires_integer_position")
+                    result = self.processing_queue.move(
+                        (workspace, document_id), position, expected_revision=expected_revision
+                    )
+                else:
+                    raw_order = body.get("order")
+                    if not isinstance(raw_order, list):
+                        raise ValueError("order_array_required")
+                    order: list[tuple[str, str]] = []
+                    for item in raw_order:
+                        if not isinstance(item, dict) or not isinstance(item.get("workspace"), str) or not isinstance(item.get("document_id"), str):
+                            raise ValueError("order_items_require_workspace_and_document_id")
+                        order.append((item["workspace"], item["document_id"]))
+                    result = self.processing_queue.reorder(order, expected_revision=expected_revision)
+            elif path == "/api/processing-queue/retry":
+                workspace = body.get("workspace")
+                document_id = body.get("document_id")
+                if workspace not in dict(self.roots) or not isinstance(document_id, str) or not document_id:
+                    raise ValueError("known_workspace_and_document_id_required")
+                self.processing_queue.retry(workspace, document_id, note=note)
+                result = self.processing_queue.list_items()
+            elif path == "/api/processing-queue/continue":
+                workspace = body.get("workspace")
+                document_id = body.get("document_id")
+                if workspace not in dict(self.roots) or not isinstance(document_id, str) or not document_id:
+                    raise ValueError("known_workspace_and_document_id_required")
+                self.processing_queue.continue_after_error(workspace, document_id)
+                result = self.processing_queue.list_items()
+            elif path == "/api/processing-queue/verify":
+                workspace = body.get("workspace")
+                document_id = body.get("document_id")
+                if workspace not in dict(self.roots) or not isinstance(document_id, str) or not document_id:
+                    raise ValueError("known_workspace_and_document_id_required")
+                self.processing_queue.request_verification(workspace, document_id, note=note)
+                result = self.processing_queue.list_items()
+            elif path == "/api/processing-queue/replace-ocr":
+                workspace = body.get("workspace")
+                document_id = body.get("document_id")
+                if workspace not in dict(self.roots) or not isinstance(document_id, str) or not document_id:
+                    raise ValueError("known_workspace_and_document_id_required")
+                mode = body.get("mode")
+                if not isinstance(mode, str):
+                    raise ValueError("ocr_replacement_mode_required")
+                self.processing_queue.approve_ocr_replacement(
+                    workspace, document_id, mode=mode, note=note
+                )
+                result = self.processing_queue.list_items()
+            elif path == "/api/processing-queue/reanalyze":
+                workspace = body.get("workspace")
+                document_id = body.get("document_id")
+                if workspace not in dict(self.roots) or not isinstance(document_id, str) or not document_id:
+                    raise ValueError("known_workspace_and_document_id_required")
+                self.processing_queue.request_preflight(workspace, document_id, note=note)
+                result = self.processing_queue.list_items()
+            elif path in {
+                "/api/processing-queue/ocr",
+                "/api/processing-queue/do-not-memorize",
+                "/api/processing-queue/reinclude",
+            }:
+                workspace = body.get("workspace")
+                document_id = body.get("document_id")
+                if workspace not in dict(self.roots) or not isinstance(document_id, str) or not document_id:
+                    raise ValueError("known_workspace_and_document_id_required")
+                if path.endswith("/ocr"):
+                    self.processing_queue.request_ocr(workspace, document_id, note=note)
+                elif path.endswith("/do-not-memorize"):
+                    self.processing_queue.do_not_memorize(workspace, document_id)
+                else:
+                    self.processing_queue.reinclude(workspace, document_id, note=note)
+                result = self.processing_queue.list_items()
+            else:
+                self._json({"error": "not_found"}, HTTPStatus.NOT_FOUND)
+                return
+        except RuntimeError as exc:
+            self._json({"error": str(exc)}, HTTPStatus.CONFLICT)
+            return
+        except ValueError as exc:
+            self._json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            return
+        self._json(result, HTTPStatus.ACCEPTED)
 
     def _proxy_role_trace(self, upstream_path: str, *, stream: bool = False) -> None:
         if not self.role_trace_url or not self.role_trace_key:
@@ -2166,6 +2619,30 @@ class CockpitHandler(BaseHTTPRequestHandler):
             path = "/"
         elif path.startswith("/workspace/"):
             path = path[len("/workspace"):]
+        if path == "/api/document-notes":
+            self._save_document_note()
+            return
+        if path == "/api/document-metadata-overrides":
+            self._save_document_metadata_overrides()
+            return
+        if path == "/api/document-hindsight-metadata-sync":
+            self._request_hindsight_metadata_sync()
+            return
+        if path in {
+            "/api/processing-queue/lane-control",
+            "/api/processing-queue/pause",
+            "/api/processing-queue/order",
+            "/api/processing-queue/retry",
+            "/api/processing-queue/continue",
+            "/api/processing-queue/reanalyze",
+            "/api/processing-queue/verify",
+            "/api/processing-queue/replace-ocr",
+            "/api/processing-queue/ocr",
+            "/api/processing-queue/do-not-memorize",
+            "/api/processing-queue/reinclude",
+        }:
+            self._processing_queue_post(path)
+            return
         if path == "/api/producers/configure-affaires":
             origin = self.headers.get("Origin", "")
             if origin and urlparse(origin).netloc != self.headers.get("Host", ""):
@@ -2248,6 +2725,539 @@ class CockpitHandler(BaseHTTPRequestHandler):
             )
             return
         self._json(result, HTTPStatus.OK)
+
+    def _workspace_state_db(self, workspace_name: str) -> Path | None:
+        index = self.workspace_index
+        if isinstance(index, WorkspaceProjectionRouter):
+            projection = index.by_workspace.get(workspace_name)
+            return getattr(projection, "state_db", None)
+        if index is None or workspace_name not in dict(self.roots):
+            return None
+        return getattr(index, "state_db", None)
+
+    def _document_metadata_overrides(
+        self, workspace_name: str, source_paths: list[str]
+    ) -> dict[str, dict[str, Any]]:
+        """Read saved overrides from the persisted projection for this vault."""
+        index = self.workspace_index
+        projection = (
+            index.by_workspace.get(workspace_name)
+            if isinstance(index, WorkspaceProjectionRouter)
+            else index
+        )
+        loader = getattr(projection, "_document_metadata_overrides", None)
+        if not callable(loader):
+            return {}
+        return loader(workspace_name, source_paths)
+
+    def _attach_processing_preflight_metadata(self, items: list[dict[str, Any]]) -> None:
+        """Attach only preflight results matching each queue row's current source digest."""
+        grouped: dict[str, list[dict[str, Any]]] = {}
+        all_grouped: dict[str, list[dict[str, Any]]] = {}
+        for item in items:
+            all_grouped.setdefault(str(item.get("workspace") or ""), []).append(item)
+            if str(item.get("preflight_status") or "").upper() == "ANALYZED":
+                grouped.setdefault(str(item.get("workspace") or ""), []).append(item)
+        for workspace_name, workspace_items in grouped.items():
+            state_db = self._workspace_state_db(workspace_name)
+            if state_db is None:
+                continue
+            for start in range(0, len(workspace_items), 400):
+                batch = workspace_items[start:start + 400]
+                paths = [str(item.get("source_path") or "") for item in batch]
+                if not paths:
+                    continue
+                placeholders = ",".join("?" for _ in paths)
+                try:
+                    connection = sqlite3.connect(state_db, timeout=2)
+                    connection.row_factory = sqlite3.Row
+                    try:
+                        connection.execute("PRAGMA query_only=ON")
+                        rows = connection.execute(
+                            f"""
+                            SELECT link.source_path, link.source_sha256, cached.result_json
+                            FROM hindsight_metadata_preflight_source AS link
+                            JOIN hindsight_metadata_preflight AS cached
+                              ON cached.cache_key = link.cache_key
+                            JOIN workspace_document_identity AS identity
+                              ON identity.workspace = link.workspace
+                             AND identity.source_path = link.source_path
+                             AND identity.source_sha256 = link.source_sha256
+                            WHERE link.workspace = ? AND link.source_path IN ({placeholders})
+                            """,
+                            [workspace_name, *paths],
+                        ).fetchall()
+                    finally:
+                        connection.close()
+                except (OSError, sqlite3.Error):
+                    # Older per-vault indexes may not have the optional preflight cache.
+                    continue
+                by_identity: dict[tuple[str, str], dict[str, Any]] = {}
+                for row in rows:
+                    try:
+                        parsed = json.loads(str(row["result_json"]))
+                    except (TypeError, json.JSONDecodeError):
+                        continue
+                    if isinstance(parsed, dict):
+                        by_identity[(str(row["source_path"]), str(row["source_sha256"]))] = parsed
+                for item in batch:
+                    identity = (str(item.get("source_path") or ""), str(item.get("source_sha256") or ""))
+                    metadata = by_identity.get(identity)
+                    if metadata is not None:
+                        item["preflight_metadata"] = metadata
+
+        # Queue rows use the same metadata editor as document cards. Attach its
+        # saved user overrides so opening the editor from the list shows the
+        # same confirmed values and stale-source warning as folder view.
+        for workspace_name, workspace_items in all_grouped.items():
+            for start in range(0, len(workspace_items), 400):
+                batch = workspace_items[start:start + 400]
+                paths = [str(item.get("source_path") or "") for item in batch]
+                overrides = self._document_metadata_overrides(workspace_name, paths)
+                for item in batch:
+                    override = overrides.get(str(item.get("source_path") or ""))
+                    if override is not None:
+                        item["metadata_override"] = override
+
+    def _save_document_note(self) -> None:
+        origin = self.headers.get("Origin", "").strip()
+        host = self.headers.get("Host", "").strip()
+        if not origin or not host or urlparse(origin).netloc.casefold() != host.casefold():
+            self._json({"error": "same_origin_required"}, HTTPStatus.FORBIDDEN)
+            return
+        if self.headers.get("Sec-Fetch-Site", "").casefold() not in {"", "same-origin"}:
+            self._json({"error": "same_origin_required"}, HTTPStatus.FORBIDDEN)
+            return
+        if self.headers.get("X-Pantheon-Intent", "").strip() != "document-note-save":
+            self._json({"error": "explicit_intent_required"}, HTTPStatus.FORBIDDEN)
+            return
+        content_type = self.headers.get("Content-Type", "").split(";", 1)[0].strip().casefold()
+        if content_type != "application/json":
+            self._json({"error": "application_json_required"}, HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
+            return
+        try:
+            content_length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            self._json({"error": "invalid_content_length"}, HTTPStatus.BAD_REQUEST)
+            return
+        if content_length < 0 or content_length > 8192:
+            self._json({"error": "request_too_large"}, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+            return
+        try:
+            body = json.loads(self.rfile.read(content_length).decode("utf-8") or "{}")
+        except (UnicodeError, json.JSONDecodeError):
+            self._json({"error": "invalid_json"}, HTTPStatus.BAD_REQUEST)
+            return
+        if not isinstance(body, dict):
+            self._json({"error": "json_object_required"}, HTTPStatus.BAD_REQUEST)
+            return
+        workspace_name = body.get("workspace")
+        relative_path = body.get("path")
+        note = body.get("note")
+        if not isinstance(workspace_name, str) or workspace_name not in dict(self.roots):
+            self._json({"error": "workspace_not_found"}, HTTPStatus.NOT_FOUND)
+            return
+        if (
+            not isinstance(relative_path, str)
+            or not relative_path
+            or relative_path.startswith("/")
+            or "\\" in relative_path
+            or ".." in Path(relative_path).parts
+        ):
+            self._json({"error": "invalid_document_path"}, HTTPStatus.BAD_REQUEST)
+            return
+        if not isinstance(note, str):
+            self._json({"error": "note_must_be_string"}, HTTPStatus.BAD_REQUEST)
+            return
+        if len(note) > 4000:
+            self._json({"error": "note_too_long"}, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+            return
+        if self._resolve_indexed_source(workspace_name, relative_path) is None:
+            self._json({"error": "source_not_available"}, HTTPStatus.NOT_FOUND)
+            return
+        state_db = self._workspace_state_db(workspace_name)
+        if state_db is None or not state_db.is_file():
+            self._json({"error": "workspace_index_unavailable"}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+
+        now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        try:
+            connection = sqlite3.connect(state_db, timeout=3)
+            connection.row_factory = sqlite3.Row
+            try:
+                with connection:
+                    identity = connection.execute(
+                        "SELECT document_id, source_sha256 FROM workspace_document_identity "
+                        "WHERE workspace = ? AND source_path = ?",
+                        (workspace_name, relative_path),
+                    ).fetchone()
+                    document_id = str(identity["document_id"]) if identity and identity["document_id"] else None
+                    source_sha256 = str(identity["source_sha256"]) if identity and identity["source_sha256"] else None
+                    at_path = connection.execute(
+                        "SELECT document_id FROM workspace_document_notes WHERE workspace = ? AND source_path = ?",
+                        (workspace_name, relative_path),
+                    ).fetchone()
+                    by_identity = None
+                    if document_id:
+                        by_identity = connection.execute(
+                            "SELECT source_path FROM workspace_document_notes WHERE workspace = ? AND document_id = ?",
+                            (workspace_name, document_id),
+                        ).fetchone()
+                    if (
+                        at_path
+                        and at_path["document_id"]
+                        and document_id
+                        and at_path["document_id"] != document_id
+                    ):
+                        self._json({"error": "note_identity_conflict"}, HTTPStatus.CONFLICT)
+                        return
+                    if not note.strip():
+                        connection.execute(
+                            "DELETE FROM workspace_document_notes WHERE workspace = ? AND source_path = ?",
+                            (workspace_name, relative_path),
+                        )
+                        if document_id:
+                            connection.execute(
+                                "DELETE FROM workspace_document_notes WHERE workspace = ? AND document_id = ?",
+                                (workspace_name, document_id),
+                            )
+                        status = "deleted"
+                    elif by_identity:
+                        connection.execute(
+                            "UPDATE workspace_document_notes SET source_path = ?, source_sha256 = ?, note = ?, updated_at = ? "
+                            "WHERE workspace = ? AND document_id = ?",
+                            (relative_path, source_sha256, note, now, workspace_name, document_id),
+                        )
+                        status = "saved"
+                    else:
+                        connection.execute(
+                            """INSERT INTO workspace_document_notes(
+                                   workspace, source_path, document_id, source_sha256, note, created_at, updated_at
+                               ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                               ON CONFLICT(workspace, source_path) DO UPDATE SET
+                                   document_id = COALESCE(excluded.document_id, workspace_document_notes.document_id),
+                                   source_sha256 = excluded.source_sha256,
+                                   note = excluded.note,
+                                   updated_at = excluded.updated_at""",
+                            (workspace_name, relative_path, document_id, source_sha256, note, now, now),
+                        )
+                        status = "saved"
+            finally:
+                connection.close()
+        except (OSError, sqlite3.Error):
+            self._json({"error": "document_note_storage_unavailable"}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+        self._json({"status": status, "note": "" if status == "deleted" else note, "updated_at": now})
+
+    def _save_document_metadata_overrides(self) -> None:
+        origin = self.headers.get("Origin", "").strip()
+        host = self.headers.get("Host", "").strip()
+        if not origin or not host or urlparse(origin).netloc.casefold() != host.casefold():
+            self._json({"error": "same_origin_required"}, HTTPStatus.FORBIDDEN)
+            return
+        if self.headers.get("Sec-Fetch-Site", "").casefold() not in {"", "same-origin"}:
+            self._json({"error": "same_origin_required"}, HTTPStatus.FORBIDDEN)
+            return
+        if self.headers.get("X-Pantheon-Intent", "").strip() != "document-metadata-save":
+            self._json({"error": "explicit_intent_required"}, HTTPStatus.FORBIDDEN)
+            return
+        if self.headers.get("Content-Type", "").split(";", 1)[0].strip().casefold() != "application/json":
+            self._json({"error": "application_json_required"}, HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
+            return
+        try:
+            content_length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            self._json({"error": "invalid_content_length"}, HTTPStatus.BAD_REQUEST)
+            return
+        if content_length < 0 or content_length > 16384:
+            self._json({"error": "request_too_large"}, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+            return
+        try:
+            body = json.loads(self.rfile.read(content_length).decode("utf-8") or "{}")
+        except (UnicodeError, json.JSONDecodeError):
+            self._json({"error": "invalid_json"}, HTTPStatus.BAD_REQUEST)
+            return
+        if not isinstance(body, dict):
+            self._json({"error": "json_object_required"}, HTTPStatus.BAD_REQUEST)
+            return
+        workspace_name, relative_path, values = body.get("workspace"), body.get("path"), body.get("values")
+        if not isinstance(workspace_name, str) or workspace_name not in dict(self.roots):
+            self._json({"error": "workspace_not_found"}, HTTPStatus.NOT_FOUND)
+            return
+        if (
+            not isinstance(relative_path, str) or not relative_path or relative_path.startswith("/")
+            or "\\" in relative_path or ".." in Path(relative_path).parts
+        ):
+            self._json({"error": "invalid_document_path"}, HTTPStatus.BAD_REQUEST)
+            return
+        if not isinstance(values, dict):
+            self._json({"error": "values_must_be_object"}, HTTPStatus.BAD_REQUEST)
+            return
+        allowed_fields = {
+            "title": 300, "document_date": 80, "index": 80, "issuer": 250,
+            "recipient": 250, "family": 100, "document_type": 120,
+            "corps_etat": 500, "sujet_technique": 500, "summary": 1200,
+        }
+        normalized: dict[str, Any] = {}
+        for key, value in values.items():
+            if key not in allowed_fields:
+                self._json({"error": "unknown_metadata_field", "field": str(key)}, HTTPStatus.BAD_REQUEST)
+                return
+            if value is None:
+                normalized[key] = None
+                continue
+            if key in {"corps_etat", "sujet_technique"}:
+                if not isinstance(value, list) or len(value) > 20 or any(not isinstance(item, str) for item in value):
+                    self._json({"error": "invalid_metadata_list", "field": key}, HTTPStatus.BAD_REQUEST)
+                    return
+                cleaned = [item.strip() for item in value if item.strip()]
+                if any(len(item) > 100 for item in cleaned):
+                    self._json({"error": "metadata_value_too_long", "field": key}, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+                    return
+                normalized[key] = list(dict.fromkeys(cleaned)) if cleaned else None
+            else:
+                if not isinstance(value, str):
+                    self._json({"error": "metadata_value_must_be_string", "field": key}, HTTPStatus.BAD_REQUEST)
+                    return
+                cleaned = value.strip()
+                if len(cleaned) > allowed_fields[key]:
+                    self._json({"error": "metadata_value_too_long", "field": key}, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+                    return
+                normalized[key] = cleaned or None
+        if self._resolve_indexed_source(workspace_name, relative_path) is None:
+            self._json({"error": "source_not_available"}, HTTPStatus.NOT_FOUND)
+            return
+        state_db = self._workspace_state_db(workspace_name)
+        if state_db is None or not state_db.is_file():
+            self._json({"error": "workspace_index_unavailable"}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+        now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        try:
+            connection = sqlite3.connect(state_db, timeout=3)
+            connection.row_factory = sqlite3.Row
+            try:
+                with connection:
+                    connection.execute(
+                        """CREATE TABLE IF NOT EXISTS workspace_document_metadata_overrides(
+                            workspace TEXT NOT NULL, source_path TEXT NOT NULL, document_id TEXT,
+                            source_sha256 TEXT, overrides_json TEXT NOT NULL,
+                            created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+                            PRIMARY KEY(workspace, source_path))"""
+                    )
+                    connection.execute(
+                        "CREATE UNIQUE INDEX IF NOT EXISTS idx_workspace_document_metadata_overrides_identity "
+                        "ON workspace_document_metadata_overrides(workspace, document_id) WHERE document_id IS NOT NULL"
+                    )
+                    identity = connection.execute(
+                        "SELECT document_id, source_sha256 FROM workspace_document_identity "
+                        "WHERE workspace = ? AND source_path = ?", (workspace_name, relative_path),
+                    ).fetchone()
+                    document_id = str(identity["document_id"]) if identity and identity["document_id"] else None
+                    source_sha256 = str(identity["source_sha256"]) if identity and identity["source_sha256"] else None
+                    existing = None
+                    if document_id:
+                        existing = connection.execute(
+                            "SELECT * FROM workspace_document_metadata_overrides WHERE workspace=? AND document_id=?",
+                            (workspace_name, document_id),
+                        ).fetchone()
+                    if existing is None:
+                        existing = connection.execute(
+                            "SELECT * FROM workspace_document_metadata_overrides WHERE workspace=? AND source_path=?",
+                            (workspace_name, relative_path),
+                        ).fetchone()
+                    if existing and existing["document_id"] and document_id and existing["document_id"] != document_id:
+                        self._json({"error": "metadata_identity_conflict"}, HTTPStatus.CONFLICT)
+                        return
+                    merged = {}
+                    if existing:
+                        try:
+                            prior = json.loads(str(existing["overrides_json"]))
+                            if isinstance(prior, dict):
+                                merged.update(prior)
+                        except json.JSONDecodeError:
+                            pass
+                    # Submitted fields replace their prior value; null records an explicit user clear.
+                    for key in allowed_fields:
+                        if key in values:
+                            if key in normalized:
+                                merged[key] = normalized[key]
+                            else:
+                                merged.pop(key, None)
+                    if not merged:
+                        if existing:
+                            connection.execute(
+                                "DELETE FROM workspace_document_metadata_overrides WHERE workspace=? AND source_path=?",
+                                (workspace_name, existing["source_path"]),
+                            )
+                        status = "deleted"
+                    else:
+                        created_at = str(existing["created_at"]) if existing else now
+                        if existing:
+                            connection.execute(
+                                "UPDATE workspace_document_metadata_overrides SET source_path=?, document_id=?, "
+                                "source_sha256=?, overrides_json=?, updated_at=? WHERE workspace=? AND source_path=?",
+                                (relative_path, document_id or existing["document_id"], source_sha256,
+                                 json.dumps(merged, ensure_ascii=False, sort_keys=True), now,
+                                 workspace_name, existing["source_path"]),
+                            )
+                        else:
+                            connection.execute(
+                            """INSERT INTO workspace_document_metadata_overrides(
+                                workspace, source_path, document_id, source_sha256, overrides_json, created_at, updated_at
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                            ON CONFLICT(workspace, source_path) DO UPDATE SET
+                                document_id=COALESCE(excluded.document_id, workspace_document_metadata_overrides.document_id),
+                                source_sha256=excluded.source_sha256, overrides_json=excluded.overrides_json,
+                                updated_at=excluded.updated_at""",
+                            (workspace_name, relative_path, document_id, source_sha256,
+                             json.dumps(merged, ensure_ascii=False, sort_keys=True), created_at, now),
+                            )
+                        status = "saved"
+            finally:
+                connection.close()
+        except (OSError, sqlite3.Error):
+            self._json({"error": "document_metadata_storage_unavailable"}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+        self._json({"status": status, "values": {} if status == "deleted" else merged,
+                    "updated_at": now, "source_sha256": source_sha256})
+
+    def _request_hindsight_metadata_sync(self) -> None:
+        origin = self.headers.get("Origin", "").strip()
+        host = self.headers.get("Host", "").strip()
+        if not origin or not host or urlparse(origin).netloc.casefold() != host.casefold():
+            self._json({"error": "same_origin_required"}, HTTPStatus.FORBIDDEN)
+            return
+        if self.headers.get("Sec-Fetch-Site", "").casefold() not in {"", "same-origin"}:
+            self._json({"error": "same_origin_required"}, HTTPStatus.FORBIDDEN)
+            return
+        if self.headers.get("X-Pantheon-Intent", "").strip() != "document-hindsight-metadata-sync":
+            self._json({"error": "explicit_intent_required"}, HTTPStatus.FORBIDDEN)
+            return
+        if self.processing_queue is None:
+            self._json({"error": "processing_queue_unavailable"}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+        if self.headers.get("Content-Type", "").split(";", 1)[0].strip().casefold() != "application/json":
+            self._json({"error": "application_json_required"}, HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
+            return
+        try:
+            content_length = int(self.headers.get("Content-Length", "0"))
+            if content_length <= 0 or content_length > 4096:
+                raise ValueError("invalid_content_length")
+            body = json.loads(self.rfile.read(content_length).decode("utf-8"))
+        except (ValueError, UnicodeError, json.JSONDecodeError):
+            self._json({"error": "invalid_json_or_content_length"}, HTTPStatus.BAD_REQUEST)
+            return
+        if not isinstance(body, dict):
+            self._json({"error": "json_object_required"}, HTTPStatus.BAD_REQUEST)
+            return
+        workspace, relative_path, mode = body.get("workspace"), body.get("path"), body.get("mode")
+        if not isinstance(workspace, str) or workspace not in dict(self.roots):
+            self._json({"error": "workspace_not_found"}, HTTPStatus.NOT_FOUND)
+            return
+        if mode not in {"tags", "reingest"}:
+            self._json({"error": "invalid_sync_mode"}, HTTPStatus.BAD_REQUEST)
+            return
+        if (
+            not isinstance(relative_path, str) or not relative_path or relative_path.startswith("/")
+            or "\\" in relative_path or ".." in Path(relative_path).parts
+        ):
+            self._json({"error": "invalid_document_path"}, HTTPStatus.BAD_REQUEST)
+            return
+        if self._resolve_indexed_source(workspace, relative_path) is None:
+            self._json({"error": "source_not_available"}, HTTPStatus.NOT_FOUND)
+            return
+        queue_item = self.processing_queue.get_item_by_path(workspace, relative_path)
+        if queue_item is None:
+            self._json({"error": "document_not_in_processing_queue"}, HTTPStatus.CONFLICT)
+            return
+        document_id = str(queue_item.get("document_id") or "")
+        source_sha256 = str(queue_item.get("source_sha256") or "")
+        ocr_review_only = (
+            mode == "tags"
+            and queue_item.get("hindsight_status") == "VERIFY"
+            and "Hindsight document already exists; OCR replacement requires operator review"
+            in str(queue_item.get("error") or "")
+            and str(queue_item.get("ocr_status") or "").upper() in {"READY", "SUBMITTED"}
+            and queue_item.get("ocr_preflight_source_sha256") == source_sha256
+            and queue_item.get("user_decision") != "DO_NOT_SEND"
+        )
+        if queue_item.get("hindsight_status") != "MEMORIZED" and not ocr_review_only:
+            self._json({"error": "document_must_be_memorized_before_sync"}, HTTPStatus.CONFLICT)
+            return
+        state_db = self._workspace_state_db(workspace)
+        if state_db is None or not state_db.is_file():
+            self._json({"error": "workspace_index_unavailable"}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+        try:
+            connection = sqlite3.connect(state_db, timeout=3)
+            connection.row_factory = sqlite3.Row
+            try:
+                connection.execute("PRAGMA query_only=ON")
+                identity = connection.execute(
+                    "SELECT source_path, source_sha256 FROM workspace_document_identity "
+                    "WHERE workspace=? AND document_id=?",
+                    (workspace, document_id),
+                ).fetchone()
+                sync = connection.execute(
+                    "SELECT hindsight_document_id, status, operation_id FROM hindsight_sync "
+                    "WHERE workspace=? AND document_id=?",
+                    (workspace, document_id),
+                ).fetchone()
+                override = connection.execute(
+                    "SELECT source_sha256, overrides_json FROM workspace_document_metadata_overrides "
+                    "WHERE workspace=? AND document_id=?",
+                    (workspace, document_id),
+                ).fetchone()
+            finally:
+                connection.close()
+        except (OSError, sqlite3.Error):
+            self._json({"error": "hindsight_state_unavailable"}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+        if (
+            identity is None or str(identity["source_path"]) != relative_path
+            or str(identity["source_sha256"]) != source_sha256
+            or sync is None
+            or (sync["status"] != "COMPLETED" and not (ocr_review_only and sync["status"] == "SUBMIT_ERROR"))
+            or sync["operation_id"]
+            or override is None or str(override["source_sha256"] or "") != source_sha256
+        ):
+            self._json({"error": "document_identity_or_metadata_changed"}, HTTPStatus.CONFLICT)
+            return
+        try:
+            values = json.loads(str(override["overrides_json"]))
+        except (TypeError, json.JSONDecodeError):
+            self._json({"error": "saved_metadata_invalid"}, HTTPStatus.CONFLICT)
+            return
+        if not isinstance(values, dict) or not values:
+            self._json({"error": "no_saved_metadata"}, HTTPStatus.CONFLICT)
+            return
+        if mode == "tags" and not any(key in values for key in ("family", "document_type", "corps_etat", "sujet_technique")):
+            self._json({"error": "no_classification_tags_to_sync"}, HTTPStatus.CONFLICT)
+            return
+        try:
+            result = self.processing_queue.request_hindsight_metadata_sync(
+                mode=mode,
+                workspace=workspace,
+                document_id=document_id,
+                hindsight_document_id=str(sync["hindsight_document_id"]),
+                source_path=relative_path,
+                source_sha256=source_sha256,
+                values=values,
+            )
+        except (OSError, sqlite3.Error, ValueError):
+            self._json({"error": "metadata_sync_queue_unavailable"}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+        self._json(result, HTTPStatus.ACCEPTED)
+
+    def _hindsight_metadata_sync_status(self, request_id: str) -> None:
+        if self.processing_queue is None:
+            self._json({"error": "processing_queue_unavailable"}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+        request = self.processing_queue.get_hindsight_tag_sync(request_id)
+        if request is None:
+            self._json({"error": "request_not_found"}, HTTPStatus.NOT_FOUND)
+            return
+        self._json(request)
 
     def _resolve_indexed_source(self, workspace_name: str, relative_path: str) -> Path | None:
         snapshot = (
@@ -2361,7 +3371,104 @@ class CockpitHandler(BaseHTTPRequestHandler):
         elif path.startswith("/workspace/"):
             path = path[len("/workspace"):]
         if path == "/api/producers/status":
-            self._json(producer_status(self.expected_worker_root, self.expected_worker_source))
+            status = producer_status(self.expected_worker_root, self.expected_worker_source)
+            status["processing_workers"] = self._processing_worker_health()
+            self._json(status)
+            return
+        sync_match = re.fullmatch(r"/api/document-hindsight-metadata-sync/([a-f0-9]{32})", path)
+        if sync_match:
+            self._hindsight_metadata_sync_status(sync_match.group(1))
+            return
+        if path == "/api/processing-workers":
+            if not self._processing_queue_required():
+                return
+            self._json({"workers": self._processing_worker_health()})
+            return
+        if path == "/api/processing-status":
+            if not self._processing_queue_required():
+                return
+            try:
+                assert self.processing_queue is not None
+                self._json(self.processing_queue.status_summary())
+            except (OSError, sqlite3.Error):
+                self._json({"error": "processing_status_unavailable"}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+        if path == "/api/processing-queue":
+            if not self._processing_queue_required():
+                return
+            query = parse_qs(parsed.query)
+            workspace = (query.get("workspace") or [""])[0].strip()
+            if workspace and workspace not in dict(self.roots):
+                self._json({"error": "vault_not_found"}, HTTPStatus.NOT_FOUND)
+                return
+            include_memorized = (query.get("include_memorized") or ["false"])[0].casefold() == "true"
+            assert self.processing_queue is not None
+            result = self.processing_queue.list_items(workspace=workspace or None, include_memorized=include_memorized)
+            self._attach_processing_preflight_metadata(result["items"])
+            self._json(result)
+            return
+        if path == "/api/ocr-markdown":
+            query = parse_qs(parsed.query, keep_blank_values=True)
+            workspace = (query.get("workspace") or [""])[0].strip()
+            document_id = (query.get("document_id") or [""])[0].strip()
+            source_sha256 = (query.get("source_sha256") or [""])[0].strip().casefold()
+            if workspace not in dict(self.roots):
+                self._json({"error": "vault_not_found"}, HTTPStatus.NOT_FOUND)
+                return
+            if (not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,159}", document_id)
+                    or not re.fullmatch(r"[0-9a-f]{64}", source_sha256)):
+                self._json({"error": "exact_document_identity_required"}, HTTPStatus.BAD_REQUEST)
+                return
+            if self.ocr_cache_root is None:
+                self._json({"error": "ocr_cache_not_configured"}, HTTPStatus.NOT_FOUND)
+                return
+            digest = hashlib.sha256(
+                f"{workspace}\0{document_id}\0{source_sha256}".encode("utf-8")
+            ).hexdigest()
+            root = self.ocr_cache_root.resolve(strict=False)
+            target = root / f"{digest}.md"
+            try:
+                resolved = target.resolve(strict=True)
+                resolved.relative_to(root)
+                if target.is_symlink() or not resolved.is_file() or resolved.stat().st_size > 8 * 1024 * 1024:
+                    raise ValueError("ocr_artifact_not_readable")
+                content = resolved.read_text(encoding="utf-8")
+            except (OSError, RuntimeError, UnicodeError, ValueError):
+                self._json({"error": "ocr_artifact_not_found"}, HTTPStatus.NOT_FOUND)
+                return
+            if (query.get("format") or [""])[0].casefold() == "json":
+                try:
+                    start_line = max(1, int((query.get("start_line") or ["1"])[0]))
+                    max_lines = min(40, max(1, int((query.get("max_lines") or ["24"])[0])))
+                except ValueError:
+                    self._json({"error": "invalid_line_range"}, HTTPStatus.BAD_REQUEST)
+                    return
+                lines = content.splitlines()
+                selected = lines[start_line - 1:start_line - 1 + max_lines]
+                self._json({
+                    "status": "ocr_source",
+                    "workspace": workspace,
+                    "document_id": document_id,
+                    "source_sha256": source_sha256,
+                    "start_line": start_line,
+                    "end_line": start_line + len(selected) - 1 if selected else start_line - 1,
+                    "total_lines": len(lines),
+                    "next_start_line": start_line + len(selected) if start_line + len(selected) <= len(lines) else None,
+                    "lines": [{"line": start_line + index, "text": line} for index, line in enumerate(selected)],
+                    "raw_source_remains_authoritative": True,
+                })
+            else:
+                body = content.encode("utf-8")
+                self.send_response(HTTPStatus.OK)
+                self.send_header("Content-Type", "text/markdown; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Content-Disposition", f'inline; filename="ocr-{source_sha256[:12]}.md"')
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("X-Content-Type-Options", "nosniff")
+                self.send_header("X-Frame-Options", "DENY")
+                self.send_header("Referrer-Policy", "no-referrer")
+                self.end_headers()
+                self.wfile.write(body)
             return
         if path == "/api/producers/logs":
             query = parse_qs(parsed.query)
@@ -2391,6 +3498,7 @@ class CockpitHandler(BaseHTTPRequestHandler):
                     "role_trace": bool(self.role_trace_url),
                     "memory_reconciliation": self.memory_reconciliation is not None,
                     "index": index_state,
+                    "processing_workers": self._processing_worker_health(),
                 }
             )
             return
@@ -2447,7 +3555,39 @@ class CockpitHandler(BaseHTTPRequestHandler):
             except (RuntimeError, StopIteration):
                 self._json({"error": "workspace_index_unavailable"}, HTTPStatus.SERVICE_UNAVAILABLE)
                 return
+            if self.processing_queue is not None:
+                for card in result.get("cards", []):
+                    document_id = str(card.get("technical_document_id") or "")
+                    if card.get("kind") != "document" or not document_id:
+                        continue
+                    queued = self.processing_queue.get_item(workspace_name, document_id)
+                    if not queued or str(queued.get("source_path") or "") != str(card.get("path") or ""):
+                        continue
+                    source_sha256 = str(queued.get("source_sha256") or "").casefold()
+                    has_ocr = False
+                    if self.ocr_cache_root is not None and re.fullmatch(r"[0-9a-f]{64}", source_sha256):
+                        digest = hashlib.sha256(
+                            f"{workspace_name}\0{document_id}\0{source_sha256}".encode("utf-8")
+                        ).hexdigest()
+                        candidate = self.ocr_cache_root / f"{digest}.md"
+                        try:
+                            resolved = candidate.resolve(strict=True)
+                            resolved.relative_to(self.ocr_cache_root.resolve(strict=False))
+                            has_ocr = not candidate.is_symlink() and resolved.is_file() and resolved.stat().st_size <= 8 * 1024 * 1024
+                        except (OSError, RuntimeError, ValueError):
+                            has_ocr = False
+                    card["ocr_available"] = has_ocr
+                    card["ocr_status"] = queued.get("ocr_status")
+                    card["ocr_source_sha256"] = source_sha256 if has_ocr else None
+                    card["processing_hindsight_status"] = queued.get("hindsight_status")
+                    card["processing_document_id"] = document_id
+                    sync_state = self.processing_queue.latest_hindsight_tag_sync(workspace_name, document_id)
+                    if sync_state is not None:
+                        card["hindsight_metadata_sync"] = sync_state
             self._json(result)
+            return
+        if path == "/api/telemetry":
+            self._json(read_otel_snapshot(self.otel_snapshot))
             return
         if path == "/api/role-traces/latest":
             self._proxy_role_trace("/internal/role-traces/latest")
@@ -2482,7 +3622,7 @@ class CockpitHandler(BaseHTTPRequestHandler):
             pdfjs_csp = (
                 "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; "
                 "style-src 'self'; img-src 'self' blob: data:; media-src blob:; font-src 'self' data:; "
-                "connect-src 'self' blob: data:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+                "connect-src 'self' blob: data:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'"
             )
             self._headers(HTTPStatus.OK, content_type, csp=pdfjs_csp if target.name == "viewer.html" else None)
             self.wfile.write(body)
@@ -2492,6 +3632,7 @@ class CockpitHandler(BaseHTTPRequestHandler):
             "/app.js": "app.js",
             "/styles.css": "styles.css",
             "/role_trace_graph.css": "role_trace_graph.css",
+            "/vendor/sortable-1.15.7.min.js": "vendor/sortable-1.15.7.min.js",
             "/vendor/swiper-14.3.0-bundle.min.js": "vendor/swiper-14.3.0-bundle.min.js",
             "/vendor/swiper-14.3.0-bundle.min.css": "vendor/swiper-14.3.0-bundle.min.css",
         }.get(path)
@@ -2583,11 +3724,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="file parser requested from Hindsight (default markitdown)",
     )
     parser.add_argument(
-        "--hindsight-text-strategy",
-        default=os.getenv("WORKSPACE_HINDSIGHT_TEXT_STRATEGY", ""),
-        help="name of a retain strategy of the bank: also retain every source as raw text",
-    )
-    parser.add_argument(
         "--hindsight-max-submits-per-reconcile",
         type=int,
         default=int(os.getenv("WORKSPACE_HINDSIGHT_MAX_SUBMITS_PER_RECONCILE", "4")),
@@ -2609,6 +3745,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--hindsight-source-kind",
         default=os.getenv("WORKSPACE_HINDSIGHT_SOURCE_KIND", ""),
         help="optional provenance tag such as project-sync",
+    )
+    parser.add_argument(
+        "--processing-queue-db",
+        default=os.getenv("WORKSPACE_PROCESSING_QUEUE_DB", ""),
+        help="optional absolute SQLite file shared by producers and Cockpit for queue controls",
     )
     parser.add_argument(
         "--reconcile-hermes-url",
@@ -2658,6 +3799,12 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("--hindsight-url and --hindsight-bank-id must be configured together")
     if any(_path_is_within(state_db, root) for _, root in args.root):
         raise SystemExit("--state-db must remain outside every watched workspace root")
+    processing_queue_db = Path(args.processing_queue_db) if args.processing_queue_db.strip() else None
+    if processing_queue_db is not None and (
+        not processing_queue_db.is_absolute()
+        or any(_path_is_within(processing_queue_db, root) for _, root in args.root)
+    ):
+        raise SystemExit("--processing-queue-db must be absolute and outside every watched workspace root")
     workspace_dbs = dict(args.workspace_db)
     if len(workspace_dbs) != len(args.workspace_db) or any(name not in dict(args.root) for name in workspace_dbs):
         raise SystemExit("--workspace-db names must be unique configured roots")
@@ -2678,18 +3825,17 @@ def main(argv: list[str] | None = None) -> int:
             max_file_bytes=args.hindsight_max_file_mb * 1024 * 1024,
         )
         if not args.projection_only:
-            try:
-                producer = HindsightProducer(
-                    roots=args.root,
-                    state_db=state_db,
-                    client=hindsight_client,
-                    max_submits_per_reconcile=args.hindsight_max_submits_per_reconcile,
-                    settle_observations=args.hindsight_settle_observations,
-                    source_kind=args.hindsight_source_kind,
-                    text_strategy=args.hindsight_text_strategy,
-                )
-            except ValueError as exc:
-                raise SystemExit(f"--hindsight-text-strategy: {exc}") from exc
+            producer = HindsightProducer(
+                roots=args.root,
+                state_db=state_db,
+                client=hindsight_client,
+                max_submits_per_reconcile=args.hindsight_max_submits_per_reconcile,
+                max_active_hindsight_operations=3,
+                settle_observations=args.hindsight_settle_observations,
+                source_kind=args.hindsight_source_kind,
+                processing_queue_db=processing_queue_db,
+            )
+            producer.start_submission_dispatcher()
 
     reconcile_hermes_url = args.reconcile_hermes_url.strip().rstrip("/")
     reconcile_hermes_key = os.getenv("WORKSPACE_RECONCILE_HERMES_KEY", "").strip()
@@ -2750,6 +3896,10 @@ def main(argv: list[str] | None = None) -> int:
     workspace_index.start()
     CockpitHandler.workspace_index = workspace_index
 
+    otel_snapshot = os.getenv("WORKSPACE_OTEL_SNAPSHOT", "").strip()
+    if otel_snapshot and not Path(otel_snapshot).is_absolute():
+        raise SystemExit("WORKSPACE_OTEL_SNAPSHOT must be absolute")
+    CockpitHandler.otel_snapshot = Path(otel_snapshot) if otel_snapshot else None
     role_trace_url = os.getenv("WORKSPACE_ROLE_TRACE_URL", "").strip().rstrip("/")
     role_trace_key = os.getenv("WORKSPACE_ROLE_TRACE_KEY", "").strip()
     if bool(role_trace_url) != bool(role_trace_key):
@@ -2759,6 +3909,19 @@ def main(argv: list[str] | None = None) -> int:
     CockpitHandler.role_trace_url = role_trace_url
     CockpitHandler.role_trace_key = role_trace_key
     CockpitHandler.navigation = configured_navigation()
+    CockpitHandler.processing_queue = (
+        ProcessingQueue(processing_queue_db) if processing_queue_db is not None else None
+    )
+    configured_ocr_cache = os.getenv("WORKSPACE_OCR_CACHE_DIR", "").strip()
+    if configured_ocr_cache:
+        ocr_cache_root = Path(configured_ocr_cache)
+    elif processing_queue_db is not None:
+        ocr_cache_root = processing_queue_db.parent / "ocr-cache"
+    else:
+        ocr_cache_root = None
+    if ocr_cache_root is not None and not ocr_cache_root.is_absolute():
+        raise SystemExit("WORKSPACE_OCR_CACHE_DIR must be absolute")
+    CockpitHandler.ocr_cache_root = ocr_cache_root
     server = ThreadingHTTPServer((args.host, args.port), CockpitHandler)
     print(f"workspace-cockpit listening on http://{args.host}:{args.port}", flush=True)
     try:

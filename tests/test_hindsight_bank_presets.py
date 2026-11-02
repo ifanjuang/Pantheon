@@ -76,10 +76,28 @@ def test_projects_preset_preserves_scope_and_source_authority_boundaries() -> No
 
 def test_knowledge_preset_never_turns_references_into_project_obligations() -> None:
     payload = _preset("knowledge")
-    assert "Never infer that a reference document applies to a specific project" in payload["retain_mission"]
+    assert "Never infer that a reference applies to a project without a project source and human validation" in payload["retain_mission"]
     assert "never automatic obligations" in payload["reflect_mission"]
     assert "Never merge with project-scoped memories" in payload["observations_mission"]
-    assert {label["key"] for label in payload["entity_labels"]} == {"document_family"}
+    labels = {label["key"]: label for label in payload["entity_labels"]}
+    assert set(labels) == {"document_family", "document_type"}
+    assert labels["document_family"]["tag"] is False
+    assert labels["document_type"]["tag"] is True
+    assert next(value for value in labels["document_family"]["values"] if value["value"] == "internal")["description"] == "Méthode, checklist ou modèle propre à l'agence"
+
+
+def test_projects_preset_matches_effective_document_label_schema() -> None:
+    labels = {label["key"]: label for label in _preset("projects")["entity_labels"]}
+    assert set(labels) == {
+        "entity_type", "document_family", "document_emetteur", "document_destinataire",
+        "document_indice", "document_date", "document_type",
+    }
+    assert labels["document_family"]["tag"] is True
+    assert labels["document_type"]["tag"] is True
+    assert labels["document_emetteur"]["tag"] is True
+    assert labels["document_destinataire"]["tag"] is True
+    assert labels["document_indice"]["tag"] is False
+    assert labels["document_date"]["tag"] is False
 
 
 def test_presets_carry_no_organization_specific_names() -> None:

@@ -1,6 +1,6 @@
 {
   "updates": {
-    "retain_mission": "Retain significant professional facts from the source document. Keep source document dates distinct from dates of cited documents. Extract explicit citations and relations such as cites, responds_to, supplements, supersedes, replaces, annule_et_remplace and attachment_of with exact identifiers, titles, dates, pages or sections when stated. Preserve unresolved references instead of guessing. Never infer chronology, validity, approval, latest-version status or supersession from filenames, upload time, filesystem metadata or ingestion time.",
+    "retain_mission": "Retain significant, source-grounded professional facts and explicit relations from the document. Treat producer metadata, tags and context as routing or candidate cues, not independent evidence; verify candidates against the document and do not promote uncertain values as facts. Keep source-document dates distinct from dates of cited documents. Preserve explicit citations and relations such as cites, responds_to, supplements, supersedes, replaces, annule_et_remplace and attachment_of with exact identifiers, titles, dates, pages or sections when stated. Preserve unresolved references and distinct or conflicting statements with their provenance; do not repeat the same claim merely because it appears in metadata and document text. Never infer chronology, validity, approval, latest-version status or supersession from filenames, upload time, filesystem metadata or ingestion time.",
     "reflect_mission": "Answer only from memories inside the requested project scope. Separate established source statements, likely interpretations and unresolved references. Preserve document_id, source_path and page or section provenance. A memory or generated page is not professional source authority.",
     "observations_mission": "Consolidate only durable project facts and explicit document relations within the exact combined tag scope. Never merge projects, pending-identification material or source channels. Preserve contradictions and unresolved references.",
     "enable_observations": true,
@@ -15,10 +15,9 @@
     "entity_labels": [
       {
         "key": "entity_type",
-        "description": "Type d'entité explicitement cité dans une source. Cette étiquette aide la recherche ; elle ne crée ni identité professionnelle ni relation d'autorité.",
-        "type": "value",
-        "optional": true,
         "tag": false,
+        "type": "value",
+        "fields": {},
         "values": [
           {
             "value": "person",
@@ -56,7 +55,102 @@
             "value": "asset",
             "description": "Ouvrage, équipement ou composant désigné"
           }
-        ]
+        ],
+        "optional": true,
+        "description": "Type d'entité explicitement cité dans une source. Cette étiquette aide la recherche ; elle ne crée ni identité professionnelle ni relation d'autorité."
+      },
+      {
+        "key": "document_family",
+        "tag": true,
+        "type": "value",
+        "fields": {},
+        "values": [
+          {
+            "value": "programme",
+            "description": "Programme architectural, programme fonctionnel, cahier des besoins ou présentation dont l’objet principal est d’énoncer le besoin, les objectifs, les usages ou les exigences du projet."
+          },
+          {
+            "value": "DCE",
+            "description": "Pièce de consultation ou de marché décrivant le besoin et les travaux : CCTP, CCAP, DPGF et pièces associées. Conserver le type précis dans le titre ou le texte mémorisé. Un plan ou calendrier du DCE peut aussi recevoir sa famille propre."
+          },
+          {
+            "value": "plan",
+            "description": "Document graphique spatial ou technique : plan, coupe, façade, détail, schéma ou implantation. Ne pas le classer comme étude seulement parce qu’il accompagne une étude. S’il fait partie d’un DCE, les deux familles peuvent être retenues."
+          },
+          {
+            "value": "correspondance",
+            "description": "Échange adressé entre personnes ou organisations : courriel, mail, courrier ou mise en demeure. La mise en demeure reste une forme de correspondance ; conserver son intitulé précis dans le contenu."
+          },
+          {
+            "value": "compte_rendu",
+            "description": "Document rapportant des échanges, observations ou faits de terrain : compte rendu de chantier ou de rendez-vous, rapport de visite et constat. Conserver le sous-type, la date et les actions dans le texte."
+          },
+          {
+            "value": "étude_technique",
+            "description": "Étude, diagnostic ou analyse technique portant sur le sol, la structure, le thermique, un ouvrage ou un procédé, y compris une note de calcul. Ne choisir que si le contenu technique le confirme."
+          },
+          {
+            "value": "document_administratif",
+            "description": "Pièce administrative ou décision d’autorité : permis, formulaire Cerfa, arrêté ou autorisation administrative. Retenir aussi les sous-types explicitement présents dans le contenu."
+          },
+          {
+            "value": "document_contractuel",
+            "description": "Document qui formalise ou modifie un engagement ou organise son exécution : contrat, acte d’engagement, avenant ou ordre de service. Une pièce simplement citée dans un marché n’est pas automatiquement un contrat."
+          },
+          {
+            "value": "document_financier",
+            "description": "Document de prix, paiement ou suivi financier : devis, facture, DPGF, situation de travaux, DGD ou tableau de suivi financier. Un DPGF de consultation peut aussi relever de DCE."
+          },
+          {
+            "value": "justificatif",
+            "description": "Pièce justificative de conformité, de compétence ou de couverture : attestation, assurance et avis technique, y compris les évaluations ou documents de procédé explicitement identifiés."
+          }
+        ],
+        "optional": true,
+        "description": "Famille large du document source, utile au filtrage de recherche; ne détermine pas à elle seule sa portée ni son autorité."
+      },
+      {
+        "key": "document_emetteur",
+        "tag": true,
+        "type": "text",
+        "fields": {},
+        "values": [],
+        "optional": true,
+        "description": "Relever l’organisation ou le nom  de la personne qui a rédigé ou émis ce document, uniquement si le document l’identifie explicitement. Ne pas confondre l’émetteur avec le destinataire, le signataire, l’architecte ou une personne simplement mentionnée. Si l’émetteur ne peut pas être établi à partir du contenu, ne rien renseigner. Ne pas le déduire du nom de fichier ou du chemin."
+      },
+      {
+        "key": "document_destinataire",
+        "tag": true,
+        "type": "multi-text",
+        "fields": {},
+        "values": [],
+        "optional": true,
+        "description": "Relever le ou les destinataires principaux uniquement lorsqu’ils sont explicitement désignés dans le document : champ « À », bloc destinataire, mention « à l’attention de » ou équivalent. Reprendre leur nom ou leur désignation exactement comme écrit. Ne pas confondre destinataire, expéditeur, signataire, personne en copie ou personne simplement citée. Ne pas déduire le destinataire du projet, du contexte, du nom de fichier ou du chemin. Si le destinataire n’est pas identifiable, laisser ce champ vide."
+      },
+      {
+        "key": "document_indice",
+        "tag": false,
+        "type": "text",
+        "fields": {},
+        "values": [],
+        "optional": true,
+        "description": "Relever l’indice, le numéro de révision ou la mention de version explicitement portée par le document (par exemple A, B, indice 2 ou version 3). Conserver la valeur telle qu’écrite et ne pas la déduire du nom de fichier, du chemin ou de la date d’ingestion. Si aucun indice n’est indiqué clairement, laisser ce champ vide."
+      },
+      {
+        "key": "document_date",
+        "tag": false,
+        "type": "text",
+        "fields": {},
+        "values": [],
+        "optional": true,
+        "description": "Relever la date explicitement portée par le document et préciser de quel type de date il s’agit si le contexte le permet (date du document, d’émission, de signature, de réunion ou de réception). Conserver la date telle qu’écrite. Ne pas la confondre avec une date citée dans le texte, une date d’ingestion ou une date issue du nom de fichier. Si la nature ou la valeur de la date est incertaine, ne pas la déduire."
+      },
+      {
+        "key": "document_type",
+        "tag": true,
+        "type": "text",
+        "optional": true,
+        "description": "Type précis explicitement identifié dans le document. Laisser vide si incertain."
       }
     ],
     "entities_allow_free_form": true,
