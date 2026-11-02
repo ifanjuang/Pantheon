@@ -22,6 +22,6 @@ validation_basis:
   repository: ifanjuang/Pantheon
   baseline_ref: 8c15eff5c767c76410db9e0f3a2e388f85ed1aac
   schema_blobs:
-    document_family.schema.yaml: aba10fd28ca8685290c4eec13a0f3c5bcc112a02
-    indexed_document_version.schema.yaml: 8a1b975ce9771f9f88a3eb2777f67431dca4d86e
+    document_family.schema.yaml: fe51b09ad224f0cc00189381c8eb165b6999e9a6
+    indexed_document_version.schema.yaml: 878e249a1d7c61009c7874abd5856490ea75813a
     document_currentness_projection.schema.yaml: 88c55c97d0a7dc3eb4a0a608cfc652a5288090fc

@@ -181,7 +181,6 @@ Candidate phase attachment values:
 
 ```text
 DIAG
-ESQ
 APS
 APD
 PRO

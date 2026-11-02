@@ -20,7 +20,7 @@ properties:
   lot_label: { type: string }
   phase_origin:
     type: string
-    enum: [DIAG, ESQ, APS, APD, PRO, DCE, ACT, EXE, VISA, DET, OPC, AOR, DOE, GPA, AGENCY_LIBRARY, GLOBAL_REFERENCE]
+    enum: [DIAG, APS, APD, PRO, DCE, ACT, EXE, VISA, DET, OPC, AOR, DOE, GPA, AGENCY_LIBRARY, GLOBAL_REFERENCE]
   canonical_title: { type: string, minLength: 1 }
   status:
     type: string
