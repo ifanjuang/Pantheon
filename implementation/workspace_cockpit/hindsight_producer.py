@@ -2168,6 +2168,16 @@ class HindsightProducer:
         finally:
             connection.close()
 
+    def _sync_row(self, key: str) -> dict[str, Any] | None:
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                f"SELECT * FROM {SYNC_TABLE} WHERE hindsight_document_id = ?", (key,)
+            ).fetchone()
+            return dict(row) if row is not None else None
+        finally:
+            connection.close()
+
     def _states(self) -> dict[str, dict[str, Any]]:
         connection = self._connect()
         try:
@@ -3705,6 +3715,16 @@ class HindsightProducer:
             for key, candidate in candidates.items():
                 row = states.get(key)
                 sync_status = str(row.get("status") or "") if row else ""
+                if (
+                    sync_status == "COMPLETED"
+                    and row.get("source_sha256")
+                    and row.get("source_sha256") != candidate.source_sha256
+                ):
+                    # Only an older source version is memorized. Do not project it
+                    # onto the queue: that would mark the new version ANALYZED /
+                    # MEMORIZED, so its preflight would never run and it would never
+                    # be retained again.
+                    sync_status = ""
                 queue_status = (
                     "MEMORIZED" if sync_status == "COMPLETED"
                     else "VERIFYING" if sync_status == "VERIFYING"
@@ -4203,36 +4223,54 @@ class HindsightProducer:
                 )
 
             if dispatcher_enabled or submitted >= self.max_submits_per_reconcile:
-                self._save(
-                    candidate,
-                    hindsight_document_id=key,
-                    document_id=candidate.document_id,
-                    workspace=candidate.workspace,
-                    source_path=candidate.relative_path,
-                    source_sha256=candidate.source_sha256,
-                    fingerprint=candidate.fingerprint,
-                    operation_id=None,
-                    status="QUEUED",
-                    tags=tags,
-                )
-                if self.processing_queue is not None:
-                    self.processing_queue.set_status(
-                        candidate.workspace, candidate.document_id,
-                        preflight_status="ANALYZED", hindsight_status="QUEUED",
+                dispatch_lock_held = False
+                if dispatcher_enabled:
+                    # Re-check under the dispatcher lock: the dispatcher may have
+                    # claimed this document since `states` was read, and writing
+                    # QUEUED over its SUBMITTING/SUBMITTED row would upload it twice.
+                    self._submission_dispatch_lock.acquire()
+                    dispatch_lock_held = True
+                try:
+                    if dispatch_lock_held:
+                        current = self._sync_row(key)
+                        if key in self._submission_inflight or (
+                            current is not None
+                            and current.get("status") in ACTIVE_STATUSES | {"VERIFY"}
+                        ):
+                            continue
+                    self._save(
+                        candidate,
+                        hindsight_document_id=key,
+                        document_id=candidate.document_id,
+                        workspace=candidate.workspace,
+                        source_path=candidate.relative_path,
+                        source_sha256=candidate.source_sha256,
+                        fingerprint=candidate.fingerprint,
                         operation_id=None,
+                        status="QUEUED",
+                        tags=tags,
                     )
-                states[key] = {
-                    "hindsight_document_id": key,
-                    "document_id": candidate.document_id,
-                    "workspace": candidate.workspace,
-                    "source_path": candidate.relative_path,
-                    "source_sha256": candidate.source_sha256,
-                    "fingerprint": candidate.fingerprint,
-                    "operation_id": None,
-                    "status": "QUEUED",
-                    "last_error": None,
-                    "tags_json": json.dumps(tags, ensure_ascii=False),
-                }
+                    if self.processing_queue is not None:
+                        self.processing_queue.set_status(
+                            candidate.workspace, candidate.document_id,
+                            preflight_status="ANALYZED", hindsight_status="QUEUED",
+                            operation_id=None,
+                        )
+                    states[key] = {
+                        "hindsight_document_id": key,
+                        "document_id": candidate.document_id,
+                        "workspace": candidate.workspace,
+                        "source_path": candidate.relative_path,
+                        "source_sha256": candidate.source_sha256,
+                        "fingerprint": candidate.fingerprint,
+                        "operation_id": None,
+                        "status": "QUEUED",
+                        "last_error": None,
+                        "tags_json": json.dumps(tags, ensure_ascii=False),
+                    }
+                finally:
+                    if dispatch_lock_held:
+                        self._submission_dispatch_lock.release()
                 continue
 
             # Persist intent before the remote POST. If the process dies after
