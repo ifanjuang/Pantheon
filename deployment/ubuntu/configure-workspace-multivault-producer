@@ -172,7 +172,14 @@ PY
   done
   [[ ! -e "$PROFILE_TARGET" ]] || cp -a "$PROFILE_TARGET" "$backup/vaults.json"
   [[ ! -e "$UNIT_PATH" ]] || cp -a "$UNIT_PATH" "$backup/pantheon-workspace-multivault-producer.service"
-  install -m 0640 -o root -g "$service_group" "$PROFILE_SOURCE" "$PROFILE_TARGET"
+  if [[ "$PROFILE_SOURCE" -ef "$PROFILE_TARGET" ]]; then
+    # Re-applying on an installed node reuses the live profile in place;
+    # install(1) refuses to copy a file onto itself.
+    chown root:"$service_group" "$PROFILE_TARGET"
+    chmod 0640 "$PROFILE_TARGET"
+  else
+    install -m 0640 -o root -g "$service_group" "$PROFILE_SOURCE" "$PROFILE_TARGET"
+  fi
 
   state_parent="$(dirname -- "$STATE_DB")"
   install -d -m 0750 -o "$SERVICE_USER" -g "$service_group" "$state_parent"
