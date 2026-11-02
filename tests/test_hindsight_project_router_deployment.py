@@ -74,3 +74,49 @@ def test_router_exposes_no_broad_or_write_tool() -> None:
                 node.func.id if isinstance(node.func, ast.Name) else ""
             )
             assert name not in forbidden
+
+
+def _unit_values(mode: str, env: dict[str, str]) -> dict[str, str]:
+    """Run the installer's own mode/bank selection and return the unit values."""
+    import subprocess
+
+    lines = INSTALLER.read_text(encoding="utf-8").splitlines()
+    start = lines.index('if [[ "$MODE" == knowledge ]]; then')
+    end = next(i for i, line in enumerate(lines) if line.startswith('TOKEN_FILE="$STATE_ROOT/token"'))
+    script = "\n".join([
+        'die() { echo "DIE: $*" >&2; exit 3; }',
+        f"MODE={mode}",
+        *lines[start:end],
+        'printf "%s\\n" "$UNIT_PROJECT_BANK_ID" "$UNIT_PROJECT_SOURCE_KIND" '
+        '"$UNIT_KNOWLEDGE_BANK_ID" "$UNIT_KNOWLEDGE_SOURCE_KIND"',
+    ])
+    result = subprocess.run(
+        ["bash", "-c", script], env={"PATH": "/usr/bin:/bin", **env},
+        capture_output=True, text=True, check=True,
+    )
+    keys = ("project_bank", "project_source", "knowledge_bank", "knowledge_source")
+    return dict(zip(keys, result.stdout.splitlines()))
+
+
+def test_split_units_keep_their_own_vault_when_both_banks_are_set() -> None:
+    env = {
+        "HINDSIGHT_PROJECT_BANK_ID": "PROJECTS",
+        "HINDSIGHT_PROJECT_SOURCE_KIND": "project-sync",
+        "HINDSIGHT_KNOWLEDGE_BANK_ID": "KNOWLEDGE",
+        "HINDSIGHT_KNOWLEDGE_SOURCE_KIND": "library-sync",
+    }
+    # Split services read the project-prefixed variables for their own vault.
+    assert _unit_values("knowledge", env)["project_bank"] == "KNOWLEDGE"
+    assert _unit_values("knowledge", env)["project_source"] == "library-sync"
+    assert _unit_values("project", env)["project_bank"] == "PROJECTS"
+    assert _unit_values("combined", env) == {
+        "project_bank": "PROJECTS",
+        "project_source": "project-sync",
+        "knowledge_bank": "KNOWLEDGE",
+        "knowledge_source": "library-sync",
+    }
+    for line in (
+        "Environment=HINDSIGHT_PROJECT_BANK_ID=$UNIT_PROJECT_BANK_ID",
+        "Environment=HINDSIGHT_PROJECT_SOURCE_KIND=$UNIT_PROJECT_SOURCE_KIND",
+    ):
+        assert line in INSTALLER.read_text(encoding="utf-8")
