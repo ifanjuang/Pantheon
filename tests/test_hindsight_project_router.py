@@ -21,6 +21,84 @@ def _module():
     return module
 
 
+def test_project_overview_reads_only_the_exact_scope_tagged_page(monkeypatch) -> None:
+    module = _module()
+    project = "Projet Alpha"
+    scope_tag = f"scope:project:{module.project_scope_token(project)}"
+    seen_urls: list[str] = []
+
+    class Response:
+        def __init__(self, payload):
+            self.payload = payload
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self):
+            import json
+            return json.dumps(self.payload).encode()
+
+    def fake_urlopen(request, timeout):
+        seen_urls.append(request.full_url)
+        if request.full_url.endswith("/knowledge-base/tree?tags=" + module.urlencode({"tags": scope_tag})[5:]):
+            raise AssertionError("unexpected URL encoding")
+        if "/knowledge-base/tree?" in request.full_url:
+            return Response({"roots": [{
+                "id": "kf-project", "kind": "folder", "name": project,
+                "children": [{
+                    "id": "kp-project-overview", "kind": "page", "name": "Aperçu projet",
+                    "tags": [scope_tag], "is_stale": False, "timestamp": "2026-10-26T20:00:00Z",
+                }],
+            }]})
+        assert request.full_url.endswith("/knowledge-base/pages/kp-project-overview")
+        return Response({"id": "kp-project-overview", "name": "Aperçu projet",
+                         "description": "Synthèse projet", "body": "Contexte concis."})
+
+    monkeypatch.setattr(module, "urlopen", fake_urlopen)
+    client = module.ProjectRecallClient("http://127.0.0.1:8888", "PROJECTS")
+    result = client.project_overview(project)
+
+    assert result["status"] == "ok"
+    assert result["is_stale"] is False
+    assert result["body"] == "Contexte concis."
+    assert len(seen_urls) == 2
+    assert "tags_match=all_strict" in seen_urls[0]
+    assert module.quote(scope_tag, safe="") in seen_urls[0]
+
+
+def test_project_overview_reports_missing_or_duplicate_pages_without_guessing(monkeypatch) -> None:
+    module = _module()
+    project = "Projet Alpha"
+    scope_tag = f"scope:project:{module.project_scope_token(project)}"
+
+    class Response:
+        def __init__(self, payload):
+            self.payload = payload
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self):
+            import json
+            return json.dumps(self.payload).encode()
+
+    roots = []
+    monkeypatch.setattr(module, "urlopen", lambda *_args, **_kwargs: Response({"roots": roots}))
+    client = module.ProjectRecallClient("http://127.0.0.1:8888", "PROJECTS")
+    assert client.project_overview(project)["status"] == "not_created"
+
+    roots.extend({"id": f"kp-{n}", "kind": "page", "name": f"Page {n}", "tags": [scope_tag]} for n in range(2))
+    duplicate = client.project_overview(project)
+    assert duplicate["status"] == "ambiguous_pages"
+    assert len(duplicate["pages"]) == 2
+
+
 def test_recall_forces_source_project_and_all_strict() -> None:
     module = _module()
     client = module.ProjectRecallClient("http://127.0.0.1:8888", "PROJECTS")
@@ -420,6 +498,38 @@ def test_revision_labels_are_exposed_separately_and_never_filtered() -> None:
     assert "labels" not in second
 
 
+def test_live_hindsight_document_labels_are_exposed_without_renaming() -> None:
+    module = _module()
+    tags = _alpha_tags(
+        module,
+        "document_family:DCE",
+        "document_type:CCTP",
+        "document_emetteur:architecte",
+        "document_destinataire:maitre_ouvrage",
+        "document_indice:B",
+        "document_date:2025-03",
+        # This bank label is configured with tag=false and must not be surfaced
+        # from a tag should a future server unexpectedly return it.
+        "entity_type:organization",
+    )
+    payload, _ = _recall(module, [_fact("f1", "Pièce de marché.", "dce-1", tags)])
+
+    assert payload["results"][0]["labels"] == {
+        "document_family": ["DCE"],
+        "document_type": ["CCTP"],
+        "document_emetteur": ["architecte"],
+        "document_destinataire": ["maitre_ouvrage"],
+        "document_indice": ["B"],
+        "document_date": ["2025-03"],
+    }
+    assert module._latest_date(payload["results"][0]["labels"]) == (2025, 3, 0)
+
+
+def test_latest_date_accepts_legacy_and_current_hindsight_label_keys() -> None:
+    module = _module()
+    assert module._latest_date({"date_document": ["2024-11"], "document_date": ["2025-03"]}) == (2025, 3, 0)
+
+
 def test_general_conditions_come_after_project_specific_facts_with_a_notice() -> None:
     module = _module()
     results = [
@@ -592,3 +702,39 @@ def test_out_of_scope_text_layer_chunk_fails_closed() -> None:
     ]
     with pytest.raises(module.ProjectRecallError):
         _recall(module, results)
+
+
+def test_ocr_evidence_preserves_exact_reader_identity_and_artifact_filename():
+    module = _module()
+    metadata = {
+        "title": "Document numérisé", "source_path": "Projet/Document.pdf",
+        "source_sha256": "a" * 64, "workspace": "Affaires",
+        "pantheon_document_id": "doc-stable", "ocr_artifact_name": "b" * 64 + ".md",
+        "ocr_source_sha256": "a" * 64,
+    }
+    row = module._compact_evidence({
+        "text": "Fait retenu", "document_id": "doc-stable:source", "metadata": metadata,
+    })
+    assert row["metadata"]["workspace"] == "Affaires"
+    assert row["metadata"]["pantheon_document_id"] == "doc-stable"
+    assert row["metadata"]["ocr_artifact_name"] == "b" * 64 + ".md"
+    assert row["metadata"]["source_path"] == "Projet/Document.pdf"
+    assert "url" not in row and "link" not in row
+
+
+def test_legacy_ocr_provenance_preserves_reader_identity_without_inventing_filename():
+    module = _module()
+    metadata = {
+        "title": "Document numérisé", "source_path": "Projet/Document.pdf",
+        "source_sha256": "a" * 64, "workspace": "Affaires",
+        "pantheon_document_id": "doc-legacy", "ocr_derived_from": "Projet/Document.pdf",
+        "ocr_source_sha256": "a" * 64, "ocr_engine": "vision",
+    }
+    row = module._compact_evidence({
+        "text": "Fait retenu", "document_id": "doc-legacy:source", "metadata": metadata,
+    })
+    assert row["metadata"]["workspace"] == "Affaires"
+    assert row["metadata"]["pantheon_document_id"] == "doc-legacy"
+    assert row["metadata"]["ocr_source_sha256"] == "a" * 64
+    assert "ocr_artifact_name" not in row["metadata"]
+    assert "url" not in row and "link" not in row

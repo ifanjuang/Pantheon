@@ -130,6 +130,7 @@ Group=pantheon-docling
 WorkingDirectory=$APP_ROOT
 Environment=VAULT_PROJECTS_ROOT=$PROJECTS_ROOT
 Environment=VAULT_KNOWLEDGE_ROOT=$KNOWLEDGE_ROOT
+Environment=VAULT_OCR_API_URL=http://127.0.0.1:8189/workspace/api/ocr-markdown
 Environment=VAULT_TOKEN_FILE=$TOKEN_FILE
 ExecStart=$APP_ROOT/.venv/bin/python $APP_ROOT/vault_mcp.py --http
 Restart=on-failure

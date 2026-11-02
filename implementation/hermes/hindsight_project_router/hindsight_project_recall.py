@@ -48,6 +48,10 @@ _HEADING_RE = re.compile(r"^\s*((?:\d+(?:\.\d+)+|[A-Z](?:\.\d+)+|Annexe\s+[A-Z])
 LABEL_KEYS = frozenset({
     "indice", "indice_fiche", "revision_hint", "date_document", "emetteur", "destinataire",
     "version", "revision", "portee", "lot", "type", "phase",
+    # Current Hindsight bank entity-label keys. Keep the legacy aliases above
+    # because older producer promotions still write them as direct tags.
+    "document_family", "document_type", "document_emetteur",
+    "document_destinataire", "document_indice", "document_date",
 })
 # A text-layer passage is quoted whole; a fact is quoted by its supporting sentences.
 TEXT_QUOTE_MAX_CHARS = 1000
@@ -145,6 +149,17 @@ def _compact_evidence(result: dict[str, Any], chunk_text: str = "") -> dict[str,
             key: value for key, value in metadata.items()
             if key not in REDUNDANT_METADATA and value not in (None, "", [], {})
         }
+        # OCR readers resolve by the exact producer identity, not by guessing
+        # a technical ID from Hindsight's representation suffix or a file path.
+        # Earlier retained OCR documents have provenance and checksum but no
+        # artifact filename. Keep their exact reader identity too; the reader
+        # can look up an existing derivative without inventing a cache filename.
+        if metadata.get("ocr_artifact_name") or (
+            metadata.get("ocr_derived_from") and metadata.get("ocr_source_sha256")
+        ):
+            for key in ("workspace", "pantheon_document_id"):
+                if isinstance(metadata.get(key), str) and metadata[key]:
+                    kept[key] = metadata[key]
         if kept:
             row["metadata"] = kept
     quote, section = locate_quote(row["text"], chunk_text) if chunk_text else (None, None)
@@ -179,7 +194,8 @@ def _date_key(value: str) -> tuple[int, int, int] | None:
 
 
 def _latest_date(labels: dict[str, list[str]]) -> tuple[int, int, int] | None:
-    keys = [key for key in map(_date_key, labels.get("date_document", [])) if key]
+    values = [*labels.get("document_date", []), *labels.get("date_document", [])]
+    keys = [key for key in map(_date_key, values) if key]
     return max(keys) if keys else None
 
 
@@ -339,6 +355,83 @@ class ProjectRecallClient:
         if not isinstance(payload, dict) or not isinstance(payload.get("results"), list):
             raise ProjectRecallError("Hindsight returned an unexpected recall response")
         return payload
+
+    def _get_json(self, path: str) -> dict[str, Any]:
+        headers = {
+            "Accept": "application/json",
+            "User-Agent": "pantheon-hindsight-project-router/1",
+        }
+        if self.authorization:
+            headers["Authorization"] = self.authorization
+        try:
+            with urlopen(Request(f"{self.base_url}{path}", headers=headers), timeout=self.timeout_seconds) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        except HTTPError as exc:
+            detail = exc.read(4096).decode("utf-8", errors="replace")
+            raise ProjectRecallError(f"Hindsight HTTP {exc.code}: {detail}") from exc
+        except (OSError, URLError, UnicodeError, json.JSONDecodeError) as exc:
+            raise ProjectRecallError(f"Hindsight knowledge page unavailable: {exc}") from exc
+        if not isinstance(payload, dict):
+            raise ProjectRecallError("Hindsight returned an unexpected knowledge-page response")
+        return payload
+
+    def project_overview(self, project: str) -> dict[str, Any]:
+        """Read one project overview page, enforcing its exact project scope tag."""
+        project_slug = tag_value(project)
+        if not project_slug or project_slug == "pending-identification":
+            raise ProjectRecallError("A concrete project is required")
+        scope_tag = f"scope:project:{project_scope_token(project)}"
+        bank_path = f"/v1/default/banks/{quote(self.bank_id, safe='')}/knowledge-base"
+        tree_query = urlencode({"tags": scope_tag, "tags_match": "all_strict"})
+        tree = self._get_json(f"{bank_path}/tree?{tree_query}")
+        roots = tree.get("roots")
+        if not isinstance(roots, list):
+            raise ProjectRecallError("Hindsight returned an unexpected knowledge-page tree")
+
+        pages: list[dict[str, Any]] = []
+        pending = list(roots)
+        while pending:
+            node = pending.pop()
+            if not isinstance(node, dict):
+                continue
+            if node.get("kind") == "page":
+                tags = node.get("tags")
+                if isinstance(tags, list) and scope_tag in tags:
+                    pages.append(node)
+            children = node.get("children")
+            if isinstance(children, list):
+                pending.extend(children)
+        if not pages:
+            return {"status": "not_created", "project": project, "scope_tag": scope_tag}
+        if len(pages) != 1:
+            return {
+                "status": "ambiguous_pages",
+                "project": project,
+                "scope_tag": scope_tag,
+                "pages": [{"id": page.get("id"), "name": page.get("name")} for page in pages[:5]],
+            }
+        page = pages[0]
+        page_id = page.get("id")
+        if not isinstance(page_id, str) or not page_id.startswith("kp-"):
+            raise ProjectRecallError("Hindsight returned an invalid knowledge-page ID")
+        document = self._get_json(f"{bank_path}/pages/{quote(page_id, safe='')}")
+        body = document.get("body")
+        if not isinstance(body, str):
+            raise ProjectRecallError("Hindsight returned a knowledge page without text")
+        maximum_chars = 12000
+        return {
+            "status": "ok",
+            "project": project,
+            "page_id": page_id,
+            "title": document.get("name") or page.get("name"),
+            "source_query": document.get("description") or page.get("description"),
+            "is_stale": page.get("is_stale"),
+            "last_refresh_failed_at": page.get("last_refresh_failed_at"),
+            "timestamp": document.get("timestamp") or page.get("timestamp"),
+            "body": body[:maximum_chars],
+            "truncated": len(body) > maximum_chars,
+            "interpretation": "Synthèse Hindsight pour orientation ; confirmer les faits déterminants dans les sources citées.",
+        }
 
     @staticmethod
     def _recall_body(query: str, tags: list[str], max_tokens: int) -> dict[str, Any]:
