@@ -934,6 +934,32 @@ class ProcessingQueue:
                 (_now(),),
             )
 
+    def queue_cached_ocr_after_parse_failure(
+        self, workspace: str, document_id: str, source_sha256: str
+    ) -> bool:
+        """Reuse a completed OCR artifact when Hindsight could not parse its PDF source."""
+        now = _now()
+        with self._connection() as connection:
+            cursor = connection.execute(
+                """UPDATE processing_queue SET preflight_status='TO_PROCESS',
+                    hindsight_status='OCR_READY', ocr_status='READY',
+                    ocr_preflight_source_sha256=NULL, ocr_error=NULL, error=NULL,
+                    operation_id=NULL, verification_requested_at=NULL,
+                    revision=revision+1, updated_at=?
+                   WHERE workspace=? AND document_id=? AND source_sha256=?
+                     AND lower(source_path) LIKE '%.pdf'
+                     AND hindsight_status IN ('FAILED','OCR_NEEDED')
+                     AND preflight_status='ANALYZED' AND operation_id IS NULL
+                     AND ocr_status='DONE' AND ocr_filename IS NOT NULL
+                     AND lower(ocr_filename) LIKE '%.md'
+                     AND user_decision!='DO_NOT_SEND'
+                     AND (lower(COALESCE(error,'')) LIKE '%no content extracted%'
+                          OR lower(COALESCE(error,'')) LIKE '%no text extracted%')""",
+                (now, workspace, document_id, source_sha256),
+            )
+            connection.commit()
+            return cursor.rowcount == 1
+
     def queue_ocr_after_empty_analysis(
         self, workspace: str, document_id: str, source_sha256: str
     ) -> bool:
