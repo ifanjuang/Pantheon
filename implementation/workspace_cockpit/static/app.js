@@ -535,7 +535,7 @@ function folderCardBody(card) {
     fact("Phase", card.phase),
     fact("Projet", card.project),
   ].join("");
-  const open = `<button class="folder-open" type="button" data-folder-path="${escapeHtml(card.path)}" aria-label="Ouvrir le dossier ${escapeHtml(card.title || card.name)}">Ouvrir le dossier <span aria-hidden="true">↓</span></button>`;
+  const open = `<button class="folder-open" type="button" data-folder-path="${escapeHtml(card.path)}" aria-label="Ouvrir le dossier ${escapeHtml(card.title || card.name)}">Ouvrir <span aria-hidden="true">↓</span></button>`;
   return `
     ${searchResultPath(card)}
     ${summary}
@@ -557,6 +557,9 @@ function cardTemplate(card) {
   const subtitle = card.kind === "folder" ? "" : card.subtitle || "";
   const visibleSubtitle = card.status === "FOLDER_SCOPED" && /contexte h[eé]rit[eé]/i.test(subtitle) ? "" : subtitle;
   const title = card.title || card.name;
+  const heading = isFolder
+    ? `<span class="folder-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="${CARD_ICONS.folder}"></path></svg></span><span class="folder-card-title-text">${escapeHtml(title)}/</span>`
+    : escapeHtml(title);
   const actions = `<div class="card-document-actions">
       ${!isFolder ? actionIconButton("open", "Ouvrir l’original", `data-open-source data-workspace="${escapeHtml(card.workspace)}" data-source-path="${escapeHtml(card.path)}"${card.source_present === false ? " disabled" : ""}`) : ""}
       ${!isFolder ? actionIconButton("edit", "Éditer les métadonnées", `data-open-metadata-editor data-workspace="${escapeHtml(card.workspace)}" data-source-path="${escapeHtml(card.path)}"${card.source_present === false ? " disabled" : ""}`) : ""}
@@ -573,7 +576,7 @@ function cardTemplate(card) {
     <div class="card-heading">
       <div class="card-head">
         <div class="card-kicker"><span class="card-label-icons">${stage ? cardLabelIcon(stage.icon, stage.label, stage.color, stage.pulse) : ""}${cardLabelIcon(STATUS[card.status]?.icon, STATUS[card.status]?.label || card.status, STATUS[card.status]?.color || "")}</span>${actions}</div>
-        ${title ? `<h2${isFolder ? ' class="folder-card-title"' : ""} title="${escapeHtml(`${title}${isFolder ? "/" : ""}`)}">${escapeHtml(title)}${isFolder ? "/" : ""}</h2>` : ""}
+        ${title ? `<h2${isFolder ? ' class="folder-card-title"' : ""} title="${escapeHtml(`${title}${isFolder ? "/" : ""}`)}">${heading}</h2>` : ""}
       </div>
       ${visibleSubtitle ? `<p class="subtitle card-subtitle">${escapeHtml(visibleSubtitle)}</p>` : ""}
     </div>
