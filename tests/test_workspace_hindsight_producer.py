@@ -3011,3 +3011,125 @@ def test_unknown_binary_does_not_reach_hindsight(tmp_path):
 ])
 def test_format_rejection_is_a_known_local_failure_not_an_uncertain_submission(message):
     assert _module()._submission_outcome_uncertain(message) is False
+
+
+class _OcrRetryClient(FakeClient):
+    """Batch-capable client; the document is absent from Hindsight unless `exists`."""
+
+    max_file_bytes = 10**9
+    exists = False
+
+    def get_document(self, document_id: str):
+        if self.exists:
+            return {"id": document_id}
+        raise RuntimeError("Hindsight HTTP 404: Document not found")
+
+    def prepare_retain_files_batch(self, files):
+        return [dict(item) for item in files]
+
+    def submit_prepared_files(self, prepared):
+        return [
+            self.retain_file(Path(item["source"]), **{k: v for k, v in item.items() if k != "source"})
+            for item in prepared
+        ]
+
+
+def _ocr_retry_setup(tmp_path: Path, *, exists: bool = False):
+    module = _module()
+    (tmp_path / "Notice.pdf").write_bytes(b"%PDF-scanned-without-text")
+    cache = tmp_path / "ocr-cache"
+    cache.mkdir()
+    (cache / "notice.md").write_text("# Notice OCR", encoding="utf-8")
+    client = _OcrRetryClient(["failed"] * 20)
+    client.exists = exists
+    producer = module.HindsightProducer(
+        roots=[("Affaires", tmp_path)],
+        state_db=tmp_path / "state.sqlite3",
+        client=client,
+        processing_queue_db=tmp_path / "queue.sqlite3",
+        ocr_processor=SimpleNamespace(cache_dir=cache),
+    )
+    _first_queued_reconcile(producer, _snapshot(_card()))
+    assert len(client.retains) == 1  # the PDF source
+    sha = hashlib.sha256((tmp_path / "Notice.pdf").read_bytes()).hexdigest()
+    return module, producer, client, sha
+
+
+def _force_failed(tmp_path: Path, module, sha: str, *, queue: dict, sync: dict) -> None:
+    state = sqlite3.connect(tmp_path / "state.sqlite3")
+    try:
+        assignments = ", ".join(f"{key}=?" for key in sync)
+        state.execute(f"UPDATE {module.SYNC_TABLE} SET operation_id=NULL, {assignments}", list(sync.values()))
+        state.commit()
+    finally:
+        state.close()
+    db = sqlite3.connect(tmp_path / "queue.sqlite3")
+    try:
+        values = {"preflight_status": "ANALYZED", "operation_id": None, "ocr_filename": "notice.md", **queue}
+        assignments = ", ".join(f"{key}=?" for key in values)
+        db.execute(f"UPDATE processing_queue SET {assignments}", list(values.values()))
+        db.commit()
+    finally:
+        db.close()
+
+
+def _ocr_sends(client) -> int:
+    return sum(1 for item in client.retains if item["metadata"].get("ocr_artifact_name") == "notice.md")
+
+
+def test_failed_pdf_is_retried_once_through_ocr_and_a_failed_ocr_stays_terminal(tmp_path: Path) -> None:
+    module, producer, client, sha = _ocr_retry_setup(tmp_path)
+    failure = {"hindsight_status": "FAILED", "ocr_status": "READY", "ocr_preflight_source_sha256": sha,
+               "error": "Hindsight rejected the PDF"}
+    _force_failed(tmp_path, module, sha, queue=failure, sync={"status": "FAILED", "last_error": "Hindsight rejected the PDF"})
+    producer.reconcile(_snapshot(_card()))
+    assert _ocr_sends(client) == 1  # one automatic retry through the OCR derivative
+
+    for _ in range(3):  # the OCR attempt itself keeps failing
+        _force_failed(tmp_path, module, sha, queue={**failure, "error": "Hindsight rejected OCR"},
+                      sync={"status": "FAILED", "last_error": "Hindsight rejected OCR"})
+        producer.reconcile(_snapshot(_card()))
+    assert _ocr_sends(client) == 1
+    assert producer.processing_queue.get_item("Affaires", "doc-notice")["hindsight_status"] == "FAILED"
+
+
+def test_cached_ocr_is_rearmed_once_after_a_pdf_parse_failure(tmp_path: Path) -> None:
+    module, producer, client, sha = _ocr_retry_setup(tmp_path)
+    error = "Hindsight file conversion failed: no content extracted"
+    _force_failed(
+        tmp_path, module, sha,
+        queue={"hindsight_status": "FAILED", "ocr_status": "DONE", "error": error},
+        sync={"status": "FAILED", "last_error": error},
+    )
+    deadline = time.monotonic() + 5
+    while _ocr_sends(client) == 0 and time.monotonic() < deadline:
+        producer.reconcile(_snapshot(_card()))
+        time.sleep(0.05)
+    assert _ocr_sends(client) == 1
+
+
+def test_cached_ocr_is_not_rearmed_after_an_unrelated_failure(tmp_path: Path) -> None:
+    module, producer, client, sha = _ocr_retry_setup(tmp_path)
+    _force_failed(
+        tmp_path, module, sha,
+        queue={"hindsight_status": "FAILED", "ocr_status": "DONE", "error": "Hindsight HTTP 500"},
+        sync={"status": "FAILED", "last_error": "Hindsight HTTP 500"},
+    )
+    for _ in range(3):
+        producer.reconcile(_snapshot(_card()))
+    assert _ocr_sends(client) == 0
+
+
+def test_pending_ocr_replacement_review_is_shown_as_verify_without_sending(tmp_path: Path) -> None:
+    module, producer, client, sha = _ocr_retry_setup(tmp_path, exists=True)
+    review = "Hindsight document already exists; OCR replacement requires operator review"
+    _force_failed(
+        tmp_path, module, sha,
+        queue={"hindsight_status": "FAILED", "ocr_status": "READY", "ocr_preflight_source_sha256": sha, "error": review},
+        sync={"status": "SUBMIT_ERROR", "last_error": review},
+    )
+    producer.reconcile(_snapshot(_card()))
+    item = producer.processing_queue.get_item("Affaires", "doc-notice")
+    assert item["hindsight_status"] == "VERIFY"
+    assert item["error"] == review
+    assert _ocr_sends(client) == 0
