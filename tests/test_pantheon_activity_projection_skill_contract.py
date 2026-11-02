@@ -7,10 +7,21 @@ BASE_SOUL = ROOT / "hermes/profiles/_base/base-soul-rules.md"
 REGISTRY = ROOT / "templates/TEMPLATE_REGISTRY.md"
 REQUEST_INTAKE = ROOT / "templates/hermes/skills/pantheon-request-intake/SKILL.md"
 PROJECT_CONTEXT = ROOT / "templates/hermes/skills/project-context/SKILL.md"
+COMPLEX_PRESENTATION = SKILL.parent / "references/complex-presentation.md"
+
+
+def _skill_text() -> str:
+    """The skill and the reference it loads for metadata and quantitative answers.
+
+    Source citation, quantitative consistency and the verification shape live in
+    references/complex-presentation.md so the entry point stays within budget;
+    the rules themselves are still required.
+    """
+    return SKILL.read_text(encoding="utf-8") + "\n" + COMPLEX_PRESENTATION.read_text(encoding="utf-8")
 
 
 def test_activity_projection_is_presentation_only_and_proportional() -> None:
-    text = SKILL.read_text(encoding="utf-8")
+    text = _skill_text()
 
     assert "name: pantheon-activity-projection" in text
     assert "status: candidate_template_only" in text
@@ -28,12 +39,14 @@ def test_activity_projection_is_presentation_only_and_proportional() -> None:
         assert invariant in text
 
     assert "Keep simple requests quiet" in text
-    assert "2-4 meaningful milestones" in text
+    assert "Usually 2-4 milestones are enough" in text
+    assert "Do not narrate upcoming tool calls" in text
+    assert "report only observable status or" in text
     assert "Do not publish every tool call" in text
 
 
 def test_activity_projection_trace_mode_is_opt_in_and_reasoned() -> None:
-    text = SKILL.read_text(encoding="utf-8")
+    text = _skill_text()
     doctrine = (ROOT / "docs/governance/CONVERSATION_ACTIVITY_PROJECTION.md").read_text(encoding="utf-8")
 
     assert "## Opt-in trace mode" in text
@@ -55,18 +68,18 @@ def test_activity_projection_trace_mode_is_opt_in_and_reasoned() -> None:
 
 
 def test_activity_projection_has_small_normative_output_contract() -> None:
-    text = SKILL.read_text(encoding="utf-8")
+    text = _skill_text()
 
     assert "## Normative output contract" in text
     assert "one compact initial plan" in text
     assert "every documentary claim cites its task-local source [Sx]" in text
     assert "Méthode / Skill / Outil remain separate categories" in text
     assert "quantitative conclusions state their perimeter" in text
-    assert "Never synthesize a Pantheon Role label from runtime prose" in text
+    assert "Never synthesize a Role\nlabel from runtime prose" in text
 
 
 def test_activity_projection_explains_action_reason_goal_result_without_cot() -> None:
-    text = SKILL.read_text(encoding="utf-8")
+    text = _skill_text()
 
     for field in ("Action:", "Raison:", "But:", "Résultat:"):
         assert field in text
@@ -77,7 +90,7 @@ def test_activity_projection_explains_action_reason_goal_result_without_cot() ->
 
 
 def test_activity_projection_requires_real_source_metadata_and_stable_refs() -> None:
-    text = SKILL.read_text(encoding="utf-8")
+    text = _skill_text()
 
     assert "assign stable task-local\nreferences" in text
     assert "[S1] <observed title>" in text
@@ -90,15 +103,15 @@ def test_activity_projection_requires_real_source_metadata_and_stable_refs() -> 
 
 
 def test_activity_projection_requires_source_ref_for_each_supporting_document() -> None:
-    text = SKILL.read_text(encoding="utf-8")
+    text = _skill_text()
 
     assert "Every factual claim attributed to another document requires its own `[Sx]`" in text
     assert "Do not mention a CCTP, DPGF, contract,\nestimate or other source as support" in text
-    assert "Give every supporting document its own source reference" in text
+    # The per-document [Sx] rule above carries the former summary line.
 
 
 def test_activity_projection_distinguishes_methods_skills_tools_and_real_use() -> None:
-    text = SKILL.read_text(encoding="utf-8")
+    text = _skill_text()
 
     assert "## Method, skill and tool" in text
     assert "Méthode = governed/task method actually selected and applied" in text
@@ -111,7 +124,7 @@ def test_activity_projection_distinguishes_methods_skills_tools_and_real_use() -
 
 
 def test_activity_projection_reconciles_quantitative_scope_before_conclusion() -> None:
-    text = SKILL.read_text(encoding="utf-8")
+    text = _skill_text()
 
     assert "## Quantitative consistency" in text
     assert "reconcile every displayed component" in text
@@ -125,7 +138,7 @@ def test_activity_projection_reconciles_quantitative_scope_before_conclusion() -
 
 
 def test_activity_projection_keeps_monetary_bases_and_prudent_envelope_coherent() -> None:
-    text = SKILL.read_text(encoding="utf-8")
+    text = _skill_text()
 
     assert "Label each component `HT`, `TVA`, `TTC` or\n`non identifié`" in text
     assert "Never add an HT\namount directly to a TTC amount" in text
@@ -138,7 +151,7 @@ def test_activity_projection_keeps_monetary_bases_and_prudent_envelope_coherent(
 
 
 def test_activity_projection_uses_runtime_milestones_and_optional_postures() -> None:
-    text = SKILL.read_text(encoding="utf-8")
+    text = _skill_text()
 
     assert "Use `⚙ Hermes` for observable runtime milestones" in text
     assert "Posture: Ulysse" in text
@@ -156,7 +169,7 @@ def test_activity_projection_uses_runtime_milestones_and_optional_postures() -> 
 
 
 def test_activity_projection_supports_native_interim_or_compact_final_delivery() -> None:
-    text = SKILL.read_text(encoding="utf-8")
+    text = _skill_text()
     base = BASE_SOUL.read_text(encoding="utf-8")
 
     assert "supports safe interim assistant messages" in text
@@ -192,7 +205,7 @@ def test_vault_context_requests_projection_without_prescribing_runtime_sequence(
 
 
 def test_professional_example_is_generic_shape_only() -> None:
-    text = SKILL.read_text(encoding="utf-8")
+    text = _skill_text()
 
     assert "## Professional source-verification acceptance shape" in text
     assert "<document réel>" in text
