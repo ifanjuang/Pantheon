@@ -35,6 +35,7 @@ _MODULE_ROOT = Path(__file__).resolve().parent
 if str(_MODULE_ROOT) not in sys.path:
     sys.path.insert(0, str(_MODULE_ROOT))
 from hindsight_producer import HindsightHTTPClient, HindsightProducer
+from hermes_workspace_chat import HermesChatError, HermesWorkspaceChat
 from otel_projection import read_snapshot as read_otel_snapshot
 from processing_queue import ProcessingQueue
 from memory_reconciliation import (
@@ -2359,6 +2360,7 @@ class CockpitHandler(BaseHTTPRequestHandler):
     scope_request_path = Path("/var/lib/pantheon-workspace-cockpit/apply-affaires-scope.request")
     processing_queue: ProcessingQueue | None = None
     ocr_cache_root: Path | None = None
+    hermes_chat: HermesWorkspaceChat | None = None
 
     def _headers(self, status: HTTPStatus, content_type: str, *, csp: str | None = None) -> None:
         self.send_response(status)
@@ -2408,6 +2410,124 @@ class CockpitHandler(BaseHTTPRequestHandler):
             self._json({"error": "json_object_required"}, HTTPStatus.BAD_REQUEST)
             return None
         return body
+
+    def _hermes_chat_json_body(self) -> dict[str, Any] | None:
+        if self.headers.get("X-Pantheon-Intent", "").strip() != "hermes-chat":
+            self._json({"error": "explicit_intent_required"}, HTTPStatus.FORBIDDEN)
+            return None
+        origin = self.headers.get("Origin", "")
+        if origin and urlparse(origin).netloc != self.headers.get("Host", ""):
+            self._json({"error": "same_origin_required"}, HTTPStatus.FORBIDDEN)
+            return None
+        if self.headers.get("Content-Type", "").split(";", 1)[0].strip().casefold() != "application/json":
+            self._json({"error": "application_json_required"}, HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
+            return None
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            if length < 0 or length > 16_384:
+                raise ValueError("request_too_large")
+            body = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
+        except ValueError as exc:
+            status = HTTPStatus.REQUEST_ENTITY_TOO_LARGE if str(exc) == "request_too_large" else HTTPStatus.BAD_REQUEST
+            self._json({"error": str(exc) or "invalid_json"}, status)
+            return None
+        except (UnicodeError, json.JSONDecodeError):
+            self._json({"error": "invalid_json"}, HTTPStatus.BAD_REQUEST)
+            return None
+        if not isinstance(body, dict):
+            self._json({"error": "json_object_required"}, HTTPStatus.BAD_REQUEST)
+            return None
+        return body
+
+    def _validate_hermes_chat_card(self, workspace: Any, relative_path: Any, kind: Any) -> tuple[str, str, str, Path] | None:
+        if not isinstance(workspace, str) or workspace not in dict(self.roots):
+            self._json({"error": "vault_not_found"}, HTTPStatus.NOT_FOUND)
+            return None
+        if (
+            not isinstance(relative_path, str) or not relative_path or relative_path.startswith("/")
+            or "\\" in relative_path or ".." in Path(relative_path).parts
+            or "\x00" in relative_path or not isinstance(kind, str)
+            or kind not in {"folder", "document"}
+        ):
+            self._json({"error": "exact_card_identity_required"}, HTTPStatus.BAD_REQUEST)
+            return None
+        root = dict(self.roots)[workspace]
+        try:
+            resolved_root = root.resolve(strict=True)
+            resolved = (root / relative_path).resolve(strict=True)
+            resolved.relative_to(resolved_root)
+            candidate = root / relative_path
+            if candidate.is_symlink() or (kind == "folder" and not resolved.is_dir()):
+                raise ValueError("card_source_unavailable")
+            if self.workspace_index is None:
+                raise ValueError("workspace_index_unavailable")
+            parent = relative_path.rsplit("/", 1)[0] if "/" in relative_path else ""
+            basename = relative_path.rsplit("/", 1)[-1]
+            visible = self.workspace_index.children(
+                workspace, parent, offset=0, limit=200, query=basename
+            ).get("cards", [])
+            if not any(card.get("path") == relative_path and card.get("kind") == kind for card in visible):
+                raise ValueError("card_source_unavailable")
+            if kind == "document" and self._resolve_indexed_source(workspace, relative_path) is None:
+                raise ValueError("card_source_unavailable")
+        except (OSError, RuntimeError, ValueError, StopIteration):
+            self._json({"error": "card_source_unavailable"}, HTTPStatus.NOT_FOUND)
+            return None
+        title = resolved.name
+        return workspace, relative_path, kind, resolved
+
+    def _hermes_chat_post(self, path: str) -> None:
+        if self.hermes_chat is None:
+            self._json({"error": "hermes_chat_not_configured"}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+        body = self._hermes_chat_json_body()
+        if body is None:
+            return
+        create_match = path == "/api/hermes-chat/sessions"
+        session_match = re.fullmatch(r"/api/hermes-chat/sessions/([A-Za-z0-9._:_-]{1,192})(?:/(messages|archive|restore|delete))?", path)
+        try:
+            if create_match:
+                card = self._validate_hermes_chat_card(body.get("workspace"), body.get("path"), body.get("kind"))
+                if card is None:
+                    return
+                workspace, relative_path, kind, resolved = card
+                message = body.get("message")
+                if not isinstance(message, str):
+                    self._json({"error": "message_required"}, HTTPStatus.BAD_REQUEST)
+                    return
+                discussion, messages = self.hermes_chat.create_and_send(
+                    workspace, relative_path, kind, resolved.name, message
+                )
+                self._json({"discussion": discussion, "messages": messages}, HTTPStatus.CREATED)
+                return
+            if session_match is None:
+                self._json({"error": "not_found"}, HTTPStatus.NOT_FOUND)
+                return
+            session_id, action = session_match.groups()
+            if action == "messages":
+                message = body.get("message")
+                if not isinstance(message, str):
+                    self._json({"error": "message_required"}, HTTPStatus.BAD_REQUEST)
+                    return
+                discussion, messages = self.hermes_chat.send_message(session_id, message)
+                self._json({"discussion": discussion, "messages": messages}, HTTPStatus.ACCEPTED)
+            elif action == "archive":
+                self._json({"discussion": self.hermes_chat.set_archived(session_id, True)})
+            elif action == "restore":
+                self._json({"discussion": self.hermes_chat.set_archived(session_id, False)})
+            elif action == "delete":
+                if body.get("confirm") is not True:
+                    self._json({"error": "explicit_delete_confirmation_required"}, HTTPStatus.FORBIDDEN)
+                    return
+                self.hermes_chat.delete(session_id)
+                self._json({"status": "deleted", "session_id": session_id})
+            else:
+                self._json({"error": "not_found"}, HTTPStatus.NOT_FOUND)
+        except HermesChatError as exc:
+            status = HTTPStatus.CONFLICT if "archivée" in str(exc) else HTTPStatus.BAD_GATEWAY
+            self._json({"error": str(exc)}, status)
+        except (OSError, sqlite3.Error):
+            self._json({"error": "hermes_chat_storage_unavailable"}, HTTPStatus.SERVICE_UNAVAILABLE)
 
     def _processing_queue_required(self) -> bool:
         if self.processing_queue is not None:
@@ -2619,6 +2739,9 @@ class CockpitHandler(BaseHTTPRequestHandler):
             path = "/"
         elif path.startswith("/workspace/"):
             path = path[len("/workspace"):]
+        if path.startswith("/api/hermes-chat/"):
+            self._hermes_chat_post(path)
+            return
         if path == "/api/document-notes":
             self._save_document_note()
             return
@@ -3376,6 +3499,40 @@ class CockpitHandler(BaseHTTPRequestHandler):
             path = "/"
         elif path.startswith("/workspace/"):
             path = path[len("/workspace"):]
+        if path == "/api/hermes-chat/status":
+            self._json({"available": self.hermes_chat is not None})
+            return
+        if path == "/api/hermes-chat/sessions":
+            if self.hermes_chat is None:
+                self._json({"error": "hermes_chat_not_configured"}, HTTPStatus.SERVICE_UNAVAILABLE)
+                return
+            query = parse_qs(parsed.query, keep_blank_values=True)
+            workspace = (query.get("workspace") or [""])[0]
+            relative_path = (query.get("path") or [""])[0]
+            if workspace not in dict(self.roots) or not relative_path:
+                self._json({"error": "exact_card_identity_required"}, HTTPStatus.BAD_REQUEST)
+                return
+            include_archived = (query.get("include_archived") or ["true"])[0].casefold() != "false"
+            sessions = self.hermes_chat.sessions_for_card(workspace, relative_path)
+            if not include_archived:
+                sessions = [item for item in sessions if not item["archived"]]
+            self._json({"discussions": sessions})
+            return
+        hermes_messages_match = re.fullmatch(
+            r"/api/hermes-chat/sessions/([A-Za-z0-9._:_-]{1,192})/messages", path
+        )
+        if hermes_messages_match:
+            if self.hermes_chat is None:
+                self._json({"error": "hermes_chat_not_configured"}, HTTPStatus.SERVICE_UNAVAILABLE)
+                return
+            try:
+                session_id = hermes_messages_match.group(1)
+                self._json({"messages": self.hermes_chat.messages(session_id)})
+            except HermesChatError as exc:
+                self._json({"error": str(exc)}, HTTPStatus.BAD_GATEWAY)
+            except (OSError, sqlite3.Error):
+                self._json({"error": "hermes_chat_storage_unavailable"}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
         if path == "/api/producers/status":
             status = producer_status(self.expected_worker_root, self.expected_worker_source)
             status["processing_workers"] = self._processing_worker_health()
@@ -3503,6 +3660,7 @@ class CockpitHandler(BaseHTTPRequestHandler):
                     "read_only": True,
                     "role_trace": bool(self.role_trace_url),
                     "memory_reconciliation": self.memory_reconciliation is not None,
+                    "hermes_chat": self.hermes_chat is not None,
                     "index": index_state,
                     "processing_workers": self._processing_worker_health(),
                 }
@@ -3590,6 +3748,14 @@ class CockpitHandler(BaseHTTPRequestHandler):
                     sync_state = self.processing_queue.latest_hindsight_tag_sync(workspace_name, document_id)
                     if sync_state is not None:
                         card["hindsight_metadata_sync"] = sync_state
+            if self.hermes_chat is not None:
+                cards = result.get("cards", [])
+                sessions_by_path = self.hermes_chat.sessions_for_cards(
+                    workspace_name, [str(card.get("path") or "") for card in cards]
+                )
+                for card in cards:
+                    card["hermes_chat_available"] = True
+                    card["hermes_discussions"] = sessions_by_path.get(str(card.get("path") or ""), [])
             self._json(result)
             return
         if path == "/api/telemetry":
@@ -3641,6 +3807,7 @@ class CockpitHandler(BaseHTTPRequestHandler):
             "/vendor/sortable-1.15.7.min.js": "vendor/sortable-1.15.7.min.js",
             "/vendor/swiper-14.3.0-bundle.min.js": "vendor/swiper-14.3.0-bundle.min.js",
             "/vendor/swiper-14.3.0-bundle.min.css": "vendor/swiper-14.3.0-bundle.min.css",
+            "/vendor/hermes-agent-light.svg": "vendor/hermes-agent-light.svg",
         }.get(path)
         if not asset:
             self._json({"error": "not_found"}, HTTPStatus.NOT_FOUND)
@@ -3918,6 +4085,38 @@ def main(argv: list[str] | None = None) -> int:
     CockpitHandler.processing_queue = (
         ProcessingQueue(processing_queue_db) if processing_queue_db is not None else None
     )
+    hermes_chat_url = os.getenv("WORKSPACE_HERMES_CHAT_URL", "").strip().rstrip("/")
+    hermes_chat_key = os.getenv("WORKSPACE_HERMES_CHAT_KEY", "").strip()
+    if bool(hermes_chat_url) != bool(hermes_chat_key):
+        raise SystemExit("WORKSPACE_HERMES_CHAT_URL and WORKSPACE_HERMES_CHAT_KEY must be configured together")
+    if hermes_chat_url:
+        parsed_hermes_chat_url = urlparse(hermes_chat_url)
+        if (
+            parsed_hermes_chat_url.scheme not in {"http", "https"}
+            or not parsed_hermes_chat_url.netloc
+            or parsed_hermes_chat_url.username is not None
+            or parsed_hermes_chat_url.password is not None
+            or parsed_hermes_chat_url.query
+            or parsed_hermes_chat_url.fragment
+        ):
+            raise SystemExit("WORKSPACE_HERMES_CHAT_URL must be a credential-free HTTP(S) base URL")
+        configured_chat_db = os.getenv("WORKSPACE_HERMES_CHAT_DB", "").strip()
+        hermes_chat_db = (
+            Path(configured_chat_db)
+            if configured_chat_db
+            else (processing_queue_db or state_db).parent / "hermes-card-discussions.sqlite3"
+        )
+        if not hermes_chat_db.is_absolute() or any(_path_is_within(hermes_chat_db, root) for _, root in args.root):
+            raise SystemExit("WORKSPACE_HERMES_CHAT_DB must be absolute and outside every workspace root")
+        try:
+            hermes_chat_timeout = float(os.getenv("WORKSPACE_HERMES_CHAT_TIMEOUT_SECONDS", "300"))
+        except ValueError as exc:
+            raise SystemExit("WORKSPACE_HERMES_CHAT_TIMEOUT_SECONDS must be numeric") from exc
+        CockpitHandler.hermes_chat = HermesWorkspaceChat(
+            hermes_chat_url, hermes_chat_key, hermes_chat_db, timeout=hermes_chat_timeout
+        )
+    else:
+        CockpitHandler.hermes_chat = None
     configured_ocr_cache = os.getenv("WORKSPACE_OCR_CACHE_DIR", "").strip()
     if configured_ocr_cache:
         ocr_cache_root = Path(configured_ocr_cache)

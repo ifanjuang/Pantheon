@@ -35,6 +35,9 @@ const CARD_ICONS = {
   pause: "M8 5H10V19H8ZM14 5H16V19H14Z",
   resume: "M7 4V20L20 12Z",
   continue: "M5 4V20L17 12ZM19 5V19",
+  archive: "M3 5H21V9H3V5ZM5 9V20H19V9M10 13H14",
+  trash: "M4 7H20M10 11V17M14 11V17M6 7L7 20H17L18 7M9 7V4H15V7",
+  unarchive: "M12 3V15M7 8L12 3L17 8M4 14V20H20V14",
   prohibit: "M12 3C16.97056 3 21 7.02944 21 12C21 16.97056 16.97056 21 12 21C7.02944 21 3 16.97056 3 12C3 7.02944 7.02944 3 12 3ZM5.64 5.64L18.36 18.36",
   loading: "M5 14C5 14.55228 5.44772 15 6 15C6.55228 15 7 14.55228 7 14C7 13.44772 6.55228 13 6 13C5.44772 13 5 13.44772 5 14ZM17 10C17 10.55228 17.44772 11 18 11C18.55228 11 19 10.55228 19 10C19 9.44772 18.55228 9 18 9C17.44772 9 17 9.44772 17 10ZM11 12C11 12.55228 11.44772 13 12 13C12.55228 13 13 12.55228 13 12C13 11.44772 12.55228 11 12 11C11.44772 11 11 11.44772 11 12Z",
 };
@@ -48,6 +51,36 @@ function cardLabelIcon(icon, label, color = "", pulse = false) {
 function actionIconButton(icon, label, attributes = "") {
   const path = CARD_ICONS[icon] || CARD_ICONS.file;
   return `<button type="button" class="icon-action" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}" ${attributes}><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="${path}"></path></svg></button>`;
+}
+
+function hermesChatIconButton(label, attributes = "", disabled = false) {
+  return `<button type="button" class="hermes-chat-trigger" ${attributes} aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}"${disabled ? " disabled" : ""}><img src="/workspace/vendor/hermes-agent-light.svg" alt="" aria-hidden="true"></button>`;
+}
+
+function hermesChatButton(card) {
+  const available = card.hermes_chat_available === true;
+  return hermesChatIconButton(
+    available ? `Dialoguer avec Hermes à propos de ${card.title || card.name}` : "Hermes Chat n’est pas configuré",
+    `data-hermes-chat-new data-workspace="${escapeHtml(card.workspace)}" data-card-path="${escapeHtml(card.path)}" data-card-kind="${escapeHtml(card.kind)}" data-card-title="${escapeHtml(card.title || card.name)}"`,
+    !available,
+  );
+}
+
+function hermesDiscussionItemTemplate(item) {
+  const sessionId = escapeHtml(item.session_id);
+  const archived = item.archived === true;
+  const action = archived
+    ? actionIconButton("unarchive", "Restaurer la discussion", `data-hermes-chat-restore="${sessionId}"`)
+    : actionIconButton("archive", "Archiver la discussion", `data-hermes-chat-archive="${sessionId}"`);
+  return `<li class="hermes-discussion-item"><button type="button" class="hermes-discussion-open" data-hermes-chat-open="${sessionId}" aria-label="Reprendre ${escapeHtml(item.title || "la discussion")}"><strong>${escapeHtml(item.title || "Discussion Hermes")}</strong>${item.preview ? `<span>${escapeHtml(item.preview)}</span>` : ""}</button><div class="hermes-discussion-actions">${action}${actionIconButton("trash", "Supprimer la discussion", `data-hermes-chat-delete="${sessionId}"`)}</div></li>`;
+}
+
+function hermesDiscussionsTemplate(card) {
+  if (card.hermes_chat_available !== true) return "";
+  const discussions = Array.isArray(card.hermes_discussions) ? card.hermes_discussions : [];
+  const active = discussions.filter((item) => !item.archived);
+  const archived = discussions.filter((item) => item.archived);
+  return `<section class="hermes-discussions" aria-label="Discussions Hermes pour ${escapeHtml(card.title || card.name)}"><div class="hermes-discussions-head"><span>Discussions Hermes · ${discussions.length}</span></div>${active.length ? `<ul>${active.map(hermesDiscussionItemTemplate).join("")}</ul>` : '<p class="hermes-discussions-empty">Aucune discussion active.</p>'}${archived.length ? `<details class="hermes-discussions-archived"><summary>Archivées · ${archived.length}</summary><ul>${archived.map(hermesDiscussionItemTemplate).join("")}</ul></details>` : ""}</section>`;
 }
 
 const PAGE_SIZE = 24;
@@ -437,6 +470,7 @@ function documentCardBody(card) {
       ${details.length ? `<span>${escapeHtml(details.join(" · "))}</span>` : ""}
     </div>
     <div class="document-front-summary">${preflightDetails}${summary}</div>
+    ${hermesDiscussionsTemplate(card)}
   `;
 }
 
@@ -507,6 +541,7 @@ function folderCardBody(card) {
     ${summary}
     ${tagsTemplate(card.tags, "Tags du contexte dossier")}
     <div class="facts folder-facts">${facts}</div>
+    ${hermesDiscussionsTemplate(card)}
     ${open}
   `;
 }
@@ -522,10 +557,11 @@ function cardTemplate(card) {
   const subtitle = card.kind === "folder" ? "" : card.subtitle || "";
   const visibleSubtitle = card.status === "FOLDER_SCOPED" && /contexte h[eé]rit[eé]/i.test(subtitle) ? "" : subtitle;
   const title = card.title || card.name;
-  const actions = !isFolder ? `<div class="card-document-actions">
-      ${actionIconButton("open", "Ouvrir l’original", `data-open-source data-workspace="${escapeHtml(card.workspace)}" data-source-path="${escapeHtml(card.path)}"${card.source_present === false ? " disabled" : ""}`)}
-      ${actionIconButton("edit", "Éditer les métadonnées", `data-open-metadata-editor data-workspace="${escapeHtml(card.workspace)}" data-source-path="${escapeHtml(card.path)}"${card.source_present === false ? " disabled" : ""}`)}
-    </div>` : "";
+  const actions = `<div class="card-document-actions">
+      ${!isFolder ? actionIconButton("open", "Ouvrir l’original", `data-open-source data-workspace="${escapeHtml(card.workspace)}" data-source-path="${escapeHtml(card.path)}"${card.source_present === false ? " disabled" : ""}`) : ""}
+      ${!isFolder ? actionIconButton("edit", "Éditer les métadonnées", `data-open-metadata-editor data-workspace="${escapeHtml(card.workspace)}" data-source-path="${escapeHtml(card.path)}"${card.source_present === false ? " disabled" : ""}`) : ""}
+      ${hermesChatButton(card)}
+    </div>`;
   const classes = [
     "card",
     card.kind === "folder" ? "folder-card" : "document-card",
@@ -1330,11 +1366,200 @@ elements.cards.addEventListener("input", (event) => {
   editor.querySelectorAll("[data-hindsight-metadata-sync]").forEach((syncButton) => { syncButton.disabled = true; });
 });
 
+const searchSuggestions = document.getElementById("search-suggestions");
+const searchSuggestionList = document.getElementById("search-suggestions-list");
+const searchSuggestionStatus = document.getElementById("search-suggestions-status");
 let searchTimer;
+let searchSuggestionTimer;
+let searchSuggestionController = null;
+let searchSuggestionRequest = 0;
+let searchSuggestionResults = [];
+let activeSearchSuggestion = -1;
+
+function closeSearchSuggestions() {
+  searchSuggestionRequest++;
+  searchSuggestionController?.abort();
+  searchSuggestionController = null;
+  searchSuggestions.hidden = true;
+  elements.search.setAttribute("aria-expanded", "false");
+  elements.search.removeAttribute("aria-activedescendant");
+  searchSuggestionList.replaceChildren();
+  searchSuggestionStatus.hidden = true;
+  searchSuggestionStatus.textContent = "";
+  searchSuggestionResults = [];
+  activeSearchSuggestion = -1;
+}
+
+function setSearchSuggestionStatus(message) {
+  searchSuggestionStatus.textContent = message;
+  searchSuggestionStatus.hidden = !message;
+}
+
+function renderSearchSuggestions(cards, query, total) {
+  const foldedQuery = foldSearchText(query);
+  const ranked = cards.map((card) => {
+    const filename = String(card.name || "");
+    const preflightTitle = card.preflight_metadata?.document_title_candidate?.value;
+    const title = String(preflightTitle || card.title || filename);
+    const foldedName = foldSearchText(filename);
+    const foldedTitle = foldSearchText(title);
+    const foldedPath = foldSearchText(card.path);
+    let score = 7;
+    if (foldedName === foldedQuery) score = 0;
+    else if (foldedTitle === foldedQuery) score = 1;
+    else if (foldedName.startsWith(foldedQuery)) score = 2;
+    else if (foldedTitle.startsWith(foldedQuery)) score = 3;
+    else if (foldedName.includes(foldedQuery)) score = 4;
+    else if (foldedTitle.includes(foldedQuery)) score = 5;
+    else if (foldedPath.includes(foldedQuery)) score = 6;
+    return { card, filename, title, score };
+  });
+  ranked.sort((a, b) => a.score - b.score || String(a.card.path).localeCompare(String(b.card.path), "fr"));
+  searchSuggestionResults = ranked.slice(0, 12).map((entry) => entry.card);
+  activeSearchSuggestion = -1;
+  elements.search.removeAttribute("aria-activedescendant");
+  searchSuggestionList.replaceChildren(...ranked.slice(0, 12).map(({ card, filename, title }, index) => {
+    const option = document.createElement("button");
+    option.type = "button"; option.className = "search-suggestion"; option.id = `search-suggestion-${index}`;
+    option.setAttribute("role", "option"); option.setAttribute("aria-selected", "false");
+    option.dataset.searchSuggestionIndex = String(index);
+    option.dataset.searchWorkspace = String(card.workspace || state.workspace);
+    option.dataset.searchPath = String(card.path || "");
+    option.dataset.searchKind = card.kind === "folder" ? "folder" : "document";
+    const heading = document.createElement("span"); heading.className = "search-suggestion-title";
+    const kind = document.createElement("span"); kind.className = "search-suggestion-kind";
+    kind.textContent = card.kind === "folder" ? "Dossier" : "Document";
+    heading.append(kind, document.createTextNode(title));
+    const path = document.createElement("span"); path.className = "search-suggestion-path";
+    path.textContent = `${card.workspace || state.workspace} / ${card.path || ""}`;
+    option.append(heading);
+    if (filename && filename !== title) {
+      const file = document.createElement("span"); file.className = "search-suggestion-file";
+      file.textContent = `Nom du fichier ou dossier : ${filename}`;
+      option.append(file);
+    }
+    option.append(path);
+    return option;
+  }));
+  searchSuggestions.hidden = false;
+  elements.search.setAttribute("aria-expanded", "true");
+  setSearchSuggestionStatus(searchSuggestionResults.length
+    ? `${Math.min(total, searchSuggestionResults.length)} correspondance(s) affichée(s) sur ${total}. Choisissez une ligne pour ouvrir son emplacement.`
+    : "Aucune correspondance dans le vault actif.");
+}
+
+async function loadSearchSuggestions(query) {
+  if (query.length < 2 || !state.workspace) { closeSearchSuggestions(); return; }
+  searchSuggestionController?.abort();
+  const controller = new AbortController();
+  searchSuggestionController = controller;
+  const requestId = ++searchSuggestionRequest;
+  searchSuggestions.hidden = false;
+  searchSuggestionList.replaceChildren();
+  elements.search.setAttribute("aria-expanded", "true");
+  setSearchSuggestionStatus("Recherche des titres, noms et chemins…");
+  try {
+    const params = new URLSearchParams({ workspace: state.workspace, path: "", offset: "0", limit: "200", q: query });
+    const response = await fetch(workspaceUrl(`api/workspace-children?${params}`), { cache: "no-store", signal: controller.signal });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const result = await response.json();
+    if (requestId !== searchSuggestionRequest || query !== state.query) return;
+    renderSearchSuggestions(Array.isArray(result.cards) ? result.cards : [], query, Number(result.total) || 0);
+  } catch (error) {
+    if (error.name === "AbortError" || requestId !== searchSuggestionRequest) return;
+    searchSuggestionList.replaceChildren();
+    setSearchSuggestionStatus("Suggestions momentanément indisponibles.");
+  }
+}
+
+async function findSearchSuggestionPosition(workspace, parentPath, targetPath, signal) {
+  const limit = 200;
+  let offset = 0;
+  while (true) {
+    const params = new URLSearchParams({ workspace, path: parentPath, offset: String(offset), limit: String(limit) });
+    const response = await fetch(workspaceUrl(`api/workspace-children?${params}`), { cache: "no-store", signal });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const result = await response.json();
+    const cards = Array.isArray(result.cards) ? result.cards : [];
+    const matchIndex = cards.findIndex((card) => card.path === targetPath);
+    if (matchIndex >= 0) return offset + matchIndex;
+    offset += cards.length;
+    if (!cards.length || offset >= Number(result.total || 0)) throw new Error("entry_not_found");
+  }
+}
+
+async function chooseSearchSuggestion(index) {
+  const button = searchSuggestionList.querySelector(`[data-search-suggestion-index="${index}"]`);
+  const suggestion = searchSuggestionResults[index];
+  if (!button || !suggestion?.path) return;
+  const workspace = button.dataset.searchWorkspace;
+  const path = button.dataset.searchPath;
+  const parentPath = String(suggestion.parent_path || "");
+  searchSuggestionController?.abort();
+  const controller = new AbortController();
+  searchSuggestionController = controller;
+  const requestId = ++searchSuggestionRequest;
+  setSearchSuggestionStatus("Repérage de la fiche dans son dossier…");
+  try {
+    const siblingIndex = await findSearchSuggestionPosition(workspace, parentPath, path, controller.signal);
+    if (requestId !== searchSuggestionRequest || !button.isConnected) return;
+    closeSearchSuggestions();
+    clearTimeout(searchTimer);
+    clearTimeout(searchSuggestionTimer);
+    state.query = "";
+    state.path = parentPath;
+    state.offset = Math.floor(siblingIndex / PAGE_SIZE) * PAGE_SIZE;
+    state.status = "all";
+    state.workspace = workspace;
+    state.levelCache = Object.create(null);
+    state.navigationLevels = [];
+    state.focusCardPath = path;
+    elements.search.value = "";
+    elements["search-clear"].hidden = true;
+    visibleVaults.clear();
+    visibleVaults.add(workspace);
+    renderVaultSwitch();
+    filtersTemplate();
+    if (!processingView.hidden) setProcessingView(false);
+    else void loadChildren();
+  } catch (error) {
+    if (requestId !== searchSuggestionRequest) return;
+    setSearchSuggestionStatus(error.name === "AbortError"
+      ? ""
+      : "Cette correspondance n’est plus disponible dans l’index. Actualisez la recherche.");
+  }
+}
+
+function activateSearchSuggestion(index) {
+  const options = [...searchSuggestionList.querySelectorAll("[role=option]")];
+  if (!options.length) return;
+  activeSearchSuggestion = Math.max(0, Math.min(index, options.length - 1));
+  options.forEach((option, optionIndex) => option.setAttribute("aria-selected", String(optionIndex === activeSearchSuggestion)));
+  const active = options[activeSearchSuggestion];
+  elements.search.setAttribute("aria-activedescendant", active.id);
+  active.scrollIntoView({ block: "nearest" });
+}
+
 elements.search.addEventListener("input", (event) => {
   state.query = event.target.value.trim();
   elements["search-clear"].hidden = !state.query;
   clearTimeout(searchTimer);
+  clearTimeout(searchSuggestionTimer);
+  searchSuggestionController?.abort();
+  searchSuggestionController = null;
+  searchSuggestionRequest++;
+  searchSuggestionList.replaceChildren();
+  searchSuggestionResults = [];
+  activeSearchSuggestion = -1;
+  elements.search.removeAttribute("aria-activedescendant");
+  if (state.query.length >= 2 && state.workspace) {
+    searchSuggestions.hidden = false;
+    elements.search.setAttribute("aria-expanded", "true");
+    setSearchSuggestionStatus("Recherche des titres, noms et chemins…");
+  } else {
+    closeSearchSuggestions();
+  }
+  searchSuggestionTimer = setTimeout(() => void loadSearchSuggestions(state.query), 180);
   if (processingView.hidden) {
     state.path = "";
     state.offset = 0;
@@ -1344,6 +1569,21 @@ elements.search.addEventListener("input", (event) => {
   } else {
     renderProcessingItems();
   }
+});
+elements.search.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !searchSuggestions.hidden) { event.preventDefault(); closeSearchSuggestions(); return; }
+  if (searchSuggestions.hidden) return;
+  const count = searchSuggestionResults.length;
+  if (event.key === "ArrowDown" && count) { event.preventDefault(); activateSearchSuggestion(activeSearchSuggestion + 1); }
+  else if (event.key === "ArrowUp" && count) { event.preventDefault(); activateSearchSuggestion(activeSearchSuggestion < 0 ? count - 1 : activeSearchSuggestion - 1); }
+  else if (event.key === "Enter" && count) { event.preventDefault(); chooseSearchSuggestion(activeSearchSuggestion < 0 ? 0 : activeSearchSuggestion); }
+});
+searchSuggestionList.addEventListener("click", (event) => {
+  const option = event.target.closest("[data-search-suggestion-index]");
+  if (option) chooseSearchSuggestion(Number(option.dataset.searchSuggestionIndex));
+});
+document.addEventListener("pointerdown", (event) => {
+  if (!event.target.closest(".workspace-search") && !searchSuggestions.hidden) closeSearchSuggestions();
 });
 elements["search-clear"].addEventListener("click", () => {
   elements.search.value = "";
@@ -1831,6 +2071,177 @@ function processingDot(item) {
   const state = processingLabel(item);
   return `<span class="processing-stage is-${state.color}${state.pulse ? " is-pulse" : ""}"><span class="processing-dot" aria-hidden="true"></span><span>${escapeHtml(state.label)}</span></span>`;
 }
+
+// 9.1 Conversations Hermes rattachées à une fiche
+const hermesChatDialog = document.getElementById("hermes-chat-dialog");
+const hermesChatMessages = document.getElementById("hermes-chat-messages");
+const hermesChatForm = document.getElementById("hermes-chat-form");
+const hermesChatInput = document.getElementById("hermes-chat-input");
+const hermesChatStatus = document.getElementById("hermes-chat-status");
+const hermesChatSend = document.getElementById("hermes-chat-send");
+const hermesChatTitle = document.getElementById("hermes-chat-title");
+const hermesChatContext = document.getElementById("hermes-chat-context");
+let hermesChatTarget = null;
+let hermesChatBusy = false;
+
+function renderHermesChatMessages(messages) {
+  hermesChatMessages.replaceChildren();
+  for (const message of messages || []) {
+    const item = document.createElement("li");
+    item.className = `hermes-chat-message is-${message.role || "assistant"}`;
+    const label = document.createElement("strong");
+    label.textContent = ({ user: "Vous", assistant: "Hermes", tool: "Outil", system: "Système" })[message.role] || "Hermes";
+    const content = document.createElement("p");
+    content.textContent = String(message.content || "");
+    item.append(label, content);
+    hermesChatMessages.append(item);
+  }
+  hermesChatMessages.scrollTop = hermesChatMessages.scrollHeight;
+}
+
+async function hermesChatRequest(path, method = "GET", body = null) {
+  const response = await fetch(workspaceUrl(path), {
+    method,
+    cache: "no-store",
+    headers: body === null ? {} : { "Content-Type": "application/json", "X-Pantheon-Intent": "hermes-chat" },
+    ...(body === null ? {} : { body: JSON.stringify(body) }),
+  });
+  let payload = {};
+  try { payload = await response.json(); } catch (_error) { /* status below is enough */ }
+  if (!response.ok) throw new Error(payload.error || `Hermes indisponible · HTTP ${response.status}`);
+  return payload;
+}
+
+function updateCardDiscussion(card, discussion) {
+  card.hermes_discussions = Array.isArray(card.hermes_discussions) ? card.hermes_discussions : [];
+  const index = card.hermes_discussions.findIndex((item) => item.session_id === discussion.session_id);
+  if (index < 0) card.hermes_discussions.unshift(discussion);
+  else card.hermes_discussions[index] = discussion;
+  card.hermes_discussions.sort((left, right) => Number(left.archived) - Number(right.archived) || String(right.updated_at).localeCompare(String(left.updated_at)));
+  renderCards();
+}
+
+async function refreshCardDiscussions(workspace, path) {
+  const card = allCards().find((item) => item.workspace === workspace && item.path === path);
+  if (!card) return;
+  const query = new URLSearchParams({ workspace, path, include_archived: "true" });
+  const payload = await hermesChatRequest(`api/hermes-chat/sessions?${query}`);
+  card.hermes_discussions = Array.isArray(payload.discussions) ? payload.discussions : [];
+  renderCards();
+}
+
+async function openHermesCardChat(card, discussion = null) {
+  if (!card || card.hermes_chat_available !== true) return;
+  hermesChatTarget = {
+    card,
+    sessionId: discussion?.session_id || "",
+    title: discussion?.title || "",
+    archived: discussion?.archived === true,
+  };
+  hermesChatTitle.textContent = discussion?.title || `Hermes · ${card.title || card.name}`;
+  hermesChatContext.textContent = `${card.workspace} · ${card.path}`;
+  hermesChatStatus.textContent = discussion?.archived ? "Discussion archivée · restaurez-la depuis la fiche pour répondre." : "";
+  hermesChatInput.value = "";
+  hermesChatInput.disabled = hermesChatTarget.archived;
+  hermesChatSend.disabled = hermesChatTarget.archived;
+  renderHermesChatMessages([]);
+  showCockpitDialog(hermesChatDialog);
+  if (!hermesChatTarget.sessionId) {
+    hermesChatStatus.textContent = "Nouvelle discussion · votre premier message ouvrira la session Hermes.";
+    hermesChatInput.focus();
+    return;
+  }
+  hermesChatStatus.textContent = "Chargement de la discussion…";
+  try {
+    const payload = await hermesChatRequest(`api/hermes-chat/sessions/${encodeURIComponent(hermesChatTarget.sessionId)}/messages`);
+    renderHermesChatMessages(payload.messages);
+    hermesChatStatus.textContent = hermesChatTarget.archived ? "Discussion archivée · lecture seule." : "";
+    if (!hermesChatTarget.archived) hermesChatInput.focus();
+  } catch (error) {
+    hermesChatStatus.textContent = error.message || "Lecture de la discussion impossible.";
+  }
+}
+
+async function sendHermesChatMessage(event) {
+  event.preventDefault();
+  const text = hermesChatInput.value.trim();
+  if (!text || !hermesChatTarget?.card || hermesChatBusy) return;
+  hermesChatBusy = true;
+  hermesChatSend.disabled = true;
+  hermesChatInput.disabled = true;
+  hermesChatStatus.textContent = "Hermes prépare sa réponse…";
+  const creatingSession = !hermesChatTarget.sessionId;
+  const previousSessionIds = new Set((hermesChatTarget.card.hermes_discussions || []).map((item) => item.session_id));
+  try {
+    const { card } = hermesChatTarget;
+    const payload = hermesChatTarget.sessionId
+      ? await hermesChatRequest(`api/hermes-chat/sessions/${encodeURIComponent(hermesChatTarget.sessionId)}/messages`, "POST", { message: text })
+      : await hermesChatRequest("api/hermes-chat/sessions", "POST", { workspace: card.workspace, path: card.path, kind: card.kind, message: text });
+    hermesChatTarget.sessionId = payload.discussion.session_id;
+    hermesChatTarget.title = payload.discussion.title;
+    updateCardDiscussion(card, payload.discussion);
+    renderHermesChatMessages(payload.messages);
+    hermesChatInput.value = "";
+    hermesChatStatus.textContent = "";
+  } catch (error) {
+    if (creatingSession) {
+      try {
+        const { card } = hermesChatTarget;
+        const query = new URLSearchParams({ workspace: card.workspace, path: card.path, include_archived: "true" });
+        const indexed = await hermesChatRequest(`api/hermes-chat/sessions?${query}`);
+        card.hermes_discussions = Array.isArray(indexed.discussions) ? indexed.discussions : [];
+        const recovered = card.hermes_discussions.find((item) => !previousSessionIds.has(item.session_id));
+        if (recovered) {
+          hermesChatTarget.sessionId = recovered.session_id;
+          hermesChatTarget.title = recovered.title;
+          const history = await hermesChatRequest(`api/hermes-chat/sessions/${encodeURIComponent(recovered.session_id)}/messages`);
+          renderHermesChatMessages(history.messages);
+        }
+        renderCards();
+      } catch (_recoveryError) { /* keep the original Hermes failure visible */ }
+    }
+    hermesChatStatus.textContent = error.message || "Envoi à Hermes impossible.";
+  } finally {
+    hermesChatBusy = false;
+    hermesChatInput.disabled = hermesChatTarget?.archived === true;
+    hermesChatSend.disabled = hermesChatInput.disabled;
+  }
+}
+
+hermesChatForm.addEventListener("submit", (event) => { void sendHermesChatMessage(event); });
+hermesChatDialog.addEventListener("click", (event) => {
+  if (event.target.closest("[data-close-hermes-chat]")) hermesChatDialog.close();
+});
+document.addEventListener("click", (event) => {
+  const newChat = event.target.closest("[data-hermes-chat-new]");
+  if (newChat) {
+    const card = allCards().find((item) => item.workspace === newChat.dataset.workspace && item.path === newChat.dataset.cardPath);
+    if (card) void openHermesCardChat(card);
+    return;
+  }
+  const openChat = event.target.closest("[data-hermes-chat-open]");
+  if (openChat) {
+    const cardNode = openChat.closest("[data-card-path]");
+    const card = allCards().find((item) => item.workspace === state.workspace && item.path === cardNode?.dataset.cardPath);
+    const discussion = card?.hermes_discussions?.find((item) => item.session_id === openChat.dataset.hermesChatOpen);
+    if (card && discussion) void openHermesCardChat(card, discussion);
+    return;
+  }
+  const action = event.target.closest("[data-hermes-chat-archive], [data-hermes-chat-restore], [data-hermes-chat-delete]");
+  if (!action) return;
+  const cardNode = action.closest("[data-card-path]");
+  const card = allCards().find((item) => item.workspace === state.workspace && item.path === cardNode?.dataset.cardPath);
+  const sessionId = action.dataset.hermesChatArchive || action.dataset.hermesChatRestore || action.dataset.hermesChatDelete;
+  if (!card || !sessionId) return;
+  if (action.dataset.hermesChatDelete && !window.confirm("Supprimer définitivement cette discussion Hermes et son historique ?")) return;
+  const operation = action.dataset.hermesChatArchive ? "archive" : action.dataset.hermesChatRestore ? "restore" : "delete";
+  const body = operation === "delete" ? { confirm: true } : {};
+  action.disabled = true;
+  void hermesChatRequest(`api/hermes-chat/sessions/${encodeURIComponent(sessionId)}/${operation}`, "POST", body)
+    .then(() => refreshCardDiscussions(card.workspace, card.path))
+    .catch((error) => { window.alert(error.message || "Action Hermes impossible."); })
+    .finally(() => { action.disabled = false; });
+});
 
 // 9.2 Lecteur PDF/Markdown et partage
 function markdownInline(value) {
