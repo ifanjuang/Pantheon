@@ -350,6 +350,7 @@ obsolete_superseded
 
 ```text
 DIAG
+ESQ
 APS
 APD
 PRO
