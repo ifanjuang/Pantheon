@@ -17,8 +17,9 @@ def test_docling_route_uses_conversion_source_and_shared_workspace_paths() -> No
     assert "source_not_visible_to_docling" in text
     assert "/home/hermeswebui/.hermes/webui/attachments" in text
     assert "Do not silently copy a" in text
-    assert "`get_document` for an identified document" in text
-    assert "A router recall is an index lead, not an inspected source" in text
+    # The combined hindsight-vault MCP exposes no arbitrary document read.
+    assert "does\nnot expose arbitrary `get_document` or `get_knowledge_page` calls" in text
+    assert "A recall is an index lead, not an\n   inspected source" in text
     assert "open that exact local source" in text
     assert "Source coverage and inventory fallback" in text
     assert "source_present_not_indexed" in text

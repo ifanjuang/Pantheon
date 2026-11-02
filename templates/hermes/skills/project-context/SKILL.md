@@ -34,35 +34,86 @@ projection plan != runtime dispatch plan
 visible milestone != MCP-prescribed tool sequence
 ```
 
+## State the basis without being asked
+
+For every answer that relies on project or Knowledge memory, or on inspected
+documents, state the basis proactively in the opening line or section:
+
+- `De mémoire` when relying on Hindsight, Mnemosyne or conversation context
+  without reopening the source; identify the remembered source and say it was
+  not reopened.
+- `Vérifié dans …` when the source content was directly inspected; name the
+  source and locator, and bound the claim to the pages/sections actually read.
+- If both were used, distinguish remembered context from directly verified
+  findings. If only part of a document was inspected, say `vérifié dans les
+  passages lus`, never imply a complete review.
+
+Do this by default; do not wait for the user to ask whether a statement comes
+from memory or direct verification. Keep the label brief for simple answers.
+
 ## Core route
 
-1. Select the conversation-local project. When its designation is informal,
+1. Before a material recall, state the unresolved question in retrieval-ready
+   terms: the decision or fact sought, its scope, relevant qualifiers and what
+   would count as a useful result. Keep the user's original objective intact.
+   Use Mnemosyne only when prior conversation context, terminology or decisions
+   could materially sharpen that framing; skip it for a simple, self-contained
+   question or when the needed context is already present.
+2. Select the conversation-local project. When its designation is informal,
    partial, misspelled or otherwise not known to match the router's exact scope,
    resolve it against an admitted project candidate or governed identity first.
    Do not pass an unverified alias to a router that derives one exact scope from
    the supplied string. If several candidates remain and the distinction matters,
    preserve them or ask one targeted question.
-2. When the exact project scope is known and the source is not, use the configured
-   project Hindsight router as a continuity/location lead. If an exact source is
-   already known and accessible, open it directly without redundant recall.
-3. For simple recall, Hindsight may be sufficient when it returns the answer,
-   source locator and relevant version/limitations. Label it
-   `orientation mémoire — non confirmée`; do not open a PDF by default.
-4. Inspect the exact source when the user requests verification, the answer will
-   support a consequential decision or external communication, candidate versions
-   conflict in a way that changes the result, or Hindsight lacks enough context
-   to answer. Keep the source inspection bounded to the relevant passage/pages.
-5. For a request about current project status or a list of projects in progress,
+3. For a named project or dossier, use the configured project Hindsight router
+   when the exact source is not already identified within the admitted project
+   scope. If that source is already known and accessible, open it directly without
+   redundant recall. Form one targeted query from the request and any useful
+   continuity context. Hindsight is a continuity/location lead, not authority.
+   After recall, briefly distinguish what was found, its source/provenance, and
+   material gaps or conflicts; then update the next step from those results.
+4. For a simple orientation or continuity question, Hindsight or Mnemosyne may
+   be enough when the returned memory is sufficiently complete for that narrow
+   answer. Label it `de mémoire`, identify the remembered document by its
+   returned title/name when available (a filename is not required), and state
+   that the source was not reopened. Offer to verify the cited document or
+   locator; do not imply direct inspection.
+5. Exactness of the requested answer does not by itself require reopening a
+   source. A simple fact, list or count may be answered from conversation
+   context or Hindsight when the relevant content is complete, its document
+   identity and requested locator are available, and the user has not asked to
+   verify the source. Mark it `de mémoire` and say the source was not reopened.
+   Inspect the exact project source when verification is requested, the memory
+   is incomplete or ambiguous, versions conflict materially, or the answer
+   supports a professional opinion or consequential decision. Do not infer a
+   complete list or total from partial memory (for example, the highest
+   numbered item observed).
+6. For any question that calls for a professional, technical, contractual,
+   regulatory or compliance opinion, consult the relevant transversal
+   DOCUMENTAIRES/Knowledge material automatically, even if the user did not
+   explicitly ask to verify a document. Also inspect the exact project source
+   when the conclusion depends on project-specific facts. Do not ask whether to
+   search before doing this necessary bounded work. If a needed reference or
+   source cannot be resolved, give a bounded answer and name the limitation.
+7. Use an admitted representation only as far as needed to support the claim.
+   Prefer the least costly suitable method; do not convert, OCR, inspect images
+   or transcribe media by default. Delegate a source read only when the document
+   is substantial or the source work is genuinely independent and an agent can
+   reduce elapsed time; otherwise read it directly. The primary agent retains
+   the question, checks decisive passages and synthesizes.
+8. For a request about current project status or a list of projects in progress,
    use the configured live project-state source when available. Hindsight scope
    counts and remembered documents do not establish that a project is active.
    If no live inventory is available, state that limitation instead of inferring
    activity from indexed content.
-6. Use an admitted representation only when needed for the source question.
-   Prefer the least costly suitable method; do not convert, OCR, inspect images
-   or transcribe media by default.
-7. For technical, legal, regulatory, contractual or professional-rule testing,
-   consult the relevant DOCUMENTAIRES or authoritative source separately from
-   the project source.
+
+Keep the user's original question and requested outcome active through the
+answer. After each useful recall or read, update the next step from the evidence
+already obtained: identify which part of the question remains unanswered and
+which source could answer it. Do not keep searching or reading a document merely
+because it is available or has a related title. If the current route fails,
+correct the specific error once or use one materially different admitted route;
+then report the bounded result and blocker instead of repeating failed calls.
 
 When an answer depends on project values not given, read
 [references/project-frame.md](references/project-frame.md) for the frame
@@ -90,3 +141,7 @@ retrieved != truth
 project source != external rule
 memory answer != Evidence
 ```
+
+After answering, offer one concise, relevant next step: verify the cited
+source, deepen the same question, or broaden the search. Do not delay or weaken
+the answer by making this optional follow-up a prerequisite.

@@ -232,13 +232,17 @@ def _mentions(doc, needle: str, limit: int) -> list[int]:
     return found
 
 
-def read_pages(path: Path, page: int = 0, text: str = "", max_pages: int = 2) -> tuple[dict, list[bytes]]:
+def read_pages(path: Path, page: int = 0, text: str = "", max_pages: int = 2,
+               text_offset: int | None = None) -> tuple[dict, list[bytes]]:
     """Text of a page (1-based) and the next ones, or of the first pages containing *text*."""
     mu = _mu()
     max_pages = min(max(int(max_pages), 1), MAX_PAGES_READ)
     if path.stat().st_size > MAX_PDF_BYTES:
         raise FigureError("PDF source exceeds the bounded reader limit")
     needle = " ".join(text.split())
+    if text_offset is not None:
+        if text_offset < 0 or not page or max_pages != 1:
+            raise FigureError("text_offset needs a non-negative offset, a positive page and max_pages=1")
     if not page and len(needle) < 4:
         raise FigureError("give a page number or at least four characters of text to locate")
     with mu.open(path) as doc:
@@ -257,8 +261,24 @@ def read_pages(path: Path, page: int = 0, text: str = "", max_pages: int = 2) ->
                 images.append(_render(current, current.rect, mu, SCAN_DPI))
                 item.update(text_layer=False, image=len(images))
             else:
-                item.update(text_layer=True, text=body[:MAX_PAGE_CHARS],
-                            truncated=len(body) > MAX_PAGE_CHARS)
+                start = text_offset if text_offset is not None else 0
+                if text_offset is None and not page and needle:
+                    pattern = r"\s+".join(re.escape(word) for word in needle.split())
+                    match = re.search(pattern, body, flags=re.IGNORECASE)
+                    if match:
+                        start = max(0, match.start() - 600)
+                if start >= len(body) and start != 0:
+                    raise FigureError("text_offset is outside this page's text")
+                end = min(start + MAX_PAGE_CHARS, len(body))
+                window = body[start:end]
+                item.update(text_layer=True, text=window, text_start=start, text_end=end,
+                            page_text_chars=len(body), truncated=start > 0 or end < len(body),
+                            has_more=end < len(body),
+                            next_text_offset=end if end < len(body) else None)
+                if needle and not page:
+                    item["search_match_in_window"] = bool(re.search(
+                        r"\s+".join(re.escape(word) for word in needle.split()), window,
+                        flags=re.IGNORECASE))
             items.append(item)
         return {
             "pages_examined": pages,

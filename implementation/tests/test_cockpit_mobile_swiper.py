@@ -75,12 +75,12 @@ def test_workspace_inventory_uses_bounded_sibling_swiper_navigation() -> None:
 
     assert 'href="vendor/swiper-14.3.0-bundle.min.css"' in index
     assert 'new window.Swiper(deck, {' in app
-    assert 'querySelector(".sibling-swiper")' in app
+    assert 'querySelectorAll(".sibling-swiper")' in app
     assert 'pagination: { el: deck.querySelector(".swiper-pagination"), type: "fraction" }' in app
     assert 'data-folder-path="${escapeHtml(card.path)}"' in app
     assert 'data-breadcrumb-path="${escapeHtml(crumb.path)}"' in app
     assert 'fetch(workspaceUrl(`api/workspace-children?${params}`)' in app
     assert 'const WORKSPACE_BASE_PATH = "/workspace/"' in app
-    assert "workspace-tabs" in index
+    assert "workspace-vault-switch" in index
     assert "status-filters" in index
     assert "workspace-depth-swiper" not in app

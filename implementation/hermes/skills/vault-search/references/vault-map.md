@@ -2,10 +2,11 @@
 
 ## Coffre `projects`
 
-Piste Hindsight : `hindsight-project` (`recall_project_memory`, `hindsight_project_list`),
+Piste Hindsight : vault configuré (`recall_project_memory`, `hindsight_project_list`),
 toujours bornée à un seul projet. Lecture des pièces : `vault-read`.
 
-Banque Hindsight : celle de l'installation (par défaut `PROJECTS`).
+Banque Hindsight : celle configurée pour cette installation ; ne pas supposer
+un identifiant de banque par défaut.
 
 Contenu attendu : affaires, projets, appels d'offres, clients, missions,
 chantiers, contrats, factures et pièces administratives associées.
@@ -49,11 +50,12 @@ ancrage vérifiable. Une commune seule peut désigner plusieurs projets.
 
 ## Coffre `knowledge`
 
-Piste Hindsight : `hindsight-knowledge` (`recall_knowledge_memory`,
+Piste Hindsight : vault configuré (`recall_knowledge_memory`,
 `hindsight_knowledge_folders`), éventuellement restreinte à un dossier.
 Lecture des pièces : `vault-read`.
 
-Banque Hindsight : celle de l'installation (par défaut `KNOWLEDGE`). Ce sont
+Banque Hindsight : celle configurée pour cette installation ; ne pas supposer
+un identifiant de banque par défaut. Ce sont
 des documents de référence à citer, pas de la Knowledge gouvernée.
 
 Contenu attendu : références techniques, documentation, méthodes, doctrine et

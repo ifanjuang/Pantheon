@@ -9,7 +9,7 @@ generic_skill:
 sources:
   projects:
     logical_name: projects
-    hermes_binding: hindsight-project
+    hermes_binding: hindsight-vault
     recall_tool: recall_project_memory
     purpose: dossier-specific professional material
     project_path_hints:
@@ -19,13 +19,13 @@ sources:
     local_reader_binding: vault-read
   knowledge:
     logical_name: knowledge
-    hermes_binding: hindsight-knowledge
+    hermes_binding: hindsight-vault
     recall_tool: recall_knowledge_memory
     purpose: transversal professional reference material
     local_reader_binding: vault-read
   conversation_memory:
-    logical_name: HERMES_MEMORY
-    hindsight_bank: hermes
+    logical_name: conversation_memory
+    hermes_tool: mnemosyne_recall
     purpose: recent conversation and continuity leads only
   live_project_state:
     logical_name: NOTION
@@ -33,12 +33,24 @@ sources:
     use_when: explicitly requested or indexed freshness is materially uncertain
 
 retrieval:
-  exact_discovery_first: list_documents
-  exact_document_read: get_document
-  associative_retrieval: recall
+  project_scope_list: hindsight-vault:hindsight_project_list
+  project_overview: hindsight-vault:hindsight_project_overview
+  project_recall: hindsight-vault:recall_project_memory
+  knowledge_recall: hindsight-vault:recall_knowledge_memory
+  knowledge_folder_list: hindsight-vault:hindsight_knowledge_folders
+  exact_project_resolution: vault-read:find_vault_projects
+  exact_source_inventory: vault-read:list_vault_project_sources
+  exact_markdown_read: vault-read:read_vault_markdown_lines
+  exact_pdf_read: vault-read:read_vault_pdf_pages
   maximum_recall_calls_per_question: 2
   maximum_candidate_documents: 5
-  recent_project_second_recall: HERMES_MEMORY
+  conversation_continuity_after_project_recall: mnemosyne_recall
+  project_identity_resolution_before_scoped_recall: vault-read:find_vault_projects
+  source_readback_binding: vault-read
+  not_exposed_by_current_router: [get_document]
+  project_overview_reader: hindsight_project_overview
+  page_overview_scope: exact_project_scope_tag
+  project_overview_is_orientation_only: true
 
 documents:
   textual_analysis_binding: docling

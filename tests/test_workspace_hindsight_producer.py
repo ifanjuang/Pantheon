@@ -944,6 +944,105 @@ def test_one_producer_routes_each_vault_to_its_own_hindsight_bank(tmp_path: Path
     assert library_client.retains[0]["metadata"]["metadata_preflight_profile"] == "bibliotheque"
 
 
+def test_missing_pdftotext_still_retains_the_pdf_without_preflight_metadata(tmp_path: Path) -> None:
+    """A missing Poppler utility leaves the normal source-retain path untouched."""
+    module = _module()
+    (tmp_path / "Notice.pdf").write_bytes(b"%PDF-no-poppler")
+    client = FakeClient()
+    producer = module.HindsightProducer(
+        roots=[("Affaires", tmp_path)],
+        state_db=tmp_path / "state.sqlite3",
+        client=client,
+        processing_queue_db=tmp_path / "queue.sqlite3",
+    )
+    with patch("shutil.which", return_value=None):
+        _first_queued_reconcile(producer, _snapshot(_card()))
+    assert len(client.retains) == 1
+    assert client.retains[0]["metadata"]["metadata_preflight_status"] == "extractor_unavailable"
+
+
+def test_running_dispatcher_still_queues_and_uploads_a_new_document(tmp_path: Path) -> None:
+    """The daemon always runs the dispatcher; reconciliation must still prepare work."""
+    module = _module()
+    (tmp_path / "Notice.pdf").write_bytes(b"%PDF-dispatched")
+
+    class BatchClient(FakeClient):
+        max_file_bytes = 10**9
+
+        def prepare_retain_files_batch(self, files):
+            return [dict(item) for item in files]
+
+        def submit_prepared_files(self, prepared):
+            return [
+                self.retain_file(Path(item["source"]), **{k: v for k, v in item.items() if k != "source"})
+                for item in prepared
+            ]
+
+    client = BatchClient()
+    producer = module.HindsightProducer(
+        roots=[("Affaires", tmp_path)],
+        state_db=tmp_path / "state.sqlite3",
+        client=client,
+        processing_queue_db=tmp_path / "queue.sqlite3",
+    )
+    producer.start_submission_dispatcher(poll_interval_seconds=0.05)
+    deadline = time.monotonic() + 10
+    while not client.retains and time.monotonic() < deadline:
+        producer.reconcile(_snapshot(_card()))
+        time.sleep(0.1)
+    assert len(client.retains) == 1
+
+
+@pytest.mark.parametrize("dispatcher", [False, True], ids=["reconcile", "dispatcher"])
+def test_changed_memorized_pdf_is_analyzed_and_retained_once_again(tmp_path: Path, dispatcher: bool) -> None:
+    """A newer source version must not inherit the old MEMORIZED/ANALYZED projection."""
+    module = _module()
+    source = tmp_path / "Notice.pdf"
+    source.write_bytes(b"%PDF-version-1")
+
+    class BatchClient(FakeClient):
+        max_file_bytes = 10**9
+
+        def prepare_retain_files_batch(self, files):
+            return [dict(item) for item in files]
+
+        def submit_prepared_files(self, prepared):
+            return [
+                self.retain_file(Path(item["source"]), **{k: v for k, v in item.items() if k != "source"})
+                for item in prepared
+            ]
+
+    client = BatchClient(["completed"] * 10)
+    producer = module.HindsightProducer(
+        roots=[("Affaires", tmp_path)],
+        state_db=tmp_path / "state.sqlite3",
+        client=client,
+        processing_queue_db=tmp_path / "queue.sqlite3",
+    )
+    _first_queued_reconcile(producer, _snapshot(_card()))
+    for _ in range(3):
+        producer.reconcile(_snapshot(_card()))
+    assert len(client.retains) == 1
+    assert _row(tmp_path / "state.sqlite3")["status"] == "COMPLETED"
+
+    source.write_bytes(b"%PDF-version-2-with-changed-content")
+    new_sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    if dispatcher:
+        producer.start_submission_dispatcher(poll_interval_seconds=0.05)
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        producer.reconcile(_snapshot(_card()))
+        row = _row(tmp_path / "state.sqlite3")
+        if row["status"] == "COMPLETED" and row["source_sha256"] == new_sha:
+            break
+        time.sleep(0.1)
+    for _ in range(3):
+        producer.reconcile(_snapshot(_card()))
+        time.sleep(0.1)
+    assert len(client.retains) == 2
+    assert _row(tmp_path / "state.sqlite3")["source_sha256"] == new_sha
+
+
 def test_raw_status_preserves_existing_derived_ocr_state() -> None:
     module = _module()
     assert module._with_raw_ocr_status(["project:alpha", "ocr:partial"]) == [

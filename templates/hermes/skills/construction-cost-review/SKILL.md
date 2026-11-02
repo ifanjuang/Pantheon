@@ -26,25 +26,29 @@ compatibility with its narrow versioned example manifest; do not load both.
    real Docling error, retry the same bounded call once only when the service
    supplies a recovery delay, otherwise record the source as unreadable and
    continue `ready_with_limits`.
-2. Build the lot and line coverage matrix from that reference before opening
-   candidate totals. Use the states defined in
+2. If a specific offer is named and its exact source is known, inspect it
+   directly; do not inventory the whole dossier or other offers. Build the lot
+   and line coverage matrix from the reference using the states defined in
    `pantheon-governed-method/references/source-review.md`.
-3. Before opening individual offers, enumerate the complete candidate-source
-   family in the selected project (including all quote/devis, ACT consultation,
-   revised offer and lot folders). State the count and exact paths selected.
-   A search hit, one opened quote or a remembered summary never establishes the
-   received-offer set. If the expected family cannot be enumerated, do not say
-   "all received quotes"; state the verified subset and use
-   `ready_with_limits`.
-4. For every enumerated offer or quote, verify issuer, date, validity, scope,
-   quantities, options, exclusions, allowances, tax and total from the exact
-   document. Record every candidate that cannot be opened as
-   `unreadable_or_unverified`; do not silently drop it.
+3. Enumerate the candidate-source family only when the user asks for all offers,
+   a complete consultation comparison, or completeness across candidates. In
+   that case, record the verified count and exact paths; if the family cannot be
+   established, report the verified subset and use `ready_with_limits`.
+   A request for the least expensive company by lot is a comparison across the
+   offers available for those lots: use the lot structure to organize the
+   comparison, then locate the corresponding offers and establish whether the
+   candidate set is complete. Do not treat the highest lot number or a partial
+   set of recalled offers as a complete list.
+4. For each offer within the requested comparison, verify issuer, date,
+   validity, scope, quantities, options, exclusions, allowances, tax and total
+   from its exact document. Record candidates that cannot be opened as
+   `unreadable_or_unverified`; do not silently drop them or imply completeness.
 5. Normalize only comparable items. Keep base, variant, option, provisional
    sum and combined scope distinct. Never compare a partial aggregate with a
    broader reference total.
-6. Report supported deltas, scope differences, missing offers, unreadable
-   material, commercial qualifications and decisions still required.
+6. Report supported deltas, scope differences, unreadable material, commercial
+   qualifications and decisions still required. Mention missing offers only
+   when completeness was part of the requested scope and the family was checked.
 
 ## Comparison gate
 
