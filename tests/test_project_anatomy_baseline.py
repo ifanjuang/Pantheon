@@ -25,6 +25,7 @@ ACTIVE_SCHEMAS = {
     "relation_profile.schema.yaml",
     "requirement.schema.yaml",
     "shared.schema.yaml",
+    "source_kind_profile.schema.yaml",
     "source_representation.schema.yaml",
     "stable_object.schema.yaml",
     "write_authorization_event.schema.yaml",

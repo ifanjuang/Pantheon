@@ -10,7 +10,9 @@ Nothing here executes, persists, canonizes, admits Evidence or approves a claim.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
+import re
 from typing import Any
 
 import jsonschema
@@ -26,6 +28,14 @@ SCHEMA_DIR = "schemas/architecture-project-understanding"
 # makes the identifier governable; it never makes a relation claim true,
 # admitted, Evidence or approved.
 RELATION_PROFILE_PATH = "registries/architecture_relation_profile.registry.json"
+
+# The governed source kind vocabulary (architecture@1), extended add-only by an
+# agency file kept outside the repository. The rules are the same as the ones
+# the implementation applies at write time (implementation/mvp_vertical/
+# apu_vocabulary.py); tests/test_source_kind_vocabulary_conformance.py keeps the
+# two in step.
+SOURCE_KIND_PROFILE_PATH = "registries/architecture_source_kind_profile.registry.json"
+SOURCE_KIND_OVERLAY_ENV = "PANTHEON_SOURCE_KIND_OVERLAY"
 
 TYPE_SCHEMA = {
     "program": "program.schema.yaml",
@@ -89,6 +99,84 @@ def load_relation_profile(root: Path | None = None) -> dict[str, Any]:
             f"{RELATION_PROFILE_PATH} declares duplicate relation ids: {', '.join(duplicates)}"
         )
     return value
+
+
+def load_source_kinds(root: Path | None = None) -> dict[str, dict[str, Any]]:
+    """Base source kinds plus the agency's additions. Raises on a broken file."""
+    base = json.loads(read_repo_text(SOURCE_KIND_PROFILE_PATH, root))
+    if not isinstance(base, dict) or not isinstance(base.get("entries"), list):
+        raise ValueError(f"{SOURCE_KIND_PROFILE_PATH} is not a source kind profile")
+    ids = [entry.get("id") for entry in base["entries"] if isinstance(entry, dict)]
+    duplicates = sorted({str(item) for item in ids if ids.count(item) > 1})
+    if duplicates:
+        raise ValueError(
+            f"{SOURCE_KIND_PROFILE_PATH} declares duplicate source kinds: {', '.join(duplicates)}"
+        )
+    kinds = {entry["id"]: dict(entry) for entry in base["entries"]}
+    configured = os.environ.get(SOURCE_KIND_OVERLAY_ENV, "").strip()
+    if not configured:
+        return kinds
+    try:
+        overlay = json.loads(Path(configured).read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"cannot read the agency source kind file: {exc}") from exc
+    rules = base.get("naming_rules") or {}
+    pattern = re.compile(str(rules.get("id_pattern") or ""))
+    limit = int(rules.get("max_agency_entries") or 0)
+    if not isinstance(overlay, dict):
+        raise ValueError("the agency source kind file must be a JSON object")
+    if overlay.get("registry_kind") != "vocabulary_overlay":
+        raise ValueError("the agency source kind file must declare vocabulary_overlay")
+    if overlay.get("extends") != base.get("registry_id"):
+        raise ValueError(f"the agency source kind file must extend {base.get('registry_id')}")
+    entries = overlay.get("entries")
+    if not isinstance(entries, list):
+        raise ValueError("the agency source kind file has no entries list")
+    if len(entries) > limit:
+        raise ValueError(f"the agency source kind file has more than {limit} entries")
+    added: set[str] = set()
+    for index, entry in enumerate(entries):
+        where = f"agency entry {index}"
+        if not isinstance(entry, dict):
+            raise ValueError(f"{where} must be an object")
+        extra = set(entry) - {"id", "status", "label", "description"}
+        if extra:
+            raise ValueError(f"{where} has unknown fields: {', '.join(sorted(extra))}")
+        kind = entry.get("id")
+        if not isinstance(kind, str) or not pattern.fullmatch(kind):
+            raise ValueError(f"{where} has an invalid id: {kind!r}")
+        if kind in kinds:
+            owner = "the agency file" if kind in added else "the repository registry"
+            raise ValueError(
+                f"{where} redeclares '{kind}', already declared by {owner}; the agency file is add-only"
+            )
+        if entry.get("status") not in {"active", "candidate"}:
+            raise ValueError(f"{where} must be active or candidate")
+        for field in ("label", "description"):
+            if not isinstance(entry.get(field), str) or not entry[field].strip():
+                raise ValueError(f"{where} needs a non-empty {field}")
+        kinds[kind] = {**entry, "origin": "agency"}
+        added.add(kind)
+    return kinds
+
+
+def source_kind_findings(
+    kinds: dict[str, dict[str, Any]], source_kind: Any, *, label: str
+) -> tuple[list[str], list[str]]:
+    """Check one source_kind against the vocabulary: (errors, review notes)."""
+    if not isinstance(source_kind, str):
+        # Shape errors belong to the schema check.
+        return [], []
+    entry = kinds.get(source_kind)
+    if entry is None:
+        return [f"{label}.source_kind '{source_kind}' is not declared in the source kind vocabulary"], []
+    if entry.get("status") == "deprecated":
+        replacement = entry.get("replaced_by")
+        hint = f"; use '{replacement}'" if replacement else ""
+        return [f"{label}.source_kind '{source_kind}' is deprecated{hint}"], []
+    if entry.get("status") == "candidate":
+        return [], [f"{label}.source_kind '{source_kind}' is still a candidate kind"]
+    return [], []
 
 
 def relation_profile_findings(
@@ -321,6 +409,11 @@ def validate_apu_dossier(dossier: dict[str, Any]) -> dict[str, Any]:
     except (OSError, ValueError) as exc:
         relation_profile = None
         vocabulary_errors.append(f"relation profile unavailable: {exc}")
+    try:
+        source_kinds: dict[str, dict[str, Any]] | None = load_source_kinds(root)
+    except (OSError, ValueError) as exc:
+        source_kinds = None
+        vocabulary_errors.append(f"source kind vocabulary unavailable: {exc}")
     object_families: dict[str, str] = {}
     for object_type, _index, item in objects:
         family = item.get("object_family")
@@ -330,6 +423,12 @@ def validate_apu_dossier(dossier: dict[str, Any]) -> dict[str, Any]:
 
     for object_type, index, item in objects:
         tag = f"{object_type}[{index}]"
+        if object_type == "source_representation" and source_kinds is not None:
+            found, review_notes = source_kind_findings(
+                source_kinds, item.get("source_kind"), label=tag
+            )
+            vocabulary_errors.extend(found)
+            human_decisions_required.extend(review_notes)
         if object_type == "attribute_claim":
             entity_ref(item.get("subject_ref"), f"{tag}.subject_ref")
             refs(

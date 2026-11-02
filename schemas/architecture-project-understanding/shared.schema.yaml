@@ -124,8 +124,13 @@ $defs:
         minLength: 1
 
   source_kind:
+    description: >-
+      Family of a source. The identifiers are declared by the governed registry
+      registries/architecture_source_kind_profile.registry.json, extended
+      add-only by the agency file; the schema checks the shape only, and the
+      validator and the owner check the declaration.
     type: string
-    enum: [revit, ifc, drawing, drawing_takeoff, image, photo, manual, scan, point_cloud, other]
+    pattern: "^[a-z][a-z0-9_]{1,39}$"
 
   source_identifier:
     type: object

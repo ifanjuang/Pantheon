@@ -52,12 +52,9 @@ CREATE INDEX IF NOT EXISTS agency_apu_objects_project_lookup
 CREATE TABLE IF NOT EXISTS agency_apu_source_representations (
     representation_id TEXT PRIMARY KEY,
     project_id TEXT NOT NULL REFERENCES agency_projects(project_id) ON DELETE RESTRICT,
-    source_kind TEXT NOT NULL CHECK (
-        source_kind IN (
-            'revit', 'ifc', 'drawing', 'drawing_takeoff', 'image',
-            'photo', 'manual', 'scan', 'point_cloud', 'other'
-        )
-    ),
+    -- The shape only: the declared kinds live in the governed vocabulary registry
+    -- and are checked by the owner, so an agency can add a kind without a migration.
+    source_kind TEXT NOT NULL CHECK (source_kind ~ '^[a-z][a-z0-9_]{1,39}$'),
     proof_status TEXT NOT NULL CHECK (proof_status IN (
         'candidate', 'source_missing', 'source_incomplete', 'source_complete_for_task',
         'source_superseded', 'contradictory_evidence', 'authority_too_low',
@@ -74,6 +71,26 @@ CREATE TABLE IF NOT EXISTS agency_apu_source_representations (
     CHECK (representation_payload ->> 'source_kind' = source_kind),
     CHECK (representation_payload ->> 'proof_status' = proof_status)
 );
+
+-- An owner installed with the former closed list keeps it (CREATE TABLE IF NOT
+-- EXISTS does not change an existing table). Replace it once by the shape check;
+-- later runs find no list and skip.
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM pg_constraint
+         WHERE conrelid = 'agency_apu_source_representations'::regclass
+           AND conname = 'agency_apu_source_representations_source_kind_check'
+           AND pg_get_constraintdef(oid) LIKE '%point_cloud%'
+    ) THEN
+        ALTER TABLE agency_apu_source_representations
+            DROP CONSTRAINT agency_apu_source_representations_source_kind_check;
+        ALTER TABLE agency_apu_source_representations
+            ADD CONSTRAINT agency_apu_source_representations_source_kind_check
+            CHECK (source_kind ~ '^[a-z][a-z0-9_]{1,39}$');
+    END IF;
+END;
+$$;
 
 CREATE INDEX IF NOT EXISTS agency_apu_source_representations_project_lookup
     ON agency_apu_source_representations (project_id, source_kind, representation_id);

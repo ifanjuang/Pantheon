@@ -14,6 +14,14 @@
 - Project Anatomy model §25 (frontière `ProjectClaim` / APU) is now a decision,
   and records that phase codes and source kinds will move to governed
   vocabulary registries with an add-only local agency file.
+- Project Anatomy `source_kind` is now a governed vocabulary registry
+  (`registries/architecture_source_kind_profile.registry.json`) instead of a
+  closed list in the schema, extended add-only by an agency file named by
+  `PANTHEON_SOURCE_KIND_OVERLAY`. New kinds: `document`, `email`, `cad_drawing`;
+  the Document Structure fragment writer labels written documents `document`
+  instead of `other`. The validator and the owner check the declaration; the
+  database checks the shape only. The registry is carried in the built package
+  with its digest. An installed owner is upgraded in place.
 - Project Anatomy relation profile `architecture@1` (candidate registry under
   `registries/`): the APU validator now reports undeclared or deprecated
   relation types, inadmissible endpoints and out-of-vocabulary controlled
