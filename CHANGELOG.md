@@ -11,6 +11,9 @@
   `vault-search`, `project-context`, `hindsight-project`, `AGENCY_PROJECTS`);
   host names, NAS paths and LAN addresses replaced by placeholders.
 - Archive issue/PR references qualified as `Pantheon-Next#<n>`.
+- Project Anatomy model §25 (frontière `ProjectClaim` / APU) is now a decision,
+  and records that phase codes and source kinds will move to governed
+  vocabulary registries with an add-only local agency file.
 - Project Anatomy relation profile `architecture@1` (candidate registry under
   `registries/`): the APU validator now reports undeclared or deprecated
   relation types, inadmissible endpoints and out-of-vocabulary controlled
