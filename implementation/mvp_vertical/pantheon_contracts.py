@@ -22,7 +22,7 @@ import jsonschema
 from referencing import Registry, Resource
 import yaml
 
-from .contract_manifest import CANONICAL_REPOSITORY, CONTRACT_PATHS
+from .contract_manifest import CANONICAL_REPOSITORY, CONTRACT_PATHS, REGISTRY_PATHS
 
 _PACKAGE_ROOT = Path(__file__).resolve().parent
 _MONOREPO_ROOT = Path(__file__).resolve().parents[2]
@@ -102,6 +102,37 @@ def schema_path(name: str) -> Path:
     if source_kind == "packaged-build-artifact":
         _verify_packaged_path(path)
     return path
+
+
+def registry_path(name: str) -> Path:
+    """Locate a governed vocabulary registry, verifying a packaged copy's digest."""
+    try:
+        relative = REGISTRY_PATHS[name]
+    except KeyError as exc:
+        raise ContractUnavailable(f"unknown Pantheon registry: {name}") from exc
+    root, source_kind = _source_root()
+    path = root / relative
+    if not path.is_file():
+        raise ContractUnavailable(
+            f"canonical Pantheon registry unavailable: {name} ({relative})"
+        )
+    if source_kind == "packaged-build-artifact":
+        _verify_packaged_path(path)
+    return path
+
+
+@lru_cache(maxsize=None)
+def load_registry(name: str) -> dict[str, Any]:
+    path = registry_path(name)
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except OSError as exc:
+        raise ContractUnavailable(f"cannot read Pantheon registry: {path}") from exc
+    except json.JSONDecodeError as exc:
+        raise ContractUnavailable(f"Pantheon registry is not valid JSON: {path}") from exc
+    if not isinstance(value, dict):
+        raise ContractUnavailable(f"Pantheon registry is not a mapping: {path}")
+    return value
 
 
 def _read_schema_path(path: Path) -> dict[str, Any]:

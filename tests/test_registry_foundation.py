@@ -31,7 +31,10 @@ def test_registry_foundation_holds_only_reviewed_governance_registries() -> None
         path.relative_to(ROOT).as_posix()
         for path in (ROOT / "registries").rglob("*.registry.json")
     )
-    assert business_registries == ["registries/architecture_relation_profile.registry.json"]
+    assert business_registries == [
+        "registries/architecture_relation_profile.registry.json",
+        "registries/architecture_source_kind_profile.registry.json",
+    ]
 
 
 def test_fictional_registry_descriptor_validates() -> None:
