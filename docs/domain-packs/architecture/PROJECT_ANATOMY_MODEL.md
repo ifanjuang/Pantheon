@@ -685,8 +685,9 @@ raw observed != canonically retained
 This small core is intentional. Project Anatomy becomes more rigorous by limiting canonical carriers while retaining provenance, temporal history, explicit uncertainty and governed extension points.
 ## 25. Boundary with ProjectClaim, Decisions and WorkIssues
 
-Status: proposed decision — requires maintainer review. It records an observed
-state and a proposed attribution rule; it changes no schema, code or contract.
+Status: decision — validated by the maintainer on 2026-11-02. It records an
+observed state and the attribution rule that follows; the rule itself changes no
+schema, code or contract.
 
 ### 25.1 Observed state
 
@@ -735,7 +736,7 @@ claim replacement != claim edit
 applied claim     != validated claim
 ```
 
-### 25.2 Proposed attribution rule
+### 25.2 Attribution rule
 
 ```text
 project fiche value                  -> ProjectClaim
@@ -767,7 +768,24 @@ APU claim != order, decision or reservation
   existing objects (`object_retired` still has no writer). Adding or replacing
   claims has a bounded candidate-only path; it is **not** a new-object API.
 - An `as-of` reader for APU claims.
-- `ESQ` in the shared `phase_code` vocabulary, and `source_kind` values for
-  written documents (specification, bill of quantities, minutes, email) and DWG.
+- The source's own date. `observed_at` on a `source_representation` is the
+  moment the source was observed (for a Document Structure fragment, the
+  compilation time); that is correct and stays distinct from the document's
+  issue date or index date. No governed field carries the latter today, and
+  `doc_document_versions` records the date received and the revision label but
+  no issue date. Adding one is a schema decision, not a vocabulary fix.
 - Link between a source version and a Project Document revision
   (`doc_document_versions`).
+- Persistence-side enforcement of the `architecture@1` relation vocabulary.
+
+Vocabularies — decided 2026-11-02, not implemented. The phase codes (for
+example `ESQ`, missing today from the Project Anatomy and proof-register
+schemas) and the `source_kind` values (for example written documents, e-mails
+and CAD drawings, which are labelled `other` today) move out of the schemas into
+governed vocabulary registries under `registries/`, in the manner of the
+`architecture@1` relation profile. The agency may add values through a local
+file kept outside the public repository, add-only: it cannot change or remove a
+value of the repository registry. The phases a project goes through are declared
+per project as it advances, with the date each declaration takes effect; a claim
+whose phase is not among the phases declared by its project is reported as a
+limitation, not refused. Until then the closed lists stay in force.
