@@ -26,6 +26,18 @@
         "mcp-server/pantheon_mcp/apu.py",
         ".github/scripts/check_relation_profile.py"
       ]
+    },
+    {
+      "id": "architecture_source_kind_profile",
+      "path": "registries/architecture_source_kind_profile.registry.json",
+      "schema": "schemas/architecture-project-understanding/source_kind_profile.schema.yaml",
+      "registry_kind": "vocabulary",
+      "status": "candidate",
+      "profile": "architecture@1",
+      "consumers": [
+        "mcp-server/pantheon_mcp/apu.py",
+        "implementation/mvp_vertical/apu_vocabulary.py"
+      ]
     }
   ],
   "x_boundary": {

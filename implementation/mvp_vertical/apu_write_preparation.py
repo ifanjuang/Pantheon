@@ -165,7 +165,9 @@ def _document_fragment_source_representation(
         "project_ref": project_ref,
         "source_artifact_ref": document_ref,
         "source_version_ref": f"sha256:{row['source_digest']}",
-        "source_kind": "image" if media_type.startswith("image/") else "other",
+        # A Document Structure fragment comes from a written document (PDF text,
+        # office file, specification, minutes) unless it is an image.
+        "source_kind": "image" if media_type.startswith("image/") else "document",
         "identifiers": [
             {"scheme": "pantheon.document.fragment", "value": fragment_ref},
             {"scheme": "pantheon.document.structure", "value": structure_ref},

@@ -93,3 +93,20 @@ def test_dirty_checkout_does_not_claim_head_as_exact_source_commit(monkeypatch) 
     assert source["repository_revision"] == revision
     assert source["source_commit"] is None
     assert source["working_tree_dirty"] is True
+
+
+def test_declared_registries_resolve_from_canonical_root() -> None:
+    assert pantheon_contracts.REGISTRY_PATHS
+    for name, relative in pantheon_contracts.REGISTRY_PATHS.items():
+        path = pantheon_contracts.registry_path(name)
+        assert path == REPO_ROOT / relative
+        registry = pantheon_contracts.load_registry(name)
+        assert registry["registry_kind"] == "vocabulary"
+        assert registry["entries"]
+
+
+def test_unknown_registry_is_unavailable() -> None:
+    import pytest
+
+    with pytest.raises(pantheon_contracts.ContractUnavailable):
+        pantheon_contracts.registry_path("not_a_registry")
