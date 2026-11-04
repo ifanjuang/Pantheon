@@ -45,7 +45,7 @@ import yaml
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-from . import agency_schema, pantheon_contracts
+from . import agency_schema, apu_vocabulary, pantheon_contracts
 
 SCHEMA = pantheon_contracts.schema_path("project_claim")
 MIGRATION = Path(__file__).resolve().parent / "sql" / "019_project_claim_candidates.sql"
@@ -168,6 +168,13 @@ def _normalize_claim_value(field: dict[str, Any], value: Any) -> Any:
         value = value.strip()
         if not value:
             raise AgencyClaimError(f"Project claim {field['claim_type']} may not be empty")
+        if field.get("vocabulary") == "phase":
+            # A project declares only phases of the governed vocabulary, and
+            # never a non-project scope marker such as AGENCY_LIBRARY.
+            try:
+                apu_vocabulary.require_phase(value, field="phase", project_phase=True)
+            except (apu_vocabulary.VocabularyRefused, apu_vocabulary.VocabularyUnavailable) as exc:
+                raise AgencyClaimError(f"Project claim phase: {exc}") from exc
         return value
     try:
         return agency_schema.normalize_field_value("project", field, value)
@@ -394,6 +401,10 @@ def record_claim(
     unit = expected_unit if expected_unit else None
     observed = _normalize_datetime(observed_at, "observed_at", default_now=True)
     effective = _normalize_datetime(effective_at, "effective_at", default_now=False)
+    if field.get("effective_at_required") and effective is None:
+        raise AgencyClaimError(
+            f"Project claim {claim_type} requires effective_at, the date the declaration takes effect"
+        )
     claim_id = str(claim_id or f"claim.{uuid.uuid4().hex}").strip().lower()
 
     if supersedes:

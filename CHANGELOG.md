@@ -29,7 +29,12 @@
   non-project scope marker). An agency may add phases through an add-only file
   named by `PANTHEON_PHASE_OVERLAY`. The APU validator and the owner refuse an
   undeclared code; the registry is carried in the built package with its digest.
-  Per-project phase declarations are not implemented yet.
+- Phases are declared per project as it advances: ProjectClaim `phase` (card
+  field `phases`), one claim per phase with a required effective date, checked
+  against the phase vocabulary (scope markers refused). The Project Anatomy
+  Cockpit projection reports claims established at a phase the project has not
+  declared, without refusing them. The SQL read cache now projects every list
+  claim type generically instead of special-casing parcels.
 - Project Anatomy relation profile `architecture@1` (candidate registry under
   `registries/`): the APU validator now reports undeclared or deprecated
   relation types, inadmissible endpoints and out-of-vocabulary controlled

@@ -121,6 +121,7 @@ def test_projection_exposes_known_sources_uncertainty_and_unmapped_without_inven
         "unmapped_source_representation_count": 1,
         "attention_claim_count": 1,
         "limited_source_count": 1,
+        "claims_outside_declared_phases_count": 1,
     }
     assert [item["representation_id"] for item in projection["unmapped_material"]] == ["photo-1"]
     assert projection["coverage"]["status"] == "not_persisted"
@@ -205,3 +206,41 @@ def test_source_identifiers_and_source_scoped_claims_are_preserved() -> None:
     unmapped = {item["representation_id"]: item for item in projection["unmapped_material"]}
     assert unmapped["photo-1"]["identifiers"] == photo["identifiers"]
     assert projection["attribute_claims"][-1] == photo["attribute_claims"][0]
+
+
+def test_claim_at_a_phase_the_project_has_not_declared_is_reported_not_refused() -> None:
+    projection = build_project_anatomy_projection(
+        _anatomy(), model_doctrine_ref="doctrine@baseline", declared_phases=["ESQ", "APS"]
+    )
+    phases = projection["phases"]
+    assert phases["status"] == "checked"
+    assert phases["refused"] is False
+    assert phases["declared_phases"] == ["APS", "ESQ"]
+    assert [(item["phase"], item["claim_id"]) for item in phases["claims_outside_declared_phases"]] == [
+        ("PRO", "claim-width")
+    ]
+    # The claim itself stays in the projection: a limitation is not a rejection.
+    assert [item["claim_id"] for item in projection["attribute_claims"]] == ["claim-width"]
+
+
+def test_declared_phase_clears_the_limitation() -> None:
+    projection = build_project_anatomy_projection(
+        _anatomy(), model_doctrine_ref="doctrine@baseline", declared_phases=["APS", "PRO"]
+    )
+    assert projection["phases"]["claims_outside_declared_phases"] == []
+    assert projection["summary"]["claims_outside_declared_phases_count"] == 0
+
+
+def test_project_without_declared_phases_is_reported_as_such() -> None:
+    projection = build_project_anatomy_projection(_anatomy(), model_doctrine_ref="doctrine@baseline")
+    assert projection["phases"]["status"] == "no_phase_declared"
+    assert len(projection["phases"]["claims_outside_declared_phases"]) == 1
+
+
+def test_scope_marker_is_not_a_project_phase_to_check() -> None:
+    anatomy = _anatomy()
+    anatomy["attribute_claims"][0]["validity"] = {"established_at_phase": "AGENCY_LIBRARY"}
+    projection = build_project_anatomy_projection(
+        anatomy, model_doctrine_ref="doctrine@baseline", declared_phases=["PRO"]
+    )
+    assert projection["phases"]["claims_outside_declared_phases"] == []
