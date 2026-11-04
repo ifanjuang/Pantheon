@@ -199,6 +199,24 @@ relation type active != relation claim admitted
 derivable relation != derived relation admitted
 ```
 
+The phase codes used by `validity.established_at_phase` (attribute and relation
+claims) and `validity.project_phase` (requirements) are declared by the governed
+registry `registries/architecture_phase_profile.registry.json`, shared with the
+proof register. Each code has a category: `mission_element` (an element of the
+architect's mission: `DIAG`, `ESQ`, `APS`, `APD`, `PRO`, `ACT`, `EXE`, `VISA`,
+`DET`, `OPC`, `AOR`, framed by the Code de la commande publique, articles
+R2431-1 to R2431-37), `project_stage` (agency usage that is not a mission
+element: `DCE`, `DOE`, `GPA`) or `non_project_scope` (`AGENCY_LIBRARY`,
+`GLOBAL_REFERENCE`, which are scope markers, not phases). The schemas check the
+shape of a code; the validator and the owner check that it is declared. An
+agency may add mission elements or project stages through a local file named by
+`PANTHEON_PHASE_OVERLAY`, add-only like the source kind file.
+
+```text
+phase code declared != project goes through that phase
+mission element listed != mission contracted
+```
+
 A source-to-project match is represented as:
 
 ```text
@@ -796,9 +814,12 @@ Vocabularies — decided 2026-11-02.
   governed registry, with an add-only local agency file. `document`, `email` and
   `cad_drawing` are declared. The owner refuses an undeclared kind; the database
   checks only the shape of the identifier, so an agency kind needs no migration.
-- **Phase codes: not implemented.** The phase codes (for example `ESQ`, missing
-  today from the Project Anatomy and proof-register schemas) move to a governed
-  registry in the same way. The phases a project goes through are declared per
-  project as it advances, with the date each declaration takes effect; a claim
-  whose phase is not among the phases declared by its project is reported as a
-  limitation, not refused. Until then the closed phase lists stay in force.
+- **Phase codes: vocabulary implemented** (§6). The closed list repeated in
+  five schemas (Project Anatomy and proof register) moved to the governed
+  registry `architecture_phase_profile`, with `ESQ` added and an add-only local
+  agency file. The validator and the owner refuse an undeclared code.
+- **Phases declared per project: not implemented yet.** The phases a project
+  goes through are declared per project as it advances, with the date each
+  declaration takes effect; a claim whose phase is not among the phases declared
+  by its project is reported as a limitation, not refused. A non-project scope
+  marker can never be declared by a project.

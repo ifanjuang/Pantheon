@@ -22,6 +22,14 @@
   instead of `other`. The validator and the owner check the declaration; the
   database checks the shape only. The registry is carried in the built package
   with its digest. An installed owner is upgraded in place.
+- Phase codes are now a governed vocabulary registry
+  (`registries/architecture_phase_profile.registry.json`) instead of a closed
+  list repeated in five Project Anatomy and proof-register schemas. `ESQ` is
+  declared; each code carries a category (mission element, project stage or
+  non-project scope marker). An agency may add phases through an add-only file
+  named by `PANTHEON_PHASE_OVERLAY`. The APU validator and the owner refuse an
+  undeclared code; the registry is carried in the built package with its digest.
+  Per-project phase declarations are not implemented yet.
 - Project Anatomy relation profile `architecture@1` (candidate registry under
   `registries/`): the APU validator now reports undeclared or deprecated
   relation types, inadmissible endpoints and out-of-vocabulary controlled

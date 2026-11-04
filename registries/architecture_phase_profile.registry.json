@@ -1,0 +1,163 @@
+{
+  "schema_version": "1",
+  "registry_id": "architecture_phase_profile",
+  "registry_kind": "vocabulary",
+  "version": "1.0.0",
+  "status": "candidate",
+  "owner": {
+    "id": "pantheon_project_anatomy",
+    "repository": "Pantheon-Next"
+  },
+  "authority_document": "docs/domain-packs/architecture/PROJECT_ANATOMY_MODEL.md",
+  "governance_refs": [
+    "docs/domain-packs/architecture/PROJECT_ANATOMY_MODEL.md",
+    "docs/domain-packs/architecture/PROOF_REGISTER.md",
+    "registries/README.md",
+    "schemas/architecture-project-understanding/phase_profile.schema.yaml",
+    "schemas/architecture-project-understanding/shared.schema.yaml",
+    "schemas/architecture-proof-register/shared.schema.yaml"
+  ],
+  "description": "Phase profile architecture@1: the controlled phase codes admitted wherever a Project Anatomy claim, a requirement or a proof-register record names a phase. Mission elements follow the mission content framed by the French public procurement code (Code de la commande publique, articles R2431-1 to R2431-37); the mission actually contracted varies by operation, so no project is expected to go through every phase, and the phases a project goes through are declared per project. Project stages are agency usage, not mission elements. Non-project scope markers are not phases and cannot be declared by a project. A declared code is governable, not true, admitted, Evidence or approved. An agency may add codes through a local file kept outside the repository; that file is add-only and cannot change or remove a code declared here.",
+  "profile": {
+    "id": "architecture@1",
+    "governs": "Project Anatomy and proof-register phase codes",
+    "agency_file": {
+      "environment_variable": "PANTHEON_PHASE_OVERLAY",
+      "registry_kind": "vocabulary_overlay",
+      "extends": "architecture_phase_profile",
+      "rules": [
+        "add-only: a code declared by this registry cannot be redeclared, changed or deprecated",
+        "codes follow naming_rules.id_pattern",
+        "status is active or candidate",
+        "category is mission_element or project_stage; an agency cannot add a non-project scope marker",
+        "an unreadable or invalid file makes the vocabulary unavailable instead of being ignored"
+      ]
+    }
+  },
+  "naming_rules": {
+    "id_pattern": "^[A-Z][A-Z0-9_]{1,39}$",
+    "max_agency_entries": 100
+  },
+  "entries": [
+    {
+      "id": "DIAG",
+      "status": "active",
+      "category": "mission_element",
+      "label": "Diagnostic",
+      "description": "Études de diagnostic d'un ouvrage existant (réhabilitation, réutilisation)."
+    },
+    {
+      "id": "ESQ",
+      "status": "active",
+      "category": "mission_element",
+      "label": "Esquisse",
+      "description": "Études d'esquisse ; élément de mission des opérations de construction neuve."
+    },
+    {
+      "id": "APS",
+      "status": "active",
+      "category": "mission_element",
+      "label": "Avant-projet sommaire",
+      "description": "Études d'avant-projet sommaire."
+    },
+    {
+      "id": "APD",
+      "status": "active",
+      "category": "mission_element",
+      "label": "Avant-projet définitif",
+      "description": "Études d'avant-projet définitif."
+    },
+    {
+      "id": "PRO",
+      "status": "active",
+      "category": "mission_element",
+      "label": "Projet",
+      "description": "Études de projet."
+    },
+    {
+      "id": "DCE",
+      "status": "active",
+      "category": "project_stage",
+      "label": "Dossier de consultation des entreprises",
+      "description": "Constitution du dossier de consultation des entreprises ; étape d'usage en agence, entre PRO et ACT."
+    },
+    {
+      "id": "ACT",
+      "status": "active",
+      "category": "mission_element",
+      "label": "Assistance aux contrats de travaux",
+      "description": "Assistance au maître d'ouvrage pour la passation des contrats de travaux."
+    },
+    {
+      "id": "EXE",
+      "status": "active",
+      "category": "mission_element",
+      "label": "Études d'exécution",
+      "description": "Études d'exécution, ou leur examen de conformité lorsqu'elles sont faites par les entreprises."
+    },
+    {
+      "id": "VISA",
+      "status": "active",
+      "category": "mission_element",
+      "label": "Visa",
+      "description": "Examen de la conformité au projet et visa des études d'exécution des entreprises."
+    },
+    {
+      "id": "DET",
+      "status": "active",
+      "category": "mission_element",
+      "label": "Direction de l'exécution",
+      "description": "Direction de l'exécution des contrats de travaux."
+    },
+    {
+      "id": "OPC",
+      "status": "active",
+      "category": "mission_element",
+      "label": "Ordonnancement, coordination, pilotage",
+      "description": "Ordonnancement, coordination et pilotage du chantier."
+    },
+    {
+      "id": "AOR",
+      "status": "active",
+      "category": "mission_element",
+      "label": "Assistance aux opérations de réception",
+      "description": "Assistance au maître d'ouvrage lors des opérations de réception et pendant l'année de garantie de parfait achèvement."
+    },
+    {
+      "id": "DOE",
+      "status": "active",
+      "category": "project_stage",
+      "label": "Dossier des ouvrages exécutés",
+      "description": "Constitution et remise du dossier des ouvrages exécutés."
+    },
+    {
+      "id": "GPA",
+      "status": "active",
+      "category": "project_stage",
+      "label": "Garantie de parfait achèvement",
+      "description": "Période de garantie de parfait achèvement qui suit la réception."
+    },
+    {
+      "id": "AGENCY_LIBRARY",
+      "status": "active",
+      "category": "non_project_scope",
+      "label": "Bibliothèque d'agence",
+      "description": "Marqueur de portée pour un document d'agence qui n'appartient à aucun projet ; ce n'est pas une phase de projet."
+    },
+    {
+      "id": "GLOBAL_REFERENCE",
+      "status": "active",
+      "category": "non_project_scope",
+      "label": "Référence générale",
+      "description": "Marqueur de portée pour une référence générale (réglementation, norme) ; ce n'est pas une phase de projet."
+    }
+  ],
+  "x_boundary": {
+    "runtime_execution": false,
+    "provider_routing": false,
+    "task_authorization": false,
+    "approval": false,
+    "evidence_promotion": false,
+    "memory_promotion": false
+  }
+}

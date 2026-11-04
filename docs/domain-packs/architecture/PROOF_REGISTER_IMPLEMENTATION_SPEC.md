@@ -348,8 +348,13 @@ obsolete_superseded
 
 ### phase_code
 
+The phase codes are declared by `registries/architecture_phase_profile.registry.json`
+(shared with Project Anatomy); the schemas check only their shape. `ESQ` is declared;
+`AGENCY_LIBRARY` and `GLOBAL_REFERENCE` are scope markers, not project phases.
+
 ```text
 DIAG
+ESQ
 APS
 APD
 PRO
