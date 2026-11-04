@@ -30,7 +30,7 @@ properties:
   version_label:
     type: string
     description: Optional opaque version label distinct from internal sequence.
-  phase_code: { type: string, enum: [DIAG, APS, APD, PRO, DCE, ACT, EXE, VISA, DET, OPC, AOR, DOE, GPA, AGENCY_LIBRARY, GLOBAL_REFERENCE] }
+  phase_code: { type: string, pattern: "^[A-Z][A-Z0-9_]{1,39}$", description: "Phase code declared in registries/architecture_phase_profile.registry.json; the schema checks only its shape." }
   effect_class:
     type: string
     enum: [working_revision, minor_correction, coordination_update, modification_candidate, issued_for_review, issued_for_client_approval, approved_phase_decision, issued_for_consultation, issued_for_contract, signed_contractual_version, issued_for_execution, issued_for_site, visa_status_record, signed_or_contradictory_record, as_built_record, obsolete_superseded]

@@ -123,11 +123,16 @@ def _validate(name: str, payload: dict[str, Any]) -> None:
             for error in errors
         )
         raise ApuOwnerError(f"{name} violates its governed contract: {rendered}")
-    if name == "source_representation":
-        try:
+    try:
+        if name == "source_representation":
             apu_vocabulary.require_source_kind(payload.get("source_kind"))
-        except (apu_vocabulary.VocabularyRefused, apu_vocabulary.VocabularyUnavailable) as exc:
-            raise ApuOwnerError(f"{name} violates the governed vocabulary: {exc}") from exc
+        validity = payload.get("validity")
+        if isinstance(validity, dict) and "established_at_phase" in validity:
+            apu_vocabulary.require_phase(
+                validity["established_at_phase"], field="validity.established_at_phase"
+            )
+    except (apu_vocabulary.VocabularyRefused, apu_vocabulary.VocabularyUnavailable) as exc:
+        raise ApuOwnerError(f"{name} violates the governed vocabulary: {exc}") from exc
 
 
 def ensure_schema(conn: psycopg.Connection) -> None:
