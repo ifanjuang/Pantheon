@@ -115,14 +115,17 @@ AS $$
 DECLARE
     scalar_values JSONB := '{}'::jsonb;
     scalar_refs JSONB := '{}'::jsonb;
-    parcel_values JSONB := '[]'::jsonb;
-    parcel_refs JSONB := '[]'::jsonb;
+    list_values JSONB := '{}'::jsonb;
+    list_refs JSONB := '{}'::jsonb;
+    -- Claim types projected as lists (aggregation=list in agency_schema/project.json);
+    -- implementation/tests/test_project_phase_declarations.py keeps the two in step.
+    list_claim_types TEXT[] := ARRAY['parcelle', 'phase'];
 BEGIN
     WITH active_scalar AS (
         SELECT DISTINCT ON (c.claim_type) c.*
           FROM agency_project_claims c
          WHERE c.project_id = target_project_id
-           AND c.claim_type <> 'parcelle'
+           AND c.claim_type <> ALL (list_claim_types)
            AND c.status <> 'retired'
            AND NOT EXISTS (
                SELECT 1 FROM agency_project_claims newer
@@ -170,20 +173,20 @@ BEGIN
       INTO scalar_values, scalar_refs
       FROM projected;
 
-    WITH active_parcels AS (
+    WITH active_lists AS (
         SELECT c.*
           FROM agency_project_claims c
          WHERE c.project_id = target_project_id
-           AND c.claim_type = 'parcelle'
+           AND c.claim_type = ANY (list_claim_types)
            AND c.status <> 'retired'
            AND NOT EXISTS (
                SELECT 1 FROM agency_project_claims newer
                 WHERE newer.supersedes = c.claim_id
            )
-         ORDER BY c.observed_at DESC, c.created_at DESC, c.claim_id DESC
-    )
-    SELECT COALESCE(jsonb_agg(value), '[]'::jsonb),
-           COALESCE(jsonb_agg(jsonb_build_object(
+    ), projected_lists AS (
+        SELECT claim_type,
+               jsonb_agg(value ORDER BY observed_at DESC, created_at DESC, claim_id DESC) AS claim_values,
+               jsonb_agg(jsonb_build_object(
                'claim_id', claim_id,
                'status', status,
                'certainty', certainty,
@@ -212,14 +215,17 @@ BEGIN
                ),
                'observed_at', observed_at,
                'effective_at', effective_at
-           )), '[]'::jsonb)
-      INTO parcel_values, parcel_refs
-      FROM active_parcels;
+           ) ORDER BY observed_at DESC, created_at DESC, claim_id DESC) AS claim_refs
+          FROM active_lists
+         GROUP BY claim_type
+    )
+    SELECT COALESCE(jsonb_object_agg(claim_type, claim_values), '{}'::jsonb),
+           COALESCE(jsonb_object_agg(claim_type, claim_refs), '{}'::jsonb)
+      INTO list_values, list_refs
+      FROM projected_lists;
 
-    IF jsonb_array_length(parcel_values) > 0 THEN
-        scalar_values := scalar_values || jsonb_build_object('parcelle', parcel_values);
-        scalar_refs := scalar_refs || jsonb_build_object('parcelle', parcel_refs);
-    END IF;
+    scalar_values := scalar_values || list_values;
+    scalar_refs := scalar_refs || list_refs;
 
     UPDATE agency_projects
        SET claim_values = scalar_values,

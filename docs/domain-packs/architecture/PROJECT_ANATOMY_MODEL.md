@@ -210,7 +210,9 @@ element: `DCE`, `DOE`, `GPA`) or `non_project_scope` (`AGENCY_LIBRARY`,
 `GLOBAL_REFERENCE`, which are scope markers, not phases). The schemas check the
 shape of a code; the validator and the owner check that it is declared. An
 agency may add mission elements or project stages through a local file named by
-`PANTHEON_PHASE_OVERLAY`, add-only like the source kind file.
+`PANTHEON_PHASE_OVERLAY`, add-only like the source kind file. The phases a
+given project goes through are declared on that project as it advances (§25.3);
+a claim at an undeclared phase is reported, not refused.
 
 ```text
 phase code declared != project goes through that phase
@@ -818,8 +820,16 @@ Vocabularies — decided 2026-11-02.
   five schemas (Project Anatomy and proof register) moved to the governed
   registry `architecture_phase_profile`, with `ESQ` added and an add-only local
   agency file. The validator and the owner refuse an undeclared code.
-- **Phases declared per project: not implemented yet.** The phases a project
-  goes through are declared per project as it advances, with the date each
-  declaration takes effect; a claim whose phase is not among the phases declared
-  by its project is reported as a limitation, not refused. A non-project scope
-  marker can never be declared by a project.
+- **Phases declared per project: implemented.** A project declares each phase
+  it goes through as one ProjectClaim `phase` (card field `phases`, a list like
+  the parcels), with the date the declaration takes effect (`effective_at`,
+  required). The value must be declared by the phase vocabulary and cannot be a
+  non-project scope marker. A mistaken declaration is superseded, never edited.
+  The Cockpit projection of the Project Anatomy reports each claim established
+  at a phase the project has not declared (`phases.claims_outside_declared_phases`);
+  the claim is kept and nothing is refused, since a declaration may simply be
+  late.
+- **Still open:** the card field `phase` (current phase, a plain editable
+  Project value) is not derived from the declarations and keeps its own short
+  list; whether it should become a projection of the latest declaration is a
+  separate decision.
