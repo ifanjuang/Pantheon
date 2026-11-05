@@ -174,7 +174,9 @@ BEGIN
       FROM projected;
 
     WITH active_lists AS (
-        SELECT c.*
+        -- One entry per value, the most recent claim winning, as in the Python
+        -- projection: a phase declared again with a new date is listed once.
+        SELECT DISTINCT ON (c.claim_type, c.value) c.*
           FROM agency_project_claims c
          WHERE c.project_id = target_project_id
            AND c.claim_type = ANY (list_claim_types)
@@ -183,6 +185,7 @@ BEGIN
                SELECT 1 FROM agency_project_claims newer
                 WHERE newer.supersedes = c.claim_id
            )
+         ORDER BY c.claim_type, c.value, c.observed_at DESC, c.created_at DESC, c.claim_id DESC
     ), projected_lists AS (
         SELECT claim_type,
                jsonb_agg(value ORDER BY observed_at DESC, created_at DESC, claim_id DESC) AS claim_values,

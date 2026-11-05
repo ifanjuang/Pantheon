@@ -219,3 +219,49 @@ def test_anatomy_claim_at_an_undeclared_phase_is_stored_and_reported(conn) -> No
     projection = get_project_anatomy_projection(conn, project_id=project_id)
     assert projection["phases"]["claims_outside_declared_phases"] == []
     assert [item["claim_id"] for item in projection["attribute_claims"]] == [claim_id]
+
+
+@pytest.mark.parametrize(
+    ("card_phase", "declared", "status"),
+    [
+        (None, ["ESQ"], "no_card_phase"),
+        ("PRO", [], "no_phase_declared"),
+        ("APS", ["ESQ", "APS"], "consistent"),
+        ("PRO", ["ESQ", "APS"], "card_phase_not_declared"),
+    ],
+)
+def test_card_phase_is_compared_with_the_declarations_never_derived(card_phase, declared, status) -> None:
+    result = agency_claims.phase_consistency(card_phase, declared)
+    assert result["status"] == status
+    assert result["refused"] is False
+    assert result["card_phase_derived"] is False
+
+
+def test_card_phase_not_declared_is_reported_and_left_unchanged(conn) -> None:
+    project_id = _project(conn)
+    conn.execute("UPDATE agency_projects SET phase = 'PRO' WHERE project_id = %s", (project_id,))
+    _declare(conn, project_id, "ESQ")
+    result = agency_claims.project_phase_consistency(conn, project_id)
+    assert (result["card_phase"], result["declared_phases"], result["status"]) == (
+        "PRO", ["ESQ"], "card_phase_not_declared"
+    )
+    assert conn.execute(
+        "SELECT phase FROM agency_projects WHERE project_id = %s", (project_id,)
+    ).fetchone()[0] == "PRO"
+    _declare(conn, project_id, "PRO", "2026-09-01T00:00:00Z")
+    assert agency_claims.project_phase_consistency(conn, project_id)["status"] == "consistent"
+
+
+def test_phase_declared_again_is_listed_once_in_both_projections(conn) -> None:
+    project_id = _project(conn)
+    _declare(conn, project_id, "APD", "2026-02-01T00:00:00Z")
+    _declare(conn, project_id, "PRO", "2026-04-01T00:00:00Z")
+    # Back to APD after a programme change: declared again with its new date.
+    _declare(conn, project_id, "APD", "2026-06-01T00:00:00Z")
+    python_view, sql_view = _declared(conn, project_id)
+    assert sorted(python_view) == sorted(sql_view) == ["APD", "PRO"]
+    cached_refs = conn.execute(
+        "SELECT claim_refs FROM agency_projects WHERE project_id = %s", (project_id,)
+    ).fetchone()[0]["phase"]
+    apd = [ref for ref in cached_refs if ref["effective_at"].startswith("2026-06-01")]
+    assert len(apd) == 1, "the most recent declaration of APD is the one projected"
