@@ -259,6 +259,24 @@
     body.append(section);
   }
 
+  function appendPhaseConsistency(body, card, phaseConsistency) {
+    const status = phaseConsistency?.status || "";
+    card.dataset.phaseConsistency = status || "unknown";
+    if (status !== "card_phase_not_declared") return;
+
+    const section = document.createElement("section");
+    section.className = "v2-back-section";
+    section.dataset.projectClaimProjection = "phase-consistency";
+    const heading = document.createElement("h3");
+    heading.textContent = "Phase";
+    const content = document.createElement("p");
+    content.className = "v2-claim-provenance";
+    const declared = (phaseConsistency.declared_phases || []).join(", ");
+    content.textContent = `Phase de la fiche ${phaseConsistency.card_phase} non déclarée · phases déclarées : ${declared} · à vérifier, rien n'est corrigé automatiquement`;
+    section.append(heading, content);
+    body.append(section);
+  }
+
   function renderProjection(card, project, projectSchema, claimPayload) {
     const body = card.querySelector(".v2-card-back .v2-back-body");
     if (!body) return;
@@ -278,6 +296,7 @@
     }
     card.dataset.claimConflictCount = String(conflictCandidates.length);
     appendConflictProjectionStatus(body, card, conflictProjection);
+    appendPhaseConsistency(body, card, claimPayload?.phase_consistency || null);
 
     for (const field of projectSchema?.fields || []) {
       if (field.storage !== "projection" || field.semantics !== "claim") continue;
