@@ -95,6 +95,11 @@ def _install_current_claim_mocks(monkeypatch, current: dict) -> None:
         "project_claim_projection",
         lambda conn, project_id: ({"budget": 375000}, {"budget": current}),
     )
+    monkeypatch.setattr(
+        agency_claims,
+        "project_phase_consistency",
+        lambda conn, project_id: agency_claims.phase_consistency("PRO", ["ESQ"]),
+    )
 
 
 def test_current_claim_read_projects_temporal_provenance_and_conflict_candidates(monkeypatch) -> None:
@@ -129,6 +134,8 @@ def test_current_claim_read_projects_temporal_provenance_and_conflict_candidates
     assert payload["conflicts_resolved"] is False
     assert payload["authorization_inferred"] is False
     assert payload["evidence_inferred"] is False
+    assert payload["phase_consistency"]["status"] == "card_phase_not_declared"
+    assert payload["phase_consistency"]["refused"] is False
 
 
 def test_conflict_detector_refusal_does_not_hide_current_claims(monkeypatch) -> None:
