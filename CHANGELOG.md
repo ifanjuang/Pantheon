@@ -39,6 +39,14 @@
   the project has not declared is reported on the Project claims read
   (`phase_consistency`) and on the card verso, never refused or corrected. A
   phase declared again is listed once in both the Python and SQL projections.
+- Phase aliases: a registry code may list other spellings, and the agency file
+  may add its own (`aliases`) without redefining a repository code or alias.
+  Both registry readers (validation server and owner) apply the same rules.
+  `DPC` (building-permit filing, an agency project stage) is declared with the
+  aliases `PC` and `PERMIS` and added to the card phase values. A declaration
+  given by an alias is stored as its code with the entered spelling kept. The
+  disposable-database phase check now runs from `implementation/` without
+  `PYTHONPATH`.
 - Project Anatomy relation profile `architecture@1` (candidate registry under
   `registries/`): the APU validator now reports undeclared or deprecated
   relation types, inadmissible endpoints and out-of-vocabulary controlled

@@ -45,6 +45,16 @@ $defs:
         maxLength: 600
       replaced_by:
         $ref: "#/$defs/phase_id"
+      aliases:
+        description: >-
+          Other spellings accepted for this code (for example PC for DPC). A
+          value given as an alias is read as this code; an alias is never a
+          code of its own and never a fuzzy match.
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items:
+          $ref: "#/$defs/phase_id"
   agency_entry:
     description: >-
       An agency entry can only add a project phase: it is active or candidate,
@@ -203,3 +213,14 @@ $defs:
         maxItems: 100
         items:
           $ref: "#/$defs/agency_entry"
+      aliases:
+        description: >-
+          Agency spellings, each naming a phase declared by the repository
+          registry or by this file. An alias cannot be a declared code or an
+          alias of the repository registry.
+        type: object
+        maxProperties: 100
+        propertyNames:
+          $ref: "#/$defs/phase_id"
+        additionalProperties:
+          $ref: "#/$defs/phase_id"

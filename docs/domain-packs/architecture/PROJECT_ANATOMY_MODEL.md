@@ -835,3 +835,13 @@ Vocabularies — decided 2026-11-02.
   claims read (`phase_consistency`) and the card verso report it; nothing is
   refused or corrected automatically. A phase declared again (for example a
   return to APD) is listed once, at its most recent declaration.
+- **Phase aliases: implemented.** A registry code may list other spellings
+  (`DPC`, the building-permit filing stage of the agency domain pack phase
+  map, accepts `PC` and `PERMIS`). The agency file may add its own aliases
+  (top-level `aliases`), each naming a declared code, but cannot redefine a code
+  or an alias of the registry. Only written aliases are accepted, never a fuzzy
+  match. A declaration given by an alias is stored as the code it names, with
+  the entered spelling kept in its derivation note; an Anatomy claim named by
+  an alias is compared through its code. The registry still models no order
+  and no required phase. A grouping code (AVP covering APS and APD) waits for a
+  real project that uses it.

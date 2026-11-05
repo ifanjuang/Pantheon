@@ -6,8 +6,8 @@ Cockpit projection reports. Writes only to the database named by MVP_PG_DSN; it
 reads no project file (--document is only a text reference). Never point it at
 a production database.
 
-  python scripts/phase_declaration_check.py --code EXEMPLE --card-phase DCE \
-      --declare ESQ:2025-01-10 --declare APS:2025-03-01 --claim-phase PRO
+  python scripts/phase_declaration_check.py --code DEMO --card-phase DCE \
+      --declare ESQ:2025-01-10 --declare APS:2025-03-01 --declare PC:2025-06-01 --claim-phase PRO
 """
 
 from __future__ import annotations
@@ -16,6 +16,11 @@ import argparse
 import json
 import sys
 import uuid
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from mvp_vertical import agency_claims, agency_data, apu_owner
 from mvp_vertical.project_anatomy_projection import get_project_anatomy_projection

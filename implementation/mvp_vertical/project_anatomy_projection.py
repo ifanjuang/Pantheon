@@ -80,6 +80,7 @@ def _phase_lens(
         vocabulary = apu_vocabulary.phases().entries
     except apu_vocabulary.VocabularyUnavailable:
         vocabulary = None
+    aliases = apu_vocabulary.alias_map(vocabulary or {})
     outside: list[dict[str, Any]] = []
     for claim_type, claims in (
         ("attribute_claim", attribute_claims),
@@ -87,8 +88,10 @@ def _phase_lens(
     ):
         for claim in claims:
             for phase in sorted(_claim_phase_refs(claim)):
-                entry = (vocabulary or {}).get(phase) or {}
-                if entry.get("category") == "non_project_scope" or phase in declared:
+                # A claim may name a phase by an alias (PC); declarations store the code (DPC).
+                code = aliases.get(phase, phase)
+                entry = (vocabulary or {}).get(code) or {}
+                if entry.get("category") == "non_project_scope" or code in declared:
                     continue
                 outside.append({"phase": phase, **_claim_summary(claim, claim_type=claim_type)})
     if vocabulary is None:

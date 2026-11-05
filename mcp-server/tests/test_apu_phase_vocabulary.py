@@ -92,6 +92,15 @@ class TestPhaseVocabulary(unittest.TestCase):
             report["gate"]["human_decisions_required"],
         )
 
+    def test_an_alias_is_checked_as_the_code_it_names(self):
+        report = _report("PC", "PERMIS", "DPC")
+        self.assertEqual(report["vocabulary_errors"], [], report)
+        report = _report("PCX")
+        self.assertEqual(
+            report["vocabulary_errors"],
+            ["requirement[0].validity.project_phase 'PCX' is not declared in the phase vocabulary"],
+        )
+
     def test_broken_agency_file_makes_the_vocabulary_unavailable(self):
         os.environ[apu.PHASE_OVERLAY_ENV] = self._agency_file(
             {"id": "ESQ", "status": "active", "category": "mission_element",

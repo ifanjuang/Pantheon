@@ -60,16 +60,27 @@ def _phase(code: str = "FAISA", **extra) -> dict:
             "label": "Faisabilité", "description": "Étude de faisabilité avant esquisse.", **extra}
 
 
-def test_registry_validates_and_keeps_the_former_codes_plus_esq() -> None:
+def test_registry_validates_and_keeps_the_former_codes_plus_esq_and_dpc() -> None:
     registry = _registry()
     _validator().validate(registry)
     ids = [entry["id"] for entry in registry["entries"]]
     assert len(ids) == len(set(ids))
-    assert set(ids) == FORMER_CODES | {"ESQ"}
+    assert set(ids) == FORMER_CODES | {"ESQ", "DPC"}
     pattern = re.compile(registry["naming_rules"]["id_pattern"])
     assert all(pattern.fullmatch(code) for code in ids)
     categories = {entry["id"]: entry["category"] for entry in registry["entries"]}
     assert {code for code, category in categories.items() if category == "non_project_scope"} == SCOPE_MARKERS
+
+
+def test_registry_aliases_are_unique_and_never_codes() -> None:
+    entries = _registry()["entries"]
+    ids = {entry["id"] for entry in entries}
+    aliases = [alias for entry in entries for alias in entry.get("aliases", [])]
+    assert len(aliases) == len(set(aliases))
+    assert not set(aliases) & ids
+    dpc = next(entry for entry in entries if entry["id"] == "DPC")
+    assert dpc["category"] == "project_stage"
+    assert dpc["aliases"] == ["PC", "PERMIS"]
 
 
 def test_no_schema_keeps_a_closed_phase_list() -> None:
@@ -110,7 +121,11 @@ def test_agency_file_schema_is_add_only_and_project_phases_only() -> None:
     validator = _validator()
     validator.validate(_agency(_phase()))
     validator.validate(_agency(_phase(category="project_stage")))
+    validator.validate(_agency(_phase(), aliases={"FAI": "FAISA", "ESQUISSE": "ESQ"}))
     for broken in (
+        _agency(_phase(aliases=["FAI"])),
+        _agency(aliases={"esquisse": "ESQ"}),
+        _agency(aliases=["ESQ"]),
         _agency(_phase(status="deprecated")),
         _agency(_phase(replaced_by="PRO")),
         _agency(_phase("faisa")),
@@ -142,6 +157,17 @@ CASES = [
     ("wrong extends", _agency(_phase(), extends="architecture_source_kind_profile"), "must extend"),
     ("not an object", ["FAISA"], "JSON object"),
     ("too many entries", _agency(*[_phase(f"PH_{i:03d}") for i in range(101)]), "more than 100"),
+    ("agency alias of a base code", _agency(aliases={"ESQUISSE": "ESQ"}), {"ESQ"}),
+    ("agency alias of an agency code", _agency(_phase(), aliases={"FAI": "FAISA"}), {"FAISA"}),
+    ("alias redeclares a base code", _agency(aliases={"ESQ": "APS"}), "redeclares 'ESQ'"),
+    ("alias redeclares an agency code", _agency(_phase(), aliases={"FAISA": "ESQ"}), "already declared by the agency file"),
+    ("alias redefines a base alias", _agency(aliases={"PC": "PRO"}), "redefines an alias of the repository registry"),
+    ("code redeclares a base alias", _agency(_phase("PC")), "redeclares 'PC'"),
+    ("alias names an undeclared code", _agency(aliases={"FAI": "FAISA"}), "which is not declared"),
+    ("lower-case alias", _agency(aliases={"esquisse": "ESQ"}), "is invalid"),
+    ("aliases not an object", _agency(aliases=["ESQ"]), "aliases must be an object"),
+    ("alias field on an agency entry", _agency(_phase(aliases=["FAI"])), "unknown fields"),
+    ("too many aliases", _agency(aliases={f"AL_{i:03d}": "ESQ" for i in range(101)}), "more than 100 aliases"),
 ]
 
 
@@ -179,6 +205,7 @@ def test_both_readers_apply_the_same_rules(readers, tmp_path, monkeypatch, name,
         assert [kind for kind, _ in results] == ["ok", "ok"], results
         assert all(expected <= value for _, value in results), results
         assert results[0][1] == results[1][1]
+        assert server.alias_map(server.load_phases(ROOT)) == owner.phases().aliases
     else:
         assert [kind for kind, _ in results] == ["error", "error"], results
         assert all(expected in value for _, value in results), results
@@ -214,3 +241,33 @@ def test_owner_refuses_a_scope_marker_as_a_project_phase(readers, monkeypatch) -
         owner.require_phase("AGENCY_LIBRARY", project_phase=True)
     with pytest.raises(owner.VocabularyRefused, match="not declared"):
         owner.require_phase("ESQUISSE")
+
+
+def test_owner_reads_an_alias_as_the_code_it_names(readers, tmp_path, monkeypatch) -> None:
+    server, owner = readers
+    monkeypatch.delenv(owner.PHASE_OVERLAY_ENV, raising=False)
+    assert owner.require_phase("PC", project_phase=True) == "active"
+    assert owner.resolve_phase("PERMIS") == "DPC"
+    assert owner.resolve_phase("DPC") == "DPC"
+    assert owner.resolve_phase("PCX") == "PCX"
+    with pytest.raises(owner.VocabularyRefused, match="not declared"):
+        owner.require_phase("PCX")
+    path = tmp_path / "phases.json"
+    path.write_text(json.dumps(_agency(aliases={"ESQUISSE": "ESQ"})), encoding="utf-8")
+    monkeypatch.setenv(owner.PHASE_OVERLAY_ENV, str(path))
+    assert owner.resolve_phase("ESQUISSE") == "ESQ"
+    assert server.alias_map(server.load_phases(ROOT))["ESQUISSE"] == "ESQ"
+    assert server.phase_findings(server.load_phases(ROOT), "ESQUISSE", label="x") == ([], [])
+
+
+def test_source_kind_agency_file_cannot_declare_aliases(readers, tmp_path, monkeypatch) -> None:
+    server, owner = readers
+    path = tmp_path / "kinds.json"
+    path.write_text(json.dumps({"registry_kind": "vocabulary_overlay",
+                                "extends": "architecture_source_kind_profile",
+                                "entries": [], "aliases": {"DOC": "document"}}), encoding="utf-8")
+    monkeypatch.setenv(server.SOURCE_KIND_OVERLAY_ENV, str(path))
+    with pytest.raises(ValueError, match="cannot declare aliases"):
+        server.load_source_kinds(ROOT)
+    with pytest.raises(owner.VocabularyUnavailable, match="cannot declare aliases"):
+        owner.source_kinds()
