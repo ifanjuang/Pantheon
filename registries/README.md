@@ -214,6 +214,46 @@ A Registry is justified only when:
 5. validation can remain deterministic;
 6. no runtime, router, scheduler, queue, approval engine or memory promotion is introduced.
 
+## Agency vocabulary files
+
+A vocabulary registry of this repository may allow the agency to add values
+without changing the repository. Today `architecture_source_kind_profile` and
+`architecture_phase_profile` do, each through its own local file kept
+**outside** the repository (real professional values and environment-specific
+configuration stay out of the public repo).
+
+```text
+variable   PANTHEON_SOURCE_KIND_OVERLAY = absolute path of the file
+file       {"registry_kind": "vocabulary_overlay",
+            "extends": "architecture_source_kind_profile",
+            "entries": [{"id": "plan_recolement", "status": "active",
+                         "label": "Plan de récolement",
+                         "description": "Plan fourni par l'entreprise."}]}
+```
+
+```text
+agency file is add-only: it cannot redeclare, change or deprecate a repository value
+agency value declared != agency value approved
+unreadable or invalid file = vocabulary unavailable, never silently ignored
+```
+
+```text
+variable   PANTHEON_PHASE_OVERLAY = absolute path of the file
+file       {"registry_kind": "vocabulary_overlay",
+            "extends": "architecture_phase_profile",
+            "entries": [{"id": "FAISA", "status": "active",
+                         "category": "mission_element",
+                         "label": "Faisabilité",
+                         "description": "Étude de faisabilité avant esquisse."}]}
+```
+
+An agency phase is a mission element or a project stage; it cannot be a
+non-project scope marker such as `AGENCY_LIBRARY`.
+
+Each variable must be set for every process that validates or writes: the
+validation server and the implementation. A process without the file refuses an
+agency value as undeclared.
+
 ## Descriptor versus specialized schema
 
 The common descriptor carries only cross-registry metadata:

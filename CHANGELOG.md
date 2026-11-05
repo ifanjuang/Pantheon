@@ -11,6 +11,34 @@
   `vault-search`, `project-context`, `hindsight-project`, `AGENCY_PROJECTS`);
   host names, NAS paths and LAN addresses replaced by placeholders.
 - Archive issue/PR references qualified as `Pantheon-Next#<n>`.
+- Project Anatomy model §25 (frontière `ProjectClaim` / APU) is now a decision,
+  and records that phase codes and source kinds will move to governed
+  vocabulary registries with an add-only local agency file.
+- Project Anatomy `source_kind` is now a governed vocabulary registry
+  (`registries/architecture_source_kind_profile.registry.json`) instead of a
+  closed list in the schema, extended add-only by an agency file named by
+  `PANTHEON_SOURCE_KIND_OVERLAY`. New kinds: `document`, `email`, `cad_drawing`;
+  the Document Structure fragment writer labels written documents `document`
+  instead of `other`. The validator and the owner check the declaration; the
+  database checks the shape only. The registry is carried in the built package
+  with its digest. An installed owner is upgraded in place.
+- Phase codes are now a governed vocabulary registry
+  (`registries/architecture_phase_profile.registry.json`) instead of a closed
+  list repeated in five Project Anatomy and proof-register schemas. `ESQ` is
+  declared; each code carries a category (mission element, project stage or
+  non-project scope marker). An agency may add phases through an add-only file
+  named by `PANTHEON_PHASE_OVERLAY`. The APU validator and the owner refuse an
+  undeclared code; the registry is carried in the built package with its digest.
+- Phases are declared per project as it advances: ProjectClaim `phase` (card
+  field `phases`), one claim per phase with a required effective date, checked
+  against the phase vocabulary (scope markers refused). The Project Anatomy
+  Cockpit projection reports claims established at a phase the project has not
+  declared, without refusing them. The SQL read cache now projects every list
+  claim type generically instead of special-casing parcels.
+- The card's current phase is compared with the declared phases: a card phase
+  the project has not declared is reported on the Project claims read
+  (`phase_consistency`) and on the card verso, never refused or corrected. A
+  phase declared again is listed once in both the Python and SQL projections.
 - Project Anatomy relation profile `architecture@1` (candidate registry under
   `registries/`): the APU validator now reports undeclared or deprecated
   relation types, inadmissible endpoints and out-of-vocabulary controlled

@@ -92,6 +92,18 @@ manual professional descriptions
 scans / point clouds
 ```
 
+The `source_kind` of a representation names a family of sources, not a reader: a
+kind such as `cad_drawing` or `email` does not mean that a qualified reader exists
+for it. The kinds are declared by the governed registry
+`registries/architecture_source_kind_profile.registry.json` (`document` for
+written documents — specification, bill of quantities, minutes, reports —
+`email`, `cad_drawing` for DWG/DXF, `drawing`, `ifc`, `revit`, `image`, `photo`,
+`scan`, `point_cloud`, `manual`, `other`, …). The schema checks the shape of the
+identifier; the validator and the owner check that it is declared. An agency may
+add kinds through a local file kept outside the repository, named by
+`PANTHEON_SOURCE_KIND_OVERLAY`; that file is add-only and cannot change or
+remove a kind of the registry.
+
 A representation may exist before Pantheon knows which stable object it represents.
 
 Where applicable it preserves:
@@ -185,6 +197,26 @@ IFC correspondence = linking hint, never import contract or Pantheon identity
 relation type declared != relation claim true
 relation type active != relation claim admitted
 derivable relation != derived relation admitted
+```
+
+The phase codes used by `validity.established_at_phase` (attribute and relation
+claims) and `validity.project_phase` (requirements) are declared by the governed
+registry `registries/architecture_phase_profile.registry.json`, shared with the
+proof register. Each code has a category: `mission_element` (an element of the
+architect's mission: `DIAG`, `ESQ`, `APS`, `APD`, `PRO`, `ACT`, `EXE`, `VISA`,
+`DET`, `OPC`, `AOR`, framed by the Code de la commande publique, articles
+R2431-1 to R2431-37), `project_stage` (agency usage that is not a mission
+element: `DCE`, `DOE`, `GPA`) or `non_project_scope` (`AGENCY_LIBRARY`,
+`GLOBAL_REFERENCE`, which are scope markers, not phases). The schemas check the
+shape of a code; the validator and the owner check that it is declared. An
+agency may add mission elements or project stages through a local file named by
+`PANTHEON_PHASE_OVERLAY`, add-only like the source kind file. The phases a
+given project goes through are declared on that project as it advances (§25.3);
+a claim at an undeclared phase is reported, not refused.
+
+```text
+phase code declared != project goes through that phase
+mission element listed != mission contracted
 ```
 
 A source-to-project match is represented as:
@@ -685,8 +717,9 @@ raw observed != canonically retained
 This small core is intentional. Project Anatomy becomes more rigorous by limiting canonical carriers while retaining provenance, temporal history, explicit uncertainty and governed extension points.
 ## 25. Boundary with ProjectClaim, Decisions and WorkIssues
 
-Status: proposed decision — requires maintainer review. It records an observed
-state and a proposed attribution rule; it changes no schema, code or contract.
+Status: decision — validated by the maintainer on 2026-11-02. It records an
+observed state and the attribution rule that follows; the rule itself changes no
+schema, code or contract.
 
 ### 25.1 Observed state
 
@@ -735,7 +768,7 @@ claim replacement != claim edit
 applied claim     != validated claim
 ```
 
-### 25.2 Proposed attribution rule
+### 25.2 Attribution rule
 
 ```text
 project fiche value                  -> ProjectClaim
@@ -767,7 +800,38 @@ APU claim != order, decision or reservation
   existing objects (`object_retired` still has no writer). Adding or replacing
   claims has a bounded candidate-only path; it is **not** a new-object API.
 - An `as-of` reader for APU claims.
-- `ESQ` in the shared `phase_code` vocabulary, and `source_kind` values for
-  written documents (specification, bill of quantities, minutes, email) and DWG.
+- The source's own date. `observed_at` on a `source_representation` is the
+  moment the source was observed (for a Document Structure fragment, the
+  compilation time); that is correct and stays distinct from the document's
+  issue date or index date. No governed field carries the latter today, and
+  `doc_document_versions` records the date received and the revision label but
+  no issue date. Adding one is a schema decision, not a vocabulary fix.
 - Link between a source version and a Project Document revision
   (`doc_document_versions`).
+- Persistence-side enforcement of the `architecture@1` relation vocabulary.
+
+Vocabularies — decided 2026-11-02.
+
+- **Source kinds: implemented** (§4). The kinds moved out of the schema into the
+  governed registry, with an add-only local agency file. `document`, `email` and
+  `cad_drawing` are declared. The owner refuses an undeclared kind; the database
+  checks only the shape of the identifier, so an agency kind needs no migration.
+- **Phase codes: vocabulary implemented** (§6). The closed list repeated in
+  five schemas (Project Anatomy and proof register) moved to the governed
+  registry `architecture_phase_profile`, with `ESQ` added and an add-only local
+  agency file. The validator and the owner refuse an undeclared code.
+- **Phases declared per project: implemented.** A project declares each phase
+  it goes through as one ProjectClaim `phase` (card field `phases`, a list like
+  the parcels), with the date the declaration takes effect (`effective_at`,
+  required). The value must be declared by the phase vocabulary and cannot be a
+  non-project scope marker. A mistaken declaration is superseded, never edited.
+  The Cockpit projection of the Project Anatomy reports each claim established
+  at a phase the project has not declared (`phases.claims_outside_declared_phases`);
+  the claim is kept and nothing is refused, since a declaration may simply be
+  late.
+- **Card phase versus declarations.** The card field `phase` (current phase, a
+  plain editable Project value) stays editable and is not derived from the
+  declarations. When it names a phase the project has not declared, the Project
+  claims read (`phase_consistency`) and the card verso report it; nothing is
+  refused or corrected automatically. A phase declared again (for example a
+  return to APD) is listed once, at its most recent declaration.

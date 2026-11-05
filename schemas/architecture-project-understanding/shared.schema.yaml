@@ -48,7 +48,8 @@ $defs:
     enum: [law_or_regulation, operation_contract, signed_market_document, approved_phase_decision, signed_or_contradictory_site_evidence, approved_client_decision, contractor_signed_response, approved_technical_report, agency_standard, project_working_document, derived_text, semantic_search_result, model_interpretation_candidate]
   phase_code:
     type: string
-    enum: [DIAG, APS, APD, PRO, DCE, ACT, EXE, VISA, DET, OPC, AOR, DOE, GPA, AGENCY_LIBRARY, GLOBAL_REFERENCE]
+    description: Phase code declared in registries/architecture_phase_profile.registry.json; the schema checks only its shape.
+    pattern: "^[A-Z][A-Z0-9_]{1,39}$"
   scope_type:
     type: string
     enum: [project, phase, lot, agency_library, global_reference, external_project_subset]
@@ -124,8 +125,13 @@ $defs:
         minLength: 1
 
   source_kind:
+    description: >-
+      Family of a source. The identifiers are declared by the governed registry
+      registries/architecture_source_kind_profile.registry.json, extended
+      add-only by the agency file; the schema checks the shape only, and the
+      validator and the owner check the declaration.
     type: string
-    enum: [revit, ifc, drawing, drawing_takeoff, image, photo, manual, scan, point_cloud, other]
+    pattern: "^[a-z][a-z0-9_]{1,39}$"
 
   source_identifier:
     type: object

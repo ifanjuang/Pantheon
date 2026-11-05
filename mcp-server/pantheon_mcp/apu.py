@@ -10,7 +10,9 @@ Nothing here executes, persists, canonizes, admits Evidence or approves a claim.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
+import re
 from typing import Any
 
 import jsonschema
@@ -26,6 +28,19 @@ SCHEMA_DIR = "schemas/architecture-project-understanding"
 # makes the identifier governable; it never makes a relation claim true,
 # admitted, Evidence or approved.
 RELATION_PROFILE_PATH = "registries/architecture_relation_profile.registry.json"
+
+# The governed source kind vocabulary (architecture@1), extended add-only by an
+# agency file kept outside the repository. The rules are the same as the ones
+# the implementation applies at write time (implementation/mvp_vertical/
+# apu_vocabulary.py); tests/test_source_kind_vocabulary_conformance.py keeps the
+# two in step.
+SOURCE_KIND_PROFILE_PATH = "registries/architecture_source_kind_profile.registry.json"
+SOURCE_KIND_OVERLAY_ENV = "PANTHEON_SOURCE_KIND_OVERLAY"
+
+# The governed phase vocabulary (architecture@1), with the same agency-file
+# rules; tests/test_phase_vocabulary_conformance.py keeps the two readers in step.
+PHASE_PROFILE_PATH = "registries/architecture_phase_profile.registry.json"
+PHASE_OVERLAY_ENV = "PANTHEON_PHASE_OVERLAY"
 
 TYPE_SCHEMA = {
     "program": "program.schema.yaml",
@@ -89,6 +104,125 @@ def load_relation_profile(root: Path | None = None) -> dict[str, Any]:
             f"{RELATION_PROFILE_PATH} declares duplicate relation ids: {', '.join(duplicates)}"
         )
     return value
+
+
+# Agency-file rules that differ between vocabularies, keyed by registry_id.
+_AGENCY_RULES: dict[str, dict[str, Any]] = {
+    "architecture_source_kind_profile": {"noun": "source kind", "categories": None},
+    "architecture_phase_profile": {
+        "noun": "phase",
+        "categories": {"mission_element", "project_stage"},
+    },
+}
+
+
+def _load_vocabulary(path: str, overlay_env: str, root: Path | None) -> dict[str, dict[str, Any]]:
+    """Base entries of a vocabulary registry plus the agency's additions."""
+    base = json.loads(read_repo_text(path, root))
+    if not isinstance(base, dict) or not isinstance(base.get("entries"), list):
+        raise ValueError(f"{path} is not a vocabulary registry")
+    agency_rules = _AGENCY_RULES.get(str(base.get("registry_id")), {"noun": "vocabulary", "categories": None})
+    noun = agency_rules["noun"]
+    categories: set[str] | None = agency_rules["categories"]
+    ids = [entry.get("id") for entry in base["entries"] if isinstance(entry, dict)]
+    duplicates = sorted({str(item) for item in ids if ids.count(item) > 1})
+    if duplicates:
+        raise ValueError(f"{path} declares duplicate {noun}s: {', '.join(duplicates)}")
+    values = {entry["id"]: dict(entry) for entry in base["entries"]}
+    configured = os.environ.get(overlay_env, "").strip()
+    if not configured:
+        return values
+    try:
+        overlay = json.loads(Path(configured).read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"cannot read the agency {noun} file: {exc}") from exc
+    rules = base.get("naming_rules") or {}
+    pattern = re.compile(str(rules.get("id_pattern") or ""))
+    limit = int(rules.get("max_agency_entries") or 0)
+    allowed = {"id", "status", "label", "description"} | ({"category"} if categories else set())
+    if not isinstance(overlay, dict):
+        raise ValueError(f"the agency {noun} file must be a JSON object")
+    if overlay.get("registry_kind") != "vocabulary_overlay":
+        raise ValueError(f"the agency {noun} file must declare vocabulary_overlay")
+    if overlay.get("extends") != base.get("registry_id"):
+        raise ValueError(f"the agency {noun} file must extend {base.get('registry_id')}")
+    entries = overlay.get("entries")
+    if not isinstance(entries, list):
+        raise ValueError(f"the agency {noun} file has no entries list")
+    if len(entries) > limit:
+        raise ValueError(f"the agency {noun} file has more than {limit} entries")
+    added: set[str] = set()
+    for index, entry in enumerate(entries):
+        where = f"agency entry {index}"
+        if not isinstance(entry, dict):
+            raise ValueError(f"{where} must be an object")
+        extra = set(entry) - allowed
+        if extra:
+            raise ValueError(f"{where} has unknown fields: {', '.join(sorted(extra))}")
+        value = entry.get("id")
+        if not isinstance(value, str) or not pattern.fullmatch(value):
+            raise ValueError(f"{where} has an invalid id: {value!r}")
+        if value in values:
+            owner = "the agency file" if value in added else "the repository registry"
+            raise ValueError(
+                f"{where} redeclares '{value}', already declared by {owner}; the agency file is add-only"
+            )
+        if entry.get("status") not in {"active", "candidate"}:
+            raise ValueError(f"{where} must be active or candidate")
+        if categories is not None and entry.get("category") not in categories:
+            raise ValueError(f"{where} must have category {' or '.join(sorted(categories))}")
+        for field in ("label", "description"):
+            if not isinstance(entry.get(field), str) or not entry[field].strip():
+                raise ValueError(f"{where} needs a non-empty {field}")
+        values[value] = {**entry, "origin": "agency"}
+        added.add(value)
+    return values
+
+
+def load_source_kinds(root: Path | None = None) -> dict[str, dict[str, Any]]:
+    """Base source kinds plus the agency's additions. Raises on a broken file."""
+    return _load_vocabulary(SOURCE_KIND_PROFILE_PATH, SOURCE_KIND_OVERLAY_ENV, root)
+
+
+def load_phases(root: Path | None = None) -> dict[str, dict[str, Any]]:
+    """Base phase codes plus the agency's additions. Raises on a broken file."""
+    return _load_vocabulary(PHASE_PROFILE_PATH, PHASE_OVERLAY_ENV, root)
+
+
+def _vocabulary_findings(
+    entries: dict[str, dict[str, Any]], value: Any, *, label: str, noun: str, candidate_noun: str
+) -> tuple[list[str], list[str]]:
+    if not isinstance(value, str):
+        # Shape errors belong to the schema check.
+        return [], []
+    entry = entries.get(value)
+    if entry is None:
+        return [f"{label} '{value}' is not declared in the {noun} vocabulary"], []
+    if entry.get("status") == "deprecated":
+        replacement = entry.get("replaced_by")
+        hint = f"; use '{replacement}'" if replacement else ""
+        return [f"{label} '{value}' is deprecated{hint}"], []
+    if entry.get("status") == "candidate":
+        return [], [f"{label} '{value}' is still a candidate {candidate_noun}"]
+    return [], []
+
+
+def source_kind_findings(
+    kinds: dict[str, dict[str, Any]], source_kind: Any, *, label: str
+) -> tuple[list[str], list[str]]:
+    """Check one source_kind against the vocabulary: (errors, review notes)."""
+    return _vocabulary_findings(
+        kinds, source_kind, label=f"{label}.source_kind", noun="source kind", candidate_noun="kind"
+    )
+
+
+def phase_findings(
+    phases: dict[str, dict[str, Any]], phase_code: Any, *, label: str
+) -> tuple[list[str], list[str]]:
+    """Check one phase code against the vocabulary: (errors, review notes)."""
+    return _vocabulary_findings(
+        phases, phase_code, label=label, noun="phase", candidate_noun="phase code"
+    )
 
 
 def relation_profile_findings(
@@ -321,6 +455,16 @@ def validate_apu_dossier(dossier: dict[str, Any]) -> dict[str, Any]:
     except (OSError, ValueError) as exc:
         relation_profile = None
         vocabulary_errors.append(f"relation profile unavailable: {exc}")
+    try:
+        source_kinds: dict[str, dict[str, Any]] | None = load_source_kinds(root)
+    except (OSError, ValueError) as exc:
+        source_kinds = None
+        vocabulary_errors.append(f"source kind vocabulary unavailable: {exc}")
+    try:
+        phases: dict[str, dict[str, Any]] | None = load_phases(root)
+    except (OSError, ValueError) as exc:
+        phases = None
+        vocabulary_errors.append(f"phase vocabulary unavailable: {exc}")
     object_families: dict[str, str] = {}
     for object_type, _index, item in objects:
         family = item.get("object_family")
@@ -330,6 +474,21 @@ def validate_apu_dossier(dossier: dict[str, Any]) -> dict[str, Any]:
 
     for object_type, index, item in objects:
         tag = f"{object_type}[{index}]"
+        if object_type == "source_representation" and source_kinds is not None:
+            found, review_notes = source_kind_findings(
+                source_kinds, item.get("source_kind"), label=tag
+            )
+            vocabulary_errors.extend(found)
+            human_decisions_required.extend(review_notes)
+        validity = item.get("validity")
+        if phases is not None and isinstance(validity, dict):
+            for phase_field in ("established_at_phase", "project_phase"):
+                if phase_field in validity:
+                    found, review_notes = phase_findings(
+                        phases, validity[phase_field], label=f"{tag}.validity.{phase_field}"
+                    )
+                    vocabulary_errors.extend(found)
+                    human_decisions_required.extend(review_notes)
         if object_type == "attribute_claim":
             entity_ref(item.get("subject_ref"), f"{tag}.subject_ref")
             refs(

@@ -45,7 +45,7 @@ import yaml
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-from . import agency_schema, pantheon_contracts
+from . import agency_schema, apu_vocabulary, pantheon_contracts
 
 SCHEMA = pantheon_contracts.schema_path("project_claim")
 MIGRATION = Path(__file__).resolve().parent / "sql" / "019_project_claim_candidates.sql"
@@ -168,6 +168,13 @@ def _normalize_claim_value(field: dict[str, Any], value: Any) -> Any:
         value = value.strip()
         if not value:
             raise AgencyClaimError(f"Project claim {field['claim_type']} may not be empty")
+        if field.get("vocabulary") == "phase":
+            # A project declares only phases of the governed vocabulary, and
+            # never a non-project scope marker such as AGENCY_LIBRARY.
+            try:
+                apu_vocabulary.require_phase(value, field="phase", project_phase=True)
+            except (apu_vocabulary.VocabularyRefused, apu_vocabulary.VocabularyUnavailable) as exc:
+                raise AgencyClaimError(f"Project claim phase: {exc}") from exc
         return value
     try:
         return agency_schema.normalize_field_value("project", field, value)
@@ -394,6 +401,10 @@ def record_claim(
     unit = expected_unit if expected_unit else None
     observed = _normalize_datetime(observed_at, "observed_at", default_now=True)
     effective = _normalize_datetime(effective_at, "effective_at", default_now=False)
+    if field.get("effective_at_required") and effective is None:
+        raise AgencyClaimError(
+            f"Project claim {claim_type} requires effective_at, the date the declaration takes effect"
+        )
     claim_id = str(claim_id or f"claim.{uuid.uuid4().hex}").strip().lower()
 
     if supersedes:
@@ -612,6 +623,42 @@ def project_claim_projection(conn: psycopg.Connection, project_id: str) -> tuple
             values[claim_type] = candidates[0]["value"]
             refs[claim_type] = candidates[0]
     return values, refs
+
+
+def phase_consistency(card_phase: Any, declared_phases: list[Any] | None) -> dict[str, Any]:
+    """Compare the card's current phase with the phases the project declared.
+
+    The card field ``phase`` stays a plain editable value; it is not derived from
+    the declarations. A card phase the project has not declared is reported for
+    review, never refused and never corrected automatically.
+    """
+    phase = str(card_phase or "").strip() or None
+    declared = sorted({str(item) for item in (declared_phases or []) if str(item or "").strip()})
+    if phase is None:
+        status = "no_card_phase"
+    elif not declared:
+        status = "no_phase_declared"
+    elif phase in declared:
+        status = "consistent"
+    else:
+        status = "card_phase_not_declared"
+    return {
+        "card_phase": phase,
+        "declared_phases": declared,
+        "status": status,
+        "refused": False,
+        "card_phase_derived": False,
+    }
+
+
+def project_phase_consistency(conn: psycopg.Connection, project_id: str) -> dict[str, Any]:
+    row = conn.execute(
+        "SELECT phase FROM agency_projects WHERE project_id = %s", (project_id,)
+    ).fetchone()
+    if row is None:
+        raise ClaimNotFound(f"unknown Agency Project: {project_id}")
+    values, _refs = project_claim_projection(conn, project_id)
+    return phase_consistency(row[0], list(values.get("phase") or []))
 
 
 def enrich_project_with_claims(conn: psycopg.Connection, project: dict[str, Any]) -> dict[str, Any]:

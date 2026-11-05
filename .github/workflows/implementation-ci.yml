@@ -85,6 +85,9 @@ jobs:
           assert len(manifest["files"]) > len(pantheon_contracts.CONTRACT_PATHS)
           assert pantheon_contracts.schema_path("project_claim").is_file()
           assert pantheon_contracts._all_schema_paths()
+          for name in pantheon_contracts.REGISTRY_PATHS:
+              assert pantheon_contracts.registry_path(name).is_file(), name
+              assert pantheon_contracts.load_registry(name)["entries"], name
           PY
           )
           printf '\n# deliberate smoke-test tamper\n' >> \
@@ -100,6 +103,21 @@ jobs:
               assert "digest mismatch" in str(exc)
           else:
               raise AssertionError("tampered packaged schema was accepted")
+          PY
+          )
+          printf '\n' >> \
+            /tmp/pantheon-wheel-unpacked/mvp_vertical/_generated_contracts/registries/architecture_source_kind_profile.registry.json
+          (
+            cd /tmp
+            PYTHONPATH=/tmp/pantheon-wheel-unpacked python - <<'PY'
+          from mvp_vertical import pantheon_contracts
+
+          try:
+              pantheon_contracts.registry_path("apu_source_kind_profile")
+          except pantheon_contracts.ContractUnavailable as exc:
+              assert "digest mismatch" in str(exc)
+          else:
+              raise AssertionError("tampered packaged registry was accepted")
           PY
           )
       - name: Effective cockpit health posture

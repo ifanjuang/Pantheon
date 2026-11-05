@@ -25,7 +25,7 @@ properties:
   source_authority_level:
     type: string
     enum: [law_or_regulation, operation_contract, signed_market_document, approved_phase_decision, signed_or_contradictory_site_evidence, approved_client_decision, contractor_signed_response, approved_technical_report, agency_standard, project_working_document, derived_text, semantic_search_result, model_interpretation_candidate]
-  phase_code: { type: string, enum: [DIAG, APS, APD, PRO, DCE, ACT, EXE, VISA, DET, OPC, AOR, DOE, GPA, AGENCY_LIBRARY, GLOBAL_REFERENCE] }
+  phase_code: { type: string, pattern: "^[A-Z][A-Z0-9_]{1,39}$", description: "Phase code declared in registries/architecture_phase_profile.registry.json; the schema checks only its shape." }
   lot_id: { $ref: "#/$defs/uuid" }
   lot_label: { type: string }
   proof_status:
