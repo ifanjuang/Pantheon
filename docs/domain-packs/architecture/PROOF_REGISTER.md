@@ -177,10 +177,13 @@ The register must therefore store not only the index label, but the index effect
 
 Each indexed version must be attached to a phase or operational container.
 
-Candidate phase attachment values:
+The phase attachment values are declared by the governed registry
+`registries/architecture_phase_profile.registry.json`, shared with Project
+Anatomy; the schemas check only the shape of a code. The values today:
 
 ```text
 DIAG
+ESQ
 APS
 APD
 PRO
@@ -196,6 +199,10 @@ GPA
 AGENCY_LIBRARY
 GLOBAL_REFERENCE
 ```
+
+`AGENCY_LIBRARY` and `GLOBAL_REFERENCE` are scope markers for material outside
+any project, not project phases. An agency may add phases through the add-only
+local file described in `registries/README.md`.
 
 A document may originate in one phase and remain usable later, but its authority must remain tied to the phase and decision that gave it status.
 

@@ -22,6 +22,7 @@
     {"key":"architectural_style","label":"Style / intention architecturale","storage":"attributes","semantics":"descriptive","type":"string","required":false,"nullable":true,"mutable":true,"hermes_mode":"candidate","group":"programme","order":20},
     {"key":"agency_notes","label":"Observations agence","storage":"attributes","semantics":"descriptive","type":"string","required":false,"nullable":true,"mutable":true,"hermes_mode":"candidate","group":"programme","order":30,"editor":{"widget":"textarea"}},
 
+    {"key":"phases","label":"Phases déclarées","storage":"projection","semantics":"claim","claim_type":"phase","aggregation":"list","vocabulary":"phase","effective_at_required":true,"backing_required":false,"type":"string_list","required":false,"nullable":true,"mutable":false,"hermes_mode":"candidate","group":"business","order":90},
     {"key":"budget","label":"Budget travaux","storage":"projection","semantics":"claim","claim_type":"budget","backing_required":false,"type":"number","unit":"EUR","required":false,"nullable":true,"mutable":false,"hermes_mode":"candidate","group":"programme","order":100},
     {"key":"montant_marche","label":"Montant marché","storage":"projection","semantics":"claim","claim_type":"montant_marche","backing_required":false,"type":"number","unit":"EUR","required":false,"nullable":true,"mutable":false,"hermes_mode":"candidate","group":"programme","order":105},
     {"key":"surface_terrain","label":"Surface terrain","storage":"projection","semantics":"claim","claim_type":"surface_terrain","backing_required":false,"type":"number","unit":"m²","required":false,"nullable":true,"mutable":false,"hermes_mode":"candidate","group":"programme","order":110},
@@ -49,7 +50,7 @@
     },
     "cockpit_back": {
       "purpose": "Business information shown on the Project card verso. Consequential values are ProjectClaim projections.",
-      "fields": ["code","phase","location","programme_summary","architectural_style","budget","montant_marche","surface_terrain","surface_existante","surface_projet","emprise","parcelles","plu_zone","permit_number","permit_date","reception_date","erp_type"]
+      "fields": ["code","phase","phases","location","programme_summary","architectural_style","budget","montant_marche","surface_terrain","surface_existante","surface_projet","emprise","parcelles","plu_zone","permit_number","permit_date","reception_date","erp_type"]
     },
     "edit": {
       "purpose": "Generic human Project editor. Source-backed claim projections are not editable as plain Project attributes; Contacts use their dedicated editor.",
@@ -61,7 +62,7 @@
     },
     "hermes_context": {
       "purpose": "Project identity, descriptive attributes and claim projections eligible for scoped runtime materialization; inclusion is not mutation authority.",
-      "fields": ["project_id","code","display_name","description","status","phase","location","contacts","tags","programme_summary","architectural_style","agency_notes","budget","montant_marche","surface_terrain","surface_existante","surface_projet","emprise","parcelles","plu_zone","permit_number","permit_date","reception_date","erp_type","revision"]
+      "fields": ["project_id","code","display_name","description","status","phase","phases","location","contacts","tags","programme_summary","architectural_style","agency_notes","budget","montant_marche","surface_terrain","surface_existante","surface_projet","emprise","parcelles","plu_zone","permit_number","permit_date","reception_date","erp_type","revision"]
     }
   }
 }

@@ -12,7 +12,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any
 
-from . import apu_owner
+from . import agency_claims, apu_owner, apu_vocabulary
 
 
 ATTENTION_PROOF_STATUSES = {
@@ -63,10 +63,53 @@ def _claim_summary(claim: dict[str, Any], *, claim_type: str) -> dict[str, Any]:
     return summary
 
 
+def _phase_lens(
+    attribute_claims: list[dict[str, Any]],
+    relation_claims: list[dict[str, Any]],
+    declared_phases: list[str] | None,
+) -> dict[str, Any]:
+    """Report claims whose phase the project has not declared. Never a refusal.
+
+    A project declares its phases progressively (ProjectClaim ``phase``); a claim
+    established at a phase the project has not declared is a limitation to
+    review, not an invalid claim: the declaration may simply be late. Scope
+    markers such as AGENCY_LIBRARY are not project phases and are not checked.
+    """
+    declared = sorted(set(declared_phases or []))
+    try:
+        vocabulary = apu_vocabulary.phases().entries
+    except apu_vocabulary.VocabularyUnavailable:
+        vocabulary = None
+    outside: list[dict[str, Any]] = []
+    for claim_type, claims in (
+        ("attribute_claim", attribute_claims),
+        ("relation_claim", relation_claims),
+    ):
+        for claim in claims:
+            for phase in sorted(_claim_phase_refs(claim)):
+                entry = (vocabulary or {}).get(phase) or {}
+                if entry.get("category") == "non_project_scope" or phase in declared:
+                    continue
+                outside.append({"phase": phase, **_claim_summary(claim, claim_type=claim_type)})
+    if vocabulary is None:
+        status = "vocabulary_unavailable"
+    elif not declared:
+        status = "no_phase_declared"
+    else:
+        status = "checked"
+    return {
+        "status": status,
+        "declared_phases": declared,
+        "claims_outside_declared_phases": outside,
+        "refused": False,
+    }
+
+
 def build_project_anatomy_projection(
     anatomy: dict[str, Any],
     *,
     model_doctrine_ref: str | None,
+    declared_phases: list[str] | None = None,
 ) -> dict[str, Any]:
     """Calculate bounded lenses from the canonical owner projection."""
     stable_entries = list(anatomy.get("stable_objects") or [])
@@ -202,6 +245,8 @@ def build_project_anatomy_projection(
         and _entity_id(claim.get("object_ref"), "stable_object")
     ]
 
+    phase_lens = _phase_lens(attribute_claims, relation_claims, declared_phases)
+
     authority = dict(anatomy.get("authority") or {})
     authority.update(
         {
@@ -226,6 +271,7 @@ def build_project_anatomy_projection(
             "unmapped_source_representation_count": len(unmapped),
             "attention_claim_count": len(attention_claims),
             "limited_source_count": limited_source_count,
+            "claims_outside_declared_phases_count": len(phase_lens["claims_outside_declared_phases"]),
         },
         "structure": {
             "objects": objects,
@@ -255,6 +301,7 @@ def build_project_anatomy_projection(
             "certainty_is_reported_not_approved": True,
         },
         "unmapped_material": unmapped,
+        "phases": phase_lens,
         "coverage": {
             "status": "not_persisted",
             "reason": (
@@ -269,7 +316,9 @@ def build_project_anatomy_projection(
 def get_project_anatomy_projection(conn, *, project_id: str) -> dict[str, Any]:
     """Read the canonical owner and calculate the bounded Cockpit projection."""
     anatomy = apu_owner.get_project_anatomy(conn, project_id=project_id)
+    claim_values, _refs = agency_claims.project_claim_projection(conn, project_id)
     return build_project_anatomy_projection(
         anatomy,
         model_doctrine_ref=anatomy.get("model_doctrine_ref"),
+        declared_phases=list(claim_values.get("phase") or []),
     )

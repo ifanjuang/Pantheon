@@ -20,6 +20,7 @@ ACTIVE_SCHEMAS = {
     "derivation.schema.yaml",
     "mapping_review.schema.yaml",
     "observation_bundle.schema.yaml",
+    "phase_profile.schema.yaml",
     "program.schema.yaml",
     "relation_claim.schema.yaml",
     "relation_profile.schema.yaml",
