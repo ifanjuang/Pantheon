@@ -170,9 +170,11 @@ def _normalize_claim_value(field: dict[str, Any], value: Any) -> Any:
             raise AgencyClaimError(f"Project claim {field['claim_type']} may not be empty")
         if field.get("vocabulary") == "phase":
             # A project declares only phases of the governed vocabulary, and
-            # never a non-project scope marker such as AGENCY_LIBRARY.
+            # never a non-project scope marker such as AGENCY_LIBRARY. An alias
+            # (PC) is stored as the code it names (DPC).
             try:
                 apu_vocabulary.require_phase(value, field="phase", project_phase=True)
+                return apu_vocabulary.resolve_phase(value)
             except (apu_vocabulary.VocabularyRefused, apu_vocabulary.VocabularyUnavailable) as exc:
                 raise AgencyClaimError(f"Project claim phase: {exc}") from exc
         return value
@@ -378,6 +380,10 @@ def record_claim(
 
     field = _declared_claim_field(claim_type)
     normalized_value = _normalize_claim_value(field, value)
+    if field.get("vocabulary") == "phase" and normalized_value != value.strip():
+        # Keep the code as entered next to the declared code it was read as.
+        entered = f"entered as '{value.strip()}', alias of '{normalized_value}'"
+        derivation_note = f"{derivation_note.strip()}; {entered}" if str(derivation_note or "").strip() else entered
     normalized_backing = _normalize_backing_ref(backing_ref)
     normalized_candidate = _normalize_candidate_ref(candidate_ref)
     normalized_basis_refs = _normalize_basis_refs(basis_refs)

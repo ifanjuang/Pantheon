@@ -13,7 +13,7 @@
     {"key":"display_name","label":"Nom du projet","storage":"core","semantics":"identity","type":"string","required":true,"mutable":true,"hermes_mode":"candidate","group":"identity"},
     {"key":"description","label":"Description","storage":"core","semantics":"descriptive","type":"string","required":false,"mutable":true,"hermes_mode":"candidate","group":"business","editor":{"widget":"textarea"}},
     {"key":"status","label":"Statut","storage":"core","semantics":"state","type":"string","required":false,"mutable":true,"hermes_mode":"candidate","group":"business"},
-    {"key":"phase","label":"Phase","storage":"core","semantics":"state","type":"enum","values":["ESQ","APS","APD","PRO","DCE","ACT","DET","AOR"],"required":false,"mutable":true,"hermes_mode":"candidate","group":"business"},
+    {"key":"phase","label":"Phase","storage":"core","semantics":"state","type":"enum","values":["ESQ","APS","APD","DPC","PRO","DCE","ACT","DET","AOR"],"required":false,"mutable":true,"hermes_mode":"candidate","group":"business"},
     {"key":"location","label":"Lieu","storage":"core","semantics":"identity","type":"string","required":false,"mutable":true,"hermes_mode":"candidate","group":"business"},
     {"key":"tags","label":"Sujets","storage":"core","semantics":"classification","type":"string_list","required":false,"mutable":true,"hermes_mode":"candidate","group":"classification"},
     {"key":"contacts","label":"Contacts","storage":"core","semantics":"descriptive","type":"object_list","required":false,"mutable":true,"hermes_mode":"candidate","group":"business"},

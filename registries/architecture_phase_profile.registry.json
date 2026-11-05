@@ -2,7 +2,7 @@
   "schema_version": "1",
   "registry_id": "architecture_phase_profile",
   "registry_kind": "vocabulary",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "candidate",
   "owner": {
     "id": "pantheon_project_anatomy",
@@ -30,6 +30,7 @@
         "codes follow naming_rules.id_pattern",
         "status is active or candidate",
         "category is mission_element or project_stage; an agency cannot add a non-project scope marker",
+        "an alias names a declared phase in another spelling; the agency file may add aliases (top-level aliases map) but cannot redefine a code or an alias of this registry",
         "an unreadable or invalid file makes the vocabulary unavailable instead of being ignored"
       ]
     }
@@ -66,6 +67,17 @@
       "category": "mission_element",
       "label": "Avant-projet définitif",
       "description": "Études d'avant-projet définitif."
+    },
+    {
+      "id": "DPC",
+      "status": "active",
+      "category": "project_stage",
+      "label": "Dossier de permis de construire",
+      "description": "Constitution et dépôt du dossier de demande de permis de construire ; étape d'usage en agence, sans ordre imposé (souvent après l'APD, parfois dès l'APS).",
+      "aliases": [
+        "PC",
+        "PERMIS"
+      ]
     },
     {
       "id": "PRO",

@@ -250,6 +250,16 @@ file       {"registry_kind": "vocabulary_overlay",
 An agency phase is a mission element or a project stage; it cannot be a
 non-project scope marker such as `AGENCY_LIBRARY`.
 
+The phase file may also declare aliases, the agency's own spellings of a
+declared code (`"entries": [], "aliases": {"ESQUISSE": "ESQ"}`). The registry
+declares its own aliases on the entry (`DPC` accepts `PC` and `PERMIS`).
+
+```text
+alias = another spelling of one declared code, never a code of its own
+agency alias cannot be a declared code or a repository alias
+only written aliases are accepted; no fuzzy match
+```
+
 Each variable must be set for every process that validates or writes: the
 validation server and the implementation. A process without the file refuses an
 agency value as undeclared.

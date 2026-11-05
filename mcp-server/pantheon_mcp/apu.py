@@ -108,12 +108,46 @@ def load_relation_profile(root: Path | None = None) -> dict[str, Any]:
 
 # Agency-file rules that differ between vocabularies, keyed by registry_id.
 _AGENCY_RULES: dict[str, dict[str, Any]] = {
-    "architecture_source_kind_profile": {"noun": "source kind", "categories": None},
+    "architecture_source_kind_profile": {"noun": "source kind", "categories": None, "aliases": False},
     "architecture_phase_profile": {
         "noun": "phase",
         "categories": {"mission_element", "project_stage"},
+        "aliases": True,
     },
 }
+
+
+def alias_map(entries: dict[str, dict[str, Any]]) -> dict[str, str]:
+    """Each accepted alias with the code it names."""
+    return {alias: code for code, entry in entries.items() for alias in entry.get("aliases") or []}
+
+
+def _merge_agency_aliases(
+    values: dict[str, dict[str, Any]], aliases: Any, *, pattern: re.Pattern[str], limit: int, noun: str
+) -> None:
+    if not isinstance(aliases, dict):
+        raise ValueError(f"the agency {noun} file aliases must be an object")
+    if len(aliases) > limit:
+        raise ValueError(f"the agency {noun} file has more than {limit} aliases")
+    base_aliases = alias_map(values)
+    for alias, code in aliases.items():
+        where = f"agency alias {alias!r}"
+        if not pattern.fullmatch(alias):
+            raise ValueError(f"{where} is invalid")
+        if alias in values:
+            owner = "the agency file" if values[alias].get("origin") == "agency" else "the repository registry"
+            raise ValueError(
+                f"{where} redeclares '{alias}', already declared by {owner}; the agency file is add-only"
+            )
+        if alias in base_aliases:
+            raise ValueError(f"{where} redefines an alias of the repository registry")
+        target = values.get(code) if isinstance(code, str) else None
+        if target is None:
+            raise ValueError(f"{where} names {code!r}, which is not declared")
+        if target.get("status") == "deprecated":
+            raise ValueError(f"{where} names '{code}', which is deprecated")
+        target["aliases"] = [*(target.get("aliases") or []), alias]
+        target["agency_aliases"] = [*(target.get("agency_aliases") or []), alias]
 
 
 def _load_vocabulary(path: str, overlay_env: str, root: Path | None) -> dict[str, dict[str, Any]]:
@@ -121,7 +155,9 @@ def _load_vocabulary(path: str, overlay_env: str, root: Path | None) -> dict[str
     base = json.loads(read_repo_text(path, root))
     if not isinstance(base, dict) or not isinstance(base.get("entries"), list):
         raise ValueError(f"{path} is not a vocabulary registry")
-    agency_rules = _AGENCY_RULES.get(str(base.get("registry_id")), {"noun": "vocabulary", "categories": None})
+    agency_rules = _AGENCY_RULES.get(
+        str(base.get("registry_id")), {"noun": "vocabulary", "categories": None, "aliases": False}
+    )
     noun = agency_rules["noun"]
     categories: set[str] | None = agency_rules["categories"]
     ids = [entry.get("id") for entry in base["entries"] if isinstance(entry, dict)]
@@ -129,6 +165,12 @@ def _load_vocabulary(path: str, overlay_env: str, root: Path | None) -> dict[str
     if duplicates:
         raise ValueError(f"{path} declares duplicate {noun}s: {', '.join(duplicates)}")
     values = {entry["id"]: dict(entry) for entry in base["entries"]}
+    seen: set[str] = set()
+    for code, entry in values.items():
+        for alias in entry.get("aliases") or []:
+            if alias in values or alias in seen:
+                raise ValueError(f"{noun} alias '{alias}' of '{code}' is already declared")
+            seen.add(alias)
     configured = os.environ.get(overlay_env, "").strip()
     if not configured:
         return values
@@ -151,6 +193,7 @@ def _load_vocabulary(path: str, overlay_env: str, root: Path | None) -> dict[str
         raise ValueError(f"the agency {noun} file has no entries list")
     if len(entries) > limit:
         raise ValueError(f"the agency {noun} file has more than {limit} entries")
+    base_aliases = alias_map(values)
     added: set[str] = set()
     for index, entry in enumerate(entries):
         where = f"agency entry {index}"
@@ -162,7 +205,7 @@ def _load_vocabulary(path: str, overlay_env: str, root: Path | None) -> dict[str
         value = entry.get("id")
         if not isinstance(value, str) or not pattern.fullmatch(value):
             raise ValueError(f"{where} has an invalid id: {value!r}")
-        if value in values:
+        if value in values or value in base_aliases:
             owner = "the agency file" if value in added else "the repository registry"
             raise ValueError(
                 f"{where} redeclares '{value}', already declared by {owner}; the agency file is add-only"
@@ -176,6 +219,10 @@ def _load_vocabulary(path: str, overlay_env: str, root: Path | None) -> dict[str
                 raise ValueError(f"{where} needs a non-empty {field}")
         values[value] = {**entry, "origin": "agency"}
         added.add(value)
+    if "aliases" in overlay:
+        if not agency_rules.get("aliases"):
+            raise ValueError(f"the agency {noun} file cannot declare aliases")
+        _merge_agency_aliases(values, overlay["aliases"], pattern=pattern, limit=limit, noun=noun)
     return values
 
 
@@ -219,7 +266,12 @@ def source_kind_findings(
 def phase_findings(
     phases: dict[str, dict[str, Any]], phase_code: Any, *, label: str
 ) -> tuple[list[str], list[str]]:
-    """Check one phase code against the vocabulary: (errors, review notes)."""
+    """Check one phase code against the vocabulary: (errors, review notes).
+
+    An alias declared by the registry or the agency file is checked as the code it names.
+    """
+    if isinstance(phase_code, str) and phase_code not in phases:
+        phase_code = alias_map(phases).get(phase_code, phase_code)
     return _vocabulary_findings(
         phases, phase_code, label=label, noun="phase", candidate_noun="phase code"
     )

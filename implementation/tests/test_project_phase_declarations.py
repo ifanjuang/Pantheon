@@ -265,3 +265,36 @@ def test_phase_declared_again_is_listed_once_in_both_projections(conn) -> None:
     ).fetchone()[0]["phase"]
     apd = [ref for ref in cached_refs if ref["effective_at"].startswith("2026-06-01")]
     assert len(apd) == 1, "the most recent declaration of APD is the one projected"
+
+
+def test_an_alias_is_stored_as_the_code_it_names_and_the_entry_is_kept(conn) -> None:
+    project_id = _project(conn)
+    claim = _declare(conn, project_id, "PC", "2026-08-11T00:00:00Z")
+    assert claim["value"] == "DPC"
+    assert "entered as 'PC', alias of 'DPC'" in claim["provenance"]["derivation_note"]
+    _declare(conn, project_id, "PERMIS", "2026-09-01T00:00:00Z")
+    python_view, sql_view = _declared(conn, project_id)
+    assert python_view == sql_view == ["DPC"]
+
+
+def test_an_agency_alias_is_declared_through_the_local_file(conn, tmp_path, monkeypatch) -> None:
+    agency = tmp_path / "phases.json"
+    agency.write_text(json.dumps({
+        "registry_kind": "vocabulary_overlay",
+        "extends": "architecture_phase_profile",
+        "entries": [],
+        "aliases": {"ESQUISSE": "ESQ"},
+    }), encoding="utf-8")
+    project_id = _project(conn)
+    with pytest.raises(agency_claims.AgencyClaimError, match="not declared"):
+        _declare(conn, project_id, "ESQUISSE")
+    monkeypatch.setenv("PANTHEON_PHASE_OVERLAY", str(agency))
+    assert _declare(conn, project_id, "ESQUISSE")["value"] == "ESQ"
+
+
+def test_anatomy_claim_named_by_an_alias_is_within_the_declared_code(conn) -> None:
+    project_id = _project(conn)
+    _declare(conn, project_id, "DPC")
+    _store_claim_at_phase(conn, project_id, "PC")
+    projection = get_project_anatomy_projection(conn, project_id=project_id)
+    assert projection["phases"]["claims_outside_declared_phases"] == []

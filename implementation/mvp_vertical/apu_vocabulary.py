@@ -41,10 +41,11 @@ _BASE_FIELDS = {"id", "status", "label", "description"}
 
 # Agency-file rules that differ between vocabularies, keyed by registry_id.
 _AGENCY_RULES: dict[str, dict[str, Any]] = {
-    "architecture_source_kind_profile": {"noun": "source kind", "categories": None},
+    "architecture_source_kind_profile": {"noun": "source kind", "categories": None, "aliases": False},
     "architecture_phase_profile": {
         "noun": "phase",
         "categories": {"mission_element", "project_stage"},
+        "aliases": True,
     },
 }
 
@@ -74,8 +75,60 @@ class Vocabulary:
     def agency_kinds(self) -> frozenset[str]:
         return self.agency_entries
 
+    @property
+    def aliases(self) -> dict[str, str]:
+        """Each accepted alias with the code it names."""
+        return alias_map(self.entries)
+
+    def resolve(self, value: Any) -> Any:
+        """The declared code an alias names; any other value unchanged."""
+        if isinstance(value, str) and value not in self.entries:
+            return self.aliases.get(value, value)
+        return value
+
 
 SourceKindVocabulary = Vocabulary
+
+
+def alias_map(entries: dict[str, dict[str, Any]]) -> dict[str, str]:
+    return {alias: code for code, entry in entries.items() for alias in entry.get("aliases") or []}
+
+
+def _check_base_aliases(entries_by_id: dict[str, dict[str, Any]], noun: str) -> None:
+    seen: set[str] = set()
+    for code, entry in entries_by_id.items():
+        for alias in entry.get("aliases") or []:
+            if alias in entries_by_id or alias in seen:
+                raise VocabularyUnavailable(f"{noun} alias '{alias}' of '{code}' is already declared")
+            seen.add(alias)
+
+
+def _merge_agency_aliases(
+    entries_by_id: dict[str, dict[str, Any]], aliases: Any, *, pattern: re.Pattern[str], limit: int, noun: str
+) -> None:
+    if not isinstance(aliases, dict):
+        raise VocabularyUnavailable(f"the agency {noun} file aliases must be an object")
+    if len(aliases) > limit:
+        raise VocabularyUnavailable(f"the agency {noun} file has more than {limit} aliases")
+    base_aliases = alias_map(entries_by_id)
+    for alias, code in aliases.items():
+        where = f"agency alias {alias!r}"
+        if not pattern.fullmatch(alias):
+            raise VocabularyUnavailable(f"{where} is invalid")
+        if alias in entries_by_id:
+            owner = "the agency file" if entries_by_id[alias].get("origin") == "agency" else "the repository registry"
+            raise VocabularyUnavailable(
+                f"{where} redeclares '{alias}', already declared by {owner}; the agency file is add-only"
+            )
+        if alias in base_aliases:
+            raise VocabularyUnavailable(f"{where} redefines an alias of the repository registry")
+        target = entries_by_id.get(code) if isinstance(code, str) else None
+        if target is None:
+            raise VocabularyUnavailable(f"{where} names {code!r}, which is not declared")
+        if target.get("status") == "deprecated":
+            raise VocabularyUnavailable(f"{where} names '{code}', which is deprecated")
+        target["aliases"] = [*(target.get("aliases") or []), alias]
+        target["agency_aliases"] = [*(target.get("agency_aliases") or []), alias]
 
 
 def merge_agency_file(base: dict[str, Any], overlay: Any) -> dict[str, dict[str, Any]]:
@@ -86,11 +139,14 @@ def merge_agency_file(base: dict[str, Any], overlay: Any) -> dict[str, dict[str,
     rules = base.get("naming_rules") or {}
     pattern = re.compile(str(rules.get("id_pattern") or ""))
     limit = int(rules.get("max_agency_entries") or 0)
-    agency_rules = _AGENCY_RULES.get(str(base.get("registry_id")), {"noun": "vocabulary", "categories": None})
+    agency_rules = _AGENCY_RULES.get(
+        str(base.get("registry_id")), {"noun": "vocabulary", "categories": None, "aliases": False}
+    )
     noun = agency_rules["noun"]
     categories: set[str] | None = agency_rules["categories"]
     allowed = _BASE_FIELDS | ({"category"} if categories else set())
     entries_by_id = {entry["id"]: dict(entry) for entry in base.get("entries", [])}
+    _check_base_aliases(entries_by_id, noun)
     if overlay is None:
         return entries_by_id
     if not isinstance(overlay, dict):
@@ -106,6 +162,7 @@ def merge_agency_file(base: dict[str, Any], overlay: Any) -> dict[str, dict[str,
         raise VocabularyUnavailable(f"the agency {noun} file has no entries list")
     if len(entries) > limit:
         raise VocabularyUnavailable(f"the agency {noun} file has more than {limit} entries")
+    base_aliases = alias_map(entries_by_id)
     added: set[str] = set()
     for index, entry in enumerate(entries):
         where = f"agency entry {index}"
@@ -117,7 +174,7 @@ def merge_agency_file(base: dict[str, Any], overlay: Any) -> dict[str, dict[str,
         value = entry.get("id")
         if not isinstance(value, str) or not pattern.fullmatch(value):
             raise VocabularyUnavailable(f"{where} has an invalid id: {value!r}")
-        if value in entries_by_id:
+        if value in entries_by_id or value in base_aliases:
             owner = "the agency file" if value in added else "the repository registry"
             raise VocabularyUnavailable(
                 f"{where} redeclares '{value}', already declared by {owner}; the agency file is add-only"
@@ -133,6 +190,10 @@ def merge_agency_file(base: dict[str, Any], overlay: Any) -> dict[str, dict[str,
                 raise VocabularyUnavailable(f"{where} needs a non-empty {field}")
         entries_by_id[value] = {**entry, "origin": "agency"}
         added.add(value)
+    if "aliases" in overlay:
+        if not agency_rules.get("aliases"):
+            raise VocabularyUnavailable(f"the agency {noun} file cannot declare aliases")
+        _merge_agency_aliases(entries_by_id, overlay["aliases"], pattern=pattern, limit=limit, noun=noun)
     return entries_by_id
 
 
@@ -206,13 +267,20 @@ def require_source_kind(source_kind: Any) -> str:
     return str(entry["status"])
 
 
+def resolve_phase(phase_code: Any) -> Any:
+    """The declared phase code an alias names (``PC`` gives ``DPC``); any other value unchanged."""
+    return phases().resolve(phase_code)
+
+
 def require_phase(phase_code: Any, *, field: str = "phase", project_phase: bool = False) -> str:
     """Return the status of a declared phase code; refuse an undeclared or deprecated one.
 
-    With ``project_phase`` the code must also be one a project can go through,
-    which excludes non-project scope markers such as ``AGENCY_LIBRARY``.
+    An alias declared by the registry or the agency file is accepted as the code
+    it names. With ``project_phase`` the code must also be one a project can go
+    through, which excludes non-project scope markers such as ``AGENCY_LIBRARY``.
     """
-    entry = _require(phases(), phase_code, field=field, noun="phase")
+    vocabulary = phases()
+    entry = _require(vocabulary, vocabulary.resolve(phase_code), field=field, noun="phase")
     if project_phase and entry.get("category") not in PROJECT_PHASE_CATEGORIES:
         raise VocabularyRefused(
             f"{field} '{phase_code}' is a non-project scope marker, not a project phase"
