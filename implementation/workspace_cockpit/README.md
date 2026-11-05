@@ -847,9 +847,10 @@ The exporter opens SQLite with `mode=ro` and `query_only`, reads indexed span co
 only (never the content blob), and atomically replaces a maximum 200-span snapshot.
 The Cockpit endpoint `/workspace/api/telemetry` refuses snapshots older than 60 seconds.
 The Cockpit menu shows a global Hermes activity log for the spans present in the
-snapshot (up to 200), grouped by trace, with counts, safe span kind, status, timestamps,
-duration and shortened correlation IDs. It polls every ten seconds only while open
-and the page is visible. The log does not expose span names, attributes, prompts,
-responses, tool arguments or content blobs; it is not a document-ingestion log.
+snapshot (up to 200), grouped by trace. Trace rows summarize the operation, outcome,
+time, duration and span count; expanding a trace shows its parent-child span tree and
+bounded allowlisted attributes, events and error details. The exporter redacts path-like
+and credential-like values and drops unrecognized attribute keys. It polls every ten
+seconds only while open and the page is visible. This is not a document-ingestion log.
 No plugin import, schema migration, extra network listener, model call or external
 exporter is involved.

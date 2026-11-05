@@ -3457,11 +3457,80 @@ const otelPanel = document.getElementById("otel-panel");
 let otelPending = false;
 let otelSignature = "";
 const otelLabels = { agent: "Agent", session: "Session", skill: "Compétence", approval: "Approbation", subagent: "Sous-agent", llm: "Modèle", api: "API", tool: "Outil", cron: "Planification", other: "Span" };
+const otelAttributeLabels = {
+  "db.operation": "Opération base", "db.system": "Base", "error.code": "Code erreur",
+  "error.message": "Message erreur", "error.type": "Type erreur", "exception.message": "Exception",
+  "exception.type": "Type exception", "gen_ai.operation.name": "Opération IA",
+  "gen_ai.provider.name": "Fournisseur", "gen_ai.request.model": "Modèle demandé",
+  "gen_ai.response.model": "Modèle utilisé", "http.request.method": "Méthode HTTP",
+  "http.response.status_code": "Réponse HTTP", "messaging.operation": "Opération messagerie",
+  "messaging.system": "Messagerie", "otel.status_description": "Détail statut",
+  "rpc.method": "Méthode RPC", "rpc.system": "RPC", "tool.name": "Outil",
+};
 const formatOtelTime = (ns) => Number.isFinite(ns) ? new Date(ns / 1e6).toLocaleString("fr-FR") : "heure inconnue";
 function formatOtelDuration(durationMs) {
   if (!Number.isFinite(durationMs)) return "durée inconnue";
   if (durationMs < 1000) return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(durationMs)} ms`;
   return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(durationMs / 1000)} s`;
+}
+function otelOutcome(span) {
+  if (span.status === "ERROR") return ["Erreur", "ERROR"];
+  if (span.status === "OK") return ["Terminée", "OK"];
+  return [Number.isFinite(span.end_ns) ? "Terminée · sans erreur signalée" : "En cours · sans erreur signalée", "UNSET"];
+}
+function appendOtelAttributes(parent, values) {
+  const entries = Object.entries(values || {}).filter(([key, value]) => otelAttributeLabels[key] && ["string", "number", "boolean"].includes(typeof value));
+  if (!entries.length) return;
+  const list = document.createElement("dl"); list.className = "otel-attributes";
+  for (const [key, value] of entries) {
+    const term = document.createElement("dt"); term.textContent = otelAttributeLabels[key];
+    const detail = document.createElement("dd"); detail.textContent = String(value);
+    list.append(term, detail);
+  }
+  parent.append(list);
+}
+function appendOtelSpan(parent, span, childrenById, visited = new Set()) {
+  if (span.span_id && visited.has(span.span_id)) return;
+  if (span.span_id) visited.add(span.span_id);
+  const entry = document.createElement("li"); entry.className = "otel-span";
+  const details = document.createElement("details"); details.className = "otel-span-details";
+  const summary = document.createElement("summary"); summary.className = "otel-span-summary";
+  const title = document.createElement("strong");
+  title.textContent = span.operation || otelLabels[span.kind] || "Span";
+  const [outcome, status] = otelOutcome(span);
+  const statusLabel = document.createElement("span"); statusLabel.className = "otel-span-status";
+  statusLabel.dataset.status = status; statusLabel.textContent = outcome;
+  const timing = document.createElement("span"); timing.className = "otel-span-timing";
+  timing.textContent = `${formatOtelDuration(span.duration_ms)} · ${formatOtelTime(span.start_ns)}`;
+  summary.append(title, statusLabel, timing);
+  const content = document.createElement("div"); content.className = "otel-span-content";
+  if (span.span_id) {
+    const id = document.createElement("p"); id.className = "otel-span-id";
+    id.textContent = `Span ${span.span_id.slice(0, 8)}`; id.title = span.span_id; content.append(id);
+  }
+  appendOtelAttributes(content, span.attributes);
+  if (span.error && Object.keys(span.error).length) {
+    const error = document.createElement("details"); error.className = "otel-error-details";
+    const errorSummary = document.createElement("summary"); errorSummary.textContent = "Détail de l’erreur";
+    error.append(errorSummary); appendOtelAttributes(error, span.error); content.append(error);
+  }
+  const events = (Array.isArray(span.events) ? span.events : []).filter((event) => event && typeof event.name === "string");
+  if (events.length) {
+    const eventList = document.createElement("ul"); eventList.className = "otel-events";
+    for (const event of events) {
+      const item = document.createElement("li");
+      const eventTitle = document.createElement("strong"); eventTitle.textContent = event.name;
+      item.append(eventTitle); appendOtelAttributes(item, event.attributes); eventList.append(item);
+    }
+    content.append(eventList);
+  }
+  const children = childrenById.get(span.span_id) || [];
+  if (children.length) {
+    const nested = document.createElement("ol"); nested.className = "otel-span-children";
+    for (const child of children) appendOtelSpan(nested, child, childrenById, visited);
+    content.append(nested);
+  }
+  details.append(summary, content); entry.append(details); parent.append(entry);
 }
 function renderOtelLog(spans) {
   const summary = document.getElementById("otel-summary");
@@ -3470,54 +3539,53 @@ function renderOtelLog(spans) {
   for (const span of spans) {
     const key = span.trace_id || `isolated:${span.span_id || span.seq}`;
     if (!groups.has(key)) groups.set(key, { traceId: span.trace_id, spans: [], lastNs: null });
-    const group = groups.get(key);
-    group.spans.push(span);
+    const group = groups.get(key); group.spans.push(span);
     const activityNs = Number.isFinite(span.end_ns) ? span.end_ns : Number.isFinite(span.start_ns) ? span.start_ns : null;
     if (activityNs !== null) group.lastNs = group.lastNs === null ? activityNs : Math.max(group.lastNs, activityNs);
   }
   const orderedGroups = [...groups.values()].sort((a, b) => (b.lastNs ?? 0) - (a.lastNs ?? 0));
   const errorCount = spans.filter((span) => span.status === "ERROR").length;
   const traceCount = new Set(spans.map((span) => span.trace_id).filter(Boolean)).size;
-  const summaryItems = [
-    [spans.length, "spans disponibles", "spans"],
-    [traceCount, "traces regroupées", "traces"],
-    [errorCount, "spans en erreur", "errors"],
-  ];
+  const summaryItems = [[spans.length, "spans disponibles", "spans"], [traceCount, "traces regroupées", "traces"], [errorCount, "spans en erreur", "errors"]];
   summary.replaceChildren(...summaryItems.map(([value, label, kind]) => {
     const item = document.createElement("div"); item.className = "otel-summary-item"; item.dataset.kind = kind;
     const number = document.createElement("strong"); number.textContent = String(value);
-    const caption = document.createElement("span"); caption.textContent = label;
-    item.append(number, caption); return item;
+    const caption = document.createElement("span"); caption.textContent = label; item.append(number, caption); return item;
   }));
-
   const fragment = document.createDocumentFragment();
   for (const group of orderedGroups) {
     group.spans.sort((a, b) => (a.start_ns ?? a.end_ns ?? 0) - (b.start_ns ?? b.end_ns ?? 0) || a.seq - b.seq);
-    const trace = document.createElement("li"); trace.className = "otel-trace";
-    const head = document.createElement("div"); head.className = "otel-trace-head";
-    const title = document.createElement("strong");
-    title.textContent = group.traceId ? `Trace ${group.traceId.slice(0, 8)}` : `Span isolé ${group.spans[0]?.seq ?? ""}`;
-    if (group.traceId) title.title = group.traceId;
-    const count = document.createElement("span"); count.textContent = `${group.spans.length} span${group.spans.length > 1 ? "s" : ""} · dernière activité ${formatOtelTime(group.lastNs)}`;
-    head.append(title, count);
-    const entries = document.createElement("ol"); entries.className = "otel-trace-spans";
+    const byId = new Map(group.spans.filter((span) => span.span_id).map((span) => [span.span_id, span]));
+    const childrenById = new Map(); const roots = [];
     for (const span of group.spans) {
-      const entry = document.createElement("li"); entry.className = "otel-span";
-      const main = document.createElement("div"); main.className = "otel-span-main";
-      const kind = document.createElement("strong"); kind.textContent = otelLabels[span.kind] || "Span";
-      const status = document.createElement("span"); status.className = "otel-span-status"; status.dataset.status = span.status || "UNSET";
-      status.textContent = span.status === "ERROR" ? "Erreur" : span.status === "OK" ? (Number.isFinite(span.end_ns) ? "Terminée" : "Fin inconnue") : (Number.isFinite(span.end_ns) ? "Terminée · statut non renseigné" : "Statut et fin inconnus");
-      main.append(kind, status);
-      const meta = document.createElement("div"); meta.className = "otel-span-meta";
-      const duration = document.createElement("span"); duration.textContent = formatOtelDuration(span.duration_ms);
-      const start = document.createElement("span"); start.textContent = `Début ${formatOtelTime(span.start_ns)}`;
-      const end = document.createElement("span"); end.textContent = `Fin ${formatOtelTime(span.end_ns)}`;
-      meta.append(duration, start, end);
-      if (span.span_id) { const id = document.createElement("code"); id.textContent = `span ${span.span_id.slice(0, 8)}`; id.title = span.span_id; meta.append(id); }
-      if (span.parent_span_id) { const parent = document.createElement("code"); parent.textContent = `parent ${span.parent_span_id.slice(0, 8)}`; parent.title = span.parent_span_id; meta.append(parent); }
-      entry.append(main, meta); entries.append(entry);
+      if (span.parent_span_id && byId.has(span.parent_span_id) && span.parent_span_id !== span.span_id) {
+        if (!childrenById.has(span.parent_span_id)) childrenById.set(span.parent_span_id, []);
+        childrenById.get(span.parent_span_id).push(span);
+      } else roots.push(span);
     }
-    trace.append(head, entries); fragment.append(trace);
+    const trace = document.createElement("li"); trace.className = "otel-trace";
+    const details = document.createElement("details"); details.className = "otel-trace-details";
+    const head = document.createElement("summary"); head.className = "otel-trace-head";
+    const top = roots[0] || group.spans[0];
+    const title = document.createElement("strong"); title.className = "otel-trace-operation";
+    title.textContent = top.operation || otelLabels[top.kind] || "Activité Hermes";
+    const [outcome, status] = group.spans.some((span) => span.status === "ERROR") ? ["En erreur", "ERROR"]
+      : group.spans.some((span) => !Number.isFinite(span.end_ns)) ? ["En cours", "UNSET"]
+        : ["Terminée", "OK"];
+    const result = document.createElement("span"); result.className = "otel-trace-outcome";
+    result.dataset.status = status; result.textContent = outcome;
+    const facts = document.createElement("span"); facts.className = "otel-trace-facts";
+    facts.textContent = `${group.spans.length} span${group.spans.length > 1 ? "s" : ""} · ${formatOtelTime(group.lastNs)} · ${formatOtelDuration(top.duration_ms)}`;
+    head.append(title, result, facts);
+    if (group.traceId) {
+      const id = document.createElement("code"); id.className = "otel-trace-id";
+      id.textContent = group.traceId.slice(0, 8); id.title = group.traceId; head.append(id);
+    }
+    const entries = document.createElement("ol"); entries.className = "otel-trace-spans";
+    const visited = new Set();
+    for (const span of roots) appendOtelSpan(entries, span, childrenById, visited);
+    for (const span of group.spans) appendOtelSpan(entries, span, childrenById, visited);
+    details.append(head, entries); trace.append(details); fragment.append(trace);
   }
   if (!spans.length) { const empty = document.createElement("li"); empty.className = "message"; empty.textContent = "Aucun span dans l’aperçu récent."; fragment.append(empty); }
   list.replaceChildren(fragment);
