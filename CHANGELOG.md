@@ -35,6 +35,10 @@
   Cockpit projection reports claims established at a phase the project has not
   declared, without refusing them. The SQL read cache now projects every list
   claim type generically instead of special-casing parcels.
+- The card's current phase is compared with the declared phases: a card phase
+  the project has not declared is reported on the Project claims read
+  (`phase_consistency`) and on the card verso, never refused or corrected. A
+  phase declared again is listed once in both the Python and SQL projections.
 - Project Anatomy relation profile `architecture@1` (candidate registry under
   `registries/`): the APU validator now reports undeclared or deprecated
   relation types, inadmissible endpoints and out-of-vocabulary controlled

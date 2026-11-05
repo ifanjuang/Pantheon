@@ -625,6 +625,42 @@ def project_claim_projection(conn: psycopg.Connection, project_id: str) -> tuple
     return values, refs
 
 
+def phase_consistency(card_phase: Any, declared_phases: list[Any] | None) -> dict[str, Any]:
+    """Compare the card's current phase with the phases the project declared.
+
+    The card field ``phase`` stays a plain editable value; it is not derived from
+    the declarations. A card phase the project has not declared is reported for
+    review, never refused and never corrected automatically.
+    """
+    phase = str(card_phase or "").strip() or None
+    declared = sorted({str(item) for item in (declared_phases or []) if str(item or "").strip()})
+    if phase is None:
+        status = "no_card_phase"
+    elif not declared:
+        status = "no_phase_declared"
+    elif phase in declared:
+        status = "consistent"
+    else:
+        status = "card_phase_not_declared"
+    return {
+        "card_phase": phase,
+        "declared_phases": declared,
+        "status": status,
+        "refused": False,
+        "card_phase_derived": False,
+    }
+
+
+def project_phase_consistency(conn: psycopg.Connection, project_id: str) -> dict[str, Any]:
+    row = conn.execute(
+        "SELECT phase FROM agency_projects WHERE project_id = %s", (project_id,)
+    ).fetchone()
+    if row is None:
+        raise ClaimNotFound(f"unknown Agency Project: {project_id}")
+    values, _refs = project_claim_projection(conn, project_id)
+    return phase_consistency(row[0], list(values.get("phase") or []))
+
+
 def enrich_project_with_claims(conn: psycopg.Connection, project: dict[str, Any]) -> dict[str, Any]:
     enriched = dict(project)
     values, refs = project_claim_projection(conn, project["project_id"])

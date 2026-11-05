@@ -102,6 +102,9 @@ def install_agency_claim_routes(
             lambda conn: agency_claims.project_claim_projection(conn, project_id)
         )
         conflict_candidates, conflict_status = conflict_projection(project_id)
+        phase_status = claim_operation(
+            lambda conn: agency_claims.project_phase_consistency(conn, project_id)
+        )
         return {
             "system_of_record": "postgres",
             "project_id": project_id,
@@ -122,6 +125,7 @@ def install_agency_claim_routes(
             },
             "conflict_candidates": conflict_candidates,
             "conflict_projection": conflict_status,
+            "phase_consistency": phase_status,
             "conflicts_resolved": False,
             "claim_is_visible_card_family": False,
             "authorization_inferred": False,

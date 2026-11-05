@@ -829,7 +829,9 @@ Vocabularies — decided 2026-11-02.
   at a phase the project has not declared (`phases.claims_outside_declared_phases`);
   the claim is kept and nothing is refused, since a declaration may simply be
   late.
-- **Still open:** the card field `phase` (current phase, a plain editable
-  Project value) is not derived from the declarations and keeps its own short
-  list; whether it should become a projection of the latest declaration is a
-  separate decision.
+- **Card phase versus declarations.** The card field `phase` (current phase, a
+  plain editable Project value) stays editable and is not derived from the
+  declarations. When it names a phase the project has not declared, the Project
+  claims read (`phase_consistency`) and the card verso report it; nothing is
+  refused or corrected automatically. A phase declared again (for example a
+  return to APD) is listed once, at its most recent declaration.
