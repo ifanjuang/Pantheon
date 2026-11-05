@@ -47,6 +47,13 @@
   given by an alias is stored as its code with the entered spelling kept. The
   disposable-database phase check now runs from `implementation/` without
   `PYTHONPATH`.
+- Phase orientation: `registries/architecture_phase_orientation.registry.json`
+  projects the agency domain pack phase map (candidate deliverables, minimum
+  evidence, gate per phase block) and the gate risk of the index effect matrix,
+  in French. The Cockpit card verso shows the card phase's main subjects in a
+  folded section, and the read-only MCP tool `get_phase_orientation` gives them
+  to Hermes. Orientation only: no status, no completeness check, nothing
+  required. A conformance test keeps the registry aligned with both documents.
 - Project Anatomy relation profile `architecture@1` (candidate registry under
   `registries/`): the APU validator now reports undeclared or deprecated
   relation types, inadmissible endpoints and out-of-vocabulary controlled

@@ -201,6 +201,14 @@ relation type active != relation claim admitted
 IFC correspondence != IFC import or Pantheon identity
 ```
 
+`architecture_phase_orientation.registry.json` (vocabulary, candidate) projects the phase map of `docs/domain-packs/architecture/AGENCY_DOMAIN_PACK.md`, its semantic owner, with the gate risk of `INDEX_EFFECT_MATRIX.md`, in French: per phase block, candidate deliverables, minimum evidence and gate. Its two consumers are the Cockpit card verso (through `implementation/mvp_vertical/phase_orientation.py`) and the Hermes MCP tool `get_phase_orientation` (`mcp-server/pantheon_mcp/phase_orientation.py`). Phase codes stay declared by `architecture_phase_profile`. `tests/test_phase_orientation_conformance.py` checks that the blocks and their item counts still match both documents.
+
+```text
+deliverable listed != deliverable required
+orientation shown != status computed
+missing listed item != gap reported
+```
+
 ## Admission rule
 
 Do not create a Registry merely because data can be serialized.

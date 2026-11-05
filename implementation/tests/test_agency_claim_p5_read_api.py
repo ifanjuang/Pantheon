@@ -136,6 +136,10 @@ def test_current_claim_read_projects_temporal_provenance_and_conflict_candidates
     assert payload["evidence_inferred"] is False
     assert payload["phase_consistency"]["status"] == "card_phase_not_declared"
     assert payload["phase_consistency"]["refused"] is False
+    # The card phase's main subjects come along, as orientation only.
+    assert payload["phase_orientation"]["phase"] == "PRO"
+    assert payload["phase_orientation"]["advisory"] is True
+    assert "CCTP" in payload["phase_orientation"]["deliverables"]
 
 
 def test_conflict_detector_refusal_does_not_hide_current_claims(monkeypatch) -> None:

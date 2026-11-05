@@ -215,6 +215,15 @@ No gate moves from candidate to validated without an evidence pack.
 
 ## Phase map: deliverables, evidence and gates
 
+A French, machine-readable projection of this map, with the gate risk of
+[`INDEX_EFFECT_MATRIX.md`](INDEX_EFFECT_MATRIX.md), lives in
+`registries/architecture_phase_orientation.registry.json`. The Cockpit card
+verso and the Hermes tool `get_phase_orientation` read it to show the main
+subjects of a phase. It orients only: it computes no status, checks no
+completeness and requires no deliverable. A change to a block below must be
+mirrored there; `tests/test_phase_orientation_conformance.py` fails when the
+blocks or their item counts diverge.
+
 ### DIAG / existing condition
 
 Candidate deliverables:
@@ -244,6 +253,37 @@ Gate:
 
 ```text
 feasibility or initial program validated by project owner
+```
+
+### ESQ
+
+ESQ is optional: many missions start directly at APS.
+
+Candidate deliverables:
+
+```text
+site analysis
+programme reading and questions
+one or more design sketches
+first plans / volumes
+budget compatibility check
+first planning-rule reading
+```
+
+Minimum evidence:
+
+```text
+programme source
+site data source
+planning-rule references
+budget envelope source
+client feedback trace
+```
+
+Gate:
+
+```text
+sketch option chosen by project owner
 ```
 
 ### APS
@@ -304,6 +344,42 @@ Gate:
 
 ```text
 program and budget frozen, administrative filing ready or submitted if applicable
+```
+
+### DPC / building permit
+
+The permit filing is an agency stage, usually after APD and sometimes right after APS for a private house. Its order is not fixed.
+
+Candidate deliverables:
+
+```text
+permit application form
+site location plan
+site plan
+section plan
+project description notice
+facade and roof plans
+landscape insertion document
+near and distant site photos
+energy regulation certificate at filing
+accessibility or fire safety notices if applicable
+```
+
+Minimum evidence:
+
+```text
+project-owner approval of the filed design
+filed package version
+filing receipt
+requests for additional documents and responses
+permit decision or tacit permit date
+permit posting proof
+```
+
+Gate:
+
+```text
+permit filed, then permit granted and posted
 ```
 
 ### PRO

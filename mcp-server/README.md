@@ -41,6 +41,7 @@ Any request asking the server to perform such an effect is refused with a report
 | `explain_governance_structure(source_key="")` | read-only wiki view of the governance sections, why they exist and their traced sources; optional focus by source key |
 | `get_consultation_catalog()` | honest availability map: implemented read-only, partial and documented-non-implemented consultation surfaces |
 | `explain_architecture(topic)` | bounded placement, purpose, rationale, forbidden responsibilities and governed source references for Pantheon, Hermes, historical/refused OpenWebUI placement, Pantheon Control, MCP/API, capability, knowledge, memory and evidence topics |
+| `get_phase_orientation(phase)` | main subjects of one architecture phase from `registries/architecture_phase_orientation.registry.json` (French): candidate deliverables, minimum evidence, gate and gate risk; orientation only, no status, no completeness check, nothing required |
 | `get_capability_status(status_yaml)` | qualifies a *provided* observation on the Hermes dashboard axes (`listed`, `detected`, `installed`, `configured`, `enabled`, `reachable`, `health`) plus separate governance, task-use, update and rollback axes; performs no live inventory or runtime probe and grants no authorization |
 | `validate_passport(passport_yaml)` | shape report + governance gaps (validation ≠ authorization) |
 | `classify_request(request_yaml)` | consequence K0–K4, required verification V0–V4, approval ceiling C0–C5, required gates |
@@ -127,6 +128,7 @@ mcp_servers:
         - explain_governance_structure
         - get_consultation_catalog
         - explain_architecture
+        - get_phase_orientation
         - get_capability_status
         - evaluate_preflight
         - prepare_task_contract_skeleton

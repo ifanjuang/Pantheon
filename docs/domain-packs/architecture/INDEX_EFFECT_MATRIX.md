@@ -114,8 +114,10 @@ An ordinary index may become the basis of a key index only through a governed ga
 | Phase / container | Common index effects | Gate risk |
 |---|---|---|
 | `DIAG` | working_revision, issued_for_review, approved_phase_decision | false existing-condition baseline |
+| `ESQ` | working_revision, issued_for_client_approval, approved_phase_decision | sketch built on a misread programme or site constraint |
 | `APS` | working_revision, issued_for_client_approval, approved_phase_decision | premature programme/budget assumption |
 | `APD` | working_revision, issued_for_client_approval, approved_phase_decision | wrong freeze of surfaces, cost or materials |
+| `DPC` | issued_for_client_approval, approved_phase_decision | permit filed on a design the project owner has not approved |
 | `PRO` | working_revision, coordination_update, issued_for_review, approved_phase_decision | technical package treated as consultation-ready too early |
 | `DCE` | issued_for_consultation, obsolete_superseded | contractor consulted on wrong package |
 | `ACT` | issued_for_contract, signed_contractual_version | quote or contract used before signature / attribution |

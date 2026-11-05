@@ -1,0 +1,372 @@
+{
+  "schema_version": "1",
+  "registry_id": "architecture_phase_orientation",
+  "registry_kind": "vocabulary",
+  "version": "1.1.0",
+  "status": "candidate",
+  "owner": {
+    "id": "pantheon_architecture_domain_pack",
+    "repository": "Pantheon-Next"
+  },
+  "authority_document": "docs/domain-packs/architecture/AGENCY_DOMAIN_PACK.md",
+  "governance_refs": [
+    "docs/domain-packs/architecture/AGENCY_DOMAIN_PACK.md",
+    "docs/domain-packs/architecture/INDEX_EFFECT_MATRIX.md",
+    "registries/README.md"
+  ],
+  "description": "Phase orientation architecture@1: a French, machine-readable projection of the agency domain pack phase map (candidate deliverables, minimum evidence and gate per phase block) with the gate risk of the index effect matrix. It orients a reader on the main subjects of a phase. It never computes a status, never checks completeness and never reports a missing item: a project does not go through every phase and a listed deliverable is not required. Each entry names the phase codes it covers, all declared by architecture_phase_profile.",
+  "profile": {
+    "id": "architecture@1",
+    "language": "fr",
+    "phase_registry": "architecture_phase_profile",
+    "sources": {
+      "blocks": "docs/domain-packs/architecture/AGENCY_DOMAIN_PACK.md#phase-map-deliverables-evidence-and-gates",
+      "gate_risks": "docs/domain-packs/architecture/INDEX_EFFECT_MATRIX.md#phase-attachment-matrix"
+    }
+  },
+  "entries": [
+    {
+      "id": "DIAG",
+      "phases": [
+        "DIAG"
+      ],
+      "source_section": "DIAG / existing condition",
+      "label": "Diagnostic / état existant",
+      "deliverables": [
+        "relevés",
+        "rapport d'état existant",
+        "photos du site",
+        "plans existants",
+        "diagnostics techniques",
+        "hypothèses de programme",
+        "état des risques et de la réglementation du site"
+      ],
+      "minimum_evidence": [
+        "origine du relevé",
+        "dates des photos",
+        "source du programme",
+        "rapports de tiers",
+        "état réglementaire du site à date",
+        "liste des hypothèses"
+      ],
+      "gate": "faisabilité ou programme initial validé par le maître d'ouvrage",
+      "gate_risks": {
+        "DIAG": "état existant de référence erroné"
+      }
+    },
+    {
+      "id": "ESQ",
+      "phases": [
+        "ESQ"
+      ],
+      "source_section": "ESQ",
+      "label": "Esquisse",
+      "deliverables": [
+        "analyse du site",
+        "lecture du programme et questions",
+        "une ou plusieurs esquisses",
+        "premiers plans / volumes",
+        "vérification de la compatibilité avec le budget",
+        "première lecture des règles d'urbanisme"
+      ],
+      "minimum_evidence": [
+        "source du programme",
+        "source des données du site",
+        "références des règles d'urbanisme",
+        "source de l'enveloppe budgétaire",
+        "trace des retours du client"
+      ],
+      "gate": "option d'esquisse retenue par le maître d'ouvrage",
+      "gate_risks": {
+        "ESQ": "esquisse fondée sur une lecture erronée du programme ou d'une contrainte du site"
+      },
+      "note": "L'esquisse est facultative : beaucoup de missions commencent directement à l'APS."
+    },
+    {
+      "id": "APS",
+      "phases": [
+        "APS"
+      ],
+      "source_section": "APS",
+      "label": "Avant-projet sommaire",
+      "deliverables": [
+        "variantes de conception",
+        "insertion dans le site",
+        "plans / volumes",
+        "premiers principes techniques",
+        "estimation préliminaire",
+        "calendrier préliminaire"
+      ],
+      "minimum_evidence": [
+        "état du programme à date",
+        "variantes comparées",
+        "source de l'estimation",
+        "références du site et réglementaires",
+        "trace de revue interne"
+      ],
+      "gate": "APS approuvé ou admis par le maître d'ouvrage",
+      "gate_risks": {
+        "APS": "hypothèse de programme ou de budget prématurée"
+      }
+    },
+    {
+      "id": "APD",
+      "phases": [
+        "APD"
+      ],
+      "source_section": "APD",
+      "label": "Avant-projet définitif",
+      "deliverables": [
+        "plans / coupes / façades plus aboutis",
+        "surfaces",
+        "principes constructifs",
+        "matériaux et systèmes",
+        "estimation par lots",
+        "choix d'entretien et d'exploitation",
+        "base du dossier administratif"
+      ],
+      "minimum_evidence": [
+        "gel des surfaces",
+        "arbitrages du client",
+        "estimation par lot",
+        "liste des références normatives",
+        "dossier administratif",
+        "récépissés de dépôt le cas échéant"
+      ],
+      "gate": "programme et budget figés, dossier administratif prêt ou déposé le cas échéant",
+      "gate_risks": {
+        "APD": "gel erroné des surfaces, du coût ou des matériaux"
+      }
+    },
+    {
+      "id": "DPC",
+      "phases": [
+        "DPC"
+      ],
+      "source_section": "DPC / building permit",
+      "label": "Dossier de permis de construire",
+      "deliverables": [
+        "formulaire de demande de permis",
+        "plan de situation",
+        "plan de masse",
+        "plan en coupe",
+        "notice descriptive du projet",
+        "plans des façades et des toitures",
+        "document graphique d'insertion",
+        "photographies de l'environnement proche et lointain",
+        "attestation de prise en compte de la réglementation énergétique au dépôt",
+        "notices d'accessibilité ou de sécurité incendie le cas échéant"
+      ],
+      "minimum_evidence": [
+        "accord du maître d'ouvrage sur le projet déposé",
+        "version du dossier déposé",
+        "récépissé de dépôt",
+        "demandes de pièces complémentaires et réponses",
+        "décision de permis ou date du permis tacite",
+        "preuve de l'affichage du permis"
+      ],
+      "gate": "permis déposé, puis obtenu et affiché",
+      "gate_risks": {
+        "DPC": "permis déposé sur un projet que le maître d'ouvrage n'a pas approuvé"
+      },
+      "note": "Le dépôt du permis est une étape d'agence, souvent après l'APD et parfois dès l'APS pour une maison individuelle ; son ordre n'est pas imposé."
+    },
+    {
+      "id": "PRO",
+      "phases": [
+        "PRO"
+      ],
+      "source_section": "PRO",
+      "label": "Projet",
+      "deliverables": [
+        "plans détaillés",
+        "détails techniques",
+        "CCTP",
+        "quantités",
+        "DPGF / DQE le cas échéant",
+        "coût d'objectif",
+        "matrice de coordination"
+      ],
+      "minimum_evidence": [
+        "historique des indices",
+        "revue de coordination",
+        "références normatives",
+        "coût d'objectif",
+        "découpage en lots"
+      ],
+      "gate": "prêt pour la consultation ou pour l'exécution selon la mission et le contrat",
+      "gate_risks": {
+        "PRO": "dossier technique considéré trop tôt comme prêt pour la consultation"
+      }
+    },
+    {
+      "id": "DCE_ACT",
+      "phases": [
+        "DCE",
+        "ACT"
+      ],
+      "source_section": "DCE / ACT",
+      "label": "DCE / ACT",
+      "deliverables": [
+        "dossier de consultation",
+        "pièces administratives",
+        "pièces techniques",
+        "registre des questions et réponses",
+        "offres reçues",
+        "comparaison des offres",
+        "rapport d'analyse",
+        "proposition d'attribution",
+        "pièces de mise au point des marchés"
+      ],
+      "minimum_evidence": [
+        "empreinte du DCE",
+        "version publiée ou transmise",
+        "preuve de publication ou de transmission",
+        "offres reçues",
+        "grille d'analyse",
+        "décision d'attribution du maître d'ouvrage",
+        "marchés signés"
+      ],
+      "gate": "consultation autorisée, puis décision d'attribution enregistrée",
+      "gate_risks": {
+        "DCE": "entreprise consultée sur un dossier erroné",
+        "ACT": "devis ou marché utilisé avant signature ou attribution"
+      },
+      "note": "Le DCE est un conteneur opérationnel même lorsqu'il n'est pas un élément de mission à part entière."
+    },
+    {
+      "id": "EXE_VISA",
+      "phases": [
+        "EXE",
+        "VISA"
+      ],
+      "source_section": "EXE / VISA",
+      "label": "EXE / VISA",
+      "deliverables": [
+        "plans d'exécution",
+        "notes de calcul",
+        "détails des entreprises",
+        "plans de synthèse",
+        "observations de visa",
+        "registre des visas"
+      ],
+      "minimum_evidence": [
+        "version reçue",
+        "observations par planche ou par élément",
+        "contraintes du bureau de contrôle ou du SPS le cas échéant",
+        "trace de levée des conflits",
+        "statut du visa"
+      ],
+      "gate": "visa délivré ou document de l'entreprise retourné avec observations",
+      "gate_risks": {
+        "EXE": "plan utilisé sur le chantier sans le visa adéquat",
+        "VISA": "observation de visa lue comme une approbation"
+      }
+    },
+    {
+      "id": "DET_OPC",
+      "phases": [
+        "DET",
+        "OPC"
+      ],
+      "source_section": "DET / OPC / site",
+      "label": "DET / OPC / chantier",
+      "deliverables": [
+        "ordres de service",
+        "comptes rendus de réunion de chantier",
+        "observations de chantier",
+        "mises à jour du planning",
+        "situations de travaux",
+        "demandes de modification",
+        "non-conformités",
+        "photos",
+        "questions des entreprises"
+      ],
+      "minimum_evidence": [
+        "pièces de chantier signées ou transmises",
+        "preuves de convocation et de présence",
+        "photos",
+        "trace du planning",
+        "décision sur la demande de modification",
+        "trace de vérification des situations"
+      ],
+      "gate": "étape d'exécution du chantier ou revue mensuelle validée",
+      "gate_risks": {
+        "DET": "instruction de chantier donnée sans autorité"
+      }
+    },
+    {
+      "id": "AOR",
+      "phases": [
+        "AOR"
+      ],
+      "source_section": "AOR / reception",
+      "label": "AOR / réception",
+      "deliverables": [
+        "procès-verbaux d'OPR",
+        "proposition de réception",
+        "procès-verbal de réception",
+        "liste des réserves",
+        "défauts et observations",
+        "dossier DAACT le cas échéant",
+        "premiers éléments du DOE"
+      ],
+      "minimum_evidence": [
+        "OPR contradictoires",
+        "procès-verbal de réception signé",
+        "preuve de convocation des entreprises",
+        "registre des réserves par lot",
+        "date effective de réception",
+        "récépissés de la mairie le cas échéant"
+      ],
+      "gate": "réception prononcée par le maître d'ouvrage",
+      "gate_risks": {
+        "AOR": "statut de réception ou des réserves mal interprété"
+      },
+      "note": "L'architecte ou le maître d'œuvre assiste ; le maître d'ouvrage prononce la réception. Le système ne modélise pas la réception comme un acte automatique du maître d'œuvre."
+    },
+    {
+      "id": "DOE_GPA",
+      "phases": [
+        "DOE",
+        "GPA"
+      ],
+      "source_section": "DOE / handover / GPA",
+      "label": "DOE / remise / GPA",
+      "deliverables": [
+        "plans conformes à l'exécution",
+        "notices de fonctionnement",
+        "consignes d'entretien",
+        "fiches des équipements",
+        "garanties",
+        "dossier DOE",
+        "éléments du DIUO le cas échéant",
+        "preuves de levée des réserves",
+        "suivi des désordres en GPA"
+      ],
+      "minimum_evidence": [
+        "matrice de complétude du DOE",
+        "liens vers les plans conformes à l'exécution",
+        "notices et garanties",
+        "statut ouvert ou levé des réserves",
+        "photos de levée des réserves",
+        "correspondance de remise"
+      ],
+      "gate": "DOE accepté, réserves levées, désordres de GPA clos",
+      "gate_risks": {
+        "DOE": "DOE incomplet considéré comme accepté",
+        "GPA": "désordre clos sans preuve"
+      }
+    }
+  ],
+  "x_boundary": {
+    "runtime_execution": false,
+    "provider_routing": false,
+    "task_authorization": false,
+    "approval": false,
+    "evidence_promotion": false,
+    "memory_promotion": false,
+    "completeness_check": false,
+    "status_computation": false
+  }
+}

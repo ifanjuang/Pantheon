@@ -274,6 +274,7 @@ class TestHermesCandidateConfiguration(unittest.TestCase):
                 "explain_governance_structure",
                 "get_consultation_catalog",
                 "explain_architecture",
+                "get_phase_orientation",
                 "get_capability_status",
                 "evaluate_preflight",
                 "prepare_task_contract_skeleton",

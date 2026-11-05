@@ -38,9 +38,10 @@ CONTRACT_PATHS: dict[str, str] = {
     "work_issue_slice": "schemas/work_issue_slice.schema.yaml",
 }
 
-# Governed vocabulary registries read at write time. Like the schemas, they stay
+# Governed vocabulary registries the implementation reads. Like the schemas, they stay
 # owned by the repository root; a built artifact carries an exact generated copy.
 REGISTRY_PATHS: dict[str, str] = {
     "apu_source_kind_profile": "registries/architecture_source_kind_profile.registry.json",
     "apu_phase_profile": "registries/architecture_phase_profile.registry.json",
+    "phase_orientation": "registries/architecture_phase_orientation.registry.json",
 }
