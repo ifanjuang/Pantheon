@@ -20,7 +20,7 @@ from typing import Any, Callable, Literal
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from . import agency_claims, project_claim_conflicts
+from . import agency_claims, phase_orientation, project_claim_conflicts
 
 
 class ClaimBackingRefBody(BaseModel):
@@ -126,6 +126,8 @@ def install_agency_claim_routes(
             "conflict_candidates": conflict_candidates,
             "conflict_projection": conflict_status,
             "phase_consistency": phase_status,
+            # Main subjects of the card's phase: orientation only, never a checklist.
+            "phase_orientation": phase_orientation.safe_phase_orientation(phase_status.get("card_phase")),
             "conflicts_resolved": False,
             "claim_is_visible_card_family": False,
             "authorization_inferred": False,

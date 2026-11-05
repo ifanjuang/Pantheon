@@ -277,6 +277,47 @@
     body.append(section);
   }
 
+  function appendPhaseOrientation(body, orientation) {
+    if (!orientation || !orientation.phase) return;
+
+    const section = document.createElement("section");
+    section.className = "v2-back-section";
+    section.dataset.projectClaimProjection = "phase-orientation";
+    const details = document.createElement("details");
+    const summary = document.createElement("summary");
+    summary.textContent = `Repères de la phase ${orientation.phase} · ${orientation.label}`;
+    details.append(summary);
+
+    const addList = (title, items) => {
+      if (!Array.isArray(items) || !items.length) return;
+      const heading = document.createElement("h4");
+      heading.textContent = title;
+      const list = document.createElement("ul");
+      for (const item of items) {
+        const line = document.createElement("li");
+        line.textContent = item;
+        list.append(line);
+      }
+      details.append(heading, list);
+    };
+    const addLine = (title, text) => {
+      if (!text) return;
+      const line = document.createElement("p");
+      line.className = "v2-claim-provenance";
+      line.textContent = `${title} : ${text}`;
+      details.append(line);
+    };
+
+    addList("Livrables courants", orientation.deliverables);
+    addList("Preuves minimales", orientation.minimum_evidence);
+    addLine("Jalon", orientation.gate);
+    addLine("Risque au jalon", orientation.gate_risk);
+    addLine("Note", orientation.note);
+    addLine("Repères indicatifs", "rien n'est exigé ni vérifié automatiquement");
+    section.append(details);
+    body.append(section);
+  }
+
   function renderProjection(card, project, projectSchema, claimPayload) {
     const body = card.querySelector(".v2-card-back .v2-back-body");
     if (!body) return;
@@ -297,6 +338,7 @@
     card.dataset.claimConflictCount = String(conflictCandidates.length);
     appendConflictProjectionStatus(body, card, conflictProjection);
     appendPhaseConsistency(body, card, claimPayload?.phase_consistency || null);
+    appendPhaseOrientation(body, claimPayload?.phase_orientation || null);
 
     for (const field of projectSchema?.fields || []) {
       if (field.storage !== "projection" || field.semantics !== "claim") continue;

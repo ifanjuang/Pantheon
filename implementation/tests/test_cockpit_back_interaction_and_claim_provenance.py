@@ -96,3 +96,13 @@ def test_claim_provenance_has_canonical_component_styles() -> None:
     assert '.v2-claim-provenance' in css
     assert '.v2-claim-provenance-action' in css
     assert ':focus-visible' in css
+
+
+def test_phase_orientation_is_shown_as_folded_advisory_subjects() -> None:
+    claims = _text(CLAIMS)
+
+    assert 'appendPhaseOrientation(body, claimPayload?.phase_orientation || null);' in claims
+    assert 'section.dataset.projectClaimProjection = "phase-orientation"' in claims
+    assert 'document.createElement("details")' in claims
+    assert '`Repères de la phase ${orientation.phase} · ${orientation.label}`' in claims
+    assert '"rien n\'est exigé ni vérifié automatiquement"' in claims

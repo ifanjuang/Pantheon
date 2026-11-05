@@ -30,6 +30,7 @@ from . import (
     install,
     observability,
     passports,
+    phase_orientation,
     policy,
     presets,
     source_map,
@@ -238,6 +239,14 @@ class PantheonPolicyService:
             consultation.explain_architecture(topic),
             source_mode="governed_sources_and_bounded_projection",
             input_value={"topic": topic},
+        )
+
+    def phase_orientation(self, phase: str) -> dict[str, Any]:
+        return self._project(
+            "architecture.phase_orientation",
+            phase_orientation.phase_orientation(phase, self.root),
+            source_mode="governed_registry",
+            input_value={"phase": phase},
         )
 
     def qualify_capability_status(self, candidate: dict[str, Any]) -> dict[str, Any]:

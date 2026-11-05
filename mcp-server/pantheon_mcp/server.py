@@ -156,6 +156,15 @@ def explain_architecture(topic: str) -> str:
 
 
 @_read_only_tool()
+def get_phase_orientation(phase: str) -> str:
+    """Main subjects of one architecture phase (deliverables, minimum evidence, gate, gate risk).
+
+    Orientation only: a project does not go through every phase and nothing listed is required.
+    """
+    return _call("phase_orientation", phase)
+
+
+@_read_only_tool()
 def get_capability_status(status_yaml: str) -> str:
     """Qualify a caller-provided capability observation; perform no live probe."""
     return _call_yaml(status_yaml, "qualify_capability_status")
