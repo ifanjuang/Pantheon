@@ -42,4 +42,5 @@ CONTRACT_PATHS: dict[str, str] = {
 # owned by the repository root; a built artifact carries an exact generated copy.
 REGISTRY_PATHS: dict[str, str] = {
     "apu_source_kind_profile": "registries/architecture_source_kind_profile.registry.json",
+    "apu_phase_profile": "registries/architecture_phase_profile.registry.json",
 }

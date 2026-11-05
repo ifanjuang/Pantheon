@@ -20,7 +20,8 @@ properties:
   lot_label: { type: string }
   phase_origin:
     type: string
-    enum: [DIAG, APS, APD, PRO, DCE, ACT, EXE, VISA, DET, OPC, AOR, DOE, GPA, AGENCY_LIBRARY, GLOBAL_REFERENCE]
+    description: Phase code declared in registries/architecture_phase_profile.registry.json; the schema checks only its shape.
+    pattern: "^[A-Z][A-Z0-9_]{1,39}$"
   canonical_title: { type: string, minLength: 1 }
   status:
     type: string

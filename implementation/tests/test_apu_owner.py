@@ -366,3 +366,41 @@ def test_owner_installed_with_the_former_closed_list_is_upgraded_once(conn) -> N
 
     conn.execute(apu_owner.MIGRATION.read_text(encoding="utf-8"))  # replay: nothing to do
     assert conn.execute("SELECT oid FROM pg_constraint WHERE conname = %s", (constraint,)).fetchone()[0] == oid
+
+
+def _dossier_with_phase(project_id: str, phase: str) -> dict:
+    dossier = _dossier(project_id)
+    dossier["attribute_claims"][0]["validity"] = {"established_at_phase": phase}
+    return dossier
+
+
+@pytest.mark.parametrize("phase", ["ESQ", "APS", "DCE", "AGENCY_LIBRARY"])
+def test_declared_phase_codes_are_stored(conn, phase: str) -> None:
+    project_id = _project(conn, "phases")
+    stored = _store(conn, project_id, dossier=_dossier_with_phase(project_id, phase))
+    assert stored["owner_revision"] == 1
+
+
+def test_undeclared_phase_code_is_refused_by_the_owner(conn) -> None:
+    project_id = _project(conn, "phase-undeclared")
+    with pytest.raises(apu_owner.ApuOwnerError, match="'ESQUISSE' is not declared in the phase vocabulary"):
+        _store(conn, project_id, dossier=_dossier_with_phase(project_id, "ESQUISSE"))
+    # Nothing was written: the same Project can still be initialized.
+    assert _store(conn, project_id, dossier=_dossier_with_phase(project_id, "ESQ"))["owner_revision"] == 1
+
+
+def test_agency_phase_code_is_stored_through_the_local_file(conn, tmp_path, monkeypatch) -> None:
+    import json
+
+    agency = tmp_path / "phases.json"
+    agency.write_text(json.dumps({
+        "registry_kind": "vocabulary_overlay",
+        "extends": "architecture_phase_profile",
+        "entries": [{"id": "FAISA", "status": "active", "category": "mission_element",
+                     "label": "Faisabilité", "description": "Étude de faisabilité avant esquisse."}],
+    }), encoding="utf-8")
+    project_id = _project(conn, "phase-agency")
+    with pytest.raises(apu_owner.ApuOwnerError, match="not declared"):
+        _store(conn, project_id, dossier=_dossier_with_phase(project_id, "FAISA"))
+    monkeypatch.setenv("PANTHEON_PHASE_OVERLAY", str(agency))
+    assert _store(conn, project_id, dossier=_dossier_with_phase(project_id, "FAISA"))["owner_revision"] == 1
