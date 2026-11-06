@@ -746,6 +746,20 @@ linked, and a claim is replaced at most once. Applied claims stay `candidate`.
 Identity relations (`identity.*`) are not claim writes: alignment stays with
 the source match and the identity lifecycle of §16 is not opened by this path.
 
+Batch review (`implementation/mvp_vertical/apu_batch.py`, CLI `apu-batch`)
+removes the repetition, not the chain. A preview lists the claim candidates of
+one Observation Bundle with the accept or reject decision on each and a digest
+over both; it writes nothing. One human approval of that digest then replays,
+per candidate and in one transaction, review → write command → authorization →
+application, so every candidate keeps its own trail and a failure leaves
+nothing. A bundle or decision set that changed since the preview is refused.
+Identity candidates are not part of a batch.
+
+```text
+one approval != fewer records
+batch applied != claims validated
+```
+
 The progressive writer also checks that every referenced source representation
 has already been admitted for this Project and that its artifact and declared
 source version occur in the exact reviewed Observation Bundle basis. It checks

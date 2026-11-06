@@ -643,6 +643,28 @@ INVENTORY: dict[tuple[str, str], dict[str, object]] = {
             "production because `hermes_admitted` is a parameter no route passes."
         ),
     },
+    ("apu_batch.py", "apply_batch"): {
+        "gate": "none",
+        "local_guards": (
+            "batch digest recomputed from the stored bundle and the decisions, refused unless it equals the approved one",
+            "one transaction: any failing candidate leaves nothing of the batch",
+            "every write goes through append_mapping_review, prepare_write_command, append_authorization and apply_authorized_write_command",
+            "identity candidates are excluded",
+            "idempotency keys derived from the batch digest and the candidate ref",
+        ),
+        "reviewed": (
+            "Adds no write path of its own: it replays, per candidate, the reviewed "
+            "chain whose four steps are inventoried below, so each candidate keeps its "
+            "own review, command, digest-bound authorization and application. What it "
+            "adds is the binding of one human approval to the exact batch: the digest "
+            "covers every candidate payload and the accept or reject decision on it, "
+            "and a bundle or decision set that changed since the preview is refused. "
+            "Commands bind the owner revision, so candidates are prepared and applied "
+            "one after the other inside the batch transaction. The authorization each "
+            "command carries is recorded from that single approval, with the batch "
+            "digest in its note; applied claims stay candidate."
+        ),
+    },
     ("apu_mapping_reviews.py", "append_mapping_review"): {
         "gate": "none",
         "local_guards": ("action vocabulary", "the mapping candidate must exist in that execution result", "select_existing_object requires a selected ref", "append-only", "idempotency"),

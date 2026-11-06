@@ -8,8 +8,10 @@ import sys
 from pathlib import Path
 
 from . import (
+    apu_batch,
     apu_owner,
     decision_requests,
+    execution_results,
     human_access,
     register,
     storage_retention,
@@ -145,6 +147,25 @@ def main() -> int:
         default="C3",
         help="approval ceiling the effect requires (default: C3)",
     )
+
+    p_batch = sub.add_parser(
+        "apu-batch",
+        help="preview, then apply, the claim candidates of one Observation Bundle as one batch",
+        description=(
+            "Without --approve-digest: print the candidates, the decision on each and "
+            "the batch digest; nothing is written. With --approve-digest: replay review, "
+            "write command, authorization and application for each candidate of that "
+            "exact batch, all or nothing."
+        ),
+    )
+    p_batch.add_argument("--execution-result", required=True)
+    p_batch.add_argument("--result", required=True, help="result_id of the Observation Bundle")
+    p_batch.add_argument("--reject", action="append", default=[], help="candidate ref to reject (repeatable)")
+    p_batch.add_argument("--approve-digest", help="batch digest the human approves, from the preview")
+    p_batch.add_argument("--reviewer", help="human reviewing the batch (required to apply)")
+    p_batch.add_argument("--authorized-by", help="human authorizing the batch (default: the reviewer)")
+    p_batch.add_argument("--applied-by", default="system:apu-batch-cli")
+    p_batch.add_argument("--note", default="")
 
     p_card = sub.add_parser("document-card", help="project one ingested source as a card")
     p_card.add_argument("--dossier", required=True)
@@ -415,6 +436,57 @@ def main() -> int:
                     allow_unicode=True,
                 )
             )
+            return 0
+        finally:
+            conn.close()
+
+    if args.command == "apu-batch":
+        import yaml
+
+        conn = store.connect()
+        try:
+            try:
+                if not args.approve_digest:
+                    preview = apu_batch.preview_batch(
+                        conn, execution_result_id=args.execution_result, result_ref=args.result, reject=args.reject
+                    )
+                    claims = [(item, item["candidate"]["claim_candidate"]) for item in preview["items"]]
+                    rows = [
+                        {
+                            "ref": item["ref"],
+                            "decision": item["decision"],
+                            "subject": (claim.get("subject_ref") or {}).get("entity_id"),
+                            "key": claim.get("attribute_key") or claim.get("relation_type"),
+                            "value": (claim.get("value") or {}).get("value"),
+                            "replaces": claim.get("supersedes_claim_ref"),
+                            "certainty": claim.get("certainty"),
+                        }
+                        for item, claim in claims
+                    ]
+                    sys.stdout.write(
+                        yaml.safe_dump({"batch_digest": preview["batch_digest"], "items": rows}, sort_keys=False, allow_unicode=True)
+                    )
+                    return 0
+                if not args.reviewer:
+                    print("--reviewer is required to apply a batch", file=sys.stderr)
+                    return 1
+                result = apu_batch.apply_batch(
+                    conn,
+                    execution_result_id=args.execution_result,
+                    result_ref=args.result,
+                    batch_digest=args.approve_digest,
+                    reviewer=args.reviewer,
+                    authorized_by=args.authorized_by or args.reviewer,
+                    applied_by=args.applied_by,
+                    reject=args.reject,
+                    note=args.note,
+                )
+            except execution_results.ExecutionResultError as exc:
+                conn.rollback()
+                print(f"batch refused: {exc}", file=sys.stderr)
+                return 1
+            conn.commit()
+            sys.stdout.write(yaml.safe_dump(result, sort_keys=False, allow_unicode=True))
             return 0
         finally:
             conn.close()

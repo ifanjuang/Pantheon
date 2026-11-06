@@ -47,6 +47,12 @@
   given by an alias is stored as its code with the entered spelling kept. The
   disposable-database phase check now runs from `implementation/` without
   `PYTHONPATH`.
+- APU batch review: `apu_batch.preview_batch` / `apply_batch` and the CLI
+  `apu-batch` let one human approval cover all claim candidates of one
+  Observation Bundle. The preview's digest binds every candidate and its accept
+  or reject decision; applying replays the existing per-candidate chain (review,
+  write command, authorization, application) in one transaction, all or
+  nothing. No new table or schema.
 - Phase orientation: `registries/architecture_phase_orientation.registry.json`
   projects the agency domain pack phase map (candidate deliverables, minimum
   evidence, gate per phase block) and the gate risk of the index effect matrix,
