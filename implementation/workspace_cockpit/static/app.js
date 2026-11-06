@@ -606,6 +606,9 @@ function surfaceBar(entries) {
   })).filter((group) => group.total > 0);
   const total = groups.reduce((sum, group) => sum + group.total, 0);
   if (!total) return "";
+  // Only spaces with a surface are summed: say so, the bar is not the building's area.
+  const counted = entries.filter((entry) => SURFACE_GROUPS.some((group) => group.states.includes(entry.state)) && area(entry.object)).length;
+  const scope = counted > 1 ? `sur ${counted} locaux renseignés` : "sur 1 local renseigné";
   const m2 = (value) => `${value.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} m²`;
   let offset = 0;
   const rects = groups.map((group) => {
@@ -615,8 +618,8 @@ function surfaceBar(entries) {
     return rect;
   }).join("");
   const legend = groups.map((group) => `<span><i class="is-${group.tone}"></i>${escapeHtml(group.label)} ${m2(group.total)}</span>`).join("");
-  const summary = groups.map((group) => `${group.label} ${m2(group.total)}`).join(", ");
-  return `<div class="anatomy-surfaces"><svg viewBox="0 0 100 6" preserveAspectRatio="none" role="img" aria-label="${escapeHtml(summary)}">${rects}</svg><div class="anatomy-legend">${legend}</div></div>`;
+  const summary = `${groups.map((group) => `${group.label} ${m2(group.total)}`).join(", ")}, ${scope}`;
+  return `<div class="anatomy-surfaces"><svg viewBox="0 0 100 6" preserveAspectRatio="none" role="img" aria-label="${escapeHtml(summary)}">${rects}</svg><div class="anatomy-legend">${legend}<span>${scope}</span></div></div>`;
 }
 
 function anatomySlot(card) {
