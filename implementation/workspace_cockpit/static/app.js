@@ -591,6 +591,33 @@ const OUVRAGE_STATE_LABELS = {
   temporary: "provisoire", projected: "projeté", executed: "exécuté",
 };
 const ATTRIBUTE_LABELS = { "space.area": "surface" };
+// Synthèse d'un projet d'extension : surfaces des locaux par état de l'ouvrage.
+const SURFACE_GROUPS = [
+  { label: "Existant conservé", states: ["existing", "to_keep"], tone: "kept" },
+  { label: "Projeté", states: ["projected"], tone: "projected" },
+  { label: "À démolir", states: ["to_demolish"], tone: "demolished" },
+];
+
+function surfaceBar(entries) {
+  const area = (item) => (item.attributes || []).find((claim) => claim.key === "space.area" && claim.unit === "m2" && typeof claim.value === "number")?.value;
+  const groups = SURFACE_GROUPS.map((group) => ({
+    ...group,
+    total: entries.filter((entry) => group.states.includes(entry.state)).reduce((sum, entry) => sum + (area(entry.object) || 0), 0),
+  })).filter((group) => group.total > 0);
+  const total = groups.reduce((sum, group) => sum + group.total, 0);
+  if (!total) return "";
+  const m2 = (value) => `${value.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} m²`;
+  let offset = 0;
+  const rects = groups.map((group) => {
+    const width = (group.total / total) * 100;
+    const rect = `<rect class="is-${group.tone}" x="${offset}" y="0" width="${width}" height="6"></rect>`;
+    offset += width;
+    return rect;
+  }).join("");
+  const legend = groups.map((group) => `<span><i class="is-${group.tone}"></i>${escapeHtml(group.label)} ${m2(group.total)}</span>`).join("");
+  const summary = groups.map((group) => `${group.label} ${m2(group.total)}`).join(", ");
+  return `<div class="anatomy-surfaces"><svg viewBox="0 0 100 6" preserveAspectRatio="none" role="img" aria-label="${escapeHtml(summary)}">${rects}</svg><div class="anatomy-legend">${legend}</div></div>`;
+}
 
 function anatomySlot(card) {
   // Une affaire est un dossier de premier niveau ; son nom est le code du projet.
@@ -629,7 +656,9 @@ function renderAnatomy(data) {
   const loose = [...objects.values()].filter((item) => !children.has(item.id) && !contained.has(item.id)).map((item) => line(item));
   const pending = Object.values(data.sources || {}).filter((source) => source.identity_pending).length;
   const stamp = data.generated_at ? new Date(data.generated_at).toLocaleString("fr-FR") : "";
+  const placed = [...children.values()].flat();
   return `<h3>Anatomie</h3>
+    ${surfaceBar(placed)}
     <ul class="anatomy-tree">${groups.join("")}${loose.join("")}</ul>
     <p class="anatomy-note">Valeurs candidates, non validées${pending ? ` · identité en attente de preuve pour ${pending} source${pending > 1 ? "s" : ""}` : ""}${stamp ? ` · publié le ${escapeHtml(stamp)}` : ""}</p>`;
 }
