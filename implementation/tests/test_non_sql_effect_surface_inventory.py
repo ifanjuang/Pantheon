@@ -11,6 +11,14 @@ MVP = Path(__file__).resolve().parents[1] / "mvp_vertical"
 # discovery cannot see: filesystem mutation and externally effectful HTTP calls,
 # including public class methods.
 EFFECT_INVENTORY: dict[tuple[str, str], dict[str, str]] = {
+    ("anatomy_export.py", "export_project_anatomy"): {
+        "effect": "filesystem_projection",
+        "reviewed": "rewrites one derived Anatomy projection file per Project in an operator-configured absolute directory, atomically (partial then rename); the file is never read back as a source and is regenerable",
+    },
+    ("anatomy_export.py", "export_all"): {
+        "effect": "filesystem_projection",
+        "reviewed": "calls export_project_anatomy for every Project with an initialized APU owner; same bounded projection directory",
+    },
     ("cli.py", "main"): {
         "effect": "filesystem_artifact",
         "reviewed": "operator CLI may write an explicitly requested output artifact",

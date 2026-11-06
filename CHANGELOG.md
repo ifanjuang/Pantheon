@@ -47,6 +47,13 @@
   given by an alias is stored as its code with the entered spelling kept. The
   disposable-database phase check now runs from `implementation/` without
   `PYTHONPATH`.
+- Anatomy on the affaire card: the implementation publishes each Project's
+  Anatomy projection as `<MVP_ANATOMY_EXPORT_DIR>/<CODE>.json`
+  (`pantheon.anatomy.v1`) after `store-reviewed-dossier` and `apu-batch`
+  (regenerate with `export-anatomy`); the Workspace Cockpit reads it through
+  `WORKSPACE_ANATOMY_DIR` and shows levels, spaces, ouvrage state and values on
+  the back of the affaire card, read-only. The projection now keeps relation
+  qualifiers.
 - APU batch review: `apu_batch.preview_batch` / `apply_batch` and the CLI
   `apu-batch` let one human approval cover all claim candidates of one
   Observation Bundle. The preview's digest binds every candidate and its accept

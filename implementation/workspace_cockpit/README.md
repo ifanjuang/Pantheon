@@ -33,6 +33,16 @@ producer watches/reconciles the mounted NAS path and is the only producer into
 Hindsight. The Cockpit reads the persisted SQLite projection with
 `--projection-only`; stopping the Cockpit does not stop ingestion.
 
+## Anatomy on the affaire card
+
+The back of a top-level affaire card shows the Project Anatomy when the
+implementation has published it. The owner publishes, the Cockpit displays:
+after each APU write the implementation rewrites
+`<MVP_ANATOMY_EXPORT_DIR>/<CODE>.json` (`pantheon.anatomy.v1`), and the Cockpit,
+started with `WORKSPACE_ANATOMY_DIR` pointing at the same directory, reads
+`<CODE>.json` for the folder of that name (`/api/anatomy?code=`). It never
+reads the database and stays read-only; a missing file simply shows nothing.
+
 When a root is produced by its own producer into a separate SQLite index, pass
 `--workspace-db NAME=/absolute/index.sqlite3` with `--projection-only`. That
 root is then read from its own index while the other roots keep `--state-db`;

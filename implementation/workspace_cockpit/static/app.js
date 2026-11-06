@@ -552,7 +552,7 @@ function cardTemplate(card) {
     : "";
   const isFolder = card.kind === "folder";
   const body = isFolder ? folderCardBody(card) : documentCardBody(card);
-  const backBody = isFolder ? (warnings || "") : documentCardBack(card);
+  const backBody = isFolder ? `${warnings || ""}${anatomySlot(card)}` : documentCardBack(card);
   const stage = card.kind === "document" ? processingStage(card) : null;
   const subtitle = card.kind === "folder" ? "" : card.subtitle || "";
   const visibleSubtitle = card.status === "FOLDER_SCOPED" && /contexte h[eé]rit[eé]/i.test(subtitle) ? "" : subtitle;
@@ -583,6 +583,105 @@ function cardTemplate(card) {
     <div class="card-face card-front">${body}<button class="card-turn" type="button" data-card-turn aria-label="Afficher les détails">Détails ↗</button></div>
     <div class="card-face card-back" hidden><div class="card-back-head"><strong>${isFolder ? "Détails du dossier" : "Détails du document"}</strong><button class="card-turn" type="button" data-card-turn aria-label="Revenir au recto">Retour ↩</button></div>${backBody}${isFolder ? "" : warnings}${card.path ? `<div class="card-back-path">${escapeHtml(card.path)}</div>` : ""}</div>
   </article>`;
+}
+
+// Anatomie : projection publiée par l'implémentation, lue en lecture seule au verso d'une carte d'affaire.
+const OUVRAGE_STATE_LABELS = {
+  existing: "existant", to_keep: "existant conservé", to_demolish: "à démolir",
+  temporary: "provisoire", projected: "projeté", executed: "exécuté",
+};
+const ATTRIBUTE_LABELS = { "space.area": "surface" };
+// Synthèse d'un projet d'extension : surfaces des locaux par état de l'ouvrage.
+const SURFACE_GROUPS = [
+  { label: "Existant conservé", states: ["existing", "to_keep"], tone: "kept" },
+  { label: "Projeté", states: ["projected"], tone: "projected" },
+  { label: "À démolir", states: ["to_demolish"], tone: "demolished" },
+];
+
+function surfaceBar(entries) {
+  const area = (item) => (item.attributes || []).find((claim) => claim.key === "space.area" && claim.unit === "m2" && typeof claim.value === "number")?.value;
+  const groups = SURFACE_GROUPS.map((group) => ({
+    ...group,
+    total: entries.filter((entry) => group.states.includes(entry.state)).reduce((sum, entry) => sum + (area(entry.object) || 0), 0),
+  })).filter((group) => group.total > 0);
+  const total = groups.reduce((sum, group) => sum + group.total, 0);
+  if (!total) return "";
+  // Only spaces with a surface are summed: say so, the bar is not the building's area.
+  const counted = entries.filter((entry) => SURFACE_GROUPS.some((group) => group.states.includes(entry.state)) && area(entry.object)).length;
+  const scope = counted > 1 ? `sur ${counted} locaux renseignés` : "sur 1 local renseigné";
+  const m2 = (value) => `${value.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} m²`;
+  let offset = 0;
+  const rects = groups.map((group) => {
+    const width = (group.total / total) * 100;
+    const rect = `<rect class="is-${group.tone}" x="${offset}" y="0" width="${width}" height="6"></rect>`;
+    offset += width;
+    return rect;
+  }).join("");
+  const legend = groups.map((group) => `<span><i class="is-${group.tone}"></i>${escapeHtml(group.label)} ${m2(group.total)}</span>`).join("");
+  const summary = `${groups.map((group) => `${group.label} ${m2(group.total)}`).join(", ")}, ${scope}`;
+  return `<div class="anatomy-surfaces"><svg viewBox="0 0 100 6" preserveAspectRatio="none" role="img" aria-label="${escapeHtml(summary)}">${rects}</svg><div class="anatomy-legend">${legend}<span>${scope}</span></div></div>`;
+}
+
+function anatomySlot(card) {
+  // Une affaire est un dossier de premier niveau ; son nom est le code du projet.
+  if (card.kind !== "folder" || !card.path || card.path.includes("/")) return "";
+  return `<section class="anatomy-panel" data-anatomy-slot data-anatomy-code="${escapeHtml(card.name || card.path)}" hidden></section>`;
+}
+
+function anatomyValue(claim) {
+  if (claim.value === null || claim.value === undefined) return "";
+  const value = typeof claim.value === "number" ? claim.value.toLocaleString("fr-FR") : String(claim.value);
+  const unit = claim.unit === "m2" ? "m²" : claim.unit || "";
+  return `${ATTRIBUTE_LABELS[claim.key] || claim.key} ${value}${unit ? ` ${unit}` : ""}${claim.certainty ? ` · ${claim.certainty}` : ""}`;
+}
+
+function renderAnatomy(data) {
+  const objects = new Map((data.objects || []).map((item) => [item.id, item]));
+  const children = new Map();
+  const contained = new Set();
+  for (const item of objects.values()) {
+    for (const relation of item.relations || []) {
+      if (relation.key !== "spatial.contains" || relation.subject_ref !== item.id || !objects.has(relation.object_ref)) continue;
+      if (!children.has(item.id)) children.set(item.id, []);
+      children.get(item.id).push({ object: objects.get(relation.object_ref), state: relation.qualifier?.ouvrage_state });
+      contained.add(relation.object_ref);
+    }
+  }
+  const line = (item, state) => {
+    const details = [
+      state ? OUVRAGE_STATE_LABELS[state] || state : "",
+      ...(item.attributes || []).map(anatomyValue),
+    ].filter(Boolean);
+    return `<li><strong>${escapeHtml(item.name || item.id)}</strong>${details.length ? ` <span class="anatomy-details">${escapeHtml(details.join(" · "))}</span>` : ""}</li>`;
+  };
+  const groups = [...objects.values()].filter((item) => children.has(item.id) && !contained.has(item.id)).map((item) =>
+    `<li><strong>${escapeHtml(item.name || item.id)}</strong><ul>${children.get(item.id).map((child) => line(child.object, child.state)).join("")}</ul></li>`);
+  const loose = [...objects.values()].filter((item) => !children.has(item.id) && !contained.has(item.id)).map((item) => line(item));
+  const pending = Object.values(data.sources || {}).filter((source) => source.identity_pending).length;
+  const stamp = data.generated_at ? new Date(data.generated_at).toLocaleString("fr-FR") : "";
+  const placed = [...children.values()].flat();
+  return `<h3>Anatomie</h3>
+    ${surfaceBar(placed)}
+    <ul class="anatomy-tree">${groups.join("")}${loose.join("")}</ul>
+    <p class="anatomy-note">Valeurs candidates, non validées${pending ? ` · identité en attente de preuve pour ${pending} source${pending > 1 ? "s" : ""}` : ""}${stamp ? ` · publié le ${escapeHtml(stamp)}` : ""}</p>`;
+}
+
+async function loadAnatomy(slot) {
+  if (slot.dataset.anatomyLoaded) return;
+  slot.dataset.anatomyLoaded = "1";
+  try {
+    const response = await fetch(workspaceUrl(`api/anatomy?code=${encodeURIComponent(slot.dataset.anatomyCode)}`), { cache: "no-store" });
+    const data = await response.json();
+    if (data.available) {
+      slot.innerHTML = renderAnatomy(data);
+      slot.hidden = false;
+    } else if (!["no_anatomy", "anatomy_not_configured"].includes(data.error)) {
+      slot.innerHTML = `<p class="anatomy-note">Anatomie illisible pour le moment.</p>`;
+      slot.hidden = false;
+    }
+  } catch {
+    delete slot.dataset.anatomyLoaded;
+  }
 }
 
 function canReanalyze(value, preflight) {
@@ -1331,6 +1430,8 @@ elements.cards.addEventListener("click", (event) => {
     card.querySelector(".card-front").hidden = !showingVerso;
     card.querySelector(".card-back").hidden = showingVerso;
     card.classList.toggle("is-verso", !showingVerso);
+    const anatomy = !showingVerso ? card.querySelector("[data-anatomy-slot]") : null;
+    if (anatomy) void loadAnatomy(anatomy);
     return;
   }
   const noteButton = event.target.closest("[data-save-document-note]");

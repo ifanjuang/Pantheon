@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from . import (
+    anatomy_export,
     apu_batch,
     apu_owner,
     decision_requests,
@@ -23,6 +24,19 @@ from .contract import load_contract
 from .documents import DoclingServeClient
 from .naming import DocumentNameError
 from .runner import run
+
+
+def _publish_anatomy(conn, project_id: str | None) -> None:
+    """Republish the Project's Anatomy projection after a committed write; never fails the write."""
+    if not project_id:
+        return
+    try:
+        path = anatomy_export.export_project_anatomy(conn, project_id)
+    except Exception as exc:  # the write is committed; the projection can be regenerated
+        print(f"warning: anatomy projection not published ({exc}); run export-anatomy", file=sys.stderr)
+        return
+    if path is not None:
+        print(f"anatomy projection published: {path}", file=sys.stderr)
 
 
 def main() -> int:
@@ -147,6 +161,12 @@ def main() -> int:
         default="C3",
         help="approval ceiling the effect requires (default: C3)",
     )
+
+    p_export = sub.add_parser(
+        "export-anatomy",
+        help="republish the Anatomy projection file of one Project, or of every initialized Project",
+    )
+    p_export.add_argument("--project", help="project_id; default: every Project with an APU owner")
 
     p_batch = sub.add_parser(
         "apu-batch",
@@ -420,6 +440,7 @@ def main() -> int:
             except apu_owner.ApuOwnerError as exc:
                 print(f"dossier import refused: {exc}", file=sys.stderr)
                 return 1
+            _publish_anatomy(conn, installed.get("project_ref"))
             sys.stdout.write(
                 yaml.safe_dump(
                     {
@@ -486,8 +507,28 @@ def main() -> int:
                 print(f"batch refused: {exc}", file=sys.stderr)
                 return 1
             conn.commit()
+            _publish_anatomy(conn, execution_results.get_execution_result(conn, args.execution_result).get("project_ref"))
             sys.stdout.write(yaml.safe_dump(result, sort_keys=False, allow_unicode=True))
             return 0
+        finally:
+            conn.close()
+
+    if args.command == "export-anatomy":
+        conn = store.connect()
+        try:
+            if anatomy_export.export_dir() is None:
+                print(f"{anatomy_export.EXPORT_DIR_ENV} is not set; nothing to publish", file=sys.stderr)
+                return 1
+            if args.project:
+                paths = [anatomy_export.export_project_anatomy(conn, args.project)]
+            else:
+                paths = anatomy_export.export_all(conn)
+            for path in paths:
+                print(path)
+            return 0
+        except anatomy_export.AnatomyExportError as exc:
+            print(f"export refused: {exc}", file=sys.stderr)
+            return 1
         finally:
             conn.close()
 
