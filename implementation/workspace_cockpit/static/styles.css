@@ -489,23 +489,37 @@ html[data-swiper-ready="false"] .sibling-navigation { display: none !important; 
 .otel-summary-item strong { font-size: 15px; line-height: 19px; }
 .otel-summary-item span { color: var(--muted); font-size: 11px; line-height: 15px; }
 .otel-spans { max-height: 32rem; overflow-y: auto; margin: 0; padding: 0; list-style: none; }
-.otel-trace { margin: 0 0 10px; padding: 0; border: 1px solid var(--line); background: var(--paper); list-style: none; }
-.otel-trace-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; padding: 6px 8px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 12px; }
-.otel-trace-head strong { color: var(--ink); font-weight: 600; }
-.otel-trace-spans { margin: 0; padding: 0 8px; list-style: none; }
-.otel-span { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; padding: 7px 0; border-bottom: 1px solid var(--line); }
-.otel-span:last-child { border-bottom: 0; }
-.otel-span-main { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
-.otel-span-main strong { font-size: 13px; font-weight: 600; }
-.otel-span-status { color: var(--muted); font-size: 12px; }
+.otel-trace { margin: 0 0 8px; border: 1px solid var(--line); background: var(--paper); list-style: none; }
+.otel-trace-head { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; align-items: center; gap: 3px 10px; padding: 8px 10px; cursor: pointer; list-style: none; }
+.otel-trace-head::-webkit-details-marker, .otel-span-summary::-webkit-details-marker { display: none; }
+.otel-trace-head::before, .otel-span-summary::before { content: "＋"; grid-row: 1 / span 2; color: var(--muted); }
+.otel-trace-details[open] > .otel-trace-head::before, .otel-span-details[open] > .otel-span-summary::before { content: "−"; }
+.otel-trace-operation { grid-column: 2; min-width: 0; overflow-wrap: anywhere; font-size: 13px; }
+.otel-trace-outcome { grid-column: 3; grid-row: 1; color: var(--muted); font-size: 12px; }
+.otel-trace-outcome[data-status="ERROR"] { color: var(--red); }
+.otel-trace-facts { grid-column: 2 / 4; grid-row: 2; color: var(--muted); font-size: 11px; text-align: right; }
+.otel-trace-id { grid-column: 2 / -1; color: var(--muted); font-size: 10px; font-weight: 400; }
+.otel-trace-spans, .otel-span-children { margin: 0; padding: 0 8px 0 18px; list-style: none; }
+.otel-span { margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.otel-span-details { min-width: 0; }
+.otel-span-summary { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; align-items: center; gap: 2px 8px; padding: 8px 4px; cursor: pointer; list-style: none; }
+.otel-span-summary::before { grid-row: 1 / span 2; }
+.otel-span-summary strong { grid-column: 2; min-width: 0; overflow-wrap: anywhere; font-size: 12px; font-weight: 600; }
+.otel-span-status { grid-column: 3; grid-row: 1; color: var(--muted); font-size: 11px; text-align: right; }
 .otel-span-status[data-status="ERROR"] { color: var(--red); }
 .otel-span-status[data-status="OK"] { color: var(--green); }
-.otel-span-meta { display: flex; flex-wrap: wrap; gap: 2px 12px; color: var(--muted); font-size: 11px; line-height: 16px; overflow-wrap: anywhere; }
-.otel-span-meta code { color: inherit; font: inherit; }
-@media (min-width: 40rem) {
-  .otel-span { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
-  .otel-span-meta { justify-content: flex-end; }
-}
+.otel-span-timing { grid-column: 2 / 4; grid-row: 2; color: var(--muted); font-size: 10px; text-align: right; }
+.otel-span-content { display: grid; gap: 8px; padding: 0 8px 8px 18px; }
+.otel-span-id { margin: 0; color: var(--muted); font-size: 10px; }
+.otel-attributes { display: grid; grid-template-columns: minmax(96px, auto) minmax(0, 1fr); gap: 2px 8px; margin: 0; font-size: 11px; line-height: 16px; overflow-wrap: anywhere; }
+.otel-attributes dt { color: var(--muted); }
+.otel-attributes dd { margin: 0; }
+.otel-error-details { padding: 6px 8px; border-left: 2px solid var(--red); background: color-mix(in srgb, var(--red) 5%, var(--surface)); }
+.otel-error-details > summary { color: var(--red); font-size: 11px; cursor: pointer; }
+.otel-events { display: grid; gap: 6px; margin: 0; padding-left: 18px; }
+.otel-events li { display: grid; gap: 4px; font-size: 11px; }
+.otel-events li > strong { font-weight: 600; }
+
 
 .role-dialogue { margin-top: 0; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
 .role-dialogue-head { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
