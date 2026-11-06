@@ -746,6 +746,11 @@ linked, and a claim is replaced at most once. Applied claims stay `candidate`.
 Identity relations (`identity.*`) are not claim writes: alignment stays with
 the source match and the identity lifecycle of §16 is not opened by this path.
 
+Display: the implementation publishes each Project's projection as one file
+(`anatomy_export`, `pantheon.anatomy.v1`, written atomically after each CLI
+write and regenerable with `export-anatomy`); the Workspace Cockpit shows it on
+the back of the matching affaire card. The file is a projection, never a source.
+
 Batch review (`implementation/mvp_vertical/apu_batch.py`, CLI `apu-batch`)
 removes the repetition, not the chain. A preview lists the claim candidates of
 one Observation Bundle with the accept or reject decision on each and a digest

@@ -60,6 +60,9 @@ def _claim_summary(claim: dict[str, Any], *, claim_type: str) -> dict[str, Any]:
     else:
         summary["relation_type"] = claim.get("relation_type")
         summary["object_ref"] = claim.get("object_ref")
+        if claim.get("qualifier"):
+            # The qualifier is part of the relation (containment kind, ouvrage_state).
+            summary["qualifier"] = claim.get("qualifier")
     return summary
 
 

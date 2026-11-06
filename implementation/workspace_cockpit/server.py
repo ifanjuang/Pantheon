@@ -36,6 +36,7 @@ if str(_MODULE_ROOT) not in sys.path:
     sys.path.insert(0, str(_MODULE_ROOT))
 from hindsight_producer import HindsightHTTPClient, HindsightProducer
 from hermes_workspace_chat import HermesChatError, HermesWorkspaceChat
+from anatomy_projection import read_anatomy
 from otel_projection import read_snapshot as read_otel_snapshot
 from processing_queue import ProcessingQueue
 from memory_reconciliation import (
@@ -2351,6 +2352,7 @@ class CockpitHandler(BaseHTTPRequestHandler):
     excluded_folder_names: tuple[str, ...] = DEFAULT_EXCLUDED_FOLDERS
     workspace_index: WorkspaceIndex | PersistedWorkspaceProjection | WorkspaceProjectionRouter | None = None
     otel_snapshot: Path | None = None
+    anatomy_dir: Path | None = None
     role_trace_url = ""
     role_trace_key = ""
     memory_reconciliation: MemoryReconciliationService | None = None
@@ -3761,6 +3763,10 @@ class CockpitHandler(BaseHTTPRequestHandler):
         if path == "/api/telemetry":
             self._json(read_otel_snapshot(self.otel_snapshot))
             return
+        if path == "/api/anatomy":
+            code = (parse_qs(parsed.query).get("code") or [""])[0]
+            self._json(read_anatomy(self.anatomy_dir, code))
+            return
         if path == "/api/role-traces/latest":
             self._proxy_role_trace("/internal/role-traces/latest")
             return
@@ -4073,6 +4079,10 @@ def main(argv: list[str] | None = None) -> int:
     if otel_snapshot and not Path(otel_snapshot).is_absolute():
         raise SystemExit("WORKSPACE_OTEL_SNAPSHOT must be absolute")
     CockpitHandler.otel_snapshot = Path(otel_snapshot) if otel_snapshot else None
+    anatomy_dir = os.getenv("WORKSPACE_ANATOMY_DIR", "").strip()
+    if anatomy_dir and not Path(anatomy_dir).is_absolute():
+        raise SystemExit("WORKSPACE_ANATOMY_DIR must be absolute")
+    CockpitHandler.anatomy_dir = Path(anatomy_dir) if anatomy_dir else None
     role_trace_url = os.getenv("WORKSPACE_ROLE_TRACE_URL", "").strip().rstrip("/")
     role_trace_key = os.getenv("WORKSPACE_ROLE_TRACE_KEY", "").strip()
     if bool(role_trace_url) != bool(role_trace_key):
