@@ -31,6 +31,7 @@ from . import (
     observability,
     passports,
     phase_orientation,
+    project_overview,
     policy,
     presets,
     source_map,
@@ -247,6 +248,14 @@ class PantheonPolicyService:
             phase_orientation.phase_orientation(phase, self.root),
             source_mode="governed_registry",
             input_value={"phase": phase},
+        )
+
+    def project_overview(self, code: str) -> dict[str, Any]:
+        return self._project(
+            "project.read",
+            project_overview.project_overview(code),
+            source_mode="published_projection",
+            input_value={"code": code},
         )
 
     def qualify_capability_status(self, candidate: dict[str, Any]) -> dict[str, Any]:

@@ -165,6 +165,16 @@ def get_phase_orientation(phase: str) -> str:
 
 
 @_read_only_tool()
+def get_project(code: str) -> str:
+    """Where an affaire stands: current index of each piece, open questions, levels, spaces and surfaces.
+
+    `code` is the affaire code (its folder name); an empty code lists the published ones.
+    Quote the indices and numbers as given: read from the documents, not validated.
+    """
+    return _call("project_overview", code)
+
+
+@_read_only_tool()
 def get_capability_status(status_yaml: str) -> str:
     """Qualify a caller-provided capability observation; perform no live probe."""
     return _call_yaml(status_yaml, "qualify_capability_status")

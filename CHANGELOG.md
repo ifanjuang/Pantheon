@@ -73,6 +73,14 @@
   or reject decision; applying replays the existing per-candidate chain (review,
   write command, authorization, application) in one transaction, all or
   nothing. No new table or schema.
+- Where an affaire stands, for Hermes: the read-only MCP tool `get_project(code)`
+  reads the file the implementation already publishes for the Workspace Cockpit
+  (`<PANTHEON_ANATOMY_DIR>/<CODE>.json`) and returns a compact summary: current
+  index of each piece and the open questions when the file carries them, then
+  levels, spaces, surfaces, state of the work, surface totals by state, sources
+  and reading rules. Indices and numbers come from the file so a local model
+  quotes them instead of computing or recalling them. No database access; never
+  evidence or a decision.
 - Phase orientation: `registries/architecture_phase_orientation.registry.json`
   projects the agency domain pack phase map (candidate deliverables, minimum
   evidence, gate per phase block) and the gate risk of the index effect matrix,
