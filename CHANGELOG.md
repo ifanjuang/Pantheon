@@ -47,6 +47,13 @@
   given by an alias is stored as its code with the entered spelling kept. The
   disposable-database phase check now runs from `implementation/` without
   `PYTHONPATH`.
+- IFC observation: `observe-ifc` reads storeys and spaces (surfaces from Qto
+  quantities or the space footprint) of one model index, reconciles them with
+  the Project Anatomy by GlobalId and deposits only the difference as a batch:
+  `+ objet`, `= rattache` (known object, including ones first observed on a
+  drawing), `~ remplace` (changed surface), `- retrait` (absent from the index).
+  Batch review now includes identity matches. Optional `ifc` extra
+  (ifcopenshell).
 - APU object lifecycle: Observation Bundles may carry new-object and retirement
   candidates; reviewed (`accept_object_candidate`, `accept_retirement`), prepared
   (`add_object`, `retire_object`), authorized and applied through the existing

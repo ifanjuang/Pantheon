@@ -27,8 +27,13 @@ hermes = [
   # External one-shot observer and run clients. This extra does not install Hermes.
   "httpx>=0.27",
 ]
+ifc = [
+  # Reads IFC models for observe-ifc (storeys, spaces, surfaces). LGPL, local only.
+  "ifcopenshell>=0.8",
+]
 test = [
   "pytest>=8.0",
+  "ifcopenshell>=0.8",
   "fastapi>=0.115",
   "httpx>=0.27",
   "PyJWT[crypto]>=2.13,<3",

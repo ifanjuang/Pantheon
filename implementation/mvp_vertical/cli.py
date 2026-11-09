@@ -9,6 +9,7 @@ from pathlib import Path
 
 from . import (
     anatomy_export,
+    ifc_observation,
     apu_batch,
     apu_owner,
     decision_requests,
@@ -161,6 +162,21 @@ def main() -> int:
         default="C3",
         help="approval ceiling the effect requires (default: C3)",
     )
+
+    p_ifc = sub.add_parser(
+        "observe-ifc",
+        help="reconcile one IFC model index with the Project Anatomy and deposit the difference as a candidate batch",
+        description=(
+            "Reads storeys and spaces, compares them by GlobalId with the Anatomy and deposits one "
+            "Observation Bundle (+ objects, = matches, ~ surfaces, - retirements). Nothing is written to "
+            "the Anatomy: approve the printed digest with apu-batch."
+        ),
+    )
+    p_ifc.add_argument("--project", required=True, help="project_id with an initialized APU owner")
+    p_ifc.add_argument("--file", required=True, help="absolute path of the .ifc file")
+    p_ifc.add_argument("--index", required=True, help="professional index of the model, e.g. E")
+    p_ifc.add_argument("--issuer", default="agence", help="who issued the model: agence, bet-structure, ...")
+    p_ifc.add_argument("--authority", default="project_working_document", help="source_authority_level of its values")
 
     p_export = sub.add_parser(
         "export-anatomy",
@@ -497,6 +513,56 @@ def main() -> int:
             conn.commit()
             _publish_anatomy(conn, execution_results.get_execution_result(conn, args.execution_result).get("project_ref"))
             sys.stdout.write(yaml.safe_dump(result, sort_keys=False, allow_unicode=True))
+            return 0
+        finally:
+            conn.close()
+
+    if args.command == "observe-ifc":
+        import yaml
+        from datetime import datetime, timezone
+
+        conn = store.connect()
+        try:
+            try:
+                path = Path(args.file)
+                if not path.is_absolute() or not path.is_file():
+                    raise ifc_observation.IfcObservationError("--file must be an existing absolute path")
+                anatomy = apu_owner.get_project_anatomy(conn, project_id=args.project)
+                model = ifc_observation.read_model(path)
+                observed_at = datetime.now(timezone.utc).isoformat()
+                contract = f"ifc-observation:{args.project}:{args.index}"
+                payload = ifc_observation.build_bundle(
+                    args.project, model, anatomy, artifact_ref=f"ifc:{path.name}", index=args.index,
+                    issuer=args.issuer, observed_at=observed_at, task_contract_ref=contract, authority=args.authority,
+                )
+                execution_id = f"execution-result.{args.project}.ifc.{args.index}.{model.digest[:12]}"
+                result_id = f"result.{args.project}.ifc.{args.index}.{model.digest[:12]}"
+                execution_results.store_execution_result(
+                    conn,
+                    execution_result={
+                        "execution_result_id": execution_id, "task_contract_ref": contract,
+                        "project_ref": args.project,
+                        "producer": {"kind": "adapter", "version": ifc_observation.ADAPTER_VERSION},
+                        "produced_at": observed_at, "authority": dict(execution_results.AUTHORITY),
+                        "results": [{"result_id": result_id, "result_kind": "observation_bundle",
+                                     "schema_ref": execution_results.OBSERVATION_BUNDLE_SCHEMA_REF, "payload": payload}],
+                        "clarification_requests": [],
+                    },
+                    idempotency_key=execution_id,
+                )
+                conn.commit()
+                preview = apu_batch.preview_batch(conn, execution_result_id=execution_id, result_ref=result_id)
+            except apu_owner.ApuOwnerNotFound as exc:
+                print(f"no Project Anatomy yet ({exc}); install its reviewed dossier first", file=sys.stderr)
+                return 1
+            except (ifc_observation.IfcObservationError, execution_results.ExecutionResultError) as exc:
+                conn.rollback()
+                print(f"observation refused: {exc}", file=sys.stderr)
+                return 1
+            sys.stdout.write(yaml.safe_dump({
+                "execution_result": execution_id, "result": result_id, "batch_digest": preview["batch_digest"],
+                "items": [apu_batch.preview_row(item) for item in preview["items"]],
+            }, sort_keys=False, allow_unicode=True))
             return 0
         finally:
             conn.close()

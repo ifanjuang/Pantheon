@@ -203,6 +203,19 @@ def lifecycle_candidate(
     return None
 
 
+def identity_candidate(
+    execution: dict[str, Any], result_ref: str, candidate_ref: str
+) -> dict[str, Any] | None:
+    """One identity.represents candidate of an Observation Bundle (a match to a known object), or None."""
+    try:
+        mapping = _mapping_candidate(execution, result_ref, candidate_ref)
+    except (ApuMappingReviewError, ApuMappingReviewNotFound):
+        return None
+    if "source_relation_claim" not in mapping:
+        return None
+    return mapping | {"candidate_kind": "identity"}
+
+
 def claim_candidate(
     execution: dict[str, Any], result_ref: str, candidate_ref: str
 ) -> dict[str, Any] | None:

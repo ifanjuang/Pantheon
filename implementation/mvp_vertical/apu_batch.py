@@ -8,9 +8,10 @@ that digest once. The batch then replays the chain candidate by candidate, in
 one transaction: if any step fails, nothing of the batch is kept.
 
 Commands bind the owner revision, so candidates are prepared and applied one
-after the other, never prepared all at once. New objects come first, so the
-claims and relations of the same bundle can name them; retirements come last.
-Identity matches to existing objects (``identity.*``) are not part of a batch.
+after the other, never prepared all at once. New objects come first, then the
+identity matches that attach this source's occurrences to known objects (so the
+claims of the same bundle can name and cite them), then claims and relations,
+then retirements.
 
 ```text
 batch approval != claim validation   (applied claims stay candidate)
@@ -51,6 +52,12 @@ def _candidates(execution: dict[str, Any], result_ref: str) -> list[dict[str, An
     for item in payload.get("object_candidates") or []:
         ref = str(item.get("object_candidate_id") or "")
         found.append({"ref": ref, "candidate": apu_mapping_reviews.lifecycle_candidate(execution, result_ref, ref)})
+    for item in payload.get("relation_claim_candidates") or []:
+        if item.get("relation_type") == "identity.represents":
+            ref = str(item.get("relation_claim_id") or "")
+            candidate = apu_mapping_reviews.identity_candidate(execution, result_ref, ref)
+            if candidate is not None:
+                found.append({"ref": ref, "candidate": candidate})
     refs = [item.get("attribute_claim_id") for item in payload.get("attribute_claim_candidates") or []]
     refs += [item.get("relation_claim_id") for item in payload.get("relation_claim_candidates") or []]
     for ref in refs:
@@ -105,6 +112,11 @@ def preview_row(item: dict[str, Any]) -> dict[str, Any]:
         nomenclature = stable.get("nomenclature") or {}
         return row | {"change": "+ objet", "subject": stable.get("stable_object_id"),
                       "key": stable.get("object_family"), "value": nomenclature.get("display_name")}
+    if kind == "identity":
+        relation = candidate["source_relation_claim"]
+        return row | {"change": "= rattache", "subject": (relation.get("object_ref") or {}).get("entity_id"),
+                      "key": "identity.represents", "value": (relation.get("subject_ref") or {}).get("entity_id"),
+                      "certainty": relation.get("certainty")}
     if kind == "retirement":
         retirement = candidate["candidate"]
         return row | {"change": "- retrait", "subject": retirement.get("stable_object_ref"),
@@ -143,15 +155,21 @@ def apply_batch(
             ref = item["ref"]
             key = f"batch:{batch_digest}:{ref}"
             kind = item["candidate"].get("candidate_kind")
-            accept = {"object": "accept_object_candidate", "retirement": "accept_retirement"}.get(kind, "accept_claim_candidate")
+            accept = {"object": "accept_object_candidate", "retirement": "accept_retirement",
+                      "identity": "select_existing_object"}.get(kind, "accept_claim_candidate")
             action = accept if item["decision"] == ACCEPT else "reject_mapping"
+            selected = (
+                item["candidate"]["match_candidates"][0]["stable_object_ref"]
+                if kind == "identity" and item["decision"] == ACCEPT
+                else None
+            )
             apu_mapping_reviews.append_mapping_review(
                 conn,
                 execution_result_id=execution_result_id,
                 result_ref=result_ref,
                 mapping_ref=ref,
                 action=action,
-                selected_stable_object_ref=None,
+                selected_stable_object_ref=selected,
                 clarification_question=None,
                 note=batch_note,
                 reviewer=reviewer,

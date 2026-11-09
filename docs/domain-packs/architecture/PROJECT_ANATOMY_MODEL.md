@@ -751,6 +751,15 @@ Display: the implementation publishes each Project's projection as one file
 write and regenerable with `export-anatomy`); the Workspace Cockpit shows it on
 the back of the matching affaire card. The file is a projection, never a source.
 
+IFC observation (`implementation/mvp_vertical/ifc_observation.py`, CLI
+`observe-ifc`, optional `ifc` extra): one model at one professional index is
+compared with the Anatomy by GlobalId and only the difference is proposed — new
+storeys and spaces, matches to known objects (by GlobalId, or by name or code,
+storey and surface for objects first observed without it), changed surfaces as
+superseding claims, and absent objects as retirement candidates. Every
+representation carries the index and issuer of the model. Elements (walls,
+doors, windows) and the existing/projected state are not read yet.
+
 Object lifecycle: an Observation Bundle may carry `object_candidates` (a new
 stable object and the candidate source representation observing it) and
 `retirement_candidates` (an existing object and a reason). Each follows the same
