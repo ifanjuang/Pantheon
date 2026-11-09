@@ -8,7 +8,8 @@ CREATE TABLE IF NOT EXISTS apu_write_command_candidates (
     mapping_ref TEXT NOT NULL,
     source_review_ref TEXT NOT NULL,
     operation TEXT NOT NULL CHECK (operation IN (
-        'add_match_to_existing_object', 'add_claim', 'supersede_claim'
+        'add_match_to_existing_object', 'add_claim', 'supersede_claim',
+        'add_object', 'retire_object'
     )),
     project_ref TEXT,
     -- Match commands target one stable object; claim commands target a claim
@@ -26,11 +27,17 @@ CREATE TABLE IF NOT EXISTS apu_write_command_candidates (
     prepared_by TEXT NOT NULL,
     idempotency_key TEXT NOT NULL UNIQUE,
     prepared_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- A match or a retirement targets an existing object at a known revision;
+    -- an addition names the object it creates, which has no revision yet; a
+    -- claim command leaves both object columns empty.
     CONSTRAINT apu_write_command_target_shape CHECK (
-        (operation = 'add_match_to_existing_object'
+        (operation IN ('add_match_to_existing_object', 'retire_object')
             AND target_stable_object_ref IS NOT NULL
             AND expected_object_revision IS NOT NULL)
-        OR (operation <> 'add_match_to_existing_object'
+        OR (operation = 'add_object'
+            AND target_stable_object_ref IS NOT NULL
+            AND expected_object_revision IS NULL)
+        OR (operation IN ('add_claim', 'supersede_claim')
             AND target_stable_object_ref IS NULL
             AND expected_object_revision IS NULL)
     )
@@ -113,6 +120,41 @@ BEGIN
     ) THEN
         ALTER TABLE apu_write_authorization_events
             ALTER COLUMN authorized_at SET DEFAULT clock_timestamp();
+    END IF;
+END;
+$$;
+
+-- Object lifecycle: add_object and retire_object commands. Keyed on the values
+-- this block adds, so it runs once on databases installed before them.
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+         WHERE conname = 'apu_write_command_target_shape'
+           AND conrelid = 'apu_write_command_candidates'::regclass
+           AND pg_get_constraintdef(oid) LIKE '%retire_object%'
+    ) THEN
+        ALTER TABLE apu_write_command_candidates
+            DROP CONSTRAINT IF EXISTS apu_write_command_candidates_operation_check;
+        ALTER TABLE apu_write_command_candidates
+            ADD CONSTRAINT apu_write_command_candidates_operation_check CHECK (operation IN (
+                'add_match_to_existing_object', 'add_claim', 'supersede_claim',
+                'add_object', 'retire_object'
+            ));
+        ALTER TABLE apu_write_command_candidates
+            DROP CONSTRAINT IF EXISTS apu_write_command_target_shape;
+        ALTER TABLE apu_write_command_candidates
+            ADD CONSTRAINT apu_write_command_target_shape CHECK (
+                (operation IN ('add_match_to_existing_object', 'retire_object')
+                    AND target_stable_object_ref IS NOT NULL
+                    AND expected_object_revision IS NOT NULL)
+                OR (operation = 'add_object'
+                    AND target_stable_object_ref IS NOT NULL
+                    AND expected_object_revision IS NULL)
+                OR (operation IN ('add_claim', 'supersede_claim')
+                    AND target_stable_object_ref IS NULL
+                    AND expected_object_revision IS NULL)
+            );
     END IF;
 END;
 $$;

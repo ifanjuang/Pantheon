@@ -471,19 +471,7 @@ def main() -> int:
                     preview = apu_batch.preview_batch(
                         conn, execution_result_id=args.execution_result, result_ref=args.result, reject=args.reject
                     )
-                    claims = [(item, item["candidate"]["claim_candidate"]) for item in preview["items"]]
-                    rows = [
-                        {
-                            "ref": item["ref"],
-                            "decision": item["decision"],
-                            "subject": (claim.get("subject_ref") or {}).get("entity_id"),
-                            "key": claim.get("attribute_key") or claim.get("relation_type"),
-                            "value": (claim.get("value") or {}).get("value"),
-                            "replaces": claim.get("supersedes_claim_ref"),
-                            "certainty": claim.get("certainty"),
-                        }
-                        for item, claim in claims
-                    ]
+                    rows = [apu_batch.preview_row(item) for item in preview["items"]]
                     sys.stdout.write(
                         yaml.safe_dump({"batch_digest": preview["batch_digest"], "items": rows}, sort_keys=False, allow_unicode=True)
                     )

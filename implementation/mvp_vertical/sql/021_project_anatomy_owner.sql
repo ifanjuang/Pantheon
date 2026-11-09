@@ -167,7 +167,7 @@ CREATE TABLE IF NOT EXISTS agency_apu_events (
     project_id TEXT NOT NULL REFERENCES agency_projects(project_id) ON DELETE RESTRICT,
     event_type TEXT NOT NULL CHECK (event_type IN (
         'reviewed_dossier_imported', 'source_match_applied', 'object_retired',
-        'claim_added', 'claim_superseded'
+        'claim_added', 'claim_superseded', 'object_added'
     )),
     expected_revision INTEGER NOT NULL CHECK (expected_revision >= 0),
     resulting_revision INTEGER NOT NULL CHECK (resulting_revision = expected_revision + 1),
@@ -200,6 +200,26 @@ BEGIN
             ADD CONSTRAINT agency_apu_events_event_type_check CHECK (event_type IN (
                 'reviewed_dossier_imported', 'source_match_applied', 'object_retired',
                 'claim_added', 'claim_superseded'
+            ));
+    END IF;
+END;
+$$;
+
+-- Object lifecycle: an object added after the reviewed dossier import.
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+         WHERE conname = 'agency_apu_events_event_type_check'
+           AND conrelid = 'agency_apu_events'::regclass
+           AND pg_get_constraintdef(oid) LIKE '%object_added%'
+    ) THEN
+        ALTER TABLE agency_apu_events
+            DROP CONSTRAINT IF EXISTS agency_apu_events_event_type_check;
+        ALTER TABLE agency_apu_events
+            ADD CONSTRAINT agency_apu_events_event_type_check CHECK (event_type IN (
+                'reviewed_dossier_imported', 'source_match_applied', 'object_retired',
+                'claim_added', 'claim_superseded', 'object_added'
             ));
     END IF;
 END;

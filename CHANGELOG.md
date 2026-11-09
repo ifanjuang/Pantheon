@@ -47,6 +47,12 @@
   given by an alias is stored as its code with the entered spelling kept. The
   disposable-database phase check now runs from `implementation/` without
   `PYTHONPATH`.
+- APU object lifecycle: Observation Bundles may carry new-object and retirement
+  candidates; reviewed (`accept_object_candidate`, `accept_retirement`), prepared
+  (`add_object`, `retire_object`), authorized and applied through the existing
+  chain, recording `object_added` / `object_retired` (whose writer was missing).
+  A retired object is kept with its history. Batch review orders new objects,
+  then claims, then retirements. Guarded migrations upgrade existing databases.
 - Anatomy on the affaire card: the implementation publishes each Project's
   Anatomy projection as `<MVP_ANATOMY_EXPORT_DIR>/<CODE>.json`
   (`pantheon.anatomy.v1`) after `store-reviewed-dossier` and `apu-batch`

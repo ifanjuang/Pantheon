@@ -8,8 +8,9 @@ that digest once. The batch then replays the chain candidate by candidate, in
 one transaction: if any step fails, nothing of the batch is kept.
 
 Commands bind the owner revision, so candidates are prepared and applied one
-after the other, never prepared all at once. Identity candidates
-(``identity.*``) are not claim writes and are not part of a batch.
+after the other, never prepared all at once. New objects come first, so the
+claims and relations of the same bundle can name them; retirements come last.
+Identity matches to existing objects (``identity.*``) are not part of a batch.
 
 ```text
 batch approval != claim validation   (applied claims stay candidate)
@@ -46,16 +47,22 @@ def _candidates(execution: dict[str, Any], result_ref: str) -> list[dict[str, An
     if result is None or result.get("result_kind") != "observation_bundle":
         raise ApuBatchError("batch review needs one Observation Bundle result")
     payload = result.get("payload") or {}
+    found = []
+    for item in payload.get("object_candidates") or []:
+        ref = str(item.get("object_candidate_id") or "")
+        found.append({"ref": ref, "candidate": apu_mapping_reviews.lifecycle_candidate(execution, result_ref, ref)})
     refs = [item.get("attribute_claim_id") for item in payload.get("attribute_claim_candidates") or []]
     refs += [item.get("relation_claim_id") for item in payload.get("relation_claim_candidates") or []]
-    found = []
     for ref in refs:
         # Same lookup as the per-candidate review; it skips identity relations.
         candidate = apu_mapping_reviews.claim_candidate(execution, result_ref, str(ref or ""))
         if candidate is not None:
             found.append({"ref": ref, "candidate": candidate})
+    for item in payload.get("retirement_candidates") or []:
+        ref = str(item.get("retirement_candidate_id") or "")
+        found.append({"ref": ref, "candidate": apu_mapping_reviews.lifecycle_candidate(execution, result_ref, ref)})
     if not found:
-        raise ApuBatchError("the Observation Bundle has no claim candidate to review")
+        raise ApuBatchError("the Observation Bundle has no candidate to review")
     return found
 
 
@@ -88,6 +95,31 @@ def preview_batch(
     return {"execution_result_id": execution_result_id, "result_ref": result_ref, "batch_digest": digest, "items": items}
 
 
+def preview_row(item: dict[str, Any]) -> dict[str, Any]:
+    """One readable line of the preview: + object, claim, or - retirement."""
+    candidate = item["candidate"]
+    kind = candidate.get("candidate_kind")
+    row = {"ref": item["ref"], "decision": item["decision"]}
+    if kind == "object":
+        stable = candidate["candidate"]["stable_object"]
+        nomenclature = stable.get("nomenclature") or {}
+        return row | {"change": "+ objet", "subject": stable.get("stable_object_id"),
+                      "key": stable.get("object_family"), "value": nomenclature.get("display_name")}
+    if kind == "retirement":
+        retirement = candidate["candidate"]
+        return row | {"change": "- retrait", "subject": retirement.get("stable_object_ref"),
+                      "key": "retirement", "value": retirement.get("reason")}
+    claim = candidate["claim_candidate"]
+    return row | {
+        "change": "~ remplace" if claim.get("supersedes_claim_ref") else "+ valeur",
+        "subject": (claim.get("subject_ref") or {}).get("entity_id"),
+        "key": claim.get("attribute_key") or claim.get("relation_type"),
+        "value": (claim.get("value") or {}).get("value"),
+        "replaces": claim.get("supersedes_claim_ref"),
+        "certainty": claim.get("certainty"),
+    }
+
+
 def apply_batch(
     conn,
     *,
@@ -110,7 +142,9 @@ def apply_batch(
         for item in preview["items"]:
             ref = item["ref"]
             key = f"batch:{batch_digest}:{ref}"
-            action = "accept_claim_candidate" if item["decision"] == ACCEPT else "reject_mapping"
+            kind = item["candidate"].get("candidate_kind")
+            accept = {"object": "accept_object_candidate", "retirement": "accept_retirement"}.get(kind, "accept_claim_candidate")
+            action = accept if item["decision"] == ACCEPT else "reject_mapping"
             apu_mapping_reviews.append_mapping_review(
                 conn,
                 execution_result_id=execution_result_id,
@@ -125,7 +159,7 @@ def apply_batch(
                 # A replacement candidate is accepted only with the claim it declares it replaces.
                 superseded_claim_ref=(
                     item["candidate"]["claim_candidate"].get("supersedes_claim_ref")
-                    if item["decision"] == ACCEPT
+                    if item["decision"] == ACCEPT and kind == "claim"
                     else None
                 ),
             )

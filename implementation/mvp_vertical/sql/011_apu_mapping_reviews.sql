@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS apu_mapping_review_events (
     mapping_ref TEXT NOT NULL,
     action TEXT NOT NULL CHECK (action IN (
         'select_existing_object', 'mark_unmatched', 'needs_clarification', 'reject_mapping',
-        'accept_claim_candidate'
+        'accept_claim_candidate', 'accept_object_candidate', 'accept_retirement'
     )),
     selected_stable_object_ref TEXT,
     superseded_claim_ref TEXT,
@@ -98,6 +98,28 @@ BEGIN
             ADD CONSTRAINT apu_mapping_review_superseded_claim_scope CHECK (
                 superseded_claim_ref IS NULL OR action = 'accept_claim_candidate'
             );
+    END IF;
+END;
+$$;
+
+-- Object lifecycle: a reviewer may accept a new-object candidate or a retirement
+-- candidate of an Observation Bundle. Keyed on the value this block adds.
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+         WHERE conname = 'apu_mapping_review_events_action_check'
+           AND conrelid = 'apu_mapping_review_events'::regclass
+           AND pg_get_constraintdef(oid) LIKE '%accept_retirement%'
+    ) THEN
+        ALTER TABLE apu_mapping_review_events
+            DROP CONSTRAINT IF EXISTS apu_mapping_review_events_action_check;
+        ALTER TABLE apu_mapping_review_events
+            ADD CONSTRAINT apu_mapping_review_events_action_check CHECK (action IN (
+                'select_existing_object', 'mark_unmatched', 'needs_clarification',
+                'reject_mapping', 'accept_claim_candidate', 'accept_object_candidate',
+                'accept_retirement'
+            ));
     END IF;
 END;
 $$;

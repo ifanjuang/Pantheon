@@ -12,7 +12,7 @@ import json
 import uuid
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import jsonschema
 import psycopg
@@ -84,6 +84,7 @@ def _registry() -> Registry:
         ("source_representation.schema.yaml", "apu_source_representation"),
         ("attribute_claim.schema.yaml", "apu_attribute_claim"),
         ("relation_claim.schema.yaml", "apu_relation_claim"),
+        ("stable_object.schema.yaml", "apu_stable_object"),
     ):
         schema = pantheon_contracts.load_schema(contract_name)
         resources.append(
@@ -956,3 +957,223 @@ def apply_source_match(
         "canonical_effect": canonical_effect,
         "authority": dict(APPLICATION_AUTHORITY),
     }
+
+
+def _lifecycle_command(command: dict[str, Any], operation: str) -> tuple[str, str, str, int]:
+    if command.get("operation") != operation:
+        raise ApuOwnerError("unsupported APU owner lifecycle operation")
+    project_id = _required(command.get("project_ref"), "command.project_ref")
+    command_id = _required(command.get("command_id"), "command.command_id")
+    command_digest = _required(command.get("payload_digest"), "command.payload_digest")
+    try:
+        expected_owner_revision = int(command["expected_owner_revision"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ApuOwnerError("command owner revision is required") from exc
+    if expected_owner_revision < 1:
+        raise ApuOwnerError("command owner revision must be positive")
+    return project_id, command_id, command_digest, expected_owner_revision
+
+
+def _apply_lifecycle_event(
+    conn,
+    *,
+    event_type: str,
+    project_id: str,
+    command_id: str,
+    expected_owner_revision: int,
+    event_payload: dict[str, Any],
+    authorization_id: str,
+    actor: str,
+    key: str,
+    effect: Callable[[], None],
+    object_id: str,
+) -> dict[str, Any]:
+    """One lifecycle effect under the owner lock: replay, freshness, effect, event."""
+    event_digest = _digest(event_payload)
+    with conn.transaction():
+        state = _project_state(conn, project_id, lock=True)
+        if state is None:
+            raise ApuOwnerNotFound(f"Project has no executable APU owner state: {project_id}")
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute("SELECT * FROM agency_apu_events WHERE idempotency_key = %s", (key,))
+            replay = cur.fetchone()
+            if replay is not None:
+                if (
+                    replay["event_type"] != event_type
+                    or replay.get("command_ref") != command_id
+                    or replay["payload_digest"] != event_digest
+                ):
+                    raise ApuOwnerConflict("APU application idempotency key belongs to another effect")
+                return {
+                    "status": "replayed",
+                    "event": dict(replay),
+                    "object": get_apu_object(conn, project_id=project_id, object_id=object_id),
+                    "owner_revision": int(replay["resulting_revision"]),
+                    "authority": dict(APPLICATION_AUTHORITY),
+                }
+            cur.execute(
+                "SELECT event_id FROM agency_apu_events WHERE event_type = %s AND command_ref = %s",
+                (event_type, command_id),
+            )
+            if cur.fetchone() is not None:
+                raise ApuOwnerConflict("APU write command was already applied")
+        if int(state["revision"]) != expected_owner_revision:
+            raise ApuOwnerConflict(
+                f"stale APU owner revision: expected {expected_owner_revision}, found {state['revision']}"
+            )
+        effect()
+        next_owner_revision = expected_owner_revision + 1
+        conn.execute(
+            "UPDATE agency_apu_project_state SET revision = %s, "
+            "updated_at = clock_timestamp() WHERE project_id = %s AND revision = %s",
+            (next_owner_revision, project_id, expected_owner_revision),
+        )
+        event_id = f"apu-event-{uuid.uuid4().hex}"
+        conn.execute(
+            """
+            INSERT INTO agency_apu_events (
+                event_id, project_id, event_type, expected_revision,
+                resulting_revision, actor, idempotency_key, payload_digest, payload,
+                command_ref, authorization_ref
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                event_id, project_id, event_type, expected_owner_revision, next_owner_revision,
+                actor, key, event_digest, Jsonb(event_payload), command_id, authorization_id,
+            ),
+        )
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute("SELECT * FROM agency_apu_events WHERE event_id = %s", (event_id,))
+            event = dict(cur.fetchone())
+    return {
+        "status": "applied",
+        "event": event,
+        "object": get_apu_object(conn, project_id=project_id, object_id=object_id),
+        "owner_revision": next_owner_revision,
+        "authority": dict(APPLICATION_AUTHORITY),
+    }
+
+
+def apply_object_addition(
+    conn: psycopg.Connection,
+    *,
+    command: dict[str, Any],
+    authorization_id: str,
+    actor: str,
+    idempotency_key: str,
+) -> dict[str, Any]:
+    """Add one stable object after the reviewed dossier import, with the occurrence observing it.
+
+    The object starts at revision 1; its identity link stays a candidate. This
+    is the add half of the identity lifecycle (model §16, §25.3), through the
+    same reviewed chain as every other APU write.
+    """
+    project_id, command_id, command_digest, expected_owner_revision = _lifecycle_command(command, "add_object")
+    authorization_id = _required(authorization_id, "authorization_id")
+    actor = _required(actor, "actor")
+    key = _required(idempotency_key, "idempotency_key")
+    stable = command.get("stable_object")
+    if not isinstance(stable, dict):
+        raise ApuOwnerError("add_object requires the exact stable object")
+    _validate("stable_object", stable)
+    object_id = _required(stable.get("stable_object_id"), "stable_object.stable_object_id")
+    if stable.get("project_ref") != project_id:
+        raise ApuOwnerError("added stable object must carry the exact Project")
+    representation, relation = _source_match_effect(command, project_id=project_id, object_id=object_id)
+    event_payload = {
+        "command_ref": command_id,
+        "command_payload_digest": command_digest,
+        "authorization_ref": authorization_id,
+        "stable_object_ref": object_id,
+        "object_family": stable["object_family"],
+        "source_representation_ref": representation["representation_id"],
+        "identity_relation_claim_ref": relation["relation_claim_id"],
+        "source_artifact_ref": representation.get("source_artifact_ref"),
+        "source_execution_result_ref": command.get("source_execution_result_ref"),
+        "source_mapping_ref": command.get("source_mapping_ref"),
+        "source_review_ref": command.get("source_review_ref"),
+        "stable_identity_professionally_validated": False,
+        "evidence_admitted": False,
+    }
+
+    def effect() -> None:
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM agency_apu_objects WHERE object_id = %s", (object_id,))
+            if cur.fetchone() is not None:
+                raise ApuOwnerConflict(f"APU object already exists: {object_id}")
+        conn.execute(
+            """
+            INSERT INTO agency_apu_objects (
+                object_id, project_id, object_family, stable_object_payload,
+                payload_digest, created_by
+            ) VALUES (%s, %s, %s, %s, %s, %s)
+            """,
+            (object_id, project_id, stable["object_family"], Jsonb(stable), _digest(stable), actor),
+        )
+        _store_source_match_effect(
+            conn, representation=representation, relation=relation,
+            project_id=project_id, object_id=object_id, actor=actor,
+        )
+
+    return _apply_lifecycle_event(
+        conn, event_type="object_added", project_id=project_id, command_id=command_id,
+        expected_owner_revision=expected_owner_revision, event_payload=event_payload,
+        authorization_id=authorization_id, actor=actor, key=key, effect=effect, object_id=object_id,
+    )
+
+
+def apply_object_retirement(
+    conn: psycopg.Connection,
+    *,
+    command: dict[str, Any],
+    authorization_id: str,
+    actor: str,
+    idempotency_key: str,
+) -> dict[str, Any]:
+    """Retire one stable object: kept and addressable, no longer current; never erased."""
+    project_id, command_id, command_digest, expected_owner_revision = _lifecycle_command(command, "retire_object")
+    authorization_id = _required(authorization_id, "authorization_id")
+    actor = _required(actor, "actor")
+    key = _required(idempotency_key, "idempotency_key")
+    retirement = command.get("retirement")
+    if not isinstance(retirement, dict):
+        raise ApuOwnerError("retire_object requires the reviewed retirement")
+    object_id = _required(retirement.get("stable_object_ref"), "retirement.stable_object_ref")
+    reason = _required(retirement.get("reason"), "retirement.reason")
+    try:
+        expected_object_revision = int(command["expected_object_revision"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ApuOwnerError("retire_object requires the expected object revision") from exc
+    event_payload = {
+        "command_ref": command_id,
+        "command_payload_digest": command_digest,
+        "authorization_ref": authorization_id,
+        "stable_object_ref": object_id,
+        "reason": reason,
+        "evidence_refs": list(retirement.get("evidence_refs") or []),
+        "source_execution_result_ref": command.get("source_execution_result_ref"),
+        "source_mapping_ref": command.get("source_mapping_ref"),
+        "source_review_ref": command.get("source_review_ref"),
+        "object_erased": False,
+    }
+
+    def effect() -> None:
+        target = get_apu_object(conn, project_id=project_id, object_id=object_id, lock=True)
+        if target.get("retired_at") is not None:
+            raise ApuOwnerConflict("APU object is already retired")
+        if target["revision"] != expected_object_revision:
+            raise ApuOwnerConflict(
+                f"stale APU object revision: expected {expected_object_revision}, found {target['revision']}"
+            )
+        conn.execute(
+            "UPDATE agency_apu_objects SET retired_at = clock_timestamp(), retired_by = %s, "
+            "revision = revision + 1, updated_at = clock_timestamp() "
+            "WHERE project_id = %s AND object_id = %s AND revision = %s",
+            (actor, project_id, object_id, expected_object_revision),
+        )
+
+    return _apply_lifecycle_event(
+        conn, event_type="object_retired", project_id=project_id, command_id=command_id,
+        expected_owner_revision=expected_owner_revision, event_payload=event_payload,
+        authorization_id=authorization_id, actor=actor, key=key, effect=effect, object_id=object_id,
+    )
