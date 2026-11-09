@@ -15,6 +15,7 @@ from . import (
     decision_requests,
     execution_results,
     human_access,
+    project_pieces,
     register,
     storage_retention,
     store,
@@ -27,9 +28,17 @@ from .naming import DocumentNameError
 from .runner import run
 
 
+def _execution_project(conn, execution_result_id: str) -> str | None:
+    """The Project an execution result belongs to (its header carries it, not the top level)."""
+    return (execution_results.get_execution_result(conn, execution_result_id).get("execution_result") or {}).get(
+        "project_ref"
+    )
+
+
 def _publish_anatomy(conn, project_id: str | None) -> None:
     """Republish the Project's Anatomy projection after a committed write; never fails the write."""
     if not project_id:
+        print("warning: Project unknown, anatomy projection not published; run export-anatomy", file=sys.stderr)
         return
     try:
         path = anatomy_export.export_project_anatomy(conn, project_id)
@@ -183,6 +192,12 @@ def main() -> int:
         help="republish the Anatomy projection file of one Project, or of every initialized Project",
     )
     p_export.add_argument("--project", help="project_id; default: every Project with an APU owner")
+
+    p_pieces = sub.add_parser(
+        "pieces",
+        help="current state of an affaire's documents: latest index of each piece, and the questions raised",
+    )
+    p_pieces.add_argument("--code", required=True, help="affaire code (its folder name)")
 
     p_batch = sub.add_parser(
         "apu-batch",
@@ -511,7 +526,7 @@ def main() -> int:
                 print(f"batch refused: {exc}", file=sys.stderr)
                 return 1
             conn.commit()
-            _publish_anatomy(conn, execution_results.get_execution_result(conn, args.execution_result).get("project_ref"))
+            _publish_anatomy(conn, _execution_project(conn, args.execution_result))
             sys.stdout.write(yaml.safe_dump(result, sort_keys=False, allow_unicode=True))
             return 0
         finally:
@@ -585,6 +600,23 @@ def main() -> int:
             return 1
         finally:
             conn.close()
+
+    if args.command == "pieces":
+        state = project_pieces.read_project_pieces(args.code)
+        if state is None:
+            print(f"neither {project_pieces.WORKSPACE_DB_ENV} nor {project_pieces.AFFAIRES_ROOT_ENV} is set", file=sys.stderr)
+            return 1
+        labels = {project_pieces.POSITION_PROBABLE: " (indice du nom)", project_pieces.POSITION_UNCERTAIN: " (sans indice)"}
+        for piece in state["pieces"]:
+            current = piece["current"]
+            mark = "" if piece["category"] == "projet" else "  [à confronter]"
+            print(f"{piece['piece']:<32} {current['index'] or '-':<4} {current['date'] or '':<10}"
+                  f"{labels.get(current['position'], '')}{mark}")
+        for question in state["questions"]:
+            print(f"? {question['text']}")
+        print(f"{len(state['pieces'])} pièces, {len(state['questions'])} questions, "
+              f"{state['administrative_documents']} documents administratifs non suivis")
+        return 0
 
     if args.command == "document-card":
         import yaml

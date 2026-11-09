@@ -118,3 +118,10 @@ def test_unknown_rejected_refs_are_refused(conn) -> None:
     _, execution_id, result_id = _setup(conn)
     with pytest.raises(apu_batch.ApuBatchError, match="not candidates"):
         apu_batch.preview_batch(conn, execution_result_id=execution_id, result_ref=result_id, reject=["nope"])
+
+
+def test_the_cli_finds_the_project_to_republish_after_a_batch(conn) -> None:
+    from mvp_vertical import cli
+
+    project_id, execution_id, _ = _setup(conn)
+    assert cli._execution_project(conn, execution_id) == project_id
