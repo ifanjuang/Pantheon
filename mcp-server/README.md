@@ -42,6 +42,7 @@ Any request asking the server to perform such an effect is refused with a report
 | `get_consultation_catalog()` | honest availability map: implemented read-only, partial and documented-non-implemented consultation surfaces |
 | `explain_architecture(topic)` | bounded placement, purpose, rationale, forbidden responsibilities and governed source references for Pantheon, Hermes, historical/refused OpenWebUI placement, Pantheon Control, MCP/API, capability, knowledge, memory and evidence topics |
 | `get_phase_orientation(phase)` | main subjects of one architecture phase from `registries/architecture_phase_orientation.registry.json` (French): candidate deliverables, minimum evidence, gate and gate risk; orientation only, no status, no completeness check, nothing required |
+| `get_project(code)` | where one affaire stands, from its published file (`<PANTHEON_ANATOMY_DIR>/<CODE>.json`, `pantheon.anatomy.v1`, written by the implementation and shown on the Workspace Cockpit card): current index of each piece (drawings, models, written documents) with its position (certain, probable, uncertain), quotes to confront and open questions, then the Anatomy (levels, spaces, surfaces, state of the work, totals by state, sources) with reading rules; every index and number comes from the file, so a local model quotes instead of computing; never evidence or a decision; no database access; an empty code lists the published affaires; without the variable, `anatomy_not_configured` |
 | `get_capability_status(status_yaml)` | qualifies a *provided* observation on the Hermes dashboard axes (`listed`, `detected`, `installed`, `configured`, `enabled`, `reachable`, `health`) plus separate governance, task-use, update and rollback axes; performs no live inventory or runtime probe and grants no authorization |
 | `validate_passport(passport_yaml)` | shape report + governance gaps (validation ≠ authorization) |
 | `classify_request(request_yaml)` | consequence K0–K4, required verification V0–V4, approval ceiling C0–C5, required gates |
@@ -106,6 +107,10 @@ Environment:
 ```text
 PANTHEON_REPO_PATH   path to the Pantheon Next checkout (default: auto-detected
                      by walking up from the module to CLAUDE.md)
+PANTHEON_ANATOMY_DIR absolute directory where the implementation publishes
+                     <CODE>.json Anatomy projections (MVP_ANATOMY_EXPORT_DIR on
+                     the writer side); read by get_project only, unset =
+                     anatomy_not_configured
 ```
 
 Hermes Agent reads MCP configuration from `~/.hermes/config.yaml`
@@ -129,6 +134,7 @@ mcp_servers:
         - get_consultation_catalog
         - explain_architecture
         - get_phase_orientation
+        - get_project
         - get_capability_status
         - evaluate_preflight
         - prepare_task_contract_skeleton

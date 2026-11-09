@@ -16,6 +16,9 @@ mcp_servers:
     env:
       # Mount the audited Pantheon checkout read-only at this path.
       PANTHEON_REPO_PATH: "/opt/pantheon-next-<COMMIT_SHORT>"
+      # Optional: where the implementation publishes <CODE>.json Anatomy
+      # projections; get_project reads only this directory.
+      # PANTHEON_ANATOMY_DIR: "<ANATOMY_EXPORT_DIR>"
 
     # This exact surface combines the bounded governance wiki with the
     # read-only request-handling helpers required by the governed Hermes flow.
@@ -31,6 +34,7 @@ mcp_servers:
         - get_consultation_catalog
         - explain_architecture
         - get_phase_orientation
+        - get_project
         - get_capability_status
         - evaluate_preflight
         - prepare_task_contract_skeleton
