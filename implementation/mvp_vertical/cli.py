@@ -27,9 +27,17 @@ from .naming import DocumentNameError
 from .runner import run
 
 
+def _execution_project(conn, execution_result_id: str) -> str | None:
+    """The Project an execution result belongs to (its header carries it, not the top level)."""
+    return (execution_results.get_execution_result(conn, execution_result_id).get("execution_result") or {}).get(
+        "project_ref"
+    )
+
+
 def _publish_anatomy(conn, project_id: str | None) -> None:
     """Republish the Project's Anatomy projection after a committed write; never fails the write."""
     if not project_id:
+        print("warning: Project unknown, anatomy projection not published; run export-anatomy", file=sys.stderr)
         return
     try:
         path = anatomy_export.export_project_anatomy(conn, project_id)
@@ -511,7 +519,7 @@ def main() -> int:
                 print(f"batch refused: {exc}", file=sys.stderr)
                 return 1
             conn.commit()
-            _publish_anatomy(conn, execution_results.get_execution_result(conn, args.execution_result).get("project_ref"))
+            _publish_anatomy(conn, _execution_project(conn, args.execution_result))
             sys.stdout.write(yaml.safe_dump(result, sort_keys=False, allow_unicode=True))
             return 0
         finally:
