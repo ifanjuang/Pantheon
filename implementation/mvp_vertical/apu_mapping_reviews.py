@@ -27,11 +27,22 @@ ACTIONS = {
     "needs_clarification",
     "reject_mapping",
     "accept_claim_candidate",
+    "accept_object_candidate",
+    "accept_retirement",
 }
 # Actions that make sense for each candidate kind. An identity candidate is
 # matched to a stable object; a claim candidate is accepted for a claim write.
 IDENTITY_ACTIONS = {"select_existing_object", "mark_unmatched", "needs_clarification", "reject_mapping"}
 CLAIM_ACTIONS = {"accept_claim_candidate", "needs_clarification", "reject_mapping"}
+# A new-object candidate is accepted for an add_object write; a retirement
+# candidate for a retire_object write. Neither selects an existing object.
+OBJECT_ACTIONS = {"accept_object_candidate", "needs_clarification", "reject_mapping"}
+RETIREMENT_ACTIONS = {"accept_retirement", "needs_clarification", "reject_mapping"}
+ACTIONS_BY_KIND = {
+    "claim": CLAIM_ACTIONS,
+    "object": OBJECT_ACTIONS,
+    "retirement": RETIREMENT_ACTIONS,
+}
 AUTHORITY = {
     "confirms_stable_identity": False,
     "writes_apu": False,
@@ -96,6 +107,9 @@ def _mapping_candidate(execution: dict[str, Any], result_ref: str, mapping_ref: 
 
     if result.get("result_kind") != "observation_bundle":
         raise ApuMappingReviewError("result must be apu_object_mapping or observation_bundle")
+    lifecycle = lifecycle_candidate(execution, result_ref, mapping_ref)
+    if lifecycle is not None:
+        return lifecycle
     relations = payload.get("relation_claim_candidates")
     if not isinstance(relations, list):
         raise ApuMappingReviewError("observation bundle must contain relation_claim_candidates")
@@ -137,6 +151,56 @@ def _mapping_candidate(execution: dict[str, Any], result_ref: str, mapping_ref: 
         ],
         "source_relation_claim": relation,
     }
+
+
+def lifecycle_candidate(
+    execution: dict[str, Any], result_ref: str, candidate_ref: str
+) -> dict[str, Any] | None:
+    """Return one new-object or retirement candidate of an Observation Bundle, or None.
+
+    As for claims, the candidate is returned exactly as the bundle carries it.
+    A new-object candidate must name a candidate source representation of the
+    same bundle: an object enters the APU only with the occurrence observing it.
+    """
+    result = next(
+        (item for item in execution.get("results", []) if item.get("result_id") == result_ref),
+        None,
+    )
+    if result is None or result.get("result_kind") != "observation_bundle":
+        return None
+    payload = result.get("payload")
+    if not isinstance(payload, dict):
+        return None
+    for kind, field, id_field in (
+        ("object", "object_candidates", "object_candidate_id"),
+        ("retirement", "retirement_candidates", "retirement_candidate_id"),
+    ):
+        for item in payload.get(field) or []:
+            if not isinstance(item, dict) or item.get(id_field) != candidate_ref:
+                continue
+            if kind == "object":
+                representation_id = item.get("source_representation_ref")
+                representation = next(
+                    (
+                        rep
+                        for rep in payload.get("source_representations") or []
+                        if isinstance(rep, dict) and rep.get("representation_id") == representation_id
+                    ),
+                    None,
+                )
+                if representation is None:
+                    raise ApuMappingReviewError("object candidate names an unknown source representation")
+                if representation.get("proof_status") != "candidate":
+                    raise ApuMappingReviewError("object candidate source representation must remain candidate")
+            return {
+                "mapping_id": candidate_ref,
+                "candidate_kind": kind,
+                "candidate": item,
+                "project_ref": payload.get("project_ref"),
+                "rationale": item.get("rationale") or "Observation Bundle lifecycle candidate.",
+                "match_candidates": [],
+            }
+    return None
 
 
 def claim_candidate(
@@ -204,10 +268,9 @@ def append_mapping_review(
     question = (clarification_question or "").strip() or None
     normalized_note = (note or "").strip() or None
     superseded = (superseded_claim_ref or "").strip() or None
-    is_claim = mapping.get("candidate_kind") == "claim"
-    allowed = CLAIM_ACTIONS if is_claim else IDENTITY_ACTIONS
+    kind = mapping.get("candidate_kind") or "identity"
+    allowed = ACTIONS_BY_KIND.get(kind, IDENTITY_ACTIONS)
     if action not in allowed:
-        kind = "claim" if is_claim else "identity"
         raise ApuMappingReviewError(f"{action} does not apply to a {kind} candidate")
     if superseded is not None and action != "accept_claim_candidate":
         raise ApuMappingReviewError("superseded_claim_ref is allowed only for claim acceptance")

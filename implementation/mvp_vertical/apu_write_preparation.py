@@ -359,6 +359,8 @@ def _validate_command_payload(command: dict[str, Any]) -> None:
     if command.get("operation") in apu_owner_claims.CLAIM_OPERATIONS:
         _validate_claim_command_payload(command)
         return
+    if command.get("operation") == "retire_object":
+        return
     representation = command["source_representation"]
     relation = command["identity_relation_claim"]
     representation_id = _required(
@@ -391,6 +393,10 @@ def _validate_command_payload(command: dict[str, Any]) -> None:
         raise ApuWritePreparationError(
             "identity relation certainty must equal the reviewed mapping"
         )
+    if command.get("operation") == "add_object" and object_ref.get("entity_id") != (
+        command.get("stable_object") or {}
+    ).get("stable_object_id"):
+        raise ApuWritePreparationError("identity relation must target the object the command adds")
 
 
 def _validate_claim_command_payload(command: dict[str, Any]) -> None:
@@ -570,6 +576,200 @@ def _prepare_claim_write_command(
     return get_write_command(conn, command_id)
 
 
+LIFECYCLE_OPERATIONS = {"object": "add_object", "retirement": "retire_object"}
+LIFECYCLE_ACTIONS = {"object": "accept_object_candidate", "retirement": "accept_retirement"}
+
+
+def _latest_lifecycle_review(conn, *, execution_result_id: str, result_ref: str, mapping_ref: str, kind: str) -> dict[str, Any]:
+    reviews = apu_mapping_reviews.list_mapping_reviews(
+        conn, execution_result_id=execution_result_id, result_ref=result_ref, mapping_ref=mapping_ref,
+    )
+    if not reviews or reviews[-1].get("action") != LIFECYCLE_ACTIONS[kind]:
+        raise ApuWritePreparationError(f"latest review must {LIFECYCLE_ACTIONS[kind]}")
+    return reviews[-1]
+
+
+def _bundle_representation(execution: dict[str, Any], result_ref: str, representation_id: str) -> dict[str, Any]:
+    for item in _claim_observation_bundle(execution, result_ref).get("source_representations") or []:
+        if isinstance(item, dict) and item.get("representation_id") == representation_id:
+            return dict(item)
+    raise ApuWritePreparationNotFound("object candidate names an unknown source representation")
+
+
+def _prepare_lifecycle_write_command(
+    conn,
+    *,
+    execution_result_id: str,
+    result_ref: str,
+    mapping_ref: str,
+    lifecycle: dict[str, Any],
+    execution: dict[str, Any],
+    actor: str,
+    key: str,
+) -> dict[str, Any]:
+    """Prepare add_object or retire_object from one accepted lifecycle candidate."""
+    kind = lifecycle["candidate_kind"]
+    candidate = lifecycle["candidate"]
+    project_ref = _required(lifecycle.get("project_ref"), "observation bundle project_ref")
+    review = _latest_lifecycle_review(
+        conn, execution_result_id=execution_result_id, result_ref=result_ref, mapping_ref=mapping_ref, kind=kind,
+    )
+    try:
+        owner = apu_owner.get_project_anatomy(conn, project_id=project_ref)
+    except apu_owner.ApuOwnerNotFound as exc:
+        raise ApuWritePreparationNotFound(str(exc)) from exc
+    command_id = _stable_id("apu-write-command", execution_result_id, result_ref, mapping_ref, review["review_id"])
+    command_payload: dict[str, Any] = {
+        "command_id": command_id,
+        "operation": LIFECYCLE_OPERATIONS[kind],
+        "project_ref": project_ref,
+        "source_execution_result_ref": execution_result_id,
+        "source_mapping_result_ref": result_ref,
+        "source_mapping_ref": mapping_ref,
+        "source_review_ref": review["review_id"],
+        "certainty": candidate.get("certainty"),
+        "expected_owner_revision": owner["owner_revision"],
+        "rationale": _required(candidate.get("rationale"), "candidate.rationale"),
+        "prepared_by": actor,
+        "limitations": [
+            "Une autorisation humaine distincte est requise avant toute application.",
+            "L'application doit refuser une révision APU devenue obsolète.",
+        ],
+        "authority": dict(COMMAND_AUTHORITY),
+    }
+    source_artifact_ref = None
+    if kind == "object":
+        stable = dict(candidate["stable_object"])
+        object_id = _required(stable.get("stable_object_id"), "stable_object.stable_object_id")
+        if stable.get("project_ref") != project_ref:
+            raise ApuWritePreparationError("object candidate belongs to another Project")
+        try:
+            apu_owner.get_apu_object(conn, project_id=project_ref, object_id=object_id)
+        except apu_owner.ApuOwnerNotFound:
+            pass
+        else:
+            raise ApuWritePreparationError(f"APU object already exists: {object_id}")
+        representation = _bundle_representation(execution, result_ref, candidate["source_representation_ref"])
+        if representation.get("project_ref") != project_ref:
+            raise ApuWritePreparationError("Observation Bundle source representation belongs to another Project")
+        source_artifact_ref = representation.get("source_artifact_ref")
+        command_payload["stable_object"] = stable
+        command_payload["source_representation"] = representation
+        command_payload["identity_relation_claim"] = _identity_relation_claim(
+            command_id=command_id,
+            source_execution_result_ref=execution_result_id,
+            source_mapping_result_ref=result_ref,
+            source_mapping_ref=mapping_ref,
+            source_review_ref=review["review_id"],
+            source_representation_ref=representation["representation_id"],
+            target_stable_object_ref=object_id,
+            certainty=candidate.get("certainty"),
+            rationale=command_payload["rationale"],
+        )
+        command_payload["limitations"].append(
+            "Le lien d'identité appliqué reste candidat et ne valide pas professionnellement l'objet."
+        )
+        target, expected_object_revision = object_id, None
+    else:
+        object_id = _required(candidate.get("stable_object_ref"), "retirement.stable_object_ref")
+        try:
+            target_object = apu_owner.get_apu_object(conn, project_id=project_ref, object_id=object_id)
+        except apu_owner.ApuOwnerNotFound as exc:
+            raise ApuWritePreparationNotFound(str(exc)) from exc
+        if target_object.get("retired_at") is not None:
+            raise ApuWritePreparationError("APU object is already retired")
+        command_payload["retirement"] = {
+            "stable_object_ref": object_id,
+            "reason": _required(candidate.get("reason"), "retirement.reason"),
+            **({"evidence_refs": list(candidate["evidence_refs"])} if candidate.get("evidence_refs") else {}),
+        }
+        command_payload["expected_object_revision"] = target_object["revision"]
+        command_payload["limitations"].append(
+            "Un objet retiré est conservé avec son historique ; il n'est jamais effacé."
+        )
+        target, expected_object_revision = object_id, target_object["revision"]
+    command_payload = {k: v for k, v in command_payload.items() if v is not None}
+    digest = _digest(command_payload)
+    command_payload["payload_digest"] = digest
+    _validate_command_payload(command_payload)
+    with conn.transaction():
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute("SELECT * FROM apu_write_command_candidates WHERE idempotency_key = %s", (key,))
+            replay = cur.fetchone()
+            if replay is not None:
+                if replay["payload_digest"] != digest:
+                    raise execution_results.ExecutionResultConflict(
+                        "write-command idempotency key belongs to different content"
+                    )
+                return _jsonable(dict(replay)) | {
+                    "command": _jsonable(replay["command_payload"]),
+                    "authority": dict(COMMAND_AUTHORITY),
+                }
+        conn.execute(
+            """INSERT INTO apu_write_command_candidates (
+                command_id, execution_result_id, result_ref, mapping_ref, source_review_ref,
+                operation, project_ref, target_stable_object_ref, source_candidate_ref,
+                source_artifact_ref, certainty, rationale, command_payload, payload_digest,
+                expected_owner_revision, expected_object_revision,
+                prepared_by, idempotency_key
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+            (
+                command_id, execution_result_id, result_ref, mapping_ref, review["review_id"],
+                command_payload["operation"], project_ref, target, mapping_ref,
+                source_artifact_ref, command_payload.get("certainty"), command_payload["rationale"],
+                Jsonb(command_payload), digest, owner["owner_revision"], expected_object_revision,
+                actor, key,
+            ),
+        )
+    return get_write_command(conn, command_id)
+
+
+def _apply_lifecycle_command(conn, command_row: dict[str, Any], command: dict[str, Any], *, actor: str, key: str) -> dict[str, Any]:
+    """Re-check the reviewed lifecycle chain under the command lock, then apply."""
+    if command_row.get("operation") != command["operation"] or command_row.get(
+        "source_candidate_ref"
+    ) != command["source_mapping_ref"]:
+        raise ApuWriteApplicationConflict("stored command indexes differ from its exact embedded effect")
+    if command_row.get("expected_owner_revision") != command["expected_owner_revision"] or command_row.get(
+        "expected_object_revision"
+    ) != command.get("expected_object_revision"):
+        raise ApuWriteApplicationConflict("stored APU write command revisions differ from its immutable payload")
+    execution = execution_results.get_execution_result(conn, command["source_execution_result_ref"])
+    lifecycle = apu_mapping_reviews.lifecycle_candidate(
+        execution, command["source_mapping_result_ref"], command["source_mapping_ref"]
+    )
+    if lifecycle is None or LIFECYCLE_OPERATIONS[lifecycle["candidate_kind"]] != command["operation"]:
+        raise ApuWriteApplicationConflict("the reviewed lifecycle candidate no longer exists")
+    if lifecycle.get("project_ref") != command["project_ref"]:
+        raise ApuWriteApplicationConflict("source candidate Project differs from the authorized command")
+    candidate = lifecycle["candidate"]
+    if command["operation"] == "add_object":
+        changed = candidate.get("stable_object") != command["stable_object"] or _bundle_representation(
+            execution, command["source_mapping_result_ref"], candidate["source_representation_ref"]
+        ) != command["source_representation"]
+    else:
+        changed = candidate.get("stable_object_ref") != command["retirement"]["stable_object_ref"] or candidate.get(
+            "reason"
+        ) != command["retirement"]["reason"]
+    if changed:
+        raise ApuWriteApplicationConflict("Observation Bundle lifecycle candidate changed after command preparation")
+    review = _latest_lifecycle_review(
+        conn,
+        execution_result_id=command["source_execution_result_ref"],
+        result_ref=command["source_mapping_result_ref"],
+        mapping_ref=command["source_mapping_ref"],
+        kind=lifecycle["candidate_kind"],
+    )
+    if review["review_id"] != command["source_review_ref"]:
+        raise ApuWriteApplicationConflict("a newer review supersedes the authorized command")
+    authorization = _latest_application_authorization(conn, command)
+    apply = apu_owner.apply_object_addition if command["operation"] == "add_object" else apu_owner.apply_object_retirement
+    try:
+        return apply(conn, command=command, authorization_id=authorization["authorization_id"], actor=actor, idempotency_key=key)
+    except apu_owner.ApuOwnerError as exc:
+        raise _owner_error(exc) from exc
+
+
 def prepare_write_command(
     conn,
     *,
@@ -582,6 +782,12 @@ def prepare_write_command(
     key = _required(idempotency_key, "idempotency_key")
     actor = _required(prepared_by, "prepared_by")
     execution = execution_results.get_execution_result(conn, execution_result_id)
+    lifecycle = apu_mapping_reviews.lifecycle_candidate(execution, result_ref, mapping_ref)
+    if lifecycle is not None:
+        return _prepare_lifecycle_write_command(
+            conn, execution_result_id=execution_result_id, result_ref=result_ref, mapping_ref=mapping_ref,
+            lifecycle=lifecycle, execution=execution, actor=actor, key=key,
+        )
     claim = apu_mapping_reviews.claim_candidate(execution, result_ref, mapping_ref)
     if claim is not None:
         return _prepare_claim_write_command(
@@ -917,6 +1123,8 @@ def apply_authorized_write_command(
         _validate_command_payload(command)
         if command.get("operation") in apu_owner_claims.CLAIM_OPERATIONS:
             return _apply_claim_command(conn, command_row, command, actor=actor, key=key)
+        if command.get("operation") in LIFECYCLE_OPERATIONS.values():
+            return _apply_lifecycle_command(conn, command_row, command, actor=actor, key=key)
         representation = command["source_representation"]
         relation = command["identity_relation_claim"]
         source_candidate_ref = representation["representation_id"]

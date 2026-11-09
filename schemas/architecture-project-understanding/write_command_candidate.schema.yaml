@@ -9,6 +9,11 @@ description: >-
   and identity relation. add_claim and supersede_claim carry one exact candidate
   attribute or relation claim from a reviewed Observation Bundle; supersede_claim
   also names the one claim it replaces. Every applied claim stays candidate.
+  add_object carries the new stable object, its exact candidate source
+  representation and the candidate identity relation between them; the object
+  has no revision before it exists. retire_object names one existing object at
+  a known revision and the reviewed reason; a retired object is kept, never
+  erased, and its claims stay as history.
 type: object
 additionalProperties: false
 required:
@@ -26,7 +31,7 @@ properties:
   command_id: { type: string, minLength: 1 }
   operation:
     type: string
-    enum: [add_match_to_existing_object, add_claim, supersede_claim]
+    enum: [add_match_to_existing_object, add_claim, supersede_claim, add_object, retire_object]
   project_ref: { type: string, minLength: 1 }
   source_execution_result_ref: { type: string, minLength: 1 }
   source_mapping_result_ref: { type: string, minLength: 1 }
@@ -57,6 +62,23 @@ properties:
           - assertion_mode
           - source_authority
           - proof_status
+  stable_object:
+    description: The new stable object an add_object command creates, copied from the reviewed candidate.
+    $ref: "stable_object.schema.yaml"
+  retirement:
+    description: >-
+      The reviewed retirement of one existing object. Absence from a newer source
+      is a reason to propose it, never a proof: the review decides.
+    type: object
+    additionalProperties: false
+    required: [stable_object_ref, reason]
+    properties:
+      stable_object_ref: { type: string, minLength: 1 }
+      reason: { type: string, minLength: 3 }
+      evidence_refs:
+        type: array
+        uniqueItems: true
+        items: { type: string, minLength: 1 }
   certainty: { $ref: "shared.schema.yaml#/$defs/certainty" }
   match_axis: { $ref: "shared.schema.yaml#/$defs/match_axis" }
   expected_owner_revision:
@@ -131,6 +153,8 @@ allOf:
           - required: [claim]
           - required: [claim_family]
           - required: [superseded_claim_ref]
+          - required: [stable_object]
+          - required: [retirement]
   - if:
       properties:
         operation: { enum: [add_claim, supersede_claim] }
@@ -142,6 +166,35 @@ allOf:
           - required: [source_representation]
           - required: [identity_relation_claim]
           - required: [expected_object_revision]
+          - required: [stable_object]
+          - required: [retirement]
+  - if:
+      properties:
+        operation: { const: add_object }
+      required: [operation]
+    then:
+      required: [stable_object, source_representation, identity_relation_claim]
+      not:
+        anyOf:
+          - required: [expected_object_revision]
+          - required: [claim]
+          - required: [claim_family]
+          - required: [superseded_claim_ref]
+          - required: [retirement]
+  - if:
+      properties:
+        operation: { const: retire_object }
+      required: [operation]
+    then:
+      required: [retirement, expected_object_revision]
+      not:
+        anyOf:
+          - required: [source_representation]
+          - required: [identity_relation_claim]
+          - required: [stable_object]
+          - required: [claim]
+          - required: [claim_family]
+          - required: [superseded_claim_ref]
   - if:
       properties:
         operation: { const: supersede_claim }

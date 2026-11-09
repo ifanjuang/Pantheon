@@ -704,6 +704,44 @@ INVENTORY: dict[tuple[str, str], dict[str, object]] = {
             "admitted or canonized."
         ),
     },
+    ("apu_owner.py", "apply_object_addition"): {
+        "gate": "none",
+        "local_guards": (
+            "prior authorization id, checked by apply_authorized_write_command under the command lock",
+            "exact add_object command shape: stable object, its candidate source representation and candidate identity relation",
+            "expected owner revision under the owner row lock",
+            "object id must not exist yet",
+            "append-only object, representation, identity relation and event",
+            "idempotency",
+        ),
+        "reviewed": (
+            "The add half of the identity lifecycle the model documents (sections 16 and 25.3). "
+            "Same regime as apply_source_match: it records a decision rather than taking one. "
+            "Its only production caller is apply_authorized_write_command, which re-reads the "
+            "reviewed object candidate, the latest accept_object_candidate review and the latest "
+            "digest-bound authorization under the command-row lock before calling it. The object "
+            "enters with the occurrence observing it; the identity link stays candidate."
+        ),
+    },
+    ("apu_owner.py", "apply_object_retirement"): {
+        "gate": "none",
+        "local_guards": (
+            "prior authorization id, checked by apply_authorized_write_command under the command lock",
+            "exact retire_object command shape with a reviewed reason",
+            "expected owner revision under the owner row lock",
+            "expected object revision under the object row lock; an already retired object is refused",
+            "retirement sets retired_at and bumps the object revision; nothing is deleted",
+            "idempotency",
+        ),
+        "reviewed": (
+            "Writes the object_retired event the schema has carried since the owner was created and "
+            "that had no writer. Same regime as apply_object_addition: only "
+            "apply_authorized_write_command calls it, after re-reading the reviewed retirement "
+            "candidate, the latest accept_retirement review and the digest-bound authorization. "
+            "Absence from a newer source is only a reason to propose; the review decides. The "
+            "object stays addressable with its claims as history."
+        ),
+    },
     ("apu_owner.py", "store_reviewed_dossier"): {
         "gate": "enforce_consequential",
         "local_guards": (

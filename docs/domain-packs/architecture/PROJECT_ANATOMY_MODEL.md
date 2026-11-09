@@ -751,6 +751,21 @@ Display: the implementation publishes each Project's projection as one file
 write and regenerable with `export-anatomy`); the Workspace Cockpit shows it on
 the back of the matching affaire card. The file is a projection, never a source.
 
+Object lifecycle: an Observation Bundle may carry `object_candidates` (a new
+stable object and the candidate source representation observing it) and
+`retirement_candidates` (an existing object and a reason). Each follows the same
+chain — review (`accept_object_candidate`, `accept_retirement`) → write command
+(`add_object`, `retire_object`) → separate human authorization → application —
+and records `object_added` or `object_retired`. An added object enters with its
+occurrence and a candidate identity link; a retired object keeps its row, its
+claims and its history and is no longer current. Absence from a newer source is a
+reason to propose a retirement, never a proof.
+
+```text
+retired != erased
+absent from index F != demolished
+```
+
 Batch review (`implementation/mvp_vertical/apu_batch.py`, CLI `apu-batch`)
 removes the repetition, not the chain. A preview lists the claim candidates of
 one Observation Bundle with the accept or reject decision on each and a digest
@@ -758,7 +773,9 @@ over both; it writes nothing. One human approval of that digest then replays,
 per candidate and in one transaction, review → write command → authorization →
 application, so every candidate keeps its own trail and a failure leaves
 nothing. A bundle or decision set that changed since the preview is refused.
-Identity candidates are not part of a batch.
+A batch applies new objects first, then claims and relations (which may name
+them), then retirements. Identity matches to existing objects are not part of a
+batch.
 
 ```text
 one approval != fewer records
@@ -815,9 +832,10 @@ APU claim != order, decision or reservation
 
 ### 25.3 Documented, not implemented (to verify before relying on this section)
 
-- Creating new stable objects after the first reviewed dossier, or retiring
-  existing objects (`object_retired` still has no writer). Adding or replacing
-  claims has a bounded candidate-only path; it is **not** a new-object API.
+- Splitting, merging or replacing stable objects (`identity.split_into`,
+  `identity.merged_into`, `identity.replaced_by`, §16). Adding and retiring an
+  object after the first reviewed dossier are implemented (below); a split or a
+  merge stays a human decision with no writer yet.
 - An `as-of` reader for APU claims.
 - The source's own date. `observed_at` on a `source_representation` is the
   moment the source was observed (for a Document Structure fragment, the

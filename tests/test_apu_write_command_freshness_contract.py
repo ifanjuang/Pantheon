@@ -104,6 +104,8 @@ def test_write_command_remains_candidate_only() -> None:
         "add_match_to_existing_object",
         "add_claim",
         "supersede_claim",
+        "add_object",
+        "retire_object",
     ]
     assert schema["x-boundary"]["runtime_execution"] is False
     assert schema["x-boundary"]["automatic_apu_write"] is False

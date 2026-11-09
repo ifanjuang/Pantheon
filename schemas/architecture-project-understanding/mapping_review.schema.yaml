@@ -8,8 +8,10 @@ description: >-
   mark the mapping unmatched, request clarification or reject the mapping. For a
   non-identity attribute or relation claim candidate carried by an Observation
   Bundle, accept_claim_candidate accepts it for a later bounded claim write and
-  may name the one existing claim it would replace. It prepares no APU write and
-  confirms no canonical identity.
+  may name the one existing claim it would replace. accept_object_candidate
+  accepts a new-object candidate and accept_retirement a retirement candidate of
+  an Observation Bundle, each for a later bounded write. It prepares no APU write
+  and confirms no canonical identity.
 type: object
 additionalProperties: false
 required:
@@ -49,6 +51,8 @@ properties:
       - needs_clarification
       - reject_mapping
       - accept_claim_candidate
+      - accept_object_candidate
+      - accept_retirement
   superseded_claim_ref:
     description: >-
       Only with accept_claim_candidate: the existing claim the accepted candidate
@@ -101,7 +105,7 @@ allOf:
   - if:
       properties:
         action:
-          enum: [mark_unmatched, needs_clarification, reject_mapping, accept_claim_candidate]
+          enum: [mark_unmatched, needs_clarification, reject_mapping, accept_claim_candidate, accept_object_candidate, accept_retirement]
       required: [action]
     then:
       not:

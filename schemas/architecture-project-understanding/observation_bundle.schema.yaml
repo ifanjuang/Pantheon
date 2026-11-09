@@ -131,6 +131,44 @@ properties:
           properties:
             proof_status: { const: candidate }
           required: [proof_status]
+  object_candidates:
+    description: >-
+      Objects the source shows that the Project Anatomy does not know yet (for
+      example a space or a door that appears at a new index). Each names the new
+      stable object and the exact candidate source representation of this bundle
+      that observes it. Accepted, it becomes one bounded add_object write.
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required: [object_candidate_id, stable_object, source_representation_ref, rationale]
+      properties:
+        object_candidate_id: { type: string, minLength: 1 }
+        stable_object: { $ref: "stable_object.schema.yaml" }
+        source_representation_ref: { type: string, minLength: 1 }
+        certainty: { $ref: "shared.schema.yaml#/$defs/certainty" }
+        rationale: { type: string, minLength: 3 }
+  retirement_candidates:
+    description: >-
+      Known objects this source suggests are gone (absent from a complete newer
+      index, or explicitly demolished). Absence is a reason to propose, never a
+      proof: each candidate is decided by a review, then one bounded
+      retire_object write. A retired object is kept with its history.
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required: [retirement_candidate_id, stable_object_ref, reason, rationale]
+      properties:
+        retirement_candidate_id: { type: string, minLength: 1 }
+        stable_object_ref: { type: string, minLength: 1 }
+        reason: { type: string, minLength: 3 }
+        evidence_refs:
+          type: array
+          uniqueItems: true
+          items: { type: string, minLength: 1 }
+        certainty: { $ref: "shared.schema.yaml#/$defs/certainty" }
+        rationale: { type: string, minLength: 3 }
   relation_claim_candidates:
     type: array
     items:
