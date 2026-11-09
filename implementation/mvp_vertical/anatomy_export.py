@@ -18,8 +18,10 @@ import json
 import os
 from pathlib import Path
 import re
+import sqlite3
 from typing import Any
 
+from . import project_pieces
 from .project_anatomy_projection import get_project_anatomy_projection
 
 SCHEMA = "pantheon.anatomy.v1"
@@ -61,6 +63,14 @@ def export_project_anatomy(conn, project_id: str, *, directory: Path | None = No
         "project": {"project_id": row[0], "code": code, "display_name": row[2]},
         "anatomy": get_project_anatomy_projection(conn, project_id=project_id),
     }
+    # The current state of the affaire's documents travels with its Anatomy, so a
+    # screen or Hermes reads one file. A reading failure never blocks the Anatomy.
+    try:
+        pieces = project_pieces.read_project_pieces(code)
+    except (OSError, sqlite3.Error) as exc:
+        pieces = {"error": f"pieces_unreadable: {type(exc).__name__}"}
+    if pieces is not None:
+        document["pieces"] = pieces
     directory.mkdir(parents=True, exist_ok=True)
     target = directory / f"{code}.json"
     partial = directory / f".{code}.json.partial"

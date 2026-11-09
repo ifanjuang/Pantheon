@@ -73,6 +73,18 @@
   or reject decision; applying replays the existing per-candidate chain (review,
   write command, authorization, application) in one transaction, all or
   nothing. No new table or schema.
+- Current state of an affaire's documents: `project_pieces` groups the files of
+  an affaire into pieces (one drawing, model or written document across
+  indices) and gives the latest index of each, from what the Workspace Cockpit
+  already read on the title block or the human corrected on the document card,
+  plus the IFC models of the affaire folder (ARCHIVES skipped). Index rule: A,
+  B, C successive, C1/C2 variants of C; a file without index keeps an uncertain
+  position placed by its date. Two contents under one index, several variants
+  of the latest index, or an unindexed newer file become questions. Quotes are
+  set apart for confrontation. A reading, not a register: `export-anatomy`
+  publishes it in the same `<CODE>.json` as the Anatomy (`pieces`), and the CLI
+  `pieces --code` prints it. Configured by `MVP_WORKSPACE_STATE_DB` and
+  `MVP_AFFAIRES_ROOT`.
 - Phase orientation: `registries/architecture_phase_orientation.registry.json`
   projects the agency domain pack phase map (candidate deliverables, minimum
   evidence, gate per phase block) and the gate risk of the index effect matrix,
