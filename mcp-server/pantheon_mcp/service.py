@@ -250,12 +250,12 @@ class PantheonPolicyService:
             input_value={"phase": phase},
         )
 
-    def project_overview(self, code: str) -> dict[str, Any]:
+    def project_overview(self, code: str, focus: str = "") -> dict[str, Any]:
         return self._project(
             "project.read",
-            project_overview.project_overview(code),
+            project_overview.project_overview(code, focus=focus),
             source_mode="published_projection",
-            input_value={"code": code},
+            input_value={"code": code, "focus": focus},
         )
 
     def qualify_capability_status(self, candidate: dict[str, Any]) -> dict[str, Any]:

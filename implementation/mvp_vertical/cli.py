@@ -15,6 +15,7 @@ from . import (
     decision_requests,
     execution_results,
     human_access,
+    model_reading,
     project_pieces,
     register,
     storage_retention,
@@ -198,6 +199,12 @@ def main() -> int:
         help="current state of an affaire's documents: latest index of each piece, and the questions raised",
     )
     p_pieces.add_argument("--code", required=True, help="affaire code (its folder name)")
+
+    p_model = sub.add_parser(
+        "read-model",
+        help="read one IFC model (elements, sides, façades, grid lines, neighbours) and print a summary; writes nothing",
+    )
+    p_model.add_argument("--file", required=True, help="absolute path of the .ifc file")
 
     p_batch = sub.add_parser(
         "apu-batch",
@@ -616,6 +623,17 @@ def main() -> int:
             print(f"? {question['text']}")
         print(f"{len(state['pieces'])} pièces, {len(state['questions'])} questions, "
               f"{state['documents_not_followed']} autres documents non suivis (administratif, comptes rendus, photos...)")
+        return 0
+
+    if args.command == "read-model":
+        reading = model_reading.read(Path(args.file))
+        names = {space["id"]: space["name"] for space in reading["spaces"]}
+        print(f"nord de la maquette : {reading['north']['angle_deg']}°"
+              f"{'' if reading['north']['set_in_model'] else ' (par défaut, à confirmer)'}")
+        print(f"{len(reading['levels'])} niveaux, {len(reading['spaces'])} locaux, {len(reading['openings'])} ouvertures, "
+              f"{len(reading['walls'])} murs, {len(reading['grid_lines'])} files")
+        for pair in reading["neighbours"]:
+            print(f"  {names.get(pair['spaces'][0], '?')} — {names.get(pair['spaces'][1], '?')} (par {pair['via']})")
         return 0
 
     if args.command == "document-card":

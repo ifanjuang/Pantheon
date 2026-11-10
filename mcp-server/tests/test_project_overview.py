@@ -153,5 +153,70 @@ class TestProjectOverview(unittest.TestCase):
         self.assertTrue(result["found"])
 
 
+def _model_reading():
+    return {
+        "schema": "pantheon.model_reading.v1",
+        "source": {"piece": "MAQUETTE", "index": "E", "file": "DEMO_E.ifc"},
+        "north": {"angle_deg": 0.0, "set_in_model": False},
+        "spaces": [{"id": "G-CUI", "name": "Cuisine", "number": "1", "level": "RDC", "area_m2": 12.0},
+                   {"id": "G-SAL", "name": "Salon", "number": "2", "level": "RDC", "area_m2": 20.0},
+                   {"id": "G-CH1", "name": "chambre", "number": "100", "level": "R01", "area_m2": 12.1},
+                   {"id": "G-CH2", "name": "chambre", "number": "101", "level": "R01", "area_m2": 12.6}],
+        "openings": [{"id": "G-P1", "kind": "porte", "width_m": 0.8, "height_m": 2.07, "sides": ["G-CUI", "G-SAL"], "grid": "entre 6 et 55"},
+                     {"id": "0FENETRE01", "kind": "fenêtre", "width_m": 1.61, "height_m": 1.87, "sides": ["G-CUI", None],
+                      "exterior": True, "facade": "sud", "grid": "au-delà de la file 6"}],
+        "walls": [{"id": "G-M1", "sides": ["G-SAL", "G-CUI"], "thickness_m": 0.1, "length_m": 2.65, "junctions": []}],
+        "neighbours": [{"spaces": ["G-CUI", "G-SAL"], "via": "mur", "elements": ["G-M1"]},
+                       {"spaces": ["G-CUI", "G-SAL"], "via": "porte", "elements": ["G-P1"]}],
+        "limits": ["Côtés, façades et voisinages calculés par la géométrie : déductions, à confirmer."],
+    }
+
+
+class TestFocus(unittest.TestCase):
+    """get_project(code, focus): the sheet of one room or element from the current model reading."""
+
+    def setUp(self):
+        self.directory = Path(tempfile.mkdtemp())
+        data = _projection()
+        data["models"] = [{"piece": "MAQUETTE", "index": "E", "file": "DEMO.maquette-maquette.json", "status": "read"}]
+        # The Anatomy knows the kitchen as projected, through the IFC occurrence it represents.
+        data["anatomy"]["sources"].append({"representation_id": "rep.ifc.G-CUI", "source_kind": "ifc",
+                                           "identifiers": [{"scheme": "ifc.global_id", "value": "G-CUI"}],
+                                           "identity_claims": [{"relation_type": "identity.represents",
+                                                                "object_ref": {"entity_id": "obj.cuisine"}}]})
+        data["anatomy"]["structure"]["objects"].append(
+            _object("obj.rdc2", "RDC", relations=[_contains("obj.rdc2", "obj.cuisine", "projected")]))
+        (self.directory / "DEMO.json").write_text(json.dumps(data), encoding="utf-8")
+        (self.directory / "DEMO.maquette-maquette.json").write_text(json.dumps(_model_reading()), encoding="utf-8")
+
+    def test_a_room_sheet_gives_doors_windows_walls_and_its_state(self):
+        sheet = project_overview.project_overview("DEMO", self.directory, focus="cuisine")["focus"]
+        self.assertEqual((sheet["name"], sheet["level"], sheet["état"]), ("Cuisine", "RDC", "projeté"))
+        self.assertEqual(sheet["relié_par_porte_à"], ["Salon"])
+        self.assertEqual(sheet["mur_commun_avec"], ["Salon"])
+        self.assertEqual([o["donne"] for o in sheet["ouvertures"]], ["vers Salon", "extérieur, façade sud"])
+        self.assertEqual(sheet["source"]["index"], "E")
+        self.assertTrue(sheet["limites"])
+
+    def test_same_names_are_told_apart_by_level_or_number_and_unknown_names_give_candidates(self):
+        ambiguous = project_overview.project_overview("DEMO", self.directory, focus="chambre")["focus"]
+        self.assertFalse(ambiguous["found"])
+        self.assertEqual(len(ambiguous["candidates"]), 2)
+        self.assertEqual(project_overview.project_overview("DEMO", self.directory, focus="chambre 101")["focus"]["surface_m2"], 12.6)
+        unknown = project_overview.project_overview("DEMO", self.directory, focus="véranda")["focus"]
+        self.assertFalse(unknown["found"])
+        self.assertIn("Cuisine RDC", " ".join(unknown["candidates"]))
+
+    def test_an_element_is_found_by_its_id_and_the_overview_lists_the_models(self):
+        result = project_overview.project_overview("DEMO", self.directory, focus="0fenetre01")
+        self.assertEqual(result["models"], [{"piece": "MAQUETTE", "index": "E", "status": "read"}])
+        self.assertEqual((result["focus"]["kind"], result["focus"]["facade"]), ("élément", "sud"))
+        self.assertEqual(result["focus"]["côtés"], ["Cuisine", "extérieur"])
+
+    def test_without_a_model_reading_the_focus_says_so(self):
+        (self.directory / "DEMO.maquette-maquette.json").unlink()
+        self.assertFalse(project_overview.project_overview("DEMO", self.directory, focus="cuisine")["focus"]["found"])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -165,13 +165,15 @@ def get_phase_orientation(phase: str) -> str:
 
 
 @_read_only_tool()
-def get_project(code: str) -> str:
+def get_project(code: str, focus: str = "") -> str:
     """Where an affaire stands: current index of each piece, open questions, levels, spaces and surfaces.
 
     `code` is the affaire code (its folder name); an empty code lists the published ones.
+    `focus` names one room ("cuisine") or element id: its sheet from the current model (doors and
+    windows with the room or façade they give onto, walls with what is on the other side, grid lines).
     Quote the indices and numbers as given: read from the documents, not validated.
     """
-    return _call("project_overview", code)
+    return _call("project_overview", code, focus)
 
 
 @_read_only_tool()

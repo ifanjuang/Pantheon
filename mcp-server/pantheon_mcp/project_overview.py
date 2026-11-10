@@ -221,7 +221,122 @@ def summarize(data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def project_overview(code: str, directory: Path | None = None) -> dict[str, Any]:
+MODEL_FILE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}\.maquette-[a-z0-9-]{1,40}\.json$")
+MAX_MODEL_BYTES = 8 * 1024 * 1024
+
+
+def _fold(text: Any) -> str:
+    table = str.maketrans("àâäéèêëîïôöùûüç", "aaaeeeeiioouuuc")
+    return " ".join(str(text or "").lower().translate(table).replace("_", " ").split())
+
+
+def _load_models(directory: Path, data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Model readings published beside the projection (one per current model piece)."""
+    models = []
+    for status in data.get("models") or []:
+        name = status.get("file") if isinstance(status, dict) else None
+        if not isinstance(name, str) or not MODEL_FILE.fullmatch(name):
+            continue
+        try:
+            with (directory / name).open("rb") as file:
+                raw = file.read(MAX_MODEL_BYTES + 1)
+            reading = json.loads(raw) if len(raw) <= MAX_MODEL_BYTES else None
+        except (OSError, ValueError):
+            reading = None
+        if isinstance(reading, dict) and reading.get("schema") == "pantheon.model_reading.v1":
+            models.append(reading)
+    return models
+
+
+def _states(data: dict[str, Any]) -> dict[str, str]:
+    """State of the work by IFC GlobalId: containment state of the object each IFC occurrence represents."""
+    anatomy = data["anatomy"]
+    by_object: dict[str, str] = {}
+    for item in (anatomy.get("structure") or {}).get("objects") or []:
+        for relation in item.get("relations") or []:
+            qualifier = relation.get("qualifier") if isinstance(relation.get("qualifier"), dict) else {}
+            target = (relation.get("object_ref") or {}).get("entity_id")
+            if relation.get("relation_type") == "spatial.contains" and qualifier.get("ouvrage_state") and target:
+                by_object[target] = STATE_LABELS.get(qualifier["ouvrage_state"], qualifier["ouvrage_state"])
+    states: dict[str, str] = {}
+    for source in anatomy.get("sources") or []:
+        guid = next((i.get("value") for i in source.get("identifiers") or []
+                     if isinstance(i, dict) and i.get("scheme") == "ifc.global_id"), None)
+        if not guid:
+            continue
+        objects = list(source.get("mapped_object_refs") or []) + [
+            (claim.get("object_ref") or {}).get("entity_id") for claim in source.get("identity_claims") or []
+            if claim.get("relation_type") == "identity.represents"]
+        state = next((by_object[o] for o in objects if o in by_object), None)
+        if state:
+            states[guid] = state
+    return states
+
+
+def _side(item: dict[str, Any], own: str, names: dict[str, str]) -> str:
+    other = [names.get(s, "?") for s in item.get("sides") or [] if s and s != own]
+    if other:
+        return f"vers {other[0]}"
+    return f"extérieur, façade {item['facade']}" if item.get("exterior") and item.get("facade") else "côté non déterminé"
+
+
+def _focus(directory: Path, data: dict[str, Any], focus: str) -> dict[str, Any]:
+    """Sheet of one space or element, from the current model reading."""
+    models = _load_models(directory, data)
+    if not models:
+        return {"found": False, "reason": "aucune lecture de maquette publiée pour cette affaire"}
+    wanted = _fold(focus)
+    states = _states(data)
+    for reading in models:
+        names = {s["id"]: s["name"] for s in reading.get("spaces") or []}
+        spaces = reading.get("spaces") or []
+        exact = [s for s in spaces if wanted in {_fold(s.get("name")), _fold(s.get("number"))}]
+        partial = exact or [s for s in spaces if wanted and wanted in _fold(s.get("name"))]
+        if not partial:  # "chambre r01": a name followed by a level or a number
+            words = wanted.split()
+            partial = [s for s in spaces if words and any(
+                _fold(s.get("name")) == " ".join(words[:cut]) and set(words[cut:]) <= {_fold(s.get("level")), _fold(s.get("number"))}
+                for cut in range(1, len(words)))]
+        element = next((e for e in (reading.get("openings") or []) + (reading.get("walls") or [])
+                        if len(wanted) >= 6 and str(e.get("id", "")).lower().startswith(wanted)), None)
+        source = {"piece": reading["source"].get("piece"), "index": reading["source"].get("index"),
+                  "file": reading["source"].get("file")}
+        notes = list(reading.get("limits") or [])
+        if len(partial) > 1:
+            return {"found": False, "candidates": [f"{s['name']} {s.get('level') or ''} (n° {s.get('number') or '?'})".strip()
+                                                   for s in partial][:MAX_LISTED],
+                    "reason": "plusieurs locaux correspondent : préciser le niveau ou le numéro"}
+        if partial:
+            space = partial[0]
+            sid = space["id"]
+            openings = [{"élément": o["kind"], "largeur_m": o.get("width_m"), "hauteur_m": o.get("height_m"),
+                         "donne": _side(o, sid, names), **({"files": o["grid"]} if o.get("grid") else {}),
+                         **({"type": o["type"]} if o.get("type") else {}), "id": o["id"]}
+                        for o in reading.get("openings") or [] if sid in (o.get("sides") or [])]
+            walls = [{"mur": _side(w, sid, names), "épaisseur_m": w.get("thickness_m"), "longueur_m": w.get("length_m"),
+                      **({"composition": w["composition"]} if w.get("composition") else {}),
+                      **({"files": w["grid"]} if w.get("grid") else {}), "jonctions": len(w.get("junctions") or []),
+                      "id": w["id"]}
+                     for w in reading.get("walls") or [] if sid in (w.get("sides") or [])]
+            linked = sorted({names.get(x, "?") for n in reading.get("neighbours") or [] if sid in n["spaces"]
+                             for x in n["spaces"] if x != sid and n["via"] == "porte"})
+            touching = sorted({names.get(x, "?") for n in reading.get("neighbours") or [] if sid in n["spaces"]
+                               for x in n["spaces"] if x != sid and n["via"] == "mur"})
+            return {"found": True, "kind": "local", "name": space["name"], "level": space.get("level"),
+                    "surface_m2": space.get("area_m2"), "état": states.get(sid, UNSTATED),
+                    "relié_par_porte_à": linked, "mur_commun_avec": touching,
+                    "ouvertures": openings, "murs": walls, "source": source, "limites": notes}
+        if element:
+            return {"found": True, "kind": "élément", "élément": element.get("kind", "mur"),
+                    **{k: v for k, v in element.items() if k not in {"sides", "kind"}},
+                    "côtés": [names.get(s, "extérieur") if s else "extérieur" for s in element.get("sides") or []],
+                    "source": source, "limites": notes}
+    return {"found": False, "candidates": [f"{s['name']} {s.get('level') or ''} (n° {s.get('number') or '?'})".strip()
+                                           for r in models for s in r.get("spaces") or []][:MAX_LISTED],
+            "reason": "aucun local ni élément ne correspond"}
+
+
+def project_overview(code: str, directory: Path | None = None, focus: str = "") -> dict[str, Any]:
     directory = directory if directory is not None else anatomy_dir()
     code = str(code or "").strip()
     result: dict[str, Any] = {"code": code, "found": False, "source": f"projection publiée {SCHEMA}"}
@@ -244,6 +359,12 @@ def project_overview(code: str, directory: Path | None = None) -> dict[str, Any]
         data = json.loads(raw)
         if data.get("schema") != SCHEMA or (data.get("project") or {}).get("code") != code:
             raise ValueError("schema")
-        return {**result, **summarize(data)}
+        overview = {**result, **summarize(data)}
+        if data.get("models"):
+            overview["models"] = [{k: m.get(k) for k in ("piece", "index", "status") if m.get(k)}
+                                  for m in data["models"] if isinstance(m, dict)]
+        if str(focus or "").strip():
+            overview["focus"] = _focus(directory, data, str(focus))
+        return overview
     except (ValueError, TypeError, KeyError, AttributeError):
         return {**result, "error": "anatomy_unreadable"}
