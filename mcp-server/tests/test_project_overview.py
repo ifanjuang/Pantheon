@@ -216,6 +216,16 @@ class TestFocus(unittest.TestCase):
     def test_without_a_model_reading_the_focus_says_so(self):
         (self.directory / "DEMO.maquette-maquette.json").unlink()
         self.assertFalse(project_overview.project_overview("DEMO", self.directory, focus="cuisine")["focus"]["found"])
+class TestProjectStateRouting(unittest.TestCase):
+    """Hermes reaches get_project through the words its project-context Skill uses."""
+
+    def test_the_tool_and_the_skill_name_the_same_live_project_state_source(self):
+        phrase = "live project-state source"
+        skill = " ".join((ROOT / "templates/hermes/skills/project-context/SKILL.md").read_text(encoding="utf-8").split())
+        self.assertIn(phrase, skill)
+        self.assertIn("Never infer an index", skill)
+        self.assertIn(phrase.capitalize(), " ".join(server.get_project.__doc__.split()))
+        self.assertIn("get_project is the live project-state", server.mcp.instructions)
 
 
 if __name__ == "__main__":
