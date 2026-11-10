@@ -110,6 +110,15 @@
   and reading rules. Indices and numbers come from the file so a local model
   quotes them instead of computing or recalling them. No database access; never
   evidence or a decision.
+- Property profile `architecture@1`
+  (`registries/architecture_property_profile.registry.json`): the vocabulary of
+  attribute keys, so an object gains properties as the project advances
+  (identity, position including grid lines, geometry, function, composition,
+  performance, state, quantity), each with its facet, value type and unit, in
+  French. Advisory: an undeclared key is reported, never refused; an agency may
+  add properties through `PANTHEON_PROPERTY_OVERLAY` (add-only).
+  `export-anatomy` publishes the label, unit and facet of each property an
+  affaire uses, and lists undeclared keys.
 - Current state of an affaire's documents: `project_pieces` groups the files of
   an affaire into pieces (one drawing, model or written document across
   indices) and gives the latest index of each, from what the Workspace Cockpit

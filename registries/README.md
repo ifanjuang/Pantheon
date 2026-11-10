@@ -209,6 +209,14 @@ orientation shown != status computed
 missing listed item != gap reported
 ```
 
+`architecture_property_profile.registry.json` (vocabulary, candidate) names the keys of `attribute_claim.attribute_key`, so an object of the Project Anatomy can gain properties as the project advances: identity, position (level, space, façade, grid lines), geometry, function, composition, performance, state and quantity. Each property states its facet, its value type (the claim schema's `claim_value_type`) and, when it has one, its unit; keys already used by the governed examples keep their names (`space.area`, `geometry.width`, `thermal.uw`…). The profile is **advisory**: an undeclared key is reported (`apu_vocabulary.undeclared_properties`), never refused, so a reading or a human can still record what the vocabulary does not name yet. Relations between objects stay in the relation profile. Consumers today: `implementation/mvp_vertical/apu_vocabulary.py` (loader with the agency file `PANTHEON_PROPERTY_OVERLAY`) and `anatomy_export.py`, which publishes the label, unit and facet of each property an affaire uses, so the Cockpit and Hermes show French labels without reading the registry. The IFC reader writes only declared keys (`tests/test_property_vocabulary_conformance.py`). It stays `candidate` until the element and room sheets read it as a second distribution.
+
+```text
+property declared != value true
+undeclared key != refused key
+property label != reader that extracts it
+```
+
 ## Admission rule
 
 Do not create a Registry merely because data can be serialized.
@@ -225,8 +233,8 @@ A Registry is justified only when:
 ## Agency vocabulary files
 
 A vocabulary registry of this repository may allow the agency to add values
-without changing the repository. Today `architecture_source_kind_profile` and
-`architecture_phase_profile` do, each through its own local file kept
+without changing the repository. Today `architecture_source_kind_profile`,
+`architecture_phase_profile` and `architecture_property_profile` do, each through its own local file kept
 **outside** the repository (real professional values and environment-specific
 configuration stay out of the public repo).
 

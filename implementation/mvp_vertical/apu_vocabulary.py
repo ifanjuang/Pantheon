@@ -1,12 +1,17 @@
-"""Governed Project Anatomy vocabularies used at write time.
+"""Governed Project Anatomy vocabularies.
 
-Two vocabularies are governed this way:
+Three vocabularies are governed this way:
 
 - ``source_kind`` of a source representation
   (``registries/architecture_source_kind_profile.registry.json``), extended by
   the local file named by ``PANTHEON_SOURCE_KIND_OVERLAY``;
 - phase codes (``registries/architecture_phase_profile.registry.json``),
-  extended by the local file named by ``PANTHEON_PHASE_OVERLAY``.
+  extended by the local file named by ``PANTHEON_PHASE_OVERLAY``;
+- property keys of attribute claims
+  (``registries/architecture_property_profile.registry.json``), extended by the
+  local file named by ``PANTHEON_PROPERTY_OVERLAY``. This one is advisory: an
+  undeclared key is reported (``undeclared_properties``), never refused, so a
+  reading or a human can record what the vocabulary does not name yet.
 
 The repository registry declares the base entries. An agency may add entries
 through a local file kept outside the repository. That file is add-only. It
@@ -36,6 +41,11 @@ REGISTRY = "apu_source_kind_profile"
 OVERLAY_ENV = "PANTHEON_SOURCE_KIND_OVERLAY"
 PHASE_REGISTRY = "apu_phase_profile"
 PHASE_OVERLAY_ENV = "PANTHEON_PHASE_OVERLAY"
+PROPERTY_REGISTRY = "apu_property_profile"
+PROPERTY_OVERLAY_ENV = "PANTHEON_PROPERTY_OVERLAY"
+# Same lists as shared.schema.yaml claim_value_type and object_family (kept equal by a test).
+VALUE_TYPES = frozenset({"number", "boolean", "text", "range", "reference", "controlled_label", "structured"})
+OBJECT_FAMILIES = frozenset({"spatial", "element", "assembly", "material", "system", "datum", "group", "type_definition"})
 _AGENCY_STATUSES = {"active", "candidate"}
 _BASE_FIELDS = {"id", "status", "label", "description"}
 
@@ -46,6 +56,13 @@ _AGENCY_RULES: dict[str, dict[str, Any]] = {
         "noun": "phase",
         "categories": {"mission_element", "project_stage"},
         "aliases": True,
+    },
+    "architecture_property_profile": {
+        "noun": "property",
+        "categories": None,
+        "aliases": False,
+        # Extra fields an agency property carries; facets come from the registry itself.
+        "fields": {"facet", "value_type", "unit", "applies_to"},
     },
 }
 
@@ -144,7 +161,9 @@ def merge_agency_file(base: dict[str, Any], overlay: Any) -> dict[str, dict[str,
     )
     noun = agency_rules["noun"]
     categories: set[str] | None = agency_rules["categories"]
-    allowed = _BASE_FIELDS | ({"category"} if categories else set())
+    extra_fields: set[str] = agency_rules.get("fields") or set()
+    allowed = _BASE_FIELDS | ({"category"} if categories else set()) | extra_fields
+    facets = {facet.get("id") for facet in base.get("facets") or [] if isinstance(facet, dict)}
     entries_by_id = {entry["id"]: dict(entry) for entry in base.get("entries", [])}
     _check_base_aliases(entries_by_id, noun)
     if overlay is None:
@@ -188,6 +207,8 @@ def merge_agency_file(base: dict[str, Any], overlay: Any) -> dict[str, dict[str,
         for field in ("label", "description"):
             if not isinstance(entry.get(field), str) or not entry[field].strip():
                 raise VocabularyUnavailable(f"{where} needs a non-empty {field}")
+        if extra_fields:
+            _check_property_fields(entry, where=where, facets=facets)
         entries_by_id[value] = {**entry, "origin": "agency"}
         added.add(value)
     if "aliases" in overlay:
@@ -195,6 +216,22 @@ def merge_agency_file(base: dict[str, Any], overlay: Any) -> dict[str, dict[str,
             raise VocabularyUnavailable(f"the agency {noun} file cannot declare aliases")
         _merge_agency_aliases(entries_by_id, overlay["aliases"], pattern=pattern, limit=limit, noun=noun)
     return entries_by_id
+
+
+def _check_property_fields(entry: dict[str, Any], *, where: str, facets: set[Any]) -> None:
+    if entry.get("facet") not in facets:
+        raise VocabularyUnavailable(f"{where} must have a facet declared by the profile")
+    if entry.get("value_type") not in VALUE_TYPES:
+        raise VocabularyUnavailable(f"{where} must have a value_type of the claim schema")
+    unit = entry.get("unit")
+    if unit is not None and (not isinstance(unit, str) or not 0 < len(unit) <= 20):
+        raise VocabularyUnavailable(f"{where} has an invalid unit")
+    families = entry.get("applies_to")
+    if families is not None and (
+        not isinstance(families, list) or not families or not set(families) <= OBJECT_FAMILIES
+        or len(families) != len(set(families))
+    ):
+        raise VocabularyUnavailable(f"{where} applies_to must list object families")
 
 
 _cache: dict[tuple[str, tuple[str, int, int] | tuple[None]], Vocabulary] = {}
@@ -248,6 +285,23 @@ def source_kinds() -> Vocabulary:
 def phases() -> Vocabulary:
     """Base phase registry plus the agency file, cached until the file changes."""
     return _load(PHASE_REGISTRY, PHASE_OVERLAY_ENV, "phase")
+
+
+def properties() -> Vocabulary:
+    """Base property registry plus the agency file, cached until the file changes."""
+    return _load(PROPERTY_REGISTRY, PROPERTY_OVERLAY_ENV, "property")
+
+
+def describe_property(key: Any) -> dict[str, Any] | None:
+    """The declared property (label, facet, value type, unit), or None when the key is not declared."""
+    entry = properties().entries.get(key) if isinstance(key, str) else None
+    return dict(entry) if entry is not None else None
+
+
+def undeclared_properties(keys: Any) -> list[str]:
+    """Keys the property profile does not name, sorted; reported, never refused."""
+    declared = properties().entries
+    return sorted({key for key in keys if isinstance(key, str) and key not in declared})
 
 
 def _require(vocabulary: Vocabulary, value: Any, *, field: str, noun: str) -> dict[str, Any]:

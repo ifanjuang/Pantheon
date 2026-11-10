@@ -1,0 +1,416 @@
+{
+  "schema_version": "1",
+  "registry_id": "architecture_property_profile",
+  "registry_kind": "vocabulary",
+  "version": "1.0.0",
+  "status": "candidate",
+  "owner": {
+    "id": "pantheon_project_anatomy",
+    "repository": "Pantheon-Next"
+  },
+  "authority_document": "docs/domain-packs/architecture/PROJECT_ANATOMY_MODEL.md",
+  "governance_refs": [
+    "docs/domain-packs/architecture/PROJECT_ANATOMY_MODEL.md",
+    "registries/architecture_relation_profile.registry.json",
+    "schemas/architecture-project-understanding/attribute_claim.schema.yaml"
+  ],
+  "description": "Property profile architecture@1: the vocabulary of Project Anatomy attribute_claim.attribute_key, so an object can gain properties as the project advances (position, geometry, function, composition, performance) without each source inventing its own words. Each property names its facet, its value type and, when it has one, its unit. The profile is advisory: an undeclared key is reported, never refused, so a reading or a human can still record what the vocabulary does not name yet. Declaring a property does not make any value true, admitted, Evidence or approved, and does not mean a reader extracts it. Relations between objects (contains, separates, junction) belong to the relation profile, not here. An agency may add properties through a local file kept outside the repository; that file is add-only.",
+  "profile": {
+    "id": "architecture@1",
+    "governs": "Project Anatomy attribute_claim.attribute_key",
+    "agency_file": {
+      "environment_variable": "PANTHEON_PROPERTY_OVERLAY",
+      "registry_kind": "vocabulary_overlay",
+      "extends": "architecture_property_profile",
+      "rules": [
+        "add-only: an id declared by this registry cannot be redeclared, changed or deprecated",
+        "ids follow naming_rules.id_pattern",
+        "status is active or candidate",
+        "facet and value_type come from the profile",
+        "an unreadable or invalid file makes the vocabulary unavailable instead of being ignored"
+      ]
+    }
+  },
+  "naming_rules": {
+    "id_pattern": "^[a-z][a-z0-9_]{1,30}\\.[a-z][a-z0-9_]{0,40}$",
+    "max_agency_entries": 200
+  },
+  "facets": [
+    {
+      "id": "identite",
+      "label": "Identité"
+    },
+    {
+      "id": "position",
+      "label": "Position"
+    },
+    {
+      "id": "geometrie",
+      "label": "Géométrie"
+    },
+    {
+      "id": "fonction",
+      "label": "Fonction"
+    },
+    {
+      "id": "composition",
+      "label": "Composition"
+    },
+    {
+      "id": "performance",
+      "label": "Performance"
+    },
+    {
+      "id": "etat",
+      "label": "État"
+    },
+    {
+      "id": "quantite",
+      "label": "Quantité"
+    }
+  ],
+  "entries": [
+    {
+      "id": "identity.mark",
+      "status": "candidate",
+      "facet": "identite",
+      "value_type": "text",
+      "applies_to": [
+        "element",
+        "assembly"
+      ],
+      "label": "Repère",
+      "description": "Repère d'un élément dans une source (F21, ligne 3.03 d'un devis, marque Revit). Chaque source garde le sien ; la correspondance entre repères relève des liens d'identité."
+    },
+    {
+      "id": "identity.type_name",
+      "status": "candidate",
+      "facet": "identite",
+      "value_type": "text",
+      "applies_to": [
+        "element",
+        "assembly"
+      ],
+      "label": "Type",
+      "description": "Nom du type ou de la famille dans la source (type Revit, désignation d'un devis)."
+    },
+    {
+      "id": "position.level",
+      "status": "candidate",
+      "facet": "position",
+      "value_type": "reference",
+      "applies_to": [
+        "spatial",
+        "element",
+        "assembly"
+      ],
+      "label": "Niveau",
+      "description": "Niveau où se trouve l'élément ou le local."
+    },
+    {
+      "id": "position.space",
+      "status": "candidate",
+      "facet": "position",
+      "value_type": "reference",
+      "applies_to": [
+        "element",
+        "assembly"
+      ],
+      "label": "Local",
+      "description": "Local où se trouve l'élément, ou les locaux qu'il sépare."
+    },
+    {
+      "id": "position.facade",
+      "status": "candidate",
+      "facet": "position",
+      "value_type": "controlled_label",
+      "applies_to": [
+        "element",
+        "assembly"
+      ],
+      "label": "Façade",
+      "description": "Orientation de la façade sur laquelle donne l'élément (nord, est, sud, ouest…), selon le nord déclaré par la source."
+    },
+    {
+      "id": "position.grid",
+      "status": "candidate",
+      "facet": "position",
+      "value_type": "text",
+      "applies_to": [
+        "spatial",
+        "element",
+        "assembly"
+      ],
+      "label": "Files",
+      "description": "Position par rapport aux files de la grille : sur la file B, entre 2 et 3."
+    },
+    {
+      "id": "space.area",
+      "status": "active",
+      "facet": "geometrie",
+      "value_type": "number",
+      "unit": "m2",
+      "applies_to": [
+        "spatial"
+      ],
+      "label": "Surface",
+      "description": "Surface d'un local."
+    },
+    {
+      "id": "space.height",
+      "status": "candidate",
+      "facet": "geometrie",
+      "value_type": "number",
+      "unit": "m",
+      "applies_to": [
+        "spatial"
+      ],
+      "label": "Hauteur sous plafond",
+      "description": "Hauteur libre d'un local, du sol fini au plafond fini."
+    },
+    {
+      "id": "geometry.width",
+      "status": "candidate",
+      "facet": "geometrie",
+      "value_type": "number",
+      "unit": "m",
+      "applies_to": [
+        "element",
+        "assembly"
+      ],
+      "label": "Largeur",
+      "description": "Largeur d'un élément selon la convention de la source (hors tout, baie, tableau, fabrication)."
+    },
+    {
+      "id": "geometry.height",
+      "status": "candidate",
+      "facet": "geometrie",
+      "value_type": "number",
+      "unit": "m",
+      "applies_to": [
+        "element",
+        "assembly"
+      ],
+      "label": "Hauteur",
+      "description": "Hauteur d'un élément selon la convention de la source."
+    },
+    {
+      "id": "geometry.thickness",
+      "status": "candidate",
+      "facet": "geometrie",
+      "value_type": "number",
+      "unit": "m",
+      "applies_to": [
+        "element",
+        "assembly"
+      ],
+      "label": "Épaisseur",
+      "description": "Épaisseur d'une paroi ou d'un élément."
+    },
+    {
+      "id": "geometry.length",
+      "status": "candidate",
+      "facet": "geometrie",
+      "value_type": "number",
+      "unit": "m",
+      "applies_to": [
+        "element",
+        "assembly"
+      ],
+      "label": "Longueur",
+      "description": "Longueur d'un élément linéaire (mur, poutre)."
+    },
+    {
+      "id": "geometry.sill_height",
+      "status": "candidate",
+      "facet": "geometrie",
+      "value_type": "number",
+      "unit": "m",
+      "applies_to": [
+        "element",
+        "assembly"
+      ],
+      "label": "Hauteur d'allège",
+      "description": "Hauteur entre le sol fini et le bas d'une ouverture."
+    },
+    {
+      "id": "function.load_bearing",
+      "status": "candidate",
+      "facet": "fonction",
+      "value_type": "boolean",
+      "applies_to": [
+        "element",
+        "assembly"
+      ],
+      "label": "Porteur",
+      "description": "L'élément participe à la structure porteuse."
+    },
+    {
+      "id": "function.exterior",
+      "status": "candidate",
+      "facet": "fonction",
+      "value_type": "boolean",
+      "applies_to": [
+        "element",
+        "assembly"
+      ],
+      "label": "Extérieur",
+      "description": "La paroi ou l'ouverture sépare l'intérieur de l'extérieur."
+    },
+    {
+      "id": "function.fire_rating",
+      "status": "candidate",
+      "facet": "fonction",
+      "value_type": "text",
+      "applies_to": [
+        "element",
+        "assembly"
+      ],
+      "label": "Résistance au feu",
+      "description": "Classement de résistance ou de réaction au feu exigé ou annoncé (EI30, REI60…)."
+    },
+    {
+      "id": "function.acoustic",
+      "status": "candidate",
+      "facet": "fonction",
+      "value_type": "text",
+      "applies_to": [
+        "element",
+        "assembly"
+      ],
+      "label": "Performance acoustique",
+      "description": "Isolement ou affaiblissement acoustique exigé ou annoncé."
+    },
+    {
+      "id": "composition.layers",
+      "status": "candidate",
+      "facet": "composition",
+      "value_type": "text",
+      "applies_to": [
+        "element",
+        "assembly"
+      ],
+      "label": "Composition",
+      "description": "Couches d'une paroi, de l'intérieur vers l'extérieur, avec leurs épaisseurs."
+    },
+    {
+      "id": "composition.material",
+      "status": "candidate",
+      "facet": "composition",
+      "value_type": "text",
+      "applies_to": [
+        "element",
+        "assembly"
+      ],
+      "label": "Matériau",
+      "description": "Matériau principal d'un élément (bois, aluminium, béton…)."
+    },
+    {
+      "id": "composition.opening_type",
+      "status": "candidate",
+      "facet": "composition",
+      "value_type": "controlled_label",
+      "applies_to": [
+        "element",
+        "assembly"
+      ],
+      "label": "Type d'ouvrant",
+      "description": "Fixe, 1 vantail, 2 vantaux, coulissant, oscillo-battant, porte…"
+    },
+    {
+      "id": "thermal.uw",
+      "status": "candidate",
+      "facet": "performance",
+      "value_type": "number",
+      "unit": "W/(m2.K)",
+      "applies_to": [
+        "element",
+        "assembly"
+      ],
+      "label": "Uw",
+      "description": "Coefficient de transmission thermique d'une fenêtre."
+    },
+    {
+      "id": "thermal.sw",
+      "status": "candidate",
+      "facet": "performance",
+      "value_type": "number",
+      "applies_to": [
+        "element",
+        "assembly"
+      ],
+      "label": "Sw",
+      "description": "Facteur solaire d'une fenêtre."
+    },
+    {
+      "id": "thermal.u",
+      "status": "candidate",
+      "facet": "performance",
+      "value_type": "number",
+      "unit": "W/(m2.K)",
+      "applies_to": [
+        "element",
+        "assembly"
+      ],
+      "label": "U paroi",
+      "description": "Coefficient de transmission thermique d'une paroi."
+    },
+    {
+      "id": "space.number",
+      "status": "candidate",
+      "facet": "identite",
+      "value_type": "text",
+      "applies_to": [
+        "spatial"
+      ],
+      "label": "Numéro de local",
+      "description": "Numéro ou code d'un local dans une source."
+    },
+    {
+      "id": "physical.apparent_condition",
+      "status": "candidate",
+      "facet": "etat",
+      "value_type": "text",
+      "applies_to": [
+        "element",
+        "assembly",
+        "spatial"
+      ],
+      "label": "État apparent",
+      "description": "État constaté d'un élément existant ou en chantier (sain, dégradé, à reprendre…), tel qu'observé, sans diagnostic."
+    },
+    {
+      "id": "physical.installation_status",
+      "status": "candidate",
+      "facet": "etat",
+      "value_type": "controlled_label",
+      "applies_to": [
+        "element",
+        "assembly"
+      ],
+      "label": "Avancement de pose",
+      "description": "Où en est la mise en œuvre d'un élément sur le chantier (non commencé, posé, réservé, levé)."
+    },
+    {
+      "id": "economy.stated_quantity",
+      "status": "candidate",
+      "facet": "quantite",
+      "value_type": "number",
+      "applies_to": [
+        "element",
+        "assembly",
+        "spatial"
+      ],
+      "label": "Quantité annoncée",
+      "description": "Quantité portée par une pièce écrite ou un devis (DPGF, DQE, offre), dans l'unité de cette pièce."
+    }
+  ],
+  "x_boundary": {
+    "runtime_execution": false,
+    "provider_routing": false,
+    "task_authorization": false,
+    "approval": false,
+    "evidence_promotion": false,
+    "memory_promotion": false
+  }
+}

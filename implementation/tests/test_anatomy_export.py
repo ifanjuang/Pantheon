@@ -54,3 +54,10 @@ def test_export_all_covers_every_initialized_project(conn, tmp_path) -> None:
     _import(conn, project_id)
     written = anatomy_export.export_all(conn, directory=tmp_path)
     assert tmp_path / f"{_code(conn, project_id)}.json" in written
+
+
+def test_the_published_anatomy_carries_property_labels_and_lists_undeclared_keys() -> None:
+    section = anatomy_export.property_labels(
+        {"attribute_claims": [{"attribute_key": "space.area"}, {"attribute_key": "local.inconnue"}]})
+    assert section == {"labels": {"space.area": {"label": "Surface", "unit": "m2", "facet": "geometrie"}},
+                       "undeclared": ["local.inconnue"]}

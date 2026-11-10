@@ -1,0 +1,245 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: https://pantheon.local/schemas/architecture-project-understanding/property_profile.schema.yaml
+title: Project Anatomy Property Profile Registry
+description: >-
+  Specialized registry schema for the Project Anatomy property vocabulary
+  (attribute_claim.attribute_key), in two variants selected by registry_kind:
+  the governed repository registry (`vocabulary`) and the add-only agency file
+  (`vocabulary_overlay`) kept outside the repository. Each property names its
+  facet, its value type and, when it has one, its unit. The profile is
+  advisory: an undeclared key is reported, never refused. Declaring a property
+  does not make any value true, admitted, Evidence or approved.
+oneOf:
+  - $ref: "#/$defs/registry"
+  - $ref: "#/$defs/agency_file"
+$defs:
+  kind_id:
+    type: string
+    pattern: "^[a-z][a-z0-9_]{1,30}\\.[a-z][a-z0-9_]{0,40}$"
+  facet:
+    type: string
+    enum: [identite, position, geometrie, fonction, composition, performance, etat, quantite]
+  value_type:
+    description: Same list as shared.schema.yaml claim_value_type (kept equal by a test).
+    type: string
+    enum: [number, boolean, text, range, reference, controlled_label, structured]
+  object_family:
+    description: Same list as shared.schema.yaml object_family (kept equal by a test).
+    type: string
+    enum: [spatial, element, assembly, material, system, datum, group, type_definition]
+  entry:
+    type: object
+    additionalProperties: false
+    required: [id, status, facet, value_type, label, description]
+    properties:
+      id:
+        $ref: "#/$defs/kind_id"
+      status:
+        type: string
+        enum: [active, candidate, deprecated]
+      facet:
+        $ref: "#/$defs/facet"
+      value_type:
+        $ref: "#/$defs/value_type"
+      unit:
+        type: string
+        minLength: 1
+        maxLength: 20
+      applies_to:
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items:
+          $ref: "#/$defs/object_family"
+      label:
+        type: string
+        minLength: 1
+        maxLength: 120
+      description:
+        type: string
+        minLength: 1
+        maxLength: 600
+      replaced_by:
+        $ref: "#/$defs/kind_id"
+  agency_entry:
+    description: >-
+      An agency entry can only add: it is active or candidate, and it cannot be
+      deprecated or point to a replacement.
+    type: object
+    additionalProperties: false
+    required: [id, status, facet, value_type, label, description]
+    properties:
+      id:
+        $ref: "#/$defs/kind_id"
+      status:
+        type: string
+        enum: [active, candidate]
+      facet:
+        $ref: "#/$defs/facet"
+      value_type:
+        $ref: "#/$defs/value_type"
+      unit:
+        type: string
+        minLength: 1
+        maxLength: 20
+      applies_to:
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items:
+          $ref: "#/$defs/object_family"
+      label:
+        type: string
+        minLength: 1
+        maxLength: 120
+      description:
+        type: string
+        minLength: 1
+        maxLength: 600
+  registry:
+    type: object
+    additionalProperties: false
+    required:
+      - schema_version
+      - registry_id
+      - registry_kind
+      - version
+      - status
+      - owner
+      - authority_document
+      - governance_refs
+      - description
+      - profile
+      - naming_rules
+      - facets
+      - entries
+      - x_boundary
+    properties:
+      schema_version:
+        const: "1"
+      registry_id:
+        const: architecture_property_profile
+      registry_kind:
+        const: vocabulary
+      version:
+        type: string
+        pattern: "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+      status:
+        type: string
+        enum: [candidate, active, under_review, deprecated, superseded]
+      owner:
+        type: object
+        additionalProperties: false
+        required: [id, repository]
+        properties:
+          id:
+            type: string
+            minLength: 1
+          repository:
+            type: string
+            enum: [Pantheon-Next]
+      authority_document:
+        type: string
+        pattern: "^(docs|registries|schemas)/.+"
+      governance_refs:
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items:
+          type: string
+          pattern: "^(docs|registries|schemas)/.+"
+      description:
+        type: string
+        minLength: 1
+      profile:
+        type: object
+        additionalProperties: false
+        required: [id, governs, agency_file]
+        properties:
+          id:
+            type: string
+            pattern: "^[a-z][a-z0-9_]*@[0-9]+$"
+          governs:
+            type: string
+            minLength: 1
+          agency_file:
+            type: object
+            additionalProperties: false
+            required: [environment_variable, registry_kind, extends, rules]
+            properties:
+              environment_variable:
+                type: string
+                pattern: "^[A-Z][A-Z0-9_]*$"
+              registry_kind:
+                const: vocabulary_overlay
+              extends:
+                const: architecture_property_profile
+              rules:
+                type: array
+                minItems: 1
+                items:
+                  type: string
+                  minLength: 1
+      naming_rules:
+        type: object
+        additionalProperties: false
+        required: [id_pattern, max_agency_entries]
+        properties:
+          id_pattern:
+            const: "^[a-z][a-z0-9_]{1,30}\\.[a-z][a-z0-9_]{0,40}$"
+          max_agency_entries:
+            type: integer
+            minimum: 1
+            maximum: 1000
+      facets:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          additionalProperties: false
+          required: [id, label]
+          properties:
+            id:
+              $ref: "#/$defs/facet"
+            label:
+              type: string
+              minLength: 1
+      entries:
+        type: array
+        minItems: 1
+        items:
+          $ref: "#/$defs/entry"
+      x_boundary:
+        type: object
+        additionalProperties: false
+        required:
+          - runtime_execution
+          - provider_routing
+          - task_authorization
+          - approval
+          - evidence_promotion
+          - memory_promotion
+        properties:
+          runtime_execution: { const: false }
+          provider_routing: { const: false }
+          task_authorization: { const: false }
+          approval: { const: false }
+          evidence_promotion: { const: false }
+          memory_promotion: { const: false }
+  agency_file:
+    type: object
+    additionalProperties: false
+    required: [registry_kind, extends, entries]
+    properties:
+      registry_kind:
+        const: vocabulary_overlay
+      extends:
+        const: architecture_property_profile
+      description:
+        type: string
+        maxLength: 600
+      entries:
+        type: array
+        maxItems: 200
+        items:
+          $ref: "#/$defs/agency_entry"
