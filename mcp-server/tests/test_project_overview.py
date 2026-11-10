@@ -124,6 +124,17 @@ class TestProjectOverview(unittest.TestCase):
         (self.directory / "BARE.json").write_text(json.dumps({**data, "project": {**data["project"], "code": "BARE"}}), encoding="utf-8")
         self.assertNotIn("pieces", project_overview.project_overview("BARE", self.directory))
 
+    def test_an_affaire_without_an_installed_anatomy_still_gives_its_pieces(self):
+        data = _projection()
+        data["anatomy"] = {"status": "not_installed", "owner_revision": None, "summary": {}, "structure": {"objects": []},
+                           "attribute_claims": [], "relation_claims": [], "relations": [], "sources": []}
+        data["project"] = {**data["project"], "code": "NEUF"}
+        (self.directory / "NEUF.json").write_text(json.dumps(data), encoding="utf-8")
+        result = project_overview.project_overview("NEUF", self.directory)
+        self.assertIn("non encore installée", result["anatomy_status"])
+        self.assertEqual(result["levels"], [])
+        self.assertTrue(result["pieces"]["current"])
+
     def test_an_empty_or_unknown_code_lists_the_published_affaires(self):
         self.assertEqual(project_overview.project_overview("", self.directory)["available_codes"], ["DEMO"])
         unknown = project_overview.project_overview("AUTRE", self.directory)

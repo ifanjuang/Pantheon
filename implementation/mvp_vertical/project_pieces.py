@@ -41,6 +41,8 @@ AFFAIRES_ROOT_ENV = "MVP_AFFAIRES_ROOT"
 WORKSPACE_NAME = "Affaires"
 
 _INDEX = re.compile(r"^(?:IND(?:ICE)?\.?\s*)?([A-Z])(?:[.\-_ ]?([1-9][0-9]?))?$")
+# Engineers often number their indices (Ind 0, IND9): admitted when written as an index.
+_NUMERIC_INDEX = re.compile(r"^(?:IND(?:ICE)?\.?\s*)(\d{1,2})$")
 _PHASES = {"ESQ", "APS", "APD", "AVP", "PC", "DPC", "PRO", "DCE", "ACT", "VISA", "EXE", "DET", "AOR", "DOE"}
 _ADMIN = ("ATTESTATION", "CERFA", "HONORAIRES", "FACTURE", "CONTRAT", "SIGNE", "ASSURANCE")
 _CONFRONT = ("DEVIS", "OFFRE")
@@ -62,17 +64,25 @@ POSITION_UNCERTAIN = "incertaine"  # no index: placed by date
 POSITION_REFERENCE = "référence"   # chosen as project reference on the document card
 
 
-def parse_index(label: Any) -> tuple[str, int | None] | None:
-    """'E' -> ('E', None); 'C1', 'C.1', 'Ind C-1' -> ('C', 1); anything else -> None."""
-    match = _INDEX.fullmatch(str(label or "").strip().upper())
-    if not match:
-        return None
-    return match.group(1), int(match.group(2)) if match.group(2) else None
+def parse_index(label: Any, *, numeric: bool = False) -> tuple[str, int | None] | None:
+    """'E' -> ('E', None); 'C1', 'C.1', 'Ind C-1' -> ('C', 1); 'IND9' -> ('09', None); anything else -> None.
+
+    A bare number ('9') is an index only where the source names it as one (``numeric``):
+    the index field of a card or a title block, never a token of a file name.
+    """
+    text = str(label or "").strip().upper()
+    match = _INDEX.fullmatch(text)
+    if match:
+        return match.group(1), int(match.group(2)) if match.group(2) else None
+    number = _NUMERIC_INDEX.fullmatch(text) or (re.fullmatch(r"(\d{1,2})", text) if numeric else None)
+    return (f"{int(number.group(1)):02d}", None) if number else None
 
 
 def format_index(parsed: tuple[str, int | None] | None) -> str | None:
     if parsed is None:
         return None
+    if parsed[0].isdigit():  # numbered indices sort before lettered ones and print without padding
+        return str(int(parsed[0]))
     return parsed[0] + (str(parsed[1]) if parsed[1] else "")
 
 
@@ -117,8 +127,8 @@ def _tokens(stem: str) -> list[str]:
 
 def filename_index(filename: str) -> tuple[str, int | None] | None:
     stem = _stem(filename).upper()
-    if m := re.search(r"\bIND(?:ICE)?\.?\s*([A-Z](?:[.\-]?[1-9][0-9]?)?)\b", stem):
-        return parse_index(m.group(1))
+    if m := re.search(r"\bIND(?:ICE)?\.?\s*([A-Z](?:[.\-]?[1-9][0-9]?)?|\d{1,2})\b", stem):
+        return parse_index(m.group(1), numeric=True)
     for token in reversed(_tokens(stem)):
         parsed = parse_index(token) if len(token) <= 4 else None
         if parsed:
@@ -141,7 +151,7 @@ def filename_date(filename: str) -> str | None:
 def piece_name(title: str, project_code: str) -> str:
     """'DCE_CODE_PLAN MAC-DEM.pdf' -> 'PLAN MAC-DEM'; a bare model file -> 'MAQUETTE'."""
     path = Path(title)
-    stem = re.sub(r"\bIND(?:ICE)?\.?\s*[A-Z](?:[.\-]?\d{1,2})?\b", " ", _stem(title).upper())
+    stem = re.sub(r"\bIND(?:ICE)?\.?\s*(?:[A-Z](?:[.\-]?\d{1,2})?|\d{1,2})\b", " ", _stem(title).upper())
     stem = re.sub(r"\(\d+\)", " ", stem)  # copies: "plan (1).pdf"
     stem = re.sub(r"(?<!\d)\d{2,4}[.\-]\d{2}[.\-]\d{2,4}(?!\d)", " ", stem)  # dates: 2025.05.28, 20.01.2025
     code_parts = {project_code.upper(), *project_code.upper().split("-")}
@@ -257,7 +267,7 @@ def _loads(value: Any) -> dict[str, Any]:
 def _revision(file: dict[str, Any]) -> dict[str, Any]:
     parsed, position = None, POSITION_UNCERTAIN
     for key, level in (("index_card", POSITION_CERTAIN), ("index_read", POSITION_CERTAIN)):
-        if parsed := parse_index(file.get(key)):
+        if parsed := parse_index(file.get(key), numeric=True):
             position = level
             break
     if parsed is None and (parsed := filename_index(file["title"])):
@@ -269,7 +279,8 @@ def _revision(file: dict[str, Any]) -> dict[str, Any]:
             when, when_source = value, source
             break
     revision = {"index": format_index(parsed), "position": position, "date": when, "date_source": when_source,
-                "paths": [file["path"]], "fingerprint": file.get("fingerprint"), "_parsed": parsed}
+                "paths": [file["path"]], "fingerprint": file.get("fingerprint"), "_parsed": parsed,
+                "_format": Path(file["title"]).suffix.lower()}
     if file.get("issuer"):
         revision["issuer"] = file["issuer"]
     if file.get("reference"):
@@ -347,10 +358,12 @@ def current_state(files: list[dict[str, Any]], project_code: str) -> dict[str, A
         if len(variants) > 1:
             questions.append({"piece": name, "kind": "variantes",
                               "text": f"{name} : plusieurs variantes de l'indice {latest_letter} ({', '.join(variants)}) ; laquelle fait foi ?"})
-        by_index: dict[str, int] = {}
+        # A drawing and its model under one index (plan.pdf, plan.ifc) are two formats of one piece.
+        by_index: dict[tuple[str, str], int] = {}
         for revision in indexed:
-            by_index[revision["index"]] = by_index.get(revision["index"], 0) + 1
-        for label, count in sorted(by_index.items()):
+            key = (revision["index"], revision["_format"])
+            by_index[key] = by_index.get(key, 0) + 1
+        for (label, _), count in sorted(by_index.items()):
             if count > 1:
                 questions.append({"piece": name, "kind": "meme_indice_contenus_differents",
                                   "text": f"{name} : {count} fichiers différents portent l'indice {label}."})
