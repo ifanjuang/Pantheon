@@ -128,6 +128,9 @@
   (questions, synthesis, models, rooms); the full lists come with `focus`
   (`pièces`, optionally filtered, `devis`, `locaux`), and a focus answer
   carries only a short header. A real answer of 38 KB had to be paged by Hermes.
+  It also understands what Hermes was seen typing: a lower-case affaire code,
+  `n°` before a room number, and a plural element word (`fenêtres`), which
+  lists every matching element instead of asking which one.
 - Property profile `architecture@1`
   (`registries/architecture_property_profile.registry.json`): the vocabulary of
   attribute keys, so an object gains properties as the project advances

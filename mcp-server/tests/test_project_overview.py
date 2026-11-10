@@ -295,6 +295,22 @@ class TestFocus(unittest.TestCase):
         none = project_overview.project_overview("DEMO", self.directory, focus="porte file B")["focus"]
         self.assertFalse(none["found"])
 
+    def test_what_hermes_actually_typed_is_understood(self):
+        # Seen in a real session: lower-case code, "n°", and a plural element word.
+        self.assertTrue(project_overview.project_overview("demo", self.directory)["found"])
+        self.assertEqual(project_overview.project_overview("DEMO", self.directory, focus="chambre n° 101")["focus"]["surface_m2"], 12.6)
+        windows = project_overview.project_overview("DEMO", self.directory, focus="chambre 1 fenêtres")["focus"]
+        self.assertFalse(windows["found"])  # no "chambre 1" here, but no "which one?" question either
+        self.assertNotIn("question", windows)
+        reading = _model_reading()
+        reading["openings"].append({"id": "0FENETRE02", "kind": "fenêtre", "width_m": 0.87, "height_m": 2.51,
+                                    "sides": ["G-CUI", None], "exterior": True, "facade": "nord"})
+        (self.directory / "DEMO.maquette-maquette.json").write_text(json.dumps(reading), encoding="utf-8")
+        listed = project_overview.project_overview("DEMO", self.directory, focus="fenêtres cuisine")["focus"]
+        self.assertEqual((listed["kind"], listed["nombre"]), ("sélection", 2))
+        asked = project_overview.project_overview("DEMO", self.directory, focus="fenêtre cuisine")["focus"]
+        self.assertIn("question", asked)
+
     def test_without_a_model_reading_the_focus_says_so(self):
         (self.directory / "DEMO.maquette-maquette.json").unlink()
         self.assertFalse(project_overview.project_overview("DEMO", self.directory, focus="cuisine")["focus"]["found"])

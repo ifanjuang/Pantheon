@@ -234,7 +234,8 @@ MAX_MODEL_BYTES = 8 * 1024 * 1024
 
 def _fold(text: Any) -> str:
     table = str.maketrans("àâäéèêëîïôöùûüç", "aaaeeeeiioouuuc")
-    return " ".join(str(text or "").lower().translate(table).replace("_", " ").split())
+    words = str(text or "").lower().translate(table).replace("_", " ").replace("n°", " ").replace("nº", " ").split()
+    return " ".join(w for w in words if w not in {"no", "numero", "num"})
 
 
 def _load_models(directory: Path, data: dict[str, Any]) -> list[dict[str, Any]]:
@@ -304,6 +305,7 @@ def _designation(reading: dict[str, Any], words: list[str], names: dict[str, str
     if kind_word is None:
         return None
     kind, exterior = ELEMENT_WORDS[kind_word]
+    plural = kind_word.endswith("s")  # "fenêtres de la chambre 1": all of them, not "which one?"
     rest = [w for w in words if w != kind_word]
     if "exterieur" in rest or "exterieurs" in rest:
         exterior, rest = True, [w for w in rest if w not in {"exterieur", "exterieurs"}]
@@ -341,6 +343,8 @@ def _designation(reading: dict[str, Any], words: list[str], names: dict[str, str
     rows = [row(e) for e in found]
     if len(rows) == 1:
         return {"found": True, "kind": "élément", **rows[0]}
+    if plural:
+        return {"found": True, "kind": "sélection", "critère": " ".join(words), "nombre": len(rows), "éléments": rows[:MAX_LISTED]}
 
     def describe(item: dict[str, Any], detailed: bool = False) -> str:
         where = (item.get("files") or "position non déterminée").replace(" ; ", ", ")
@@ -527,6 +531,9 @@ def project_overview(code: str, directory: Path | None = None, focus: str = "") 
         return {**result, "error": "code_required", "available_codes": _available_codes(directory)}
     if not _CODE.fullmatch(code):
         return {**result, "error": "invalid_code"}
+    if not (directory / f"{code}.json").exists():  # "demo" names DEMO: match the code whatever its case
+        code = next((c for c in _available_codes(directory) if c.lower() == code.lower()), code)
+        result["code"] = code
     try:
         with (directory / f"{code}.json").open("rb") as file:
             raw = file.read(MAX_BYTES + 1)
