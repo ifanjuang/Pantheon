@@ -84,3 +84,44 @@ def test_the_export_reads_the_current_model_pieces_only(tmp_path, monkeypatch) -
     ]}
     assert anatomy_export.read_current_models("DEMO", pieces, tmp_path) == [{"status": "read"}]
     assert seen == [("DEMO_E.ifc", "DEMO.maquette-maquette.json", {"piece": "MAQUETTE", "index": "E"})]
+
+
+@pytest.mark.parametrize("cls, exterior, sill, height, width, declared, expected", [
+    ("IfcWindow", True, 0.0, 2.8, 1.86, None, "porte-fenêtre"),       # exterior door in a window family
+    ("IfcWindow", True, 0.9, 1.2, 1.0, None, "fenêtre"),
+    ("IfcWindow", True, 0.0, 2.2, 0.52, None, "fenêtre toute hauteur"),
+    ("IfcDoor", True, 0.0, 2.07, 0.8, "Int. Simple:PP", "porte extérieure"),
+    ("IfcDoor", False, 0.0, 2.07, 0.8, None, "porte intérieure"),
+    ("IfcWindow", False, 1.0, 1.0, 1.0, None, "châssis intérieur"),
+])
+def test_the_nature_of_an_opening_comes_from_geometry_not_the_family(cls, exterior, sill, height, width, declared, expected) -> None:
+    nature, clues = reading.opening_nature(cls, exterior=exterior, sill_m=sill, height_m=height, width_m=width, declared_type=declared)
+    assert nature == expected
+    assert clues[0] == f"classe IFC {cls}"
+    if declared:
+        assert "le type déclaré dit intérieur, la géométrie dit extérieur" in clues
+
+
+def test_spaces_of_one_volume_are_open_onto_each_other_unless_a_wall_or_door_links_them() -> None:
+    geo = [{"id": "sejour", "poly": box(0, 0, 5, 5), "z": (0.0, 2.6)},
+           {"id": "cuisine", "poly": box(5.01, 0, 8, 5), "z": (0.0, 2.6)},   # touching, no wall
+           {"id": "chambre", "poly": box(8.2, 0, 11, 5), "z": (0.0, 2.6)}]   # behind a 20 cm wall
+    pairs = reading.open_neighbours(geo, set())
+    assert [p["spaces"] for p in pairs] == [["cuisine", "sejour"]] and pairs[0]["longueur_m"] >= 4.5
+    assert reading.open_neighbours(geo, {frozenset(("sejour", "cuisine"))}) == []
+
+
+def test_an_empty_side_inside_the_building_outline_is_unmodelled_not_outside() -> None:
+    outline = reading.envelope([box(0, 0, 4, 10), box(6, 0, 10, 10), box(4, 0, 6, 3), box(4, 7, 6, 10)])
+    assert outline.contains(shapely.geometry.Point(5, 5))      # a stair hall without a space
+    assert not outline.contains(shapely.geometry.Point(12, 5))
+
+
+def test_model_quality_advises_a_new_export_with_the_settings_to_fix() -> None:
+    good = reading.quality({"spaces": True, "north": True, "phases": True, "marks": True})
+    assert (good["niveau"], good["réexport_conseillé"], good["conseils_export"]) == ("bonne", False, [])
+    poor = reading.quality({"spaces": True, "north": False, "phases": False, "schema": False})
+    assert poor["niveau"] == "à améliorer" and poor["réexport_conseillé"]
+    assert any("nord" in advice for advice in poor["conseils_export"])
+    assert reading.quality({"spaces": False})["niveau"] == "insuffisante"
+

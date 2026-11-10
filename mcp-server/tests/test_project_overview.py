@@ -311,6 +311,32 @@ class TestFocus(unittest.TestCase):
         asked = project_overview.project_overview("DEMO", self.directory, focus="fenêtre cuisine")["focus"]
         self.assertIn("question", asked)
 
+    def test_the_sheet_and_summary_say_what_openings_are_and_how_good_the_model_is(self):
+        reading = _model_reading()
+        reading["openings"][1].update(nature="porte-fenêtre", sill_m=0.0, kind="fenêtre")
+        reading["openings"].append({"id": "0PORTEESC1", "kind": "porte", "nature": "porte intérieure", "width_m": 0.8,
+                                    "height_m": 2.07, "sides": ["G-CUI", None], "exterior": False, "unmodelled_side": True,
+                                    "clues": ["classe IFC IfcDoor", "la propriété IsExternal contredit la géométrie"]})
+        reading["neighbours"].append({"spaces": ["G-CUI", "G-SAL"], "via": "ouvert", "elements": [], "longueur_m": 3.0})
+        reading["quality"] = {"niveau": "à améliorer", "réexport_conseillé": True,
+                              "conseils_export": ["Régler le nord géographique du projet dans Revit avant l'export."]}
+        reading["declared_vs_observed"] = ["39 murs déclarés extérieurs, 14 le sont par la géométrie : la géométrie fait foi."]
+        (self.directory / "DEMO.maquette-maquette.json").write_text(json.dumps(reading), encoding="utf-8")
+        sheet = project_overview.project_overview("DEMO", self.directory, focus="cuisine")["focus"]
+        rows = {o["id"]: o for o in sheet["ouvertures"]}
+        self.assertEqual(rows["0FENETRE01"]["élément"], "porte-fenêtre")
+        self.assertEqual(rows["0PORTEESC1"]["donne"], "vers un local non modélisé (circulation, escalier)")
+        self.assertEqual(rows["0PORTEESC1"]["à_vérifier"], ["la propriété IsExternal contredit la géométrie"])
+        self.assertEqual(sheet["ouvert_sur"], ["Salon"])
+        self.assertEqual(sheet["qualité_maquette"], "à améliorer")
+        # "porte" finds the French window modelled in a window family.
+        doors = project_overview.project_overview("DEMO", self.directory, focus="portes cuisine")["focus"]
+        self.assertIn("porte-fenêtre", {row["élément"] for row in doors["éléments"]})
+        summary = project_overview.project_overview("DEMO", self.directory)
+        self.assertTrue(summary["model_quality"]["réexport_conseillé"])
+        self.assertIn("nord", summary["model_quality"]["conseils_export"][0])
+        self.assertTrue(any("réexporter" in rule for rule in summary["reading_rules"]))
+
     def test_without_a_model_reading_the_focus_says_so(self):
         (self.directory / "DEMO.maquette-maquette.json").unlink()
         self.assertFalse(project_overview.project_overview("DEMO", self.directory, focus="cuisine")["focus"]["found"])
