@@ -118,6 +118,9 @@
   of one piece) and admits numbered engineer indices (`Ind 0`, `IND9`). The
   model reading also reads grid lines exported in `WAxes`, the third axis list
   of an IFC grid, where Revit may put one direction.
+  `get_project(code, focus)` also selects `file M`, `façade sud` or a level
+  (`R01`), with the architect's model read first, so reverse questions are
+  answered by the tool instead of the model.
 - Property profile `architecture@1`
   (`registries/architecture_property_profile.registry.json`): the vocabulary of
   attribute keys, so an object gains properties as the project advances

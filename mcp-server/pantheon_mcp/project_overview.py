@@ -282,13 +282,71 @@ def _side(item: dict[str, Any], own: str, names: dict[str, str]) -> str:
     return f"extérieur, façade {item['facade']}" if item.get("exterior") and item.get("facade") else "côté non déterminé"
 
 
+FACADE_NAMES = {"nord", "est", "sud", "ouest"}
+
+
+def _on_grid(position: Any, tag: str) -> bool:
+    """'sur la file M' or 'entre L et M' names the grid line tag."""
+    text = f" {position or ''} ".replace(";", " ; ")
+    return f" file {tag} " in text or f" et {tag} " in text or f"entre {tag} " in text
+
+
+def _selection(reading: dict[str, Any], wanted: str, states: dict[str, str]) -> dict[str, Any] | None:
+    """Elements on one grid line, on one façade, or spaces on one level: the reverse questions."""
+    names = {s["id"]: s["name"] for s in reading.get("spaces") or []}
+    elements = [{**o, "_what": o["kind"]} for o in reading.get("openings") or []] + \
+               [{**w, "_what": "mur"} for w in reading.get("walls") or []]
+
+    def row(item: dict[str, Any]) -> dict[str, Any]:
+        sides = [names.get(s, "?") for s in item.get("sides") or [] if s]
+        return {"élément": item["_what"], **({"largeur_m": item["width_m"]} if item.get("width_m") else {}),
+                **({"hauteur_m": item["height_m"]} if item.get("height_m") else {}),
+                **({"épaisseur_m": item["thickness_m"]} if item.get("thickness_m") else {}),
+                "locaux": sides, **({"façade": item["facade"]} if item.get("facade") else {}),
+                **({"files": item["grid"]} if item.get("grid") else {}), "niveau": item.get("level"), "id": item["id"]}
+
+    words = wanted.split()
+    if len(words) == 2 and words[0] in {"file", "files", "axe"}:
+        tag = words[1].upper()
+        if tag not in set(reading.get("grid_lines") or []):
+            return {"found": False, "reason": f"pas de file {tag} dans la maquette",
+                    "candidates": list(reading.get("grid_lines") or [])}
+        rows = [row(e) for e in elements if _on_grid(e.get("grid"), tag)]
+        return {"found": True, "kind": "sélection", "critère": f"file {tag}", "nombre": len(rows), "éléments": rows[:MAX_LISTED]}
+    if len(words) == 2 and words[0] == "facade" and words[1] in FACADE_NAMES:
+        rows = [row(e) for e in elements if e.get("facade") == words[1]]
+        return {"found": True, "kind": "sélection", "critère": f"façade {words[1]}", "nombre": len(rows), "éléments": rows[:MAX_LISTED]}
+    levels = {_fold(level.get("name")): level.get("name") for level in reading.get("levels") or []}
+    if wanted in levels:
+        spaces = [{"local": s["name"], "surface_m2": s.get("area_m2"), "état": states.get(s["id"], UNSTATED)}
+                  for s in reading.get("spaces") or [] if _fold(s.get("level")) == wanted]
+        return {"found": True, "kind": "sélection", "critère": f"niveau {levels[wanted]}", "nombre": len(spaces),
+                "locaux": spaces[:MAX_LISTED],
+                "ouvertures": sum(1 for o in reading.get("openings") or [] if _fold(o.get("level")) == wanted)}
+    return None
+
+
 def _focus(directory: Path, data: dict[str, Any], focus: str) -> dict[str, Any]:
-    """Sheet of one space or element, from the current model reading."""
+    """Sheet of one space or element, or a selection by grid line, façade or level, from the current model reading."""
     models = _load_models(directory, data)
     if not models:
         return {"found": False, "reason": "aucune lecture de maquette publiée pour cette affaire"}
     wanted = _fold(focus)
     states = _states(data)
+    # The architect's model (with spaces) first; engineers' models complete it.
+    models.sort(key=lambda r: -len(r.get("spaces") or []))
+    missed = None
+    for reading in models:
+        selected = _selection(reading, wanted, states)
+        if selected is None:
+            continue
+        selected = {**selected, "source": {"piece": reading["source"].get("piece"), "index": reading["source"].get("index")},
+                    "limites": list(reading.get("limits") or [])}
+        if selected.get("found"):
+            return selected
+        missed = missed or selected
+    if missed is not None:
+        return missed
     for reading in models:
         names = {s["id"]: s["name"] for s in reading.get("spaces") or []}
         spaces = reading.get("spaces") or []

@@ -176,7 +176,8 @@ def get_project(code: str, focus: str = "") -> str:
     `code` is the affaire code (its folder name); an empty code lists the published ones.
     `focus` names one room ("cuisine", "chambre 101") or element id: its sheet from the current model
     (doors and windows with the room or façade they give onto, walls with what is on the other side,
-    grid lines). Sides and façades are computed: say so when quoting them.
+    grid lines); or selects "file M", "façade sud" or a level ("R01"): the elements or rooms concerned.
+    Sides and façades are computed: say so when quoting them.
     """
     return _call("project_overview", code, focus)
 

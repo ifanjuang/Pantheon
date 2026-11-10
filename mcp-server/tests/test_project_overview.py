@@ -224,6 +224,24 @@ class TestFocus(unittest.TestCase):
         self.assertEqual((result["focus"]["kind"], result["focus"]["facade"]), ("élément", "sud"))
         self.assertEqual(result["focus"]["côtés"], ["Cuisine", "extérieur"])
 
+    def test_reverse_questions_select_by_grid_line_facade_or_level(self):
+        reading = _model_reading()
+        reading["grid_lines"] = ["6", "55"]
+        reading["levels"] = [{"name": "RDC", "elevation": 0.0}, {"name": "R01", "elevation": 2.8}]
+        for item in reading["openings"] + reading["walls"]:
+            item.setdefault("level", "RDC")
+        (self.directory / "DEMO.maquette-maquette.json").write_text(json.dumps(reading), encoding="utf-8")
+        on_line = project_overview.project_overview("DEMO", self.directory, focus="file 6")["focus"]
+        self.assertEqual((on_line["kind"], on_line["nombre"]), ("sélection", 2))
+        self.assertEqual({row["élément"] for row in on_line["éléments"]}, {"porte", "fenêtre"})
+        south = project_overview.project_overview("DEMO", self.directory, focus="façade sud")["focus"]
+        self.assertEqual([row["locaux"] for row in south["éléments"]], [["Cuisine"]])
+        level = project_overview.project_overview("DEMO", self.directory, focus="R01")["focus"]
+        self.assertEqual([s["local"] for s in level["locaux"]], ["chambre", "chambre"])
+        missing = project_overview.project_overview("DEMO", self.directory, focus="file Z")["focus"]
+        self.assertFalse(missing["found"])
+        self.assertEqual(missing["candidates"], ["6", "55"])
+
     def test_without_a_model_reading_the_focus_says_so(self):
         (self.directory / "DEMO.maquette-maquette.json").unlink()
         self.assertFalse(project_overview.project_overview("DEMO", self.directory, focus="cuisine")["focus"]["found"])
