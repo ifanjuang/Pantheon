@@ -52,6 +52,8 @@ READING_RULES = [
     "une date de création du PDF n'est pas la date du plan.",
     "Ne rien ajouter qui ne figure pas ici (type de bâtiment, statut d'une pièce, pièces absentes) : "
     "dire « non renseigné » plutôt que supposer.",
+    "Quand la focalisation renvoie plusieurs candidats avec une question, poser cette question à "
+    "l'utilisateur au lieu de choisir.",
 ]
 PIECE_KEYS = ("index", "date", "position")
 DATE_SOURCES = {"fiche": "fiche", "cartouche": "cartouche", "nom": "nom du fichier", "pdf": "création du PDF (incertaine)"}
@@ -283,6 +285,81 @@ def _side(item: dict[str, Any], own: str, names: dict[str, str]) -> str:
 
 
 FACADE_NAMES = {"nord", "est", "sud", "ouest"}
+# Element words of a designation: kind of element, and whether it is exterior (None: either).
+ELEMENT_WORDS = {
+    "cloison": ("mur", False), "cloisons": ("mur", False), "mur": ("mur", None), "murs": ("mur", None),
+    "fenetre": ("fenêtre", None), "fenetres": ("fenêtre", None), "porte": ("porte", None), "portes": ("porte", None),
+}
+LABELS = {("mur", False): "la cloison", ("mur", True): "le mur extérieur", ("mur", None): "le mur",
+          ("fenêtre", None): "la fenêtre", ("porte", None): "la porte"}
+
+
+def _designation(reading: dict[str, Any], words: list[str], names: dict[str, str],
+                 elements: list[dict[str, Any]], row) -> dict[str, Any] | None:
+    """'cloison file 5', 'fenêtre façade sud chambre 1': one element, or the candidates and the question to ask."""
+    kind_word = next((w for w in words if w in ELEMENT_WORDS), None)
+    if kind_word is None:
+        return None
+    kind, exterior = ELEMENT_WORDS[kind_word]
+    rest = [w for w in words if w != kind_word]
+    if "exterieur" in rest or "exterieurs" in rest:
+        exterior, rest = True, [w for w in rest if w not in {"exterieur", "exterieurs"}]
+    if "interieur" in rest:
+        exterior, rest = False, [w for w in rest if w != "interieur"]
+    tags, facade_dir, level = [], None, None
+    levels = {_fold(lv.get("name")) for lv in reading.get("levels") or []}
+    grid_lines = {g.upper() for g in reading.get("grid_lines") or []}
+    room_words = []
+    i = 0
+    while i < len(rest):
+        word = rest[i]
+        if word in {"file", "files", "axe"} and i + 1 < len(rest):
+            tags.append(rest[i + 1].upper()); i += 2; continue
+        if word == "facade" and i + 1 < len(rest) and rest[i + 1] in FACADE_NAMES:
+            facade_dir = rest[i + 1]; i += 2; continue
+        if word in levels:
+            level = word; i += 1; continue
+        # A bare grid tag counts only after a grid word: the "1" of "chambre 1" names the room.
+        if word.upper() in grid_lines and len(word) <= 3 and i > 0 and rest[i - 1] in {"entre", "et", "sur"}:
+            tags.append(word.upper()); i += 1; continue
+        if word not in {"de", "du", "la", "le", "les", "sur", "entre", "et", "dans", "des"}:
+            room_words.append(word)
+        i += 1
+    room = " ".join(room_words)
+    found = [e for e in elements if e["_what"] == kind
+             and (exterior is None or bool(e.get("exterior")) == exterior)
+             and all(_on_grid(e.get("grid"), tag) for tag in tags)
+             and (facade_dir is None or e.get("facade") == facade_dir)
+             and (level is None or _fold(e.get("level")) == level)
+             and (not room or any(room in _fold(names.get(s)) for s in e.get("sides") or [] if s))]
+    label = LABELS.get((kind, exterior if kind == "mur" else None), "l'élément")
+    if not found:
+        return {"found": False, "kind": "désignation", "reason": f"aucun élément ne correspond à « {' '.join(words)} »"}
+    rows = [row(e) for e in found]
+    if len(rows) == 1:
+        return {"found": True, "kind": "élément", **rows[0]}
+
+    def describe(item: dict[str, Any], detailed: bool = False) -> str:
+        where = (item.get("files") or "position non déterminée").replace(" ; ", ", ")
+        def metres(value: float) -> str:
+            return f"{value:.2f}".replace(".", ",") + " m"
+
+        details = list(dict.fromkeys(item.get("locaux") or []))
+        details = [" / ".join(details)] if details else []
+        if item.get("façade"):
+            details.append(f"façade {item['façade']}")
+        if detailed:  # same place, same rooms: tell them apart by size
+            details += [metres(v) for v in (item.get("longueur_m"), item.get("largeur_m")) if v]
+            details += [f"ép. {metres(item['épaisseur_m'])}"] if item.get("épaisseur_m") else []
+        return f"{label} {where}" + (f" ({', '.join(details)})" if details else "")
+
+    plain = [describe(r) for r in rows]
+    if len(set(plain)) < len(plain):
+        plain = [describe(r, detailed=True) for r in rows]
+
+    question = ("Parlez-vous de " + ", ou de ".join(plain) + " ?") if len(rows) <= 4 else \
+        f"{len(rows)} éléments correspondent : précisez la file, la façade, le niveau ou la pièce."
+    return {"found": False, "kind": "désignation", "plusieurs": len(rows), "candidats": rows[:MAX_LISTED], "question": question}
 
 
 def _on_grid(position: Any, tag: str) -> bool:
@@ -302,10 +379,14 @@ def _selection(reading: dict[str, Any], wanted: str, states: dict[str, str]) -> 
         return {"élément": item["_what"], **({"largeur_m": item["width_m"]} if item.get("width_m") else {}),
                 **({"hauteur_m": item["height_m"]} if item.get("height_m") else {}),
                 **({"épaisseur_m": item["thickness_m"]} if item.get("thickness_m") else {}),
+                **({"longueur_m": item["length_m"]} if item.get("length_m") else {}),
                 "locaux": sides, **({"façade": item["facade"]} if item.get("facade") else {}),
                 **({"files": item["grid"]} if item.get("grid") else {}), "niveau": item.get("level"), "id": item["id"]}
 
     words = wanted.split()
+    designated = _designation(reading, words, names, elements, row)
+    if designated is not None:
+        return designated
     if len(words) == 2 and words[0] in {"file", "files", "axe"}:
         tag = words[1].upper()
         if tag not in set(reading.get("grid_lines") or []):

@@ -242,6 +242,37 @@ class TestFocus(unittest.TestCase):
         self.assertFalse(missing["found"])
         self.assertEqual(missing["candidates"], ["6", "55"])
 
+    def test_an_ambiguous_designation_returns_the_question_to_ask(self):
+        reading = _model_reading()
+        reading["grid_lines"] = ["B", "C", "4", "5"]
+        reading["walls"] = [
+            {"id": "W1", "sides": ["G-CUI", "G-SAL"], "exterior": False, "grid": "sur la file 5 ; entre B et C", "level": "RDC"},
+            {"id": "W2", "sides": ["G-SAL", "G-CUI"], "exterior": False, "grid": "sur la file C ; entre 4 et 5", "level": "RDC"},
+            {"id": "W3", "sides": ["G-CUI", None], "exterior": True, "facade": "sud", "grid": "sur la file 5 ; entre C et D", "level": "RDC"},
+        ]
+        (self.directory / "DEMO.maquette-maquette.json").write_text(json.dumps(reading), encoding="utf-8")
+        asked = project_overview.project_overview("DEMO", self.directory, focus="cloison file 5")["focus"]
+        self.assertEqual(asked["plusieurs"], 2)
+        self.assertEqual(asked["question"], "Parlez-vous de la cloison sur la file 5, entre B et C (Cuisine / Salon), "
+                                            "ou de la cloison sur la file C, entre 4 et 5 (Salon / Cuisine) ?")
+        # Same place and rooms: the question tells them apart by size.
+        reading["walls"][1].update(grid="sur la file 5 ; entre B et C", sides=["G-CUI", "G-SAL"], length_m=2.35, thickness_m=0.1)
+        reading["walls"][0].update(length_m=2.8)
+        (self.directory / "DEMO.maquette-maquette.json").write_text(json.dumps(reading), encoding="utf-8")
+        twins = project_overview.project_overview("DEMO", self.directory, focus="cloison file 5 entre b et c")["focus"]
+        self.assertIn("(Cuisine / Salon, 2,80 m)", twins["question"])
+        self.assertIn("(Cuisine / Salon, 2,35 m, ép. 0,10 m)", twins["question"])
+        reading["walls"][1].update(grid="sur la file C ; entre 4 et 5", sides=["G-SAL", "G-CUI"])
+        (self.directory / "DEMO.maquette-maquette.json").write_text(json.dumps(reading), encoding="utf-8")
+        # "file C" alone is ambiguous too (on C, or between B and C); naming 4 and 5 settles it.
+        self.assertEqual(project_overview.project_overview("DEMO", self.directory, focus="cloison file C")["focus"]["plusieurs"], 2)
+        one = project_overview.project_overview("DEMO", self.directory, focus="cloison file C entre 4 et 5")["focus"]
+        self.assertEqual((one["kind"], one["id"]), ("élément", "W2"))
+        outside = project_overview.project_overview("DEMO", self.directory, focus="mur extérieur façade sud")["focus"]
+        self.assertEqual(outside["id"], "W3")
+        none = project_overview.project_overview("DEMO", self.directory, focus="porte file B")["focus"]
+        self.assertFalse(none["found"])
+
     def test_without_a_model_reading_the_focus_says_so(self):
         (self.directory / "DEMO.maquette-maquette.json").unlink()
         self.assertFalse(project_overview.project_overview("DEMO", self.directory, focus="cuisine")["focus"]["found"])
