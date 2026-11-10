@@ -79,7 +79,7 @@ class TestProjectOverview(unittest.TestCase):
         (self.directory / "DEMO.json").write_text(json.dumps(_projection()), encoding="utf-8")
 
     def test_levels_spaces_states_and_totals_come_from_the_file(self):
-        result = project_overview.project_overview("DEMO", self.directory)
+        result = project_overview.summarize(json.loads((self.directory / "DEMO.json").read_text(encoding="utf-8")))
         self.assertTrue(result["found"])
         self.assertEqual(result["project"], {"code": "DEMO", "display_name": "Maison démo"})
         self.assertEqual(result["owner_revision"], 7)
@@ -97,7 +97,10 @@ class TestProjectOverview(unittest.TestCase):
         self.assertTrue(any("recalculer" in rule for rule in result["reading_rules"]))
 
     def test_the_current_index_of_each_piece_and_the_questions_come_first(self):
-        pieces = project_overview.project_overview("DEMO", self.directory)["pieces"]
+        result = project_overview.project_overview("DEMO", self.directory, focus="pièces")
+        pieces = {"current": result["focus"]["pièces"],
+                  "to_confront": project_overview.project_overview("DEMO", self.directory, focus="devis")["focus"]["devis"],
+                  "questions": result["open_questions"]}
         self.assertEqual(pieces["current"][0], {"piece": "PLAN RDC", "index": "E", "date": "2026-01-01", "position": "certaine",
                                               "file": "DEMO/DCE/x.pdf"})
         self.assertEqual(pieces["current"][1]["variants"], ["C1", "C2"])
@@ -116,7 +119,8 @@ class TestProjectOverview(unittest.TestCase):
         self.assertEqual(result["pieces"]["synthesis"], [
             "Indice C2 : 1 pièce (CCTP).", "Indice E : 1 pièce (PLAN RDC).",
             "1 devis ou offre à confronter.", "1 question ouverte."])
-        self.assertEqual(result["pieces"]["current"][0]["date_from"], "création du PDF (incertaine)")
+        listed = project_overview.project_overview("DEMO", self.directory, focus="pièces")["focus"]["pièces"]
+        self.assertEqual(listed[0]["date_from"], "création du PDF (incertaine)")
 
     def test_an_anatomy_published_without_pieces_has_no_pieces_section(self):
         data = _projection()
@@ -136,8 +140,21 @@ class TestProjectOverview(unittest.TestCase):
         (self.directory / "NEUF.json").write_text(json.dumps(data), encoding="utf-8")
         result = project_overview.project_overview("NEUF", self.directory)
         self.assertIn("non encore installée", result["anatomy_status"])
-        self.assertEqual(result["levels"], [])
-        self.assertTrue(result["pieces"]["current"])
+        self.assertNotIn("levels", result)
+        self.assertEqual(result["pieces"]["counts"], {"current": 2, "to_confront": 1})
+
+    def test_a_focus_answer_carries_only_a_header_and_the_piece_list_can_be_filtered(self):
+        result = project_overview.project_overview("DEMO", self.directory, focus="pièces plan")
+        self.assertNotIn("reading_rules", result)
+        self.assertEqual([row["piece"] for row in result["focus"]["pièces"]], ["PLAN RDC"])
+
+    def test_the_answer_without_focus_is_a_compact_summary(self):
+        result = project_overview.project_overview("DEMO", self.directory)
+        self.assertNotIn("current", result["pieces"])
+        self.assertNotIn("sources", result)
+        self.assertIn("focus", result["detail"])
+        self.assertEqual(result["levels"][0]["spaces"][0], "Cuisine 12.46 m² (projeté)")
+        self.assertLess(len(json.dumps(result, ensure_ascii=False)), 6000)
 
     def test_an_empty_or_unknown_code_lists_the_published_affaires(self):
         self.assertEqual(project_overview.project_overview("", self.directory)["available_codes"], ["DEMO"])
@@ -223,8 +240,9 @@ class TestFocus(unittest.TestCase):
         self.assertIn("Cuisine RDC", " ".join(unknown["candidates"]))
 
     def test_an_element_is_found_by_its_id_and_the_overview_lists_the_models(self):
+        self.assertEqual(project_overview.project_overview("DEMO", self.directory)["models"],
+                         [{"piece": "MAQUETTE", "index": "E", "status": "read"}])
         result = project_overview.project_overview("DEMO", self.directory, focus="0fenetre01")
-        self.assertEqual(result["models"], [{"piece": "MAQUETTE", "index": "E", "status": "read"}])
         self.assertEqual((result["focus"]["kind"], result["focus"]["facade"]), ("élément", "sud"))
         self.assertEqual(result["focus"]["côtés"], ["Cuisine", "extérieur"])
 
