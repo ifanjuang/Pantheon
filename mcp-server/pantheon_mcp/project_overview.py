@@ -480,6 +480,43 @@ def _focus(directory: Path, data: dict[str, Any], focus: str) -> dict[str, Any]:
             "reason": "aucun local ni élément ne correspond"}
 
 
+DETAIL_HINT = ("Détail sur demande avec focus : « pièces » (toutes les pièces courantes et leurs fichiers), "
+               "« devis », « locaux », un local (« cuisine », « chambre 101 »), « file M », « façade sud », "
+               "un niveau (« R01 »), ou un élément (« cloison file 5 », « fenêtre façade sud chambre 1 »).")
+
+
+def _compact(full: dict[str, Any], directory: Path, data: dict[str, Any]) -> dict[str, Any]:
+    """The answer without focus: small enough for a local model to read whole (target a few kilobytes)."""
+    pieces = full.get("pieces") or {}
+    compact: dict[str, Any] = {key: full[key] for key in ("code", "found", "source", "project", "anatomy_status",
+                                                          "open_questions", "published_at") if key in full}
+    if pieces:
+        compact["pieces"] = {k: pieces[k] for k in ("questions", "synthesis", "error") if k in pieces}
+        compact["pieces"]["counts"] = {"current": len(pieces.get("current") or []),
+                                       "to_confront": len(pieces.get("to_confront") or [])}
+    if full.get("models"):
+        compact["models"] = full["models"]
+    if full.get("levels"):
+        compact["levels"] = [{"name": level["name"], "spaces": [
+            f"{s['name']}" + (f" {s['area_m2']} m²" if s.get("area_m2") is not None else "")
+            + (f" ({s['state']})" if s.get("state") and s["state"] != UNSTATED else "") for s in level["spaces"]]}
+            for level in full["levels"]]
+        compact["surfaces_by_state_m2"] = full.get("surfaces_by_state_m2")
+        compact["spaces_counted_in_totals"] = full.get("spaces_counted_in_totals")
+    else:  # no Anatomy yet: the rooms the current model shows
+        models = sorted(_load_models(directory, data), key=lambda r: -len(r.get("spaces") or []))
+        if models and models[0].get("spaces"):
+            by_level: dict[str, list[str]] = {}
+            for space in models[0]["spaces"]:
+                by_level.setdefault(space.get("level") or "?", []).append(f"{space['name']} {space.get('area_m2')} m²")
+            compact["model_spaces"] = {"source": models[0]["source"].get("piece"), "index": models[0]["source"].get("index"),
+                                       "levels": by_level}
+    compact["status"] = full.get("status")
+    compact["reading_rules"] = full.get("reading_rules")
+    compact["detail"] = DETAIL_HINT
+    return compact
+
+
 def project_overview(code: str, directory: Path | None = None, focus: str = "") -> dict[str, Any]:
     directory = directory if directory is not None else anatomy_dir()
     code = str(code or "").strip()
@@ -503,11 +540,29 @@ def project_overview(code: str, directory: Path | None = None, focus: str = "") 
         data = json.loads(raw)
         if data.get("schema") != SCHEMA or (data.get("project") or {}).get("code") != code:
             raise ValueError("schema")
-        overview = {**result, **summarize(data)}
+        full = {**result, **summarize(data)}
         if data.get("models"):
-            overview["models"] = [{k: m.get(k) for k in ("piece", "index", "status") if m.get(k)}
-                                  for m in data["models"] if isinstance(m, dict)]
-        if str(focus or "").strip():
+            full["models"] = [{k: m.get(k) for k in ("piece", "index", "status") if m.get(k)}
+                              for m in data["models"] if isinstance(m, dict)]
+        wanted = _fold(focus)
+        if not wanted:
+            return _compact(full, directory, data)
+        # With a focus, only a short header travels with the detail asked for.
+        overview = {key: full[key] for key in ("code", "found", "source", "project", "anatomy_status", "open_questions")
+                    if key in full}
+        first, _, rest = wanted.partition(" ")
+        if first in {"pieces", "documents", "plans"}:
+            listed = (full.get("pieces") or {}).get("current", [])
+            if rest:  # "pièces dce", "pièces cctp": name or folder contains the word
+                listed = [row for row in listed if rest in _fold(row.get("piece")) or rest in _fold(row.get("file"))]
+            overview["focus"] = {"found": True, "kind": "pièces", "filtre": rest or None, "nombre": len(listed), "pièces": listed}
+        elif wanted in {"devis", "offres"}:
+            overview["focus"] = {"found": True, "kind": "devis", "devis": (full.get("pieces") or {}).get("to_confront", [])}
+        elif wanted in {"locaux", "surfaces", "anatomie"}:
+            overview["focus"] = {"found": True, "kind": "locaux", "levels": full.get("levels", []),
+                                 "surfaces_by_state_m2": full.get("surfaces_by_state_m2"),
+                                 "spaces_counted_in_totals": full.get("spaces_counted_in_totals")}
+        elif wanted:
             overview["focus"] = _focus(directory, data, str(focus))
         return overview
     except (ValueError, TypeError, KeyError, AttributeError):

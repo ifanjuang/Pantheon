@@ -174,9 +174,11 @@ def get_project(code: str, focus: str = "") -> str:
     Call it first for "où en est l'affaire", "dernier plan", "indice", "version à jour". Quote the
     indices, dates and numbers as given; never infer an index or a phase from a file name.
     `code` is the affaire code (its folder name); an empty code lists the published ones.
-    `focus` names one room ("cuisine", "chambre 101") or element id: its sheet from the current model
-    (doors and windows with the room or façade they give onto, walls with what is on the other side,
-    grid lines); or selects "file M", "façade sud" or a level ("R01"): the elements or rooms concerned.
+    Without `focus` the answer is a short summary (questions, synthesis, models, rooms). Ask the detail
+    with `focus`: "pièces" (or "pièces dce", "pièces cctp"), "devis", "locaux"; one room ("cuisine",
+    "chambre 101") or element: its sheet from the current model (doors and windows with what they give
+    onto, walls with the other side, grid lines); "file M", "façade sud" or a level ("R01"): the
+    elements or rooms concerned; "cloison file 5": one element, or the question to ask the user.
     Sides and façades are computed: say so when quoting them.
     """
     return _call("project_overview", code, focus)

@@ -124,6 +124,10 @@
   A designation such as `cloison file 5` or `fenêtre façade sud chambre 1`
   returns the one element it names, or the candidates with the question to ask
   the user instead of choosing.
+  Without focus, `get_project` answers with a summary of a few kilobytes
+  (questions, synthesis, models, rooms); the full lists come with `focus`
+  (`pièces`, optionally filtered, `devis`, `locaux`), and a focus answer
+  carries only a short header. A real answer of 38 KB had to be paged by Hermes.
 - Property profile `architecture@1`
   (`registries/architecture_property_profile.registry.json`): the vocabulary of
   attribute keys, so an object gains properties as the project advances
