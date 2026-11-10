@@ -17,7 +17,7 @@ EFFECT_INVENTORY: dict[tuple[str, str], dict[str, str]] = {
     },
     ("anatomy_export.py", "export_all"): {
         "effect": "filesystem_projection",
-        "reviewed": "calls export_project_anatomy for every Project with an initialized APU owner; same bounded projection directory",
+        "reviewed": "calls export_project_anatomy for every Project with a code, Anatomy installed or not; same bounded projection directory",
     },
     ("anatomy_export.py", "read_current_models"): {
         "effect": "filesystem_projection",

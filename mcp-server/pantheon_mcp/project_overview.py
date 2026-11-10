@@ -199,6 +199,8 @@ def summarize(data: dict[str, Any]) -> dict[str, Any]:
     return {
         "found": True,
         "project": project,
+        **({"anatomy_status": "Anatomie non encore installée : seules les pièces et la lecture de la maquette "
+                              "sont disponibles."} if anatomy.get("status") == "not_installed" else {}),
         **({"open_questions": pieces["questions"]} if pieces and pieces.get("questions") else {}),
         "published_at": data.get("generated_at"),
         **({"pieces": pieces} if pieces is not None else {}),

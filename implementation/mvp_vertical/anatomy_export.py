@@ -21,12 +21,19 @@ import re
 import sqlite3
 from typing import Any
 
-from . import apu_vocabulary, model_reading, project_pieces
+from . import apu_owner, apu_vocabulary, model_reading, project_pieces
 from .project_anatomy_projection import get_project_anatomy_projection
 
 SCHEMA = "pantheon.anatomy.v1"
 EXPORT_DIR_ENV = "MVP_ANATOMY_EXPORT_DIR"
 _CODE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
+
+
+# Published in place of the projection while a Project has no installed Anatomy.
+EMPTY_ANATOMY: dict[str, Any] = {
+    "status": "not_installed", "owner_revision": None, "summary": {}, "structure": {"objects": []},
+    "attribute_claims": [], "relation_claims": [], "relations": [], "sources": [], "phases": {"status": "no_anatomy"},
+}
 
 
 class AnatomyExportError(ValueError):
@@ -74,7 +81,12 @@ def export_project_anatomy(conn, project_id: str, *, directory: Path | None = No
     code = str(row[1] or "").strip()
     if not _CODE.fullmatch(code):
         raise AnatomyExportError(f"Project code cannot name an export file: {code!r}")
-    anatomy = get_project_anatomy_projection(conn, project_id=project_id)
+    try:
+        anatomy = get_project_anatomy_projection(conn, project_id=project_id)
+    except apu_owner.ApuOwnerNotFound:
+        # An affaire is published before its Anatomy exists: its pieces and model
+        # reading are useful from the first document on.
+        anatomy = dict(EMPTY_ANATOMY)
     document: dict[str, Any] = {
         "schema": SCHEMA,
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -120,7 +132,12 @@ def read_current_models(code: str, pieces: dict[str, Any], directory: Path) -> l
 
 
 def export_all(conn, *, directory: Path | None = None) -> list[Path]:
-    """Every Project whose APU owner is initialized."""
-    rows = conn.execute("SELECT project_id FROM agency_apu_project_state ORDER BY project_id").fetchall()
-    written = [export_project_anatomy(conn, row[0], directory=directory) for row in rows]
+    """Every Project with a code, whether or not its Anatomy is installed yet."""
+    rows = conn.execute("SELECT project_id FROM agency_projects WHERE code IS NOT NULL ORDER BY project_id").fetchall()
+    written = []
+    for row in rows:
+        try:
+            written.append(export_project_anatomy(conn, row[0], directory=directory))
+        except AnatomyExportError:
+            continue  # a code that cannot name a file never blocks the other affaires
     return [path for path in written if path is not None]

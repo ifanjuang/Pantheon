@@ -49,6 +49,15 @@ def test_a_code_that_cannot_name_a_file_is_refused(conn, tmp_path) -> None:
     assert list(tmp_path.iterdir()) == []
 
 
+def test_an_affaire_is_published_before_its_anatomy_is_installed(conn, tmp_path) -> None:
+    project_id = _project(conn)  # no reviewed dossier imported
+    path = anatomy_export.export_project_anatomy(conn, project_id, directory=tmp_path)
+    document = json.loads(path.read_text(encoding="utf-8"))
+    assert document["anatomy"]["status"] == "not_installed"
+    assert document["anatomy"]["structure"]["objects"] == []
+    assert tmp_path / f"{_code(conn, project_id)}.json" in anatomy_export.export_all(conn, directory=tmp_path)
+
+
 def test_export_all_covers_every_initialized_project(conn, tmp_path) -> None:
     project_id = _project(conn)
     _import(conn, project_id)

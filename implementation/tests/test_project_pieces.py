@@ -17,7 +17,7 @@ from mvp_vertical import project_pieces as pieces
 
 @pytest.mark.parametrize("label, expected", [
     ("E", ("E", None)), ("C1", ("C", 1)), ("C.1", ("C", 1)), ("Ind C-2", ("C", 2)), ("indice b", ("B", None)),
-    ("ESQ", None), ("", None), ("12", None),
+    ("ESQ", None), ("", None), ("12", None), ("IND9", ("09", None)), ("Ind 0", ("00", None)),
 ])
 def test_the_agency_index_rule(label, expected) -> None:
     assert pieces.parse_index(label) == expected
@@ -191,3 +191,18 @@ def test_nothing_is_read_without_configuration(monkeypatch) -> None:
     monkeypatch.delenv(pieces.WORKSPACE_DB_ENV, raising=False)
     monkeypatch.delenv(pieces.AFFAIRES_ROOT_ENV, raising=False)
     assert pieces.read_project_pieces("DEMO") is None
+
+
+def test_a_drawing_and_its_model_under_one_index_raise_no_question(tmp_path) -> None:
+    state = _state(tmp_path, {"Etudes/PLN STRUCTURE Indice H.pdf": {"sha": "1"}},
+                   models=("Etudes/PLN STRUCTURE Indice H.ifc",))
+    piece = next(p for p in state["pieces"] if p["piece"] == "PLN STRUCTURE")
+    assert piece["current"]["index"] == "H" and piece["revisions"] == 2 and not state["questions"]
+
+
+def test_numbered_engineer_indices_are_ordered(tmp_path) -> None:
+    state = _state(tmp_path, {"Etudes/CCTP LOT 08 IND8.pdf": {"sha": "1"}, "Etudes/CCTP LOT 08 IND10.pdf": {"sha": "2"},
+                              "Etudes/NOTE STRUCTURE.pdf": {"sha": "3", "index": "0"}})
+    cctp = next(p for p in state["pieces"] if p["piece"] == "CCTP LOT 08")
+    assert (cctp["current"]["index"], cctp["revisions"]) == ("10", 2)
+    assert next(p for p in state["pieces"] if p["piece"] == "NOTE STRUCTURE")["current"]["index"] == "0"
