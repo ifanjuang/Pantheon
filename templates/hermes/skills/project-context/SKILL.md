@@ -101,11 +101,15 @@ from memory or direct verification. Keep the label brief for simple answers.
    is substantial or the source work is genuinely independent and an agent can
    reduce elapsed time; otherwise read it directly. The primary agent retains
    the question, checks decisive passages and synthesizes.
-8. For a request about current project status or a list of projects in progress,
-   use the configured live project-state source when available. Hindsight scope
-   counts and remembered documents do not establish that a project is active.
-   If no live inventory is available, state that limitation instead of inferring
-   activity from indexed content.
+8. For a request about current project status, where a project stands, the
+   latest or current index of one of its drawings, models or written documents,
+   or a list of projects in progress, use the configured live project-state
+   source first when available, and quote the indices, dates and questions it
+   returns. Hindsight scope counts and remembered documents do not establish
+   that a project is active. Never infer an index, a version or a phase from a
+   file name or from which files are present; when the live source gives no
+   index, say so. If no live inventory is available, state that limitation
+   instead of inferring activity from indexed content.
 
 Keep the user's original question and requested outcome active through the
 answer. After each useful recall or read, update the next step from the evidence
