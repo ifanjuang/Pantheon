@@ -46,9 +46,33 @@ READING_RULES = [
     "L'état actuel du projet est le dernier indice de chaque pièce de l'agence et des bureaux d'études ; "
     "une position « référence » signifie choisie par l'architecte sur la fiche du fichier, et l'emporte ; "
     "« incertaine » signifie sans indice, « probable » un indice lu dans le nom du fichier.",
-    "Les questions sont des écarts relevés, à poser à l'architecte : ne pas les trancher.",
+    "Les questions sont des écarts relevés, à poser à l'architecte : ne pas les trancher ; "
+    "toujours les signaler, en tête de réponse.",
+    "Chaque date dit d'où elle vient (fiche, cartouche, nom du fichier, création du PDF) : "
+    "une date de création du PDF n'est pas la date du plan.",
+    "Ne rien ajouter qui ne figure pas ici (type de bâtiment, statut d'une pièce, pièces absentes) : "
+    "dire « non renseigné » plutôt que supposer.",
 ]
 PIECE_KEYS = ("index", "date", "position")
+DATE_SOURCES = {"fiche": "fiche", "cartouche": "cartouche", "nom": "nom du fichier", "pdf": "création du PDF (incertaine)"}
+
+
+def _synthesis(current: list[dict[str, Any]], to_confront: list[dict[str, Any]], questions: list[str]) -> list[str]:
+    """Sentences already written from the published state, so a local model quotes instead of counting."""
+    by_index: dict[str, list[str]] = {}
+    for row in current:
+        by_index.setdefault(row.get("index") or "", []).append(str(row["piece"]))
+    lines = []
+    for index in sorted(key for key in by_index if key):
+        names = by_index[index]
+        lines.append(f"Indice {index} : {len(names)} pièce{'s' if len(names) > 1 else ''} ({', '.join(names)}).")
+    if by_index.get(""):
+        lines.append(f"Sans indice lisible : {', '.join(by_index[''])}.")
+    if to_confront:
+        lines.append(f"{len(to_confront)} devis ou offre{'s' if len(to_confront) > 1 else ''} à confronter.")
+    lines.append(f"{len(questions)} question{'s' if len(questions) > 1 else ''} ouverte{'s' if len(questions) > 1 else ''}."
+                 if questions else "Aucune question ouverte.")
+    return lines
 
 
 def _pieces(data: dict[str, Any]) -> dict[str, Any] | None:
@@ -64,16 +88,20 @@ def _pieces(data: dict[str, Any]) -> dict[str, Any] | None:
             continue
         state = item.get("current") if isinstance(item.get("current"), dict) else {}
         row = {"piece": item.get("piece"), **{key: state.get(key) for key in PIECE_KEYS if state.get(key)}}
+        if state.get("date") and state.get("date_source"):
+            row["date_from"] = DATE_SOURCES.get(state["date_source"], state["date_source"])
         if state.get("paths"):
             row["file"] = f"{data['project'].get('code')}/{state['paths'][0]}"
         if item.get("variants"):
             row["variants"] = list(item["variants"])
         (to_confront if item.get("category") == "a_confronter" else current).append(row)
+    questions = [str(q.get("text")) for q in pieces.get("questions") or [] if isinstance(q, dict)][:MAX_LISTED]
     return {
         "read_at": pieces.get("read_at"),
+        "questions": questions,
+        "synthesis": _synthesis(current, to_confront, questions),
         "current": current[:MAX_LISTED],
         "to_confront": to_confront[:MAX_LISTED],
-        "questions": [str(q.get("text")) for q in pieces.get("questions") or [] if isinstance(q, dict)][:MAX_LISTED],
     }
 
 
@@ -166,9 +194,12 @@ def summarize(data: dict[str, Any]) -> dict[str, Any]:
             sources[key] = sources.get(key, 0) + 1
     summary = anatomy.get("summary") or {}
     pieces = _pieces(data)
+    project = {key: data["project"].get(key) for key in ("code", "display_name", "description", "phase")
+               if data["project"].get(key)}
     return {
         "found": True,
-        "project": {key: data["project"].get(key) for key in ("code", "display_name")},
+        "project": project,
+        **({"open_questions": pieces["questions"]} if pieces and pieces.get("questions") else {}),
         "published_at": data.get("generated_at"),
         **({"pieces": pieces} if pieces is not None else {}),
         "owner_revision": anatomy.get("owner_revision"),

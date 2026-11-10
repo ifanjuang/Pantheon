@@ -615,7 +615,7 @@ def main() -> int:
         for question in state["questions"]:
             print(f"? {question['text']}")
         print(f"{len(state['pieces'])} pièces, {len(state['questions'])} questions, "
-              f"{state['administrative_documents']} documents administratifs non suivis")
+              f"{state['documents_not_followed']} autres documents non suivis (administratif, comptes rendus, photos...)")
         return 0
 
     if args.command == "document-card":

@@ -44,6 +44,15 @@ _INDEX = re.compile(r"^(?:IND(?:ICE)?\.?\s*)?([A-Z])(?:[.\-_ ]?([1-9][0-9]?))?$"
 _PHASES = {"ESQ", "APS", "APD", "AVP", "PC", "DPC", "PRO", "DCE", "ACT", "VISA", "EXE", "DET", "AOR", "DOE"}
 _ADMIN = ("ATTESTATION", "CERFA", "HONORAIRES", "FACTURE", "CONTRAT", "SIGNE", "ASSURANCE")
 _CONFRONT = ("DEVIS", "OFFRE")
+# Only these describe the state of the project: drawings, models, written pieces of the
+# design and consultation. Everything else in an affaire folder (minutes, litigation,
+# photos, chats, statutes...) is counted, not followed.
+_PROJECT = ("PLAN", "COUPE", "FACADE", "ELEVATION", "MASSE", "SITUATION", "DETAIL", "AXONO", "PERSPECTIVE",
+            "INSERTION", "CCTP", "CCAP", "DPGF", "DQE", "BPU", "NOTICE", "CARNET", "PERMIS", "ESTIMATIF",
+            "MAQUETTE", "MENUISERIE", "CHARPENTE", "STRUCTURE", "FONDATION", "RACCORD", "ELEC", "PLOMBERIE",
+            "PLATRERIE", "CVC", "VENTILATION", "NOTE DE CALCUL")
+_PROJECT_TOKENS = {"AE", "RC", "PC", "DP", "PLN"}
+_NOISE = {"INDICE", "IND", "PDF"}
 _MONTHS = {m: i for i, m in enumerate(
     ["janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet", "aout", "septembre", "octobre", "novembre", "decembre"], 1)}
 
@@ -93,12 +102,21 @@ def parse_date(value: Any) -> str | None:
     return None
 
 
+_EXTENSIONS = {".pdf", ".ifc", ".dwg", ".dxf", ".docx", ".doc", ".xlsx", ".xls", ".odt", ".ods", ".rvt"}
+
+
+def _stem(filename: str) -> str:
+    """File name without its extension; '15.06.23' in 'DP 15.06.23' is not one."""
+    path = Path(filename)
+    return path.stem if path.suffix.lower() in _EXTENSIONS else path.name
+
+
 def _tokens(stem: str) -> list[str]:
     return [token for token in re.split(r"[_\s]+", stem) if token]
 
 
 def filename_index(filename: str) -> tuple[str, int | None] | None:
-    stem = Path(filename).stem.upper()
+    stem = _stem(filename).upper()
     if m := re.search(r"\bIND(?:ICE)?\.?\s*([A-Z](?:[.\-]?[1-9][0-9]?)?)\b", stem):
         return parse_index(m.group(1))
     for token in reversed(_tokens(stem)):
@@ -109,7 +127,12 @@ def filename_index(filename: str) -> tuple[str, int | None] | None:
 
 
 def filename_date(filename: str) -> str | None:
-    for token in reversed(_tokens(Path(filename).stem)):
+    stem = _stem(filename)
+    if m := re.search(r"(?<!\d)(\d{4})[.\-](\d{2})[.\-](\d{2})(?!\d)", stem):
+        return parse_date(f"{m[1]}-{m[2]}-{m[3]}")
+    if m := re.search(r"(?<!\d)(\d{2})[.\-](\d{2})[.\-](\d{4})(?!\d)", stem):
+        return parse_date(f"{m[1]}/{m[2]}/{m[3]}")
+    for token in reversed(_tokens(stem)):
         if re.fullmatch(r"\d{6}", token) and (parsed := parse_date(token)):
             return parsed
     return None
@@ -118,27 +141,35 @@ def filename_date(filename: str) -> str | None:
 def piece_name(title: str, project_code: str) -> str:
     """'DCE_CODE_PLAN MAC-DEM.pdf' -> 'PLAN MAC-DEM'; a bare model file -> 'MAQUETTE'."""
     path = Path(title)
-    stem = re.sub(r"\bIND(?:ICE)?\.?\s*[A-Z](?:[.\-]?\d{1,2})?\b", " ", path.stem.upper())
+    stem = re.sub(r"\bIND(?:ICE)?\.?\s*[A-Z](?:[.\-]?\d{1,2})?\b", " ", _stem(title).upper())
     stem = re.sub(r"\(\d+\)", " ", stem)  # copies: "plan (1).pdf"
+    stem = re.sub(r"(?<!\d)\d{2,4}[.\-]\d{2}[.\-]\d{2,4}(?!\d)", " ", stem)  # dates: 2025.05.28, 20.01.2025
+    code_parts = {project_code.upper(), *project_code.upper().split("-")}
     words: list[str] = []
     for token in _tokens(stem.replace(project_code.upper(), " ")):
         token = token.strip("-.&")
-        if (not token or token in _PHASES or parse_index(token) or re.fullmatch(r"\d{4,8}", token)
-                or token in words):
+        if len(token) > 3 and token.endswith("PDF"):  # "DUPONTPDF"
+            token = token[:-3]
+        if (not token or token in _PHASES or token in _NOISE or token in code_parts or parse_index(token)
+                or re.fullmatch(r"\d{4,8}", token) or token in words):
             continue
         words.append(token)
     if words:
         return " ".join(words)
-    return "MAQUETTE" if path.suffix.lower() == ".ifc" else path.stem.upper()
+    return "MAQUETTE" if path.suffix.lower() == ".ifc" else _stem(title).upper()
 
 
-def category(name: str, document_type: str | None = None) -> str:
-    text = _fold(f"{name} {document_type or ''}").upper()
+def category(name: str, document_type: str | None = None, title: str = "") -> str:
+    """'projet' (followed), 'a_confronter' (quotes), 'administratif' or 'autre' (counted, not followed)."""
+    text = _fold(f"{name} {title} {document_type or ''}").upper()
     if any(word in text for word in _ADMIN):
         return "administratif"
     if any(word in text for word in _CONFRONT):
         return "a_confronter"
-    return "projet"
+    tokens = set(re.split(r"[^A-Z0-9]+", text))
+    if Path(title).suffix.lower() == ".ifc" or tokens & _PROJECT_TOKENS or any(word in text for word in _PROJECT):
+        return "projet"
+    return "autre"
 
 
 def _field(fields: dict[str, Any], key: str) -> Any:
@@ -251,14 +282,32 @@ def _order(revision: dict[str, Any]) -> tuple:
     return (parsed is not None, parsed[0] if parsed else "", (parsed[1] or 0) if parsed else 0, revision["date"] or "")
 
 
+def _boilerplate(names: list[str]) -> set[str]:
+    """Words repeated in at least a quarter of an affaire's names (client, address, project title)."""
+    counts: dict[str, int] = {}
+    for name in names:
+        for word in set(name.split()):
+            counts[word] = counts.get(word, 0) + 1
+    floor = max(3, len(names) // 4)
+    kept = {"PLANS", "LOT", *_PROJECT_TOKENS, *(w for words in (_PROJECT, _CONFRONT, _ADMIN) for w in words)}
+    return {word for word, count in counts.items()
+            if count >= floor and word not in kept and not any(word.startswith(k) for k in _PROJECT + _CONFRONT)}
+
+
+def _without(name: str, words: set[str]) -> str:
+    kept = [word for word in name.split() if word not in words]
+    return " ".join(kept) if kept else name
+
+
 def current_state(files: list[dict[str, Any]], project_code: str) -> dict[str, Any]:
     series: dict[str, dict[str, Any]] = {}
-    administrative = 0
+    not_followed = 0
+    common = _boilerplate([piece_name(file["title"], project_code) for file in files])
     for file in files:
-        name = piece_name(file["title"], project_code)
-        kind = category(name, file.get("document_type"))
-        if kind == "administratif":
-            administrative += 1
+        name = _without(piece_name(file["title"], project_code), common)
+        kind = category(name, file.get("document_type"), file["title"])
+        if kind in {"administratif", "autre"}:
+            not_followed += 1
             continue
         piece = series.setdefault(name, {"piece": name, "category": kind, "revisions": []})
         revision = _revision(file)
@@ -316,7 +365,7 @@ def current_state(files: list[dict[str, Any]], project_code: str) -> dict[str, A
         "read_at": datetime.now(timezone.utc).isoformat(),
         "pieces": pieces,
         "questions": questions,
-        "administrative_documents": administrative,
+        "documents_not_followed": not_followed,
         "rule": "A, B, C : indices successifs ; C1, C2 : variantes de C ; sans indice : position incertaine, placée par la date ; "
                 "un fichier marqué référence projet sur sa fiche l'emporte.",
         "authority": {"is_register": False, "is_evidence": False, "is_decision": False},
