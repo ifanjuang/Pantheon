@@ -19,6 +19,14 @@ EFFECT_INVENTORY: dict[tuple[str, str], dict[str, str]] = {
         "effect": "filesystem_projection",
         "reviewed": "calls export_project_anatomy for every Project with an initialized APU owner; same bounded projection directory",
     },
+    ("anatomy_export.py", "read_current_models"): {
+        "effect": "filesystem_projection",
+        "reviewed": "writes one derived model reading per current model piece next to the Anatomy projection, through model_reading.ensure; regenerable, never read back as a source",
+    },
+    ("model_reading.py", "ensure"): {
+        "effect": "filesystem_projection",
+        "reviewed": "rewrites one model reading file atomically (partial then rename) in the caller's projection directory, only when the model file fingerprint changed; a reading, never a source",
+    },
     ("cli.py", "main"): {
         "effect": "filesystem_artifact",
         "reviewed": "operator CLI may write an explicitly requested output artifact",

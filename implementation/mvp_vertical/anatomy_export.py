@@ -21,8 +21,7 @@ import re
 import sqlite3
 from typing import Any
 
-from . import project_pieces
-from . import apu_vocabulary
+from . import apu_vocabulary, model_reading, project_pieces
 from .project_anatomy_projection import get_project_anatomy_projection
 
 SCHEMA = "pantheon.anatomy.v1"
@@ -67,7 +66,7 @@ def export_project_anatomy(conn, project_id: str, *, directory: Path | None = No
     if directory is None:
         return None
     row = conn.execute(
-        "SELECT project_id, code, display_name FROM agency_projects WHERE project_id = %s",
+        "SELECT project_id, code, display_name, description, phase FROM agency_projects WHERE project_id = %s",
         (project_id,),
     ).fetchone()
     if row is None:
@@ -79,7 +78,8 @@ def export_project_anatomy(conn, project_id: str, *, directory: Path | None = No
     document: dict[str, Any] = {
         "schema": SCHEMA,
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "project": {"project_id": row[0], "code": code, "display_name": row[2]},
+        "project": {"project_id": row[0], "code": code, "display_name": row[2],
+                    **({"description": row[3]} if row[3] else {}), **({"phase": row[4]} if row[4] else {})},
         "anatomy": anatomy,
         "properties": property_labels(anatomy),
     }
@@ -91,12 +91,32 @@ def export_project_anatomy(conn, project_id: str, *, directory: Path | None = No
         pieces = {"error": f"pieces_unreadable: {type(exc).__name__}"}
     if pieces is not None:
         document["pieces"] = pieces
+        models = read_current_models(code, pieces, directory)
+        if models:
+            document["models"] = models
     directory.mkdir(parents=True, exist_ok=True)
     target = directory / f"{code}.json"
     partial = directory / f".{code}.json.partial"
     partial.write_text(json.dumps(document, ensure_ascii=False, default=str), encoding="utf-8")
     partial.replace(target)
     return target
+
+
+def read_current_models(code: str, pieces: dict[str, Any], directory: Path) -> list[dict[str, Any]]:
+    """Read the current index of each model piece next to the projection; cached by file fingerprint."""
+    root = project_pieces._env_path(project_pieces.AFFAIRES_ROOT_ENV)
+    if root is None:
+        return []
+    statuses = []
+    for piece in pieces.get("pieces") or []:
+        current = piece.get("current") or {}
+        path = next((p for p in current.get("paths") or [] if p.lower().endswith(".ifc")), None)
+        if not path or piece.get("category") != "projet":
+            continue
+        slug = re.sub(r"[^a-z0-9]+", "-", project_pieces._fold(str(piece["piece"]))).strip("-")[:40] or "maquette"
+        statuses.append(model_reading.ensure(root / code / path, directory / f"{code}.maquette-{slug}.json",
+                                             piece=str(piece["piece"]), index=current.get("index")))
+    return statuses
 
 
 def export_all(conn, *, directory: Path | None = None) -> list[Path]:

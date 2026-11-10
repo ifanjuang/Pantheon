@@ -73,6 +73,35 @@
   or reject decision; applying replays the existing per-candidate chain (review,
   write command, authorization, application) in one transaction, all or
   nothing. No new table or schema.
+- Model reading: `model_reading` reads the current index of each model piece
+  of an affaire once (cached by file fingerprint) and `export-anatomy`
+  publishes it beside the Anatomy (`<CODE>.maquette-<piece>.json`): levels,
+  spaces, doors and windows with their host wall, the space on each side,
+  exterior or not, façade and grid position, walls with length, thickness,
+  composition, sides, façade, grid position and junctions, and the neighbours
+  (spaces linked by a door or sharing a wall). Sides and façades are computed
+  by geometry and said to be deductions; a façade named from a default model
+  north is flagged as to be confirmed. `get_project(code, focus)` returns the
+  sheet of one room or element from it. CLI `read-model --file` prints a
+  summary. A reading, never a source: nothing enters the Anatomy.
+- Current state reading generalized after a dry run on five affaires: only
+  project pieces are followed (drawings, models, written pieces of the design
+  and consultation, recognised by name), everything else in an affaire folder
+  (minutes, litigation, chats, statutes...) is counted, not followed; piece
+  names drop dates written with dots, noise words and the words repeated
+  across an affaire's names (client, address, project title). `get_project`
+  puts the open questions first, adds a synthesis written from the published
+  state, the origin of each date (card, title block, file name, PDF creation)
+  and the project description and phase, with a rule not to add anything that
+  is not in the answer.
+- Hermes routing to the live project state: the `get_project` description and
+  the policy server instructions call it the live project-state source, to use
+  first for where an affaire stands or the current index of a document, and the
+  `project-context` Skill (core route, point 8) now covers the current index of
+  a drawing, model or written document and forbids inferring an index, version
+  or phase from a file name. A test keeps the tool and the Skill on the same
+  words. Observed on IA00: without this, the governed profile listed files and
+  inferred indices from their names.
 - Where an affaire stands, for Hermes: the read-only MCP tool `get_project(code)`
   reads the file the implementation already publishes for the Workspace Cockpit
   (`<PANTHEON_ANATOMY_DIR>/<CODE>.json`) and returns a compact summary: current

@@ -29,6 +29,8 @@ def test_the_agency_index_rule(label, expected) -> None:
     ("PERMIS DEMO D.1.pdf", "PERMIS"),
     ("DEMO_E_261006.ifc", "MAQUETTE"),
     ("Devis LOT 4 (1).pdf", "DEVIS LOT 4"),
+    ("20.01.2025_DEMO_ELECTRICITE_C.pdf", "ELECTRICITE"),
+    ("DP 15.06.23", "DP"),
 ])
 def test_a_piece_is_named_from_the_file_without_code_phase_index_or_date(title, expected) -> None:
     assert pieces.piece_name(title, "DEMO") == expected
@@ -140,8 +142,42 @@ def test_copies_merge_quotes_are_confronted_and_administrative_files_are_not_fol
     assert permis["revisions"] == 1 and len(permis["current"]["paths"]) == 2
     assert permis["current"]["index"] == "D1" and permis["current"]["position"] == "probable"
     assert next(p for p in state["pieces"] if p["piece"].startswith("DEVIS"))["category"] == "a_confronter"
-    assert state["administrative_documents"] == 1
+    assert state["documents_not_followed"] == 1
     assert not any(p["piece"] == "PLAN X" for p in state["pieces"])
+
+
+def test_only_project_pieces_are_followed(tmp_path) -> None:
+    state = _state(tmp_path, {
+        "Contentieux/PV AGO 2 OCTOBRE.pdf": {"sha": "1"},
+        "Chantier/WhatsApp chat.pdf": {"sha": "2"},
+        "Etudes/DEMO_C.pdf": {"sha": "3", "index": "C"},
+        "Etudes/DEMO-X CCTP G.pdf": {"sha": "4", "index": "G"},
+        "Conception/PLAN SALLE DE BAIN DEMOPDF.pdf": {"sha": "5", "index": "B"},
+    })
+    assert sorted(p["piece"] for p in state["pieces"]) == ["CCTP", "PLAN SALLE DE BAIN"]
+    assert state["documents_not_followed"] == 3 and not state["questions"]
+
+
+@pytest.mark.parametrize("title, expected", [
+    ("LIE FRONT PLN INDICE H.pdf", "projet"),
+    ("DEMO-X CCTP-CCAP.pdf", "projet"),
+    ("D-202609-000418.pdf", "autre"),
+    ("Statuts ASL.pdf", "autre"),
+    ("DEMO_AE.pdf", "projet"),
+    ("Coupe longitudinale.pdf", "projet"),
+])
+def test_a_piece_of_project_is_recognised_by_its_name(title, expected) -> None:
+    assert pieces.category(pieces.piece_name(title, "DEMO"), None, title) == expected
+
+
+def test_dates_in_names_and_words_repeated_across_the_affaire_are_dropped(tmp_path) -> None:
+    state = _state(tmp_path, {
+        f"DCE/MAISON DUPONT RUE X {name}.pdf": {"sha": str(n)}
+        for n, name in enumerate(["PLAN RDC", "PLAN R01", "COUPE AA", "CCTP LOT 2", "NOTICE"])
+    } | {"DCE/2025.05.28 CCTP LOT 6.pdf": {"sha": "9"}})
+    assert sorted(p["piece"] for p in state["pieces"]) == ["CCTP LOT 2", "CCTP LOT 6", "COUPE AA", "NOTICE", "PLAN R01", "PLAN RDC"]
+    lot6 = next(p for p in state["pieces"] if p["piece"] == "CCTP LOT 6")
+    assert lot6["current"]["date"] == "2025-05-28" and lot6["current"]["date_source"] == "nom"
 
 
 def test_models_come_from_the_folder_and_archives_are_skipped(tmp_path) -> None:
