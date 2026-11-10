@@ -172,7 +172,8 @@ def read(path: Path) -> dict[str, Any]:
     axes: dict[str, tuple[tuple[float, float], tuple[float, float]]] = {}
     for grid in model.by_type("IfcGrid"):
         matrix = util_placement.get_local_placement(grid.ObjectPlacement)
-        for axis in list(grid.UAxes or []) + list(grid.VAxes or []):
+        # Revit may export one direction of grid lines in WAxes, the third axis list: read all three.
+        for axis in list(grid.UAxes or []) + list(grid.VAxes or []) + list(getattr(grid, "WAxes", None) or []):
             points = [np.array([*p.Coordinates[:2], 0, 1], dtype=float) for p in axis.AxisCurve.Points]
             a, b = (matrix @ points[0])[:2] * scale, (matrix @ points[-1])[:2] * scale
             length = float(np.linalg.norm(b - a))

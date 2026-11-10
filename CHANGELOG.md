@@ -115,7 +115,9 @@
   `not_installed`, and `export_all` covers every Project with a code (a code
   that cannot name a file is skipped). The current-state reading no longer
   raises a question for a drawing and its model under one index (two formats
-  of one piece) and admits numbered engineer indices (`Ind 0`, `IND9`).
+  of one piece) and admits numbered engineer indices (`Ind 0`, `IND9`). The
+  model reading also reads grid lines exported in `WAxes`, the third axis list
+  of an IFC grid, where Revit may put one direction.
 - Property profile `architecture@1`
   (`registries/architecture_property_profile.registry.json`): the vocabulary of
   attribute keys, so an object gains properties as the project advances
