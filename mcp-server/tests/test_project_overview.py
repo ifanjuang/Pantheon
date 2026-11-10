@@ -124,6 +124,10 @@ class TestProjectOverview(unittest.TestCase):
         (self.directory / "BARE.json").write_text(json.dumps({**data, "project": {**data["project"], "code": "BARE"}}), encoding="utf-8")
         self.assertNotIn("pieces", project_overview.project_overview("BARE", self.directory))
 
+    def test_a_long_list_of_unindexed_pieces_is_shortened_in_the_synthesis(self):
+        lines = project_overview._synthesis([{"piece": f"PIECE {n:02d}"} for n in range(25)], [], [])
+        self.assertEqual(lines[0], "Sans indice lisible (25) : " + ", ".join(f"PIECE {n:02d}" for n in range(10)) + " et 15 autres.")
+
     def test_an_affaire_without_an_installed_anatomy_still_gives_its_pieces(self):
         data = _projection()
         data["anatomy"] = {"status": "not_installed", "owner_revision": None, "summary": {}, "structure": {"objects": []},

@@ -56,6 +56,7 @@ READING_RULES = [
     "l'utilisateur au lieu de choisir.",
 ]
 PIECE_KEYS = ("index", "date", "position")
+SYNTHESIS_NAMES = 10  # names listed in one synthesis line; the full list stays in "current"
 DATE_SOURCES = {"fiche": "fiche", "cartouche": "cartouche", "nom": "nom du fichier", "pdf": "création du PDF (incertaine)"}
 
 
@@ -69,7 +70,9 @@ def _synthesis(current: list[dict[str, Any]], to_confront: list[dict[str, Any]],
         names = by_index[index]
         lines.append(f"Indice {index} : {len(names)} pièce{'s' if len(names) > 1 else ''} ({', '.join(names)}).")
     if by_index.get(""):
-        lines.append(f"Sans indice lisible : {', '.join(by_index[''])}.")
+        names = by_index[""]
+        shown = ", ".join(names[:SYNTHESIS_NAMES]) + (f" et {len(names) - SYNTHESIS_NAMES} autres" if len(names) > SYNTHESIS_NAMES else "")
+        lines.append(f"Sans indice lisible ({len(names)}) : {shown}.")
     if to_confront:
         lines.append(f"{len(to_confront)} devis ou offre{'s' if len(to_confront) > 1 else ''} à confronter.")
     lines.append(f"{len(questions)} question{'s' if len(questions) > 1 else ''} ouverte{'s' if len(questions) > 1 else ''}."
