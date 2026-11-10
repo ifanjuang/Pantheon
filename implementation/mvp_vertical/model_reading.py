@@ -37,6 +37,14 @@ CONVENTIONS_ENV = "MVP_MODEL_CONVENTIONS"  # local agency file: type prefixes to
 FACADES = ("nord", "est", "sud", "ouest")
 PROBES = (0.35, 0.6, 0.9)  # metres from a wall or opening axis, tried in order on each side
 GRID_TOLERANCE = 0.15      # metres: an element closer than this to a grid line is on it
+# Names of size parameters families often carry instead of (or besides) the IFC ones; an agency adds its own
+# in the conventions file ("size_parameters": {"width": [...], "height": [...]}).
+SIZE_PARAMETERS = {"width": ("largeur", "largeur brute", "largeur tableau", "width", "rough width", "l"),
+                   "height": ("hauteur", "hauteur brute", "hauteur tableau", "height", "rough height", "h")}
+SIZE_TOLERANCE = 0.05  # metres between a declared size and the measured one before it is pointed out
+# Element classes read besides spaces, walls and openings; the category profile says what each one is.
+GENERIC_CLASSES = ("IfcColumn", "IfcBeam", "IfcMember", "IfcFooting", "IfcSlab", "IfcRoof", "IfcStair", "IfcStairFlight",
+                   "IfcRailing", "IfcCovering", "IfcPlate", "IfcBuildingElementProxy", "IfcFurnishingElement")
 
 
 class ModelReadingError(ValueError):
@@ -52,8 +60,11 @@ def facade(vx: float, vy: float, north_deg: float = 0.0) -> str:
 
 
 def side_spaces(center: tuple[float, float], normal: tuple[float, float], z: float,
-                spaces: list[dict[str, Any]]) -> tuple[str | None, str | None]:
-    """Id of the space on each side of an axis (normal side first), probing outward."""
+                spaces: list[dict[str, Any]], tree: Any = None) -> tuple[str | None, str | None]:
+    """Id of the space on each side of an axis (normal side first), probing outward.
+
+    With ``tree`` (a shapely STRtree over the spaces' footprints) only nearby spaces are tested.
+    """
     from shapely.geometry import Point
 
     found = []
@@ -61,7 +72,8 @@ def side_spaces(center: tuple[float, float], normal: tuple[float, float], z: flo
         hit = None
         for distance in PROBES:
             point = Point(center[0] + sign * distance * normal[0], center[1] + sign * distance * normal[1])
-            hit = next((s["id"] for s in spaces if s["z"][0] - 0.3 <= z <= s["z"][1] + 0.3 and s["poly"].contains(point)), None)
+            candidates = [spaces[i] for i in tree.query(point)] if tree is not None else spaces
+            hit = next((s["id"] for s in candidates if s["z"][0] - 0.3 <= z <= s["z"][1] + 0.3 and s["poly"].contains(point)), None)
             if hit:
                 break
         found.append(hit)
@@ -110,9 +122,51 @@ def grid_position(point: tuple[float, float], axes: dict[str, tuple[tuple[float,
     return " ; ".join(parts) or None
 
 
+def classify(features: dict[str, Any], rules: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """First category whose clues all hold, by priority; None when no rule recognises the element.
+
+    A clue the element does not have (no sill for a beam, no exterior side for a slab) fails the
+    rule that asks for it: no rule guesses.
+    """
+    ifc_class = features.get("ifc_class") or ""
+    type_name = _fold_text(features.get("type_name"))
+    for rule in rules:
+        match = rule.get("match") or {}
+        if "classes" in match and ifc_class not in match["classes"]:
+            continue
+        if "predefined_types" in match and features.get("predefined_type") not in match["predefined_types"]:
+            continue
+        if "type_name_patterns" in match and not any(_fold_text(p) in type_name for p in match["type_name_patterns"]):
+            continue
+        if "exterior" in match and features.get("exterior") is not match["exterior"]:
+            continue
+        if "orientation" in match and features.get("orientation") != match["orientation"]:
+            continue
+        bounds_ok = True
+        for name in ("sill", "height", "width", "thickness"):
+            value = features.get(name)
+            low, high = match.get(f"{name}_min"), match.get(f"{name}_max")
+            if (low is not None or high is not None) and value is None:
+                bounds_ok = False
+            elif (low is not None and value < low) or (high is not None and value > high):
+                bounds_ok = False
+        if bounds_ok:
+            return rule
+    return None
+
+
+def load_rules() -> list[dict[str, Any]]:
+    """Category rules from the profile; empty (and the reading falls back) when it cannot be read."""
+    try:
+        from . import apu_vocabulary
+        return apu_vocabulary.categories()
+    except Exception:  # an unreadable profile never blocks the reading
+        return []
+
+
 def opening_nature(ifc_class: str, *, exterior: bool, sill_m: float | None, height_m: float | None,
                    declared_type: str | None = None, declared_external: bool | None = None,
-                   width_m: float | None = None) -> tuple[str, list[str]]:
+                   width_m: float | None = None, rules: list[dict[str, Any]] | None = None) -> tuple[str, list[str]]:
     """What an opening is, from geometry first, with the clues used.
 
     The family a modeller picked is a clue, not a fact: agencies often model
@@ -124,12 +178,15 @@ def opening_nature(ifc_class: str, *, exterior: bool, sill_m: float | None, heig
     full_height = sill_m is not None and sill_m <= 0.10 and (height_m or 0) >= 1.9
     if sill_m is not None:
         clues.append(f"allège {sill_m:.2f} m".replace(".", ","))
-    too_narrow = width_m is not None and width_m < 0.6  # full height but no one walks through it
-    if exterior:
-        if full_height and too_narrow:
-            nature = "fenêtre toute hauteur"
-        else:
-            nature = ("porte extérieure" if ifc_class == "IfcDoor" else "porte-fenêtre") if full_height else "fenêtre"
+    rule = classify({"ifc_class": ifc_class, "exterior": exterior, "sill": sill_m, "height": height_m, "width": width_m,
+                     "type_name": declared_type}, [r for r in (rules if rules is not None else load_rules())
+                                                   if set((r.get("match") or {}).get("classes") or []) & {"IfcWindow", "IfcDoor"}])
+    if rule is not None:
+        nature = rule["label"]
+    elif exterior:  # fallback when the category profile cannot be read
+        too_narrow = width_m is not None and width_m < 0.6
+        nature = ("fenêtre toute hauteur" if too_narrow else ("porte extérieure" if ifc_class == "IfcDoor" else "porte-fenêtre")) \
+            if full_height else "fenêtre"
     else:
         nature = "porte intérieure" if ifc_class == "IfcDoor" or full_height else "châssis intérieur"
     declared = _fold_text(declared_type)
@@ -252,11 +309,31 @@ def read(path: Path) -> dict[str, Any]:
     levels = [{"name": s.Name, "elevation": round(float(s.Elevation or 0) * scale, 3)}
               for s in sorted(model.by_type("IfcBuildingStorey"), key=lambda s: float(s.Elevation or 0))]
     elevation = {level["name"]: level["elevation"] for level in levels}
+    rules = load_rules()
     conventions = load_conventions()
     ignored = tuple(p.lower() for p in conventions.get("ignored_type_prefixes") or [])
 
     def pset(element, name: str) -> dict[str, Any]:
         return util_element.get_psets(element).get(name) or {}
+
+    size_names = {kind: {_fold_text(n) for n in names} | {_fold_text(n) for n in (conventions.get("size_parameters") or {}).get(kind, [])}
+                  for kind, names in SIZE_PARAMETERS.items()}
+
+    def declared_sizes(element) -> dict[str, float]:
+        """Sizes the model declares: the IFC attributes, then family parameters by name (system or custom)."""
+        found: dict[str, float] = {}
+        for attribute, kind in (("OverallWidth", "width"), ("OverallHeight", "height")):
+            value = getattr(element, attribute, None)
+            if isinstance(value, (int, float)) and value > 0:
+                found[f"{kind} ({attribute})"] = round(float(value) * scale, 3)
+        for set_name, properties in util_element.get_psets(element).items():
+            for key, value in properties.items():
+                folded = _fold_text(key)
+                for kind, names in size_names.items():
+                    if folded in names and isinstance(value, (int, float)) and not isinstance(value, bool) and value > 0:
+                        metres = float(value) * scale if float(value) > 20 else float(value)  # millimetres or metres
+                        found.setdefault(f"{kind} ({key})", round(metres, 3))
+        return found
 
     def sill(element_level: str | None, bottom: float, sides: list[str | None]) -> float | None:
         """Height of the bottom of an opening above the floor of the space beside it (or of its storey)."""
@@ -278,6 +355,16 @@ def read(path: Path) -> dict[str, Any]:
         spaces.append({"id": space.GlobalId, "name": name, "number": space.Name if space.LongName else None,
                        "level": level(space), "area_m2": round(poly.area, 2)})
         geo.append({"id": space.GlobalId, "poly": poly, "z": (float(verts[:, 2].min()), float(verts[:, 2].max()))})
+
+    from shapely.strtree import STRtree
+
+    tree = STRtree([s["poly"] for s in geo]) if geo else None
+
+    def space_at(x: float, y: float, z: float) -> str | None:
+        from shapely.geometry import Point
+        point = Point(x, y)
+        candidates = [geo[i] for i in tree.query(point)] if tree is not None else []
+        return next((s["id"] for s in candidates if s["z"][0] - 0.3 <= z <= s["z"][1] + 0.3 and s["poly"].contains(point)), None)
 
     axes: dict[str, tuple[tuple[float, float], tuple[float, float]]] = {}
     for grid in model.by_type("IfcGrid"):
@@ -311,7 +398,7 @@ def read(path: Path) -> dict[str, Any]:
 
     def located(item: dict[str, Any], center, axis_dir, z) -> None:
         normal = (-axis_dir[1], axis_dir[0])
-        a, b = side_spaces((float(center[0]), float(center[1])), normal, z, geo)
+        a, b = side_spaces((float(center[0]), float(center[1])), normal, z, geo, tree)
         item["sides"] = [a, b]
         if bool(a) != bool(b):
             sign = -1 if a else 1  # outward = towards the side without a space
@@ -343,20 +430,31 @@ def read(path: Path) -> dict[str, Any]:
                          for void in rel.RelatingOpeningElement.VoidsElements or []), None)
             _, axis_dir = frame(host or element)
             center = (verts.min(axis=0) + verts.max(axis=0)) / 2
+            # Measured, not declared: families often carry their real sizes in custom parameters.
+            along = np.dot(verts[:, :2], np.array(axis_dir))
+            measured_width = round(float(along.max() - along.min()), 3)
+            measured_height = round(float(verts[:, 2].max() - verts[:, 2].min()), 3)
+            declared = declared_sizes(element)
             item = {"id": element.GlobalId, "kind": kind, "type": declared_type, "level": level(element),
-                    "width_m": round(float(element.OverallWidth or 0) * scale, 3) or None,
-                    "height_m": round(float(element.OverallHeight or 0) * scale, 3) or None,
+                    "width_m": measured_width or None, "height_m": measured_height or None,
                     "wall": host.GlobalId if host is not None else None}
+            if declared:
+                item["declared_sizes"] = declared
             located(item, center, axis_dir, float(verts[:, 2].min()) + 1.0)
             item["grid"] = grid_position((float(center[0]), float(center[1])), axes)
             properties = pset(element, common)
             item["sill_m"] = sill(item["level"], float(verts[:, 2].min()), item["sides"])
             item["nature"], item["clues"] = opening_nature(
                 cls, exterior=item["exterior"], sill_m=item["sill_m"], height_m=item["height_m"],
-                declared_type=declared_type, declared_external=properties.get("IsExternal"), width_m=item["width_m"])
+                declared_type=declared_type, declared_external=properties.get("IsExternal"), width_m=item["width_m"],
+                rules=rules)
             for key, field in (("ThermalTransmittance", "uw_declared"), ("FireRating", "fire_rating")):
                 if properties.get(key) not in (None, ""):
                     item[field] = properties[key]
+            for label, value in declared.items():
+                measured = measured_width if label.startswith("width") else measured_height
+                if measured and abs(value - measured) > SIZE_TOLERANCE:
+                    item["clues"].append(f"dimension déclarée {label} = {value:.2f} m, mesurée {measured:.2f} m".replace(".", ","))
             openings.append(item)
 
     # Openings without a door or window in a wall between two spaces: free openings (passages, bays).
@@ -413,11 +511,52 @@ def read(path: Path) -> dict[str, Any]:
         located(item, mid, axis_dir, float(origin[2]) + 1.0)
         properties = pset(wall, "Pset_WallCommon")
         item["declared"] = {key: properties[key] for key in ("IsExternal", "LoadBearing") if key in properties}
+        rule = classify({"ifc_class": wall.is_a(), "exterior": item["exterior"], "thickness": thickness,
+                         "type_name": item["type"]}, rules)
+        if rule is not None:
+            item["category"], item["label"] = rule["id"], rule["label"]
         for key, field in (("ThermalTransmittance", "u_declared"), ("FireRating", "fire_rating"),
                            ("AcousticRating", "acoustic_rating")):
             if properties.get(key) not in (None, ""):
                 item[field] = properties[key]
         walls.append(item)
+
+    # Every other building element, described the same way; the category profile names it.
+    from shapely.geometry import MultiPoint
+
+    elements, ignored_by_category = [], {}
+    generic = [e for cls in GENERIC_CLASSES for e in model.by_type(cls, include_subtypes=False)]
+    if model.schema.upper().startswith("IFC4"):
+        generic += model.by_type("IfcGeographicElement")
+    for element in generic:
+        declared_type = type_name(element)
+        features = {"ifc_class": element.is_a(), "predefined_type": str(getattr(element, "PredefinedType", "") or "") or None,
+                    "type_name": declared_type}
+        rule = classify(features, rules)
+        if rule is not None and rule.get("ignore") or (ignored and str(declared_type or "").lower().startswith(ignored)):
+            key = rule["label"] if rule is not None else "ignoré par convention"
+            ignored_by_category[key] = ignored_by_category.get(key, 0) + 1
+            continue
+        try:
+            verts, _ = mesh(element)
+        except Exception:
+            continue  # aggregates without own geometry (a roof made of slabs)
+        rectangle = MultiPoint([tuple(v) for v in verts[:, :2]]).minimum_rotated_rectangle
+        corners = list(getattr(rectangle, "exterior", rectangle).coords) if hasattr(rectangle, "exterior") else []
+        sides = sorted(math.dist(corners[i], corners[i + 1]) for i in range(min(2, len(corners) - 1))) if len(corners) > 2 else [0.0, 0.0]
+        width, length = (sides + [0.0, 0.0])[:2]
+        height = float(verts[:, 2].max() - verts[:, 2].min())
+        features.update(orientation="vertical" if height > 2 * max(length, 0.01) else "horizontal",
+                        width=round(width, 3), height=round(height, 3), thickness=round(min(width, height), 3))
+        rule = classify(features, rules)
+        center = (verts.min(axis=0) + verts.max(axis=0)) / 2
+        item = {"id": element.GlobalId, "ifc_class": element.is_a(), "type": declared_type, "level": level(element),
+                "category": rule["id"] if rule else None, "label": rule["label"] if rule else f"élément ({element.is_a()})",
+                "length_m": round(length, 2), "width_m": round(width, 2), "height_m": round(height, 2),
+                "orientation": features["orientation"],
+                "space": space_at(float(center[0]), float(center[1]), float(center[2])),
+                "grid": grid_position((float(center[0]), float(center[1])), axes)}
+        elements.append(item)
 
     linked = {frozenset(pair["spaces"]) for pair in neighbours(openings, walls)}
     pairs = neighbours(openings, walls) + open_neighbours(geo, linked)
@@ -467,6 +606,10 @@ def read(path: Path) -> dict[str, Any]:
         "openings": openings,
         "walls": walls,
         "neighbours": pairs,
+        "elements": elements,
+        "ignored": ignored_by_category,
+        "categories": category_words(rules, {o.get("nature") for o in openings} | {w.get("label") for w in walls}
+                                     | {e.get("label") for e in elements} | {"baie libre"}),
         "ifc_schema": model.schema,
         "declared_vs_observed": notes,
         "quality": quality(checks),
@@ -476,6 +619,16 @@ def read(path: Path) -> dict[str, Any]:
             + ("" if north_set else ", laissé par défaut : orientation à confirmer avant toute comparaison avec des élévations."),
         ],
     }
+
+
+def category_words(rules: list[dict[str, Any]], labels: set[Any]) -> dict[str, list[str]]:
+    """The words people use for each category label present in this reading (for designations)."""
+    words: dict[str, list[str]] = {}
+    for rule in rules:
+        if rule["label"] in labels and not rule.get("ignore"):
+            words.setdefault(rule["label"], [])
+            words[rule["label"]] = sorted(set(words[rule["label"]]) | {_fold_text(s) for s in rule.get("synonyms") or []})
+    return words
 
 
 def load_conventions() -> dict[str, Any]:

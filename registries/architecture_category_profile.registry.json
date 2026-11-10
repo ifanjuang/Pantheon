@@ -1,0 +1,572 @@
+{
+  "schema_version": "1",
+  "registry_id": "architecture_category_profile",
+  "registry_kind": "vocabulary",
+  "version": "1.0.0",
+  "status": "candidate",
+  "owner": {
+    "id": "pantheon_project_anatomy",
+    "repository": "Pantheon-Next"
+  },
+  "authority_document": "docs/domain-packs/architecture/IFC_EXPORT_FOR_MODEL_READING.md",
+  "governance_refs": [
+    "docs/domain-packs/architecture/IFC_EXPORT_FOR_MODEL_READING.md",
+    "docs/domain-packs/architecture/PROJECT_ANATOMY_MODEL.md",
+    "registries/architecture_property_profile.registry.json"
+  ],
+  "description": "Category profile architecture@1: what a model element is, for the model reading, whatever the family a modeller picked. Each category names its French label, the words people use for it (synonyms) and the clues that recognise it: IFC classes, predefined types, type-name patterns, and geometric conditions (exterior side, sill, height, width, thickness, orientation). The first matching category by priority wins; an element matching none stays 'element (IFC class)'; a category marked ignore is counted, not read. Recognising a category is a reading, never a fact admitted into the Anatomy. An agency may add categories and synonyms through a local file kept outside the repository; that file is add-only.",
+  "profile": {
+    "id": "architecture@1",
+    "governs": "model reading element categories and the words of designations",
+    "agency_file": {
+      "environment_variable": "PANTHEON_CATEGORY_OVERLAY",
+      "registry_kind": "vocabulary_overlay",
+      "extends": "architecture_category_profile",
+      "rules": [
+        "add-only: an id declared by this registry cannot be redeclared, changed or deprecated",
+        "ids follow naming_rules.id_pattern",
+        "status is active or candidate",
+        "an unreadable or invalid file makes the vocabulary unavailable instead of being ignored"
+      ]
+    }
+  },
+  "naming_rules": {
+    "id_pattern": "^[a-z][a-z0-9_]{1,39}$",
+    "max_agency_entries": 200
+  },
+  "entries": [
+    {
+      "id": "fenetre_toute_hauteur",
+      "status": "candidate",
+      "label": "fenêtre toute hauteur",
+      "description": "Ouverture extérieure de toute hauteur trop étroite pour être franchie.",
+      "family": "element",
+      "priority": 10,
+      "synonyms": [
+        "fenetre toute hauteur",
+        "fente vitree"
+      ],
+      "match": {
+        "classes": [
+          "IfcWindow",
+          "IfcDoor"
+        ],
+        "exterior": true,
+        "sill_max": 0.1,
+        "height_min": 1.9,
+        "width_max": 0.6
+      }
+    },
+    {
+      "id": "porte_exterieure",
+      "status": "candidate",
+      "label": "porte extérieure",
+      "description": "Porte donnant sur l'extérieur.",
+      "family": "element",
+      "priority": 20,
+      "synonyms": [
+        "porte",
+        "portes",
+        "porte d'entree",
+        "porte exterieure"
+      ],
+      "match": {
+        "classes": [
+          "IfcDoor"
+        ],
+        "exterior": true
+      }
+    },
+    {
+      "id": "porte_fenetre",
+      "status": "candidate",
+      "label": "porte-fenêtre",
+      "description": "Ouverture vitrée extérieure de toute hauteur, souvent modélisée en famille fenêtre.",
+      "family": "element",
+      "priority": 20,
+      "synonyms": [
+        "porte-fenetre",
+        "portes-fenetres",
+        "baie vitree",
+        "baies vitrees",
+        "pf",
+        "porte",
+        "portes",
+        "fenetre",
+        "fenetres",
+        "baie",
+        "baies"
+      ],
+      "match": {
+        "classes": [
+          "IfcWindow"
+        ],
+        "exterior": true,
+        "sill_max": 0.1,
+        "height_min": 1.9
+      }
+    },
+    {
+      "id": "fenetre",
+      "status": "candidate",
+      "label": "fenêtre",
+      "description": "Fenêtre donnant sur l'extérieur.",
+      "family": "element",
+      "priority": 30,
+      "synonyms": [
+        "fenetre",
+        "fenetres",
+        "chassis"
+      ],
+      "match": {
+        "classes": [
+          "IfcWindow"
+        ],
+        "exterior": true
+      }
+    },
+    {
+      "id": "porte_interieure",
+      "status": "candidate",
+      "label": "porte intérieure",
+      "description": "Porte entre deux locaux, ou vers un local non modélisé.",
+      "family": "element",
+      "priority": 30,
+      "synonyms": [
+        "porte",
+        "portes",
+        "porte interieure"
+      ],
+      "match": {
+        "classes": [
+          "IfcDoor"
+        ],
+        "exterior": false
+      }
+    },
+    {
+      "id": "porte_interieure_vitree",
+      "status": "candidate",
+      "label": "porte intérieure",
+      "description": "Ouverture vitrée intérieure de toute hauteur, modélisée en famille fenêtre.",
+      "family": "element",
+      "priority": 31,
+      "synonyms": [
+        "porte",
+        "portes",
+        "porte interieure"
+      ],
+      "match": {
+        "classes": [
+          "IfcWindow"
+        ],
+        "exterior": false,
+        "sill_max": 0.1,
+        "height_min": 1.9
+      }
+    },
+    {
+      "id": "chassis_interieur",
+      "status": "candidate",
+      "label": "châssis intérieur",
+      "description": "Châssis vitré entre deux locaux.",
+      "family": "element",
+      "priority": 40,
+      "synonyms": [
+        "chassis interieur",
+        "fenetre",
+        "fenetres"
+      ],
+      "match": {
+        "classes": [
+          "IfcWindow"
+        ],
+        "exterior": false
+      }
+    },
+    {
+      "id": "baie_libre",
+      "status": "candidate",
+      "label": "baie libre",
+      "description": "Percement sans menuiserie dans un mur entre deux locaux.",
+      "family": "element",
+      "priority": 40,
+      "synonyms": [
+        "baie",
+        "baies",
+        "passage",
+        "baie libre"
+      ],
+      "match": {
+        "classes": [
+          "IfcOpeningElement"
+        ]
+      }
+    },
+    {
+      "id": "mur_exterieur",
+      "status": "candidate",
+      "label": "mur extérieur",
+      "description": "Mur dont un côté donne sur l'extérieur.",
+      "family": "element",
+      "priority": 50,
+      "synonyms": [
+        "mur",
+        "murs",
+        "mur exterieur",
+        "facade"
+      ],
+      "match": {
+        "classes": [
+          "IfcWall",
+          "IfcWallStandardCase"
+        ],
+        "exterior": true
+      }
+    },
+    {
+      "id": "cloison",
+      "status": "candidate",
+      "label": "cloison",
+      "description": "Paroi intérieure mince.",
+      "family": "element",
+      "priority": 55,
+      "synonyms": [
+        "cloison",
+        "cloisons",
+        "mur",
+        "murs"
+      ],
+      "match": {
+        "classes": [
+          "IfcWall",
+          "IfcWallStandardCase"
+        ],
+        "exterior": false,
+        "thickness_max": 0.15
+      }
+    },
+    {
+      "id": "mur_interieur",
+      "status": "candidate",
+      "label": "mur intérieur",
+      "description": "Paroi intérieure épaisse (refend, mur porteur probable).",
+      "family": "element",
+      "priority": 60,
+      "synonyms": [
+        "mur",
+        "murs",
+        "refend",
+        "mur interieur"
+      ],
+      "match": {
+        "classes": [
+          "IfcWall",
+          "IfcWallStandardCase"
+        ],
+        "exterior": false
+      }
+    },
+    {
+      "id": "poteau",
+      "status": "candidate",
+      "label": "poteau",
+      "description": "Élément porteur vertical.",
+      "family": "element",
+      "priority": 70,
+      "synonyms": [
+        "poteau",
+        "poteaux",
+        "pilier"
+      ],
+      "match": {
+        "classes": [
+          "IfcColumn"
+        ]
+      }
+    },
+    {
+      "id": "poteau_ossature",
+      "status": "candidate",
+      "label": "poteau d'ossature",
+      "description": "Membrure verticale d'une ossature.",
+      "family": "element",
+      "priority": 71,
+      "synonyms": [
+        "poteau",
+        "poteaux",
+        "montant",
+        "montants"
+      ],
+      "match": {
+        "classes": [
+          "IfcMember"
+        ],
+        "orientation": "vertical"
+      }
+    },
+    {
+      "id": "poutre",
+      "status": "candidate",
+      "label": "poutre",
+      "description": "Élément porteur horizontal.",
+      "family": "element",
+      "priority": 72,
+      "synonyms": [
+        "poutre",
+        "poutres",
+        "solive",
+        "solives",
+        "linteau"
+      ],
+      "match": {
+        "classes": [
+          "IfcBeam"
+        ]
+      }
+    },
+    {
+      "id": "poutre_ossature",
+      "status": "candidate",
+      "label": "membrure horizontale",
+      "description": "Membrure horizontale ou inclinée d'une ossature ou d'une charpente.",
+      "family": "element",
+      "priority": 73,
+      "synonyms": [
+        "poutre",
+        "poutres",
+        "chevron",
+        "chevrons",
+        "panne",
+        "pannes"
+      ],
+      "match": {
+        "classes": [
+          "IfcMember"
+        ]
+      }
+    },
+    {
+      "id": "semelle",
+      "status": "candidate",
+      "label": "semelle",
+      "description": "Fondation (semelle, longrine, plot).",
+      "family": "element",
+      "priority": 74,
+      "synonyms": [
+        "semelle",
+        "semelles",
+        "fondation",
+        "fondations",
+        "plot"
+      ],
+      "match": {
+        "classes": [
+          "IfcFooting"
+        ]
+      }
+    },
+    {
+      "id": "toiture",
+      "status": "candidate",
+      "label": "toiture",
+      "description": "Toiture ou pan de toiture.",
+      "family": "element",
+      "priority": 75,
+      "synonyms": [
+        "toiture",
+        "toit",
+        "couverture",
+        "pan"
+      ],
+      "match": {
+        "classes": [
+          "IfcRoof"
+        ]
+      }
+    },
+    {
+      "id": "dalle_toiture",
+      "status": "candidate",
+      "label": "pan de toiture",
+      "description": "Dalle de toiture.",
+      "family": "element",
+      "priority": 76,
+      "synonyms": [
+        "toiture",
+        "toit",
+        "pan"
+      ],
+      "match": {
+        "classes": [
+          "IfcSlab"
+        ],
+        "predefined_types": [
+          "ROOF"
+        ]
+      }
+    },
+    {
+      "id": "dalle",
+      "status": "candidate",
+      "label": "dalle",
+      "description": "Plancher, dalle ou radier.",
+      "family": "element",
+      "priority": 77,
+      "synonyms": [
+        "dalle",
+        "dalles",
+        "plancher",
+        "planchers",
+        "radier"
+      ],
+      "match": {
+        "classes": [
+          "IfcSlab"
+        ]
+      }
+    },
+    {
+      "id": "escalier",
+      "status": "candidate",
+      "label": "escalier",
+      "description": "Escalier ou volée.",
+      "family": "element",
+      "priority": 78,
+      "synonyms": [
+        "escalier",
+        "escaliers",
+        "volee",
+        "marche"
+      ],
+      "match": {
+        "classes": [
+          "IfcStair",
+          "IfcStairFlight"
+        ]
+      }
+    },
+    {
+      "id": "garde_corps",
+      "status": "candidate",
+      "label": "garde-corps",
+      "description": "Garde-corps, rambarde ou main courante.",
+      "family": "element",
+      "priority": 79,
+      "synonyms": [
+        "garde-corps",
+        "garde corps",
+        "rambarde",
+        "main courante"
+      ],
+      "match": {
+        "classes": [
+          "IfcRailing"
+        ]
+      }
+    },
+    {
+      "id": "garde_corps_nomme",
+      "status": "candidate",
+      "label": "garde-corps",
+      "description": "Garde-corps modélisé en objet générique, reconnu par son nom de type.",
+      "family": "element",
+      "priority": 80,
+      "synonyms": [
+        "garde-corps",
+        "garde corps",
+        "rambarde"
+      ],
+      "match": {
+        "type_name_patterns": [
+          "garde-corps",
+          "garde corps",
+          "rambarde",
+          "gc "
+        ]
+      }
+    },
+    {
+      "id": "revetement",
+      "status": "candidate",
+      "label": "revêtement",
+      "description": "Revêtement, faux plafond ou habillage.",
+      "family": "element",
+      "priority": 81,
+      "synonyms": [
+        "revetement",
+        "faux plafond",
+        "plafond",
+        "habillage"
+      ],
+      "match": {
+        "classes": [
+          "IfcCovering"
+        ]
+      }
+    },
+    {
+      "id": "panneau",
+      "status": "candidate",
+      "label": "panneau",
+      "description": "Panneau ou plaque (contreventement, bardage).",
+      "family": "element",
+      "priority": 82,
+      "synonyms": [
+        "panneau",
+        "panneaux",
+        "plaque",
+        "bardage"
+      ],
+      "match": {
+        "classes": [
+          "IfcPlate"
+        ]
+      }
+    },
+    {
+      "id": "mobilier",
+      "status": "candidate",
+      "label": "mobilier",
+      "description": "Mobilier et décoration.",
+      "family": "element",
+      "priority": 90,
+      "synonyms": [
+        "mobilier",
+        "meuble"
+      ],
+      "match": {
+        "classes": [
+          "IfcFurnishingElement"
+        ]
+      },
+      "ignore": true
+    },
+    {
+      "id": "objet_generique",
+      "status": "candidate",
+      "label": "objet générique",
+      "description": "Objet générique sans catégorie (déco, végétation, entourage).",
+      "family": "element",
+      "priority": 95,
+      "synonyms": [
+        "objet"
+      ],
+      "match": {
+        "classes": [
+          "IfcBuildingElementProxy",
+          "IfcGeographicElement"
+        ]
+      },
+      "ignore": true
+    }
+  ],
+  "x_boundary": {
+    "runtime_execution": false,
+    "provider_routing": false,
+    "task_authorization": false,
+    "approval": false,
+    "evidence_promotion": false,
+    "memory_promotion": false
+  }
+}

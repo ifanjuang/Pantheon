@@ -125,3 +125,33 @@ def test_model_quality_advises_a_new_export_with_the_settings_to_fix() -> None:
     assert any("nord" in advice for advice in poor["conseils_export"])
     assert reading.quality({"spaces": False})["niveau"] == "insuffisante"
 
+
+
+@pytest.mark.parametrize("features, expected", [
+    ({"ifc_class": "IfcColumn"}, "poteau"),
+    ({"ifc_class": "IfcMember", "orientation": "vertical"}, "poteau d'ossature"),
+    ({"ifc_class": "IfcMember", "orientation": "horizontal"}, "membrure horizontale"),
+    ({"ifc_class": "IfcSlab", "predefined_type": "ROOF"}, "pan de toiture"),
+    ({"ifc_class": "IfcSlab", "predefined_type": "FLOOR"}, "dalle"),
+    ({"ifc_class": "IfcBuildingElementProxy", "type_name": "Garde-corps alu"}, "garde-corps"),
+    ({"ifc_class": "IfcBuildingElementProxy", "type_name": "Arbre 3D"}, "objet générique"),
+    ({"ifc_class": "IfcFurnishingElement"}, "mobilier"),
+    ({"ifc_class": "IfcWall", "exterior": False, "thickness": 0.10}, "cloison"),
+    ({"ifc_class": "IfcWallStandardCase", "exterior": False, "thickness": 0.30}, "mur intérieur"),
+    ({"ifc_class": "IfcWall", "exterior": True, "thickness": 0.30}, "mur extérieur"),
+])
+def test_any_element_is_classified_by_the_category_profile(features, expected) -> None:
+    rule = reading.classify(features, reading.load_rules())
+    assert rule is not None and rule["label"] == expected
+
+
+def test_a_missing_clue_fails_the_rule_that_asks_for_it() -> None:
+    rules = [{"id": "porte_fenetre", "label": "porte-fenêtre", "match": {"classes": ["IfcWindow"], "exterior": True, "sill_max": 0.1}}]
+    assert reading.classify({"ifc_class": "IfcWindow", "exterior": True, "sill": None}, rules) is None
+    assert reading.classify({"ifc_class": "IfcWindow", "exterior": True, "sill": 0.0}, rules)["label"] == "porte-fenêtre"
+
+
+def test_the_words_of_the_categories_present_are_published() -> None:
+    words = reading.category_words(reading.load_rules(), {"poteau", "garde-corps"})
+    assert "poteaux" in words["poteau"] and "garde corps" in words["garde-corps"]
+    assert "mobilier" not in words

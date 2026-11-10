@@ -1,0 +1,254 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: https://pantheon.local/schemas/architecture-project-understanding/category_profile.schema.yaml
+title: Model Reading Category Profile Registry
+description: >-
+  Specialized registry schema for the category profile of the model reading,
+  in two variants selected by registry_kind: the governed repository registry
+  (`vocabulary`) and the add-only agency file (`vocabulary_overlay`). A
+  category names what a model element is, the words people use for it and the
+  clues that recognise it (IFC classes, predefined types, type-name patterns,
+  geometric conditions). Recognising a category is a reading, never an
+  admitted fact.
+oneOf:
+  - $ref: "#/$defs/registry"
+  - $ref: "#/$defs/agency_file"
+$defs:
+  kind_id:
+    type: string
+    pattern: "^[a-z][a-z0-9_]{1,39}$"
+  object_family:
+    description: Same list as shared.schema.yaml object_family (kept equal by a test).
+    type: string
+    enum: [spatial, element, assembly, material, system, datum, group, type_definition]
+  match:
+    type: object
+    additionalProperties: false
+    minProperties: 1
+    properties:
+      classes:
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items: {type: string, pattern: "^Ifc[A-Z][A-Za-z]+$"}
+      predefined_types:
+        type: array
+        minItems: 1
+        items: {type: string, pattern: "^[A-Z][A-Z_]*$"}
+      type_name_patterns:
+        type: array
+        minItems: 1
+        items: {type: string, minLength: 2, maxLength: 60}
+      exterior: {type: boolean}
+      sill_min: {type: number}
+      sill_max: {type: number}
+      height_min: {type: number}
+      height_max: {type: number}
+      width_min: {type: number}
+      width_max: {type: number}
+      thickness_min: {type: number}
+      thickness_max: {type: number}
+      orientation: {type: string, enum: [vertical, horizontal]}
+  entry:
+    type: object
+    additionalProperties: false
+    required: [id, status, label, description, family, priority, synonyms, match]
+    properties:
+      id:
+        $ref: "#/$defs/kind_id"
+      status:
+        type: string
+        enum: [active, candidate, deprecated]
+      family:
+        $ref: "#/$defs/object_family"
+      priority:
+        type: integer
+        minimum: 0
+        maximum: 1000
+      synonyms:
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items: {type: string, minLength: 1, maxLength: 60}
+      match:
+        $ref: "#/$defs/match"
+      ignore:
+        type: boolean
+      label:
+        type: string
+        minLength: 1
+        maxLength: 120
+      description:
+        type: string
+        minLength: 1
+        maxLength: 600
+      replaced_by:
+        $ref: "#/$defs/kind_id"
+  agency_entry:
+    description: >-
+      An agency entry can only add: it is active or candidate, and it cannot be
+      deprecated or point to a replacement.
+    type: object
+    additionalProperties: false
+    required: [id, status, label, description, family, priority, synonyms, match]
+    properties:
+      id:
+        $ref: "#/$defs/kind_id"
+      status:
+        type: string
+        enum: [active, candidate]
+      family:
+        $ref: "#/$defs/object_family"
+      priority:
+        type: integer
+        minimum: 0
+        maximum: 1000
+      synonyms:
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items: {type: string, minLength: 1, maxLength: 60}
+      match:
+        $ref: "#/$defs/match"
+      ignore:
+        type: boolean
+      label:
+        type: string
+        minLength: 1
+        maxLength: 120
+      description:
+        type: string
+        minLength: 1
+        maxLength: 600
+  registry:
+    type: object
+    additionalProperties: false
+    required:
+      - schema_version
+      - registry_id
+      - registry_kind
+      - version
+      - status
+      - owner
+      - authority_document
+      - governance_refs
+      - description
+      - profile
+      - naming_rules
+      - entries
+      - x_boundary
+    properties:
+      schema_version:
+        const: "1"
+      registry_id:
+        const: architecture_category_profile
+      registry_kind:
+        const: vocabulary
+      version:
+        type: string
+        pattern: "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+      status:
+        type: string
+        enum: [candidate, active, under_review, deprecated, superseded]
+      owner:
+        type: object
+        additionalProperties: false
+        required: [id, repository]
+        properties:
+          id:
+            type: string
+            minLength: 1
+          repository:
+            type: string
+            enum: [Pantheon-Next]
+      authority_document:
+        type: string
+        pattern: "^(docs|registries|schemas)/.+"
+      governance_refs:
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items:
+          type: string
+          pattern: "^(docs|registries|schemas)/.+"
+      description:
+        type: string
+        minLength: 1
+      profile:
+        type: object
+        additionalProperties: false
+        required: [id, governs, agency_file]
+        properties:
+          id:
+            type: string
+            pattern: "^[a-z][a-z0-9_]*@[0-9]+$"
+          governs:
+            type: string
+            minLength: 1
+          agency_file:
+            type: object
+            additionalProperties: false
+            required: [environment_variable, registry_kind, extends, rules]
+            properties:
+              environment_variable:
+                type: string
+                pattern: "^[A-Z][A-Z0-9_]*$"
+              registry_kind:
+                const: vocabulary_overlay
+              extends:
+                const: architecture_category_profile
+              rules:
+                type: array
+                minItems: 1
+                items:
+                  type: string
+                  minLength: 1
+      naming_rules:
+        type: object
+        additionalProperties: false
+        required: [id_pattern, max_agency_entries]
+        properties:
+          id_pattern:
+            const: "^[a-z][a-z0-9_]{1,39}$"
+          max_agency_entries:
+            type: integer
+            minimum: 1
+            maximum: 1000
+      entries:
+        type: array
+        minItems: 1
+        items:
+          $ref: "#/$defs/entry"
+      x_boundary:
+        type: object
+        additionalProperties: false
+        required:
+          - runtime_execution
+          - provider_routing
+          - task_authorization
+          - approval
+          - evidence_promotion
+          - memory_promotion
+        properties:
+          runtime_execution: { const: false }
+          provider_routing: { const: false }
+          task_authorization: { const: false }
+          approval: { const: false }
+          evidence_promotion: { const: false }
+          memory_promotion: { const: false }
+  agency_file:
+    type: object
+    additionalProperties: false
+    required: [registry_kind, extends, entries]
+    properties:
+      registry_kind:
+        const: vocabulary_overlay
+      extends:
+        const: architecture_category_profile
+      description:
+        type: string
+        maxLength: 600
+      entries:
+        type: array
+        maxItems: 200
+        items:
+          $ref: "#/$defs/agency_entry"

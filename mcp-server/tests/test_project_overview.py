@@ -337,6 +337,34 @@ class TestFocus(unittest.TestCase):
         self.assertIn("nord", summary["model_quality"]["conseils_export"][0])
         self.assertTrue(any("réexporter" in rule for rule in summary["reading_rules"]))
 
+    def test_any_category_is_designated_by_its_words(self):
+        reading = _model_reading()
+        reading["grid_lines"] = ["B", "C", "3", "4"]
+        reading["levels"] = [{"name": "RDC", "elevation": 0.0}, {"name": "R01", "elevation": 2.8}]
+        reading["categories"] = {"poteau": ["poteau", "poteaux", "pilier"], "garde-corps": ["garde-corps", "garde corps", "rambarde"]}
+        reading["elements"] = [
+            {"id": "P1", "label": "poteau", "space": "G-SAL", "grid": "sur la file C ; sur la file 3", "level": "RDC", "height_m": 2.6},
+            {"id": "P2", "label": "poteau", "space": "G-SAL", "grid": "sur la file C ; sur la file 4", "level": "RDC", "height_m": 2.6},
+            {"id": "GC1", "label": "garde-corps", "space": "G-CH1", "grid": "entre B et C", "level": "R01", "length_m": 3.2},
+        ]
+        (self.directory / "DEMO.maquette-maquette.json").write_text(json.dumps(reading), encoding="utf-8")
+        columns = project_overview.project_overview("DEMO", self.directory, focus="poteaux file C")["focus"]
+        self.assertEqual((columns["kind"], columns["nombre"]), ("sélection", 2))
+        one = project_overview.project_overview("DEMO", self.directory, focus="poteau file C entre 3 et 4")["focus"]
+        self.assertFalse(one["found"])  # on 3, on 4: neither is between them
+        rail = project_overview.project_overview("DEMO", self.directory, focus="garde corps R01")["focus"]
+        self.assertEqual((rail["kind"], rail["id"]), ("élément", "GC1"))
+        sheet = project_overview.project_overview("DEMO", self.directory, focus="salon")["focus"]
+        self.assertEqual(sheet["contient"], {"poteau": 2})
+        summary = project_overview.project_overview("DEMO", self.directory)
+        self.assertEqual(summary["model_elements"], {"MAQUETTE E": {"poteau": 2, "garde-corps": 1}})
+        reading["elements"] += [{"id": f"P{n}", "label": "poteau", "space": "G-SAL", "level": "RDC"} for n in range(3, 40)]
+        (self.directory / "DEMO.maquette-maquette.json").write_text(json.dumps(reading), encoding="utf-8")
+        many = project_overview.project_overview("DEMO", self.directory, focus="poteaux")["focus"]
+        self.assertEqual((many["nombre"], many["par_niveau"], len(many["extrait"])), (39, {"RDC": 39}, 10))
+        asked = project_overview.project_overview("DEMO", self.directory, focus="poteau file C")["focus"]
+        self.assertTrue(asked["question"].startswith("Plusieurs correspondent : poteau sur la file C"))
+
     def test_without_a_model_reading_the_focus_says_so(self):
         (self.directory / "DEMO.maquette-maquette.json").unlink()
         self.assertFalse(project_overview.project_overview("DEMO", self.directory, focus="cuisine")["focus"]["found"])

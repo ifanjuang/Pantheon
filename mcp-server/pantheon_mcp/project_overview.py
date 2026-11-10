@@ -298,12 +298,30 @@ def _side(item: dict[str, Any], own: str, names: dict[str, str]) -> str:
 
 
 def _what(item: dict[str, Any]) -> str:
-    """What an opening is, as deduced from geometry when the reading gives it; the IFC family otherwise."""
-    return item.get("nature") or item.get("kind") or "mur"
+    """What an element is: its deduced nature or category label when the reading gives one; its family otherwise."""
+    return item.get("nature") or item.get("label") or item.get("kind") or "mur"
 
 
 def _to_check(item: dict[str, Any]) -> list[str]:
-    return [c for c in item.get("clues") or [] if "contredit" in c or "dit intérieur" in c]
+    return [c for c in item.get("clues") or [] if "contredit" in c or "dit intérieur" in c or "dimension déclarée" in c]
+
+
+def _category_phrase(reading: dict[str, Any], words: list[str]) -> tuple[set[str], list[str], bool] | None:
+    """Labels named by the longest synonym phrase of the query (« garde corps », « poteaux »), the other words, plural."""
+    vocabulary: dict[str, set[str]] = {}
+    for label, synonyms in (reading.get("categories") or {}).items():
+        for synonym in synonyms:
+            vocabulary.setdefault(_fold(synonym), set()).add(label)
+    for size in (3, 2, 1):
+        for start in range(0, len(words) - size + 1):
+            phrase = " ".join(words[start:start + size])
+            # A plural is a word ending in s or x whose form without it is also a known word ("poteaux");
+            # "garde-corps" stays singular.
+            plural = phrase.endswith(("s", "x")) and phrase[:-1] in vocabulary
+            labels = vocabulary.get(phrase) or (vocabulary.get(phrase[:-1]) if plural else None)
+            if labels:
+                return set(labels), words[:start] + words[start + size:], plural
+    return None
 
 
 def _quality(reading: dict[str, Any]) -> dict[str, Any] | None:
@@ -316,6 +334,23 @@ def _quality(reading: dict[str, Any]) -> dict[str, Any] | None:
 
 
 FACADE_NAMES = {"nord", "est", "sud", "ouest"}
+SELECTION_ROWS = 30  # beyond this, a selection gives counts by level and room with an extract
+
+
+def _selected(criterion: str, rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """A selection small enough to read: every row when few, otherwise counts and an extract."""
+    answer: dict[str, Any] = {"found": True, "kind": "sélection", "critère": criterion, "nombre": len(rows)}
+    if len(rows) <= SELECTION_ROWS:
+        return {**answer, "éléments": rows}
+    by_level: dict[str, int] = {}
+    by_room: dict[str, int] = {}
+    for row in rows:
+        by_level[str(row.get("niveau") or "?")] = by_level.get(str(row.get("niveau") or "?"), 0) + 1
+        for room in row.get("locaux") or ["hors local"]:
+            by_room[room] = by_room.get(room, 0) + 1
+    return {**answer, "par_niveau": by_level, "par_local": dict(sorted(by_room.items(), key=lambda kv: -kv[1])[:15]),
+            "extrait": rows[:10], "reste": len(rows) - 10,
+            "note": "Liste longue : préciser une file, une façade, un niveau ou un local pour le détail."}
 # Element words of a designation: kind of element, and whether it is exterior (None: either).
 ELEMENT_WORDS = {
     "cloison": ("mur", False), "cloisons": ("mur", False), "mur": ("mur", None), "murs": ("mur", None),
@@ -327,7 +362,7 @@ KIND_NATURES = {
     "fenêtre": {"fenêtre", "fenêtre toute hauteur", "porte-fenêtre", "châssis intérieur"},
     "porte": {"porte", "porte extérieure", "porte intérieure", "porte-fenêtre"},
     "baie": {"baie libre", "porte-fenêtre"},
-    "mur": {"mur"},
+    "mur": {"mur", "mur extérieur", "mur intérieur", "cloison"},
 }
 LABELS = {("mur", False): "la cloison", ("mur", True): "le mur extérieur", ("mur", None): "le mur",
           ("fenêtre", None): "la fenêtre", ("porte", None): "la porte", ("baie", None): "la baie"}
@@ -336,12 +371,18 @@ LABELS = {("mur", False): "la cloison", ("mur", True): "le mur extérieur", ("mu
 def _designation(reading: dict[str, Any], words: list[str], names: dict[str, str],
                  elements: list[dict[str, Any]], row) -> dict[str, Any] | None:
     """'cloison file 5', 'fenêtre façade sud chambre 1': one element, or the candidates and the question to ask."""
-    kind_word = next((w for w in words if w in ELEMENT_WORDS), None)
-    if kind_word is None:
-        return None
-    kind, exterior = ELEMENT_WORDS[kind_word]
-    plural = kind_word.endswith("s")  # "fenêtres de la chambre 1": all of them, not "which one?"
-    rest = [w for w in words if w != kind_word]
+    named = _category_phrase(reading, words)
+    if named is not None:
+        labels, rest, plural = named
+        kind, exterior = None, None
+    else:
+        kind_word = next((w for w in words if w in ELEMENT_WORDS), None)
+        if kind_word is None:
+            return None
+        kind, exterior = ELEMENT_WORDS[kind_word]
+        labels = KIND_NATURES.get(kind, {kind})
+        plural = kind_word.endswith("s")  # "fenêtres de la chambre 1": all of them, not "which one?"
+        rest = [w for w in words if w != kind_word]
     if "exterieur" in rest or "exterieurs" in rest:
         exterior, rest = True, [w for w in rest if w not in {"exterieur", "exterieurs"}]
     if "interieur" in rest:
@@ -366,20 +407,20 @@ def _designation(reading: dict[str, Any], words: list[str], names: dict[str, str
             room_words.append(word)
         i += 1
     room = " ".join(room_words)
-    found = [e for e in elements if (e["_what"] in KIND_NATURES.get(kind, {kind}) or e["_what"] == kind)
+    found = [e for e in elements if (e["_what"] in labels or e["_what"] == kind)
              and (exterior is None or bool(e.get("exterior")) == exterior)
              and all(_on_grid(e.get("grid"), tag) for tag in tags)
              and (facade_dir is None or e.get("facade") == facade_dir)
              and (level is None or _fold(e.get("level")) == level)
              and (not room or any(room in _fold(names.get(s)) for s in e.get("sides") or [] if s))]
-    label = LABELS.get((kind, exterior if kind == "mur" else None), "l'élément")
+    label = LABELS.get((kind, exterior if kind == "mur" else None))
     if not found:
         return {"found": False, "kind": "désignation", "reason": f"aucun élément ne correspond à « {' '.join(words)} »"}
     rows = [row(e) for e in found]
     if len(rows) == 1:
         return {"found": True, "kind": "élément", **rows[0]}
     if plural:
-        return {"found": True, "kind": "sélection", "critère": " ".join(words), "nombre": len(rows), "éléments": rows[:MAX_LISTED]}
+        return _selected(" ".join(words), rows)
 
     def describe(item: dict[str, Any], detailed: bool = False) -> str:
         where = (item.get("files") or "position non déterminée").replace(" ; ", ", ")
@@ -393,13 +434,15 @@ def _designation(reading: dict[str, Any], words: list[str], names: dict[str, str
         if detailed:  # same place, same rooms: tell them apart by size
             details += [metres(v) for v in (item.get("longueur_m"), item.get("largeur_m")) if v]
             details += [f"ép. {metres(item['épaisseur_m'])}"] if item.get("épaisseur_m") else []
-        return f"{label} {where}" + (f" ({', '.join(details)})" if details else "")
+        name = label or item.get("élément") or "élément"
+        return f"{name} {where}" + (f" ({', '.join(details)})" if details else "")
 
     plain = [describe(r) for r in rows]
     if len(set(plain)) < len(plain):
         plain = [describe(r, detailed=True) for r in rows]
 
-    question = ("Parlez-vous de " + ", ou de ".join(plain) + " ?") if len(rows) <= 4 else \
+    question = (("Parlez-vous de " + ", ou de ".join(plain) + " ?") if label else
+                ("Plusieurs correspondent : " + " ; ".join(plain) + ". Lequel ?")) if len(rows) <= 4 else \
         f"{len(rows)} éléments correspondent : précisez la file, la façade, le niveau ou la pièce."
     return {"found": False, "kind": "désignation", "plusieurs": len(rows), "candidats": rows[:MAX_LISTED], "question": question}
 
@@ -414,7 +457,9 @@ def _selection(reading: dict[str, Any], wanted: str, states: dict[str, str]) -> 
     """Elements on one grid line, on one façade, or spaces on one level: the reverse questions."""
     names = {s["id"]: s["name"] for s in reading.get("spaces") or []}
     elements = [{**o, "_what": _what(o)} for o in reading.get("openings") or []] + \
-               [{**w, "_what": "mur"} for w in reading.get("walls") or []]
+               [{**w, "_what": w.get("label") or "mur"} for w in reading.get("walls") or []] + \
+               [{**e, "_what": _what(e), "sides": [e.get("space")] if e.get("space") else []}
+                for e in reading.get("elements") or []]
 
     def row(item: dict[str, Any]) -> dict[str, Any]:
         sides = [names.get(s, "?") for s in item.get("sides") or [] if s]
@@ -435,10 +480,10 @@ def _selection(reading: dict[str, Any], wanted: str, states: dict[str, str]) -> 
             return {"found": False, "reason": f"pas de file {tag} dans la maquette",
                     "candidates": list(reading.get("grid_lines") or [])}
         rows = [row(e) for e in elements if _on_grid(e.get("grid"), tag)]
-        return {"found": True, "kind": "sélection", "critère": f"file {tag}", "nombre": len(rows), "éléments": rows[:MAX_LISTED]}
+        return _selected(f"file {tag}", rows)
     if len(words) == 2 and words[0] == "facade" and words[1] in FACADE_NAMES:
         rows = [row(e) for e in elements if e.get("facade") == words[1]]
-        return {"found": True, "kind": "sélection", "critère": f"façade {words[1]}", "nombre": len(rows), "éléments": rows[:MAX_LISTED]}
+        return _selected(f"façade {words[1]}", rows)
     levels = {_fold(level.get("name")): level.get("name") for level in reading.get("levels") or []}
     if wanted in levels:
         spaces = [{"local": s["name"], "surface_m2": s.get("area_m2"), "état": states.get(s["id"], UNSTATED)}
@@ -511,7 +556,12 @@ def _focus(directory: Path, data: dict[str, Any], focus: str) -> dict[str, Any]:
                                 for x in n["spaces"] if x != sid and n["via"] == "ouvert"})
             touching = sorted({names.get(x, "?") for n in reading.get("neighbours") or [] if sid in n["spaces"]
                                for x in n["spaces"] if x != sid and n["via"] == "mur"})
+            inside = [e for e in reading.get("elements") or [] if e.get("space") == sid]
+            contains: dict[str, int] = {}
+            for element in inside:
+                contains[element["label"]] = contains.get(element["label"], 0) + 1
             return {"found": True, "kind": "local", "name": space["name"], "level": space.get("level"),
+                    **({"contient": contains} if contains else {}),
                     "surface_m2": space.get("area_m2"), "état": states.get(sid, UNSTATED),
                     "relié_par_porte_à": linked, **({"relié_par_baie_libre_à": free} if free else {}),
                     **({"ouvert_sur": open_onto} if open_onto else {}), "mur_commun_avec": touching,
@@ -559,6 +609,15 @@ def _compact(full: dict[str, Any], directory: Path, data: dict[str, Any]) -> dic
             compact["model_spaces"] = {"source": models[0]["source"].get("piece"), "index": models[0]["source"].get("index"),
                                        "levels": by_level}
     models_read = sorted(_load_models(directory, data), key=lambda r: -len(r.get("spaces") or []))
+    counted: dict[str, dict[str, int]] = {}
+    for reading in models_read:
+        counts: dict[str, int] = {}
+        for element in reading.get("elements") or []:
+            counts[element["label"]] = counts.get(element["label"], 0) + 1
+        if counts:
+            counted[f"{reading['source'].get('piece')} {reading['source'].get('index') or ''}".strip()] = counts
+    if counted:
+        compact["model_elements"] = counted
     if models_read and _quality(models_read[0]):
         compact["model_quality"] = {"maquette": models_read[0]["source"].get("piece"),
                                     "index": models_read[0]["source"].get("index"), **_quality(models_read[0])}

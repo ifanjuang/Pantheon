@@ -43,6 +43,11 @@ PHASE_REGISTRY = "apu_phase_profile"
 PHASE_OVERLAY_ENV = "PANTHEON_PHASE_OVERLAY"
 PROPERTY_REGISTRY = "apu_property_profile"
 PROPERTY_OVERLAY_ENV = "PANTHEON_PROPERTY_OVERLAY"
+CATEGORY_REGISTRY = "model_category_profile"
+CATEGORY_OVERLAY_ENV = "PANTHEON_CATEGORY_OVERLAY"
+MATCH_KEYS = frozenset({"classes", "predefined_types", "type_name_patterns", "exterior", "sill_min", "sill_max",
+                        "height_min", "height_max", "width_min", "width_max", "thickness_min", "thickness_max",
+                        "orientation"})
 # Same lists as shared.schema.yaml claim_value_type and object_family (kept equal by a test).
 VALUE_TYPES = frozenset({"number", "boolean", "text", "range", "reference", "controlled_label", "structured"})
 OBJECT_FAMILIES = frozenset({"spatial", "element", "assembly", "material", "system", "datum", "group", "type_definition"})
@@ -63,6 +68,12 @@ _AGENCY_RULES: dict[str, dict[str, Any]] = {
         "aliases": False,
         # Extra fields an agency property carries; facets come from the registry itself.
         "fields": {"facet", "value_type", "unit", "applies_to"},
+    },
+    "architecture_category_profile": {
+        "noun": "category",
+        "categories": None,
+        "aliases": False,
+        "fields": {"family", "priority", "synonyms", "match", "ignore"},
     },
 }
 
@@ -207,8 +218,10 @@ def merge_agency_file(base: dict[str, Any], overlay: Any) -> dict[str, dict[str,
         for field in ("label", "description"):
             if not isinstance(entry.get(field), str) or not entry[field].strip():
                 raise VocabularyUnavailable(f"{where} needs a non-empty {field}")
-        if extra_fields:
+        if extra_fields and "facet" in extra_fields:
             _check_property_fields(entry, where=where, facets=facets)
+        elif extra_fields:
+            _check_category_fields(entry, where=where)
         entries_by_id[value] = {**entry, "origin": "agency"}
         added.add(value)
     if "aliases" in overlay:
@@ -232,6 +245,22 @@ def _check_property_fields(entry: dict[str, Any], *, where: str, facets: set[Any
         or len(families) != len(set(families))
     ):
         raise VocabularyUnavailable(f"{where} applies_to must list object families")
+
+
+def _check_category_fields(entry: dict[str, Any], *, where: str) -> None:
+    if entry.get("family") not in OBJECT_FAMILIES:
+        raise VocabularyUnavailable(f"{where} must have an object family")
+    priority = entry.get("priority")
+    if not isinstance(priority, int) or isinstance(priority, bool) or not 0 <= priority <= 1000:
+        raise VocabularyUnavailable(f"{where} needs a priority between 0 and 1000")
+    synonyms = entry.get("synonyms")
+    if not isinstance(synonyms, list) or not synonyms or not all(isinstance(s, str) and s.strip() for s in synonyms):
+        raise VocabularyUnavailable(f"{where} needs synonyms")
+    match = entry.get("match")
+    if not isinstance(match, dict) or not match or set(match) - MATCH_KEYS:
+        raise VocabularyUnavailable(f"{where} needs a match with known clues only")
+    if "ignore" in entry and not isinstance(entry["ignore"], bool):
+        raise VocabularyUnavailable(f"{where} ignore must be true or false")
 
 
 _cache: dict[tuple[str, tuple[str, int, int] | tuple[None]], Vocabulary] = {}
@@ -290,6 +319,13 @@ def phases() -> Vocabulary:
 def properties() -> Vocabulary:
     """Base property registry plus the agency file, cached until the file changes."""
     return _load(PROPERTY_REGISTRY, PROPERTY_OVERLAY_ENV, "property")
+
+
+def categories() -> list[dict[str, Any]]:
+    """Category rules for the model reading, base registry plus the agency file, by priority."""
+    entries = _load(CATEGORY_REGISTRY, CATEGORY_OVERLAY_ENV, "category").entries
+    return sorted((dict(e) for e in entries.values() if e.get("status") != "deprecated"),
+                  key=lambda e: (e.get("priority", 1000), e["id"]))
 
 
 def describe_property(key: Any) -> dict[str, Any] | None:
