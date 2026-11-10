@@ -73,6 +73,16 @@
   or reject decision; applying replays the existing per-candidate chain (review,
   write command, authorization, application) in one transaction, all or
   nothing. No new table or schema.
+- Current state reading generalized after a dry run on five affaires: only
+  project pieces are followed (drawings, models, written pieces of the design
+  and consultation, recognised by name), everything else in an affaire folder
+  (minutes, litigation, chats, statutes...) is counted, not followed; piece
+  names drop dates written with dots, noise words and the words repeated
+  across an affaire's names (client, address, project title). `get_project`
+  puts the open questions first, adds a synthesis written from the published
+  state, the origin of each date (card, title block, file name, PDF creation)
+  and the project description and phase, with a rule not to add anything that
+  is not in the answer.
 - Hermes routing to the live project state: the `get_project` description and
   the policy server instructions call it the live project-state source, to use
   first for where an affaire stands or the current index of a document, and the

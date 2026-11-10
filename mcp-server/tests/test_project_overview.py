@@ -104,6 +104,20 @@ class TestProjectOverview(unittest.TestCase):
         self.assertEqual(pieces["to_confront"], [{"piece": "DEVIS LOT 4", "position": "incertaine"}])
         self.assertEqual(pieces["questions"], ["CCTP : plusieurs variantes de l'indice C"])
 
+    def test_questions_come_first_with_a_written_synthesis_and_the_project_nature(self):
+        data = _projection()
+        data["project"] = {**data["project"], "description": "Maison individuelle", "phase": "ACT"}
+        data["pieces"]["pieces"][0]["current"]["date_source"] = "pdf"
+        (self.directory / "DEMO.json").write_text(json.dumps(data), encoding="utf-8")
+        result = project_overview.project_overview("DEMO", self.directory)
+        self.assertEqual(list(result)[:4], ["code", "found", "source", "project"])
+        self.assertEqual(result["project"]["description"], "Maison individuelle")
+        self.assertEqual(result["open_questions"], ["CCTP : plusieurs variantes de l'indice C"])
+        self.assertEqual(result["pieces"]["synthesis"], [
+            "Indice C2 : 1 pièce (CCTP).", "Indice E : 1 pièce (PLAN RDC).",
+            "1 devis ou offre à confronter.", "1 question ouverte."])
+        self.assertEqual(result["pieces"]["current"][0]["date_from"], "création du PDF (incertaine)")
+
     def test_an_anatomy_published_without_pieces_has_no_pieces_section(self):
         data = _projection()
         del data["pieces"]

@@ -49,7 +49,7 @@ def export_project_anatomy(conn, project_id: str, *, directory: Path | None = No
     if directory is None:
         return None
     row = conn.execute(
-        "SELECT project_id, code, display_name FROM agency_projects WHERE project_id = %s",
+        "SELECT project_id, code, display_name, description, phase FROM agency_projects WHERE project_id = %s",
         (project_id,),
     ).fetchone()
     if row is None:
@@ -60,7 +60,8 @@ def export_project_anatomy(conn, project_id: str, *, directory: Path | None = No
     document: dict[str, Any] = {
         "schema": SCHEMA,
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "project": {"project_id": row[0], "code": code, "display_name": row[2]},
+        "project": {"project_id": row[0], "code": code, "display_name": row[2],
+                    **({"description": row[3]} if row[3] else {}), **({"phase": row[4]} if row[4] else {})},
         "anatomy": get_project_anatomy_projection(conn, project_id=project_id),
     }
     # The current state of the affaire's documents travels with its Anatomy, so a
