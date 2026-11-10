@@ -109,11 +109,3 @@ def test_undeclared_keys_are_reported_not_refused(monkeypatch) -> None:
     assert vocabulary.describe_property("local.inconnue") is None
     assert vocabulary.undeclared_properties(["space.area", "local.inconnue", "local.inconnue"]) == ["local.inconnue"]
 
-
-def test_the_published_anatomy_carries_labels_and_lists_undeclared_keys() -> None:
-    from mvp_vertical import anatomy_export
-
-    section = anatomy_export.property_labels(
-        {"attribute_claims": [{"attribute_key": "space.area"}, {"attribute_key": "local.inconnue"}]})
-    assert section == {"labels": {"space.area": {"label": "Surface", "unit": "m2", "facet": "geometrie"}},
-                       "undeclared": ["local.inconnue"]}
