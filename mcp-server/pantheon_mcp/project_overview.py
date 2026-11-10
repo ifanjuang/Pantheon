@@ -54,6 +54,11 @@ READING_RULES = [
     "dire « non renseigné » plutôt que supposer.",
     "Quand la focalisation renvoie plusieurs candidats avec une question, poser cette question à "
     "l'utilisateur au lieu de choisir.",
+    "Quand une position est déduite (droite, gauche, côté), citer l'indice utilisé (façade, files) et "
+    "l'hypothèse du nord en haut du plan.",
+    "Si la qualité de la maquette est insuffisante ou qu'un réexport est conseillé : répondre avec ce qui "
+    "est lu sans rien inventer, dire ce qui manque, et proposer à l'utilisateur de réexporter la maquette "
+    "en citant les conseils d'export.",
 ]
 PIECE_KEYS = ("index", "date", "position")
 SYNTHESIS_NAMES = 10  # names listed in one synthesis line; the full list stays in "current"
@@ -234,7 +239,8 @@ MAX_MODEL_BYTES = 8 * 1024 * 1024
 
 def _fold(text: Any) -> str:
     table = str.maketrans("àâäéèêëîïôöùûüç", "aaaeeeeiioouuuc")
-    return " ".join(str(text or "").lower().translate(table).replace("_", " ").split())
+    words = str(text or "").lower().translate(table).replace("_", " ").replace("n°", " ").replace("nº", " ").split()
+    return " ".join(w for w in words if w not in {"no", "numero", "num"})
 
 
 def _load_models(directory: Path, data: dict[str, Any]) -> list[dict[str, Any]]:
@@ -284,7 +290,29 @@ def _side(item: dict[str, Any], own: str, names: dict[str, str]) -> str:
     other = [names.get(s, "?") for s in item.get("sides") or [] if s and s != own]
     if other:
         return f"vers {other[0]}"
-    return f"extérieur, façade {item['facade']}" if item.get("exterior") and item.get("facade") else "côté non déterminé"
+    if item.get("exterior") and item.get("facade"):
+        return f"extérieur, façade {item['facade']}"
+    if item.get("unmodelled_side"):
+        return "vers un local non modélisé (circulation, escalier)"
+    return "côté non déterminé"
+
+
+def _what(item: dict[str, Any]) -> str:
+    """What an opening is, as deduced from geometry when the reading gives it; the IFC family otherwise."""
+    return item.get("nature") or item.get("kind") or "mur"
+
+
+def _to_check(item: dict[str, Any]) -> list[str]:
+    return [c for c in item.get("clues") or [] if "contredit" in c or "dit intérieur" in c]
+
+
+def _quality(reading: dict[str, Any]) -> dict[str, Any] | None:
+    q = reading.get("quality")
+    if not isinstance(q, dict):
+        return None
+    return {"niveau": q.get("niveau"), "réexport_conseillé": q.get("réexport_conseillé"),
+            "conseils_export": list(q.get("conseils_export") or [])[:5],
+            "déclaré_constaté": list(reading.get("declared_vs_observed") or [])[:3]}
 
 
 FACADE_NAMES = {"nord", "est", "sud", "ouest"}
@@ -292,9 +320,17 @@ FACADE_NAMES = {"nord", "est", "sud", "ouest"}
 ELEMENT_WORDS = {
     "cloison": ("mur", False), "cloisons": ("mur", False), "mur": ("mur", None), "murs": ("mur", None),
     "fenetre": ("fenêtre", None), "fenetres": ("fenêtre", None), "porte": ("porte", None), "portes": ("porte", None),
+    "baie": ("baie", None), "baies": ("baie", None),
+}
+# A word of the user names every deduced nature it covers: a "porte" may be modelled in a window family.
+KIND_NATURES = {
+    "fenêtre": {"fenêtre", "fenêtre toute hauteur", "porte-fenêtre", "châssis intérieur"},
+    "porte": {"porte", "porte extérieure", "porte intérieure", "porte-fenêtre"},
+    "baie": {"baie libre", "porte-fenêtre"},
+    "mur": {"mur"},
 }
 LABELS = {("mur", False): "la cloison", ("mur", True): "le mur extérieur", ("mur", None): "le mur",
-          ("fenêtre", None): "la fenêtre", ("porte", None): "la porte"}
+          ("fenêtre", None): "la fenêtre", ("porte", None): "la porte", ("baie", None): "la baie"}
 
 
 def _designation(reading: dict[str, Any], words: list[str], names: dict[str, str],
@@ -304,6 +340,7 @@ def _designation(reading: dict[str, Any], words: list[str], names: dict[str, str
     if kind_word is None:
         return None
     kind, exterior = ELEMENT_WORDS[kind_word]
+    plural = kind_word.endswith("s")  # "fenêtres de la chambre 1": all of them, not "which one?"
     rest = [w for w in words if w != kind_word]
     if "exterieur" in rest or "exterieurs" in rest:
         exterior, rest = True, [w for w in rest if w not in {"exterieur", "exterieurs"}]
@@ -329,7 +366,7 @@ def _designation(reading: dict[str, Any], words: list[str], names: dict[str, str
             room_words.append(word)
         i += 1
     room = " ".join(room_words)
-    found = [e for e in elements if e["_what"] == kind
+    found = [e for e in elements if (e["_what"] in KIND_NATURES.get(kind, {kind}) or e["_what"] == kind)
              and (exterior is None or bool(e.get("exterior")) == exterior)
              and all(_on_grid(e.get("grid"), tag) for tag in tags)
              and (facade_dir is None or e.get("facade") == facade_dir)
@@ -341,6 +378,8 @@ def _designation(reading: dict[str, Any], words: list[str], names: dict[str, str
     rows = [row(e) for e in found]
     if len(rows) == 1:
         return {"found": True, "kind": "élément", **rows[0]}
+    if plural:
+        return {"found": True, "kind": "sélection", "critère": " ".join(words), "nombre": len(rows), "éléments": rows[:MAX_LISTED]}
 
     def describe(item: dict[str, Any], detailed: bool = False) -> str:
         where = (item.get("files") or "position non déterminée").replace(" ; ", ", ")
@@ -374,7 +413,7 @@ def _on_grid(position: Any, tag: str) -> bool:
 def _selection(reading: dict[str, Any], wanted: str, states: dict[str, str]) -> dict[str, Any] | None:
     """Elements on one grid line, on one façade, or spaces on one level: the reverse questions."""
     names = {s["id"]: s["name"] for s in reading.get("spaces") or []}
-    elements = [{**o, "_what": o["kind"]} for o in reading.get("openings") or []] + \
+    elements = [{**o, "_what": _what(o)} for o in reading.get("openings") or []] + \
                [{**w, "_what": "mur"} for w in reading.get("walls") or []]
 
     def row(item: dict[str, Any]) -> dict[str, Any]:
@@ -453,9 +492,11 @@ def _focus(directory: Path, data: dict[str, Any], focus: str) -> dict[str, Any]:
         if partial:
             space = partial[0]
             sid = space["id"]
-            openings = [{"élément": o["kind"], "largeur_m": o.get("width_m"), "hauteur_m": o.get("height_m"),
+            openings = [{"élément": _what(o), "largeur_m": o.get("width_m"), "hauteur_m": o.get("height_m"),
+                         **({"allège_m": o["sill_m"]} if o.get("sill_m") is not None else {}),
                          "donne": _side(o, sid, names), **({"files": o["grid"]} if o.get("grid") else {}),
-                         **({"type": o["type"]} if o.get("type") else {}), "id": o["id"]}
+                         **({"type_déclaré": o["type"]} if o.get("type") else {}),
+                         **({"à_vérifier": _to_check(o)} if _to_check(o) else {}), "id": o["id"]}
                         for o in reading.get("openings") or [] if sid in (o.get("sides") or [])]
             walls = [{"mur": _side(w, sid, names), "épaisseur_m": w.get("thickness_m"), "longueur_m": w.get("length_m"),
                       **({"composition": w["composition"]} if w.get("composition") else {}),
@@ -464,12 +505,18 @@ def _focus(directory: Path, data: dict[str, Any], focus: str) -> dict[str, Any]:
                      for w in reading.get("walls") or [] if sid in (w.get("sides") or [])]
             linked = sorted({names.get(x, "?") for n in reading.get("neighbours") or [] if sid in n["spaces"]
                              for x in n["spaces"] if x != sid and n["via"] == "porte"})
+            free = sorted({names.get(x, "?") for n in reading.get("neighbours") or [] if sid in n["spaces"]
+                           for x in n["spaces"] if x != sid and n["via"] == "baie libre"})
+            open_onto = sorted({names.get(x, "?") for n in reading.get("neighbours") or [] if sid in n["spaces"]
+                                for x in n["spaces"] if x != sid and n["via"] == "ouvert"})
             touching = sorted({names.get(x, "?") for n in reading.get("neighbours") or [] if sid in n["spaces"]
                                for x in n["spaces"] if x != sid and n["via"] == "mur"})
             return {"found": True, "kind": "local", "name": space["name"], "level": space.get("level"),
                     "surface_m2": space.get("area_m2"), "état": states.get(sid, UNSTATED),
-                    "relié_par_porte_à": linked, "mur_commun_avec": touching,
-                    "ouvertures": openings, "murs": walls, "source": source, "limites": notes}
+                    "relié_par_porte_à": linked, **({"relié_par_baie_libre_à": free} if free else {}),
+                    **({"ouvert_sur": open_onto} if open_onto else {}), "mur_commun_avec": touching,
+                    "ouvertures": openings, "murs": walls, "source": source, "limites": notes,
+                    **({"qualité_maquette": _quality(reading)["niveau"]} if _quality(reading) else {})}
         if element:
             return {"found": True, "kind": "élément", "élément": element.get("kind", "mur"),
                     **{k: v for k, v in element.items() if k not in {"sides", "kind"}},
@@ -511,6 +558,10 @@ def _compact(full: dict[str, Any], directory: Path, data: dict[str, Any]) -> dic
                 by_level.setdefault(space.get("level") or "?", []).append(f"{space['name']} {space.get('area_m2')} m²")
             compact["model_spaces"] = {"source": models[0]["source"].get("piece"), "index": models[0]["source"].get("index"),
                                        "levels": by_level}
+    models_read = sorted(_load_models(directory, data), key=lambda r: -len(r.get("spaces") or []))
+    if models_read and _quality(models_read[0]):
+        compact["model_quality"] = {"maquette": models_read[0]["source"].get("piece"),
+                                    "index": models_read[0]["source"].get("index"), **_quality(models_read[0])}
     compact["status"] = full.get("status")
     compact["reading_rules"] = full.get("reading_rules")
     compact["detail"] = DETAIL_HINT
@@ -527,6 +578,9 @@ def project_overview(code: str, directory: Path | None = None, focus: str = "") 
         return {**result, "error": "code_required", "available_codes": _available_codes(directory)}
     if not _CODE.fullmatch(code):
         return {**result, "error": "invalid_code"}
+    if not (directory / f"{code}.json").exists():  # "demo" names DEMO: match the code whatever its case
+        code = next((c for c in _available_codes(directory) if c.lower() == code.lower()), code)
+        result["code"] = code
     try:
         with (directory / f"{code}.json").open("rb") as file:
             raw = file.read(MAX_BYTES + 1)

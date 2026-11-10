@@ -110,6 +110,20 @@
   and reading rules. Indices and numbers come from the file so a local model
   quotes them instead of computing or recalling them. No database access; never
   evidence or a decision.
+- Model reading made rigorous on imperfect models
+  (`docs/domain-packs/architecture/IFC_EXPORT_FOR_MODEL_READING.md`): the
+  nature of an opening is deduced from geometry (exterior side outside the
+  level outline, sill, height, width) with the IFC class and declared type as
+  clues, so exterior doors modelled in window families and door families in
+  load-bearing walls are read right; a missing space inside the outline is an
+  unmodelled room, not the outside; free openings and spaces open onto each
+  other are read; sills are measured from the adjacent floor; standard
+  properties are read where reliable, and declared against observed is
+  summarised once. Each reading carries a quality level with re-export advice;
+  `get_project` shows it, names openings by their nature (a `porte` may be a
+  French window in a window family), and tells Hermes to answer with what is
+  read and propose a re-export when the model falls short. Agency habits may be
+  set in a local file (`MVP_MODEL_CONVENTIONS`).
 - An affaire is published before its Anatomy is installed: `export-anatomy`
   writes its pieces and model reading with an empty Anatomy marked
   `not_installed`, and `export_all` covers every Project with a code (a code
@@ -128,6 +142,9 @@
   (questions, synthesis, models, rooms); the full lists come with `focus`
   (`pièces`, optionally filtered, `devis`, `locaux`), and a focus answer
   carries only a short header. A real answer of 38 KB had to be paged by Hermes.
+  It also understands what Hermes was seen typing: a lower-case affaire code,
+  `n°` before a room number, and a plural element word (`fenêtres`), which
+  lists every matching element instead of asking which one.
 - Property profile `architecture@1`
   (`registries/architecture_property_profile.registry.json`): the vocabulary of
   attribute keys, so an object gains properties as the project advances
