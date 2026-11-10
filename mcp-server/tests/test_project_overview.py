@@ -124,6 +124,10 @@ class TestProjectOverview(unittest.TestCase):
         (self.directory / "BARE.json").write_text(json.dumps({**data, "project": {**data["project"], "code": "BARE"}}), encoding="utf-8")
         self.assertNotIn("pieces", project_overview.project_overview("BARE", self.directory))
 
+    def test_a_long_list_of_unindexed_pieces_is_shortened_in_the_synthesis(self):
+        lines = project_overview._synthesis([{"piece": f"PIECE {n:02d}"} for n in range(25)], [], [])
+        self.assertEqual(lines[0], "Sans indice lisible (25) : " + ", ".join(f"PIECE {n:02d}" for n in range(10)) + " et 15 autres.")
+
     def test_an_affaire_without_an_installed_anatomy_still_gives_its_pieces(self):
         data = _projection()
         data["anatomy"] = {"status": "not_installed", "owner_revision": None, "summary": {}, "structure": {"objects": []},
@@ -223,6 +227,55 @@ class TestFocus(unittest.TestCase):
         self.assertEqual(result["models"], [{"piece": "MAQUETTE", "index": "E", "status": "read"}])
         self.assertEqual((result["focus"]["kind"], result["focus"]["facade"]), ("élément", "sud"))
         self.assertEqual(result["focus"]["côtés"], ["Cuisine", "extérieur"])
+
+    def test_reverse_questions_select_by_grid_line_facade_or_level(self):
+        reading = _model_reading()
+        reading["grid_lines"] = ["6", "55"]
+        reading["levels"] = [{"name": "RDC", "elevation": 0.0}, {"name": "R01", "elevation": 2.8}]
+        for item in reading["openings"] + reading["walls"]:
+            item.setdefault("level", "RDC")
+        (self.directory / "DEMO.maquette-maquette.json").write_text(json.dumps(reading), encoding="utf-8")
+        on_line = project_overview.project_overview("DEMO", self.directory, focus="file 6")["focus"]
+        self.assertEqual((on_line["kind"], on_line["nombre"]), ("sélection", 2))
+        self.assertEqual({row["élément"] for row in on_line["éléments"]}, {"porte", "fenêtre"})
+        south = project_overview.project_overview("DEMO", self.directory, focus="façade sud")["focus"]
+        self.assertEqual([row["locaux"] for row in south["éléments"]], [["Cuisine"]])
+        level = project_overview.project_overview("DEMO", self.directory, focus="R01")["focus"]
+        self.assertEqual([s["local"] for s in level["locaux"]], ["chambre", "chambre"])
+        missing = project_overview.project_overview("DEMO", self.directory, focus="file Z")["focus"]
+        self.assertFalse(missing["found"])
+        self.assertEqual(missing["candidates"], ["6", "55"])
+
+    def test_an_ambiguous_designation_returns_the_question_to_ask(self):
+        reading = _model_reading()
+        reading["grid_lines"] = ["B", "C", "4", "5"]
+        reading["walls"] = [
+            {"id": "W1", "sides": ["G-CUI", "G-SAL"], "exterior": False, "grid": "sur la file 5 ; entre B et C", "level": "RDC"},
+            {"id": "W2", "sides": ["G-SAL", "G-CUI"], "exterior": False, "grid": "sur la file C ; entre 4 et 5", "level": "RDC"},
+            {"id": "W3", "sides": ["G-CUI", None], "exterior": True, "facade": "sud", "grid": "sur la file 5 ; entre C et D", "level": "RDC"},
+        ]
+        (self.directory / "DEMO.maquette-maquette.json").write_text(json.dumps(reading), encoding="utf-8")
+        asked = project_overview.project_overview("DEMO", self.directory, focus="cloison file 5")["focus"]
+        self.assertEqual(asked["plusieurs"], 2)
+        self.assertEqual(asked["question"], "Parlez-vous de la cloison sur la file 5, entre B et C (Cuisine / Salon), "
+                                            "ou de la cloison sur la file C, entre 4 et 5 (Salon / Cuisine) ?")
+        # Same place and rooms: the question tells them apart by size.
+        reading["walls"][1].update(grid="sur la file 5 ; entre B et C", sides=["G-CUI", "G-SAL"], length_m=2.35, thickness_m=0.1)
+        reading["walls"][0].update(length_m=2.8)
+        (self.directory / "DEMO.maquette-maquette.json").write_text(json.dumps(reading), encoding="utf-8")
+        twins = project_overview.project_overview("DEMO", self.directory, focus="cloison file 5 entre b et c")["focus"]
+        self.assertIn("(Cuisine / Salon, 2,80 m)", twins["question"])
+        self.assertIn("(Cuisine / Salon, 2,35 m, ép. 0,10 m)", twins["question"])
+        reading["walls"][1].update(grid="sur la file C ; entre 4 et 5", sides=["G-SAL", "G-CUI"])
+        (self.directory / "DEMO.maquette-maquette.json").write_text(json.dumps(reading), encoding="utf-8")
+        # "file C" alone is ambiguous too (on C, or between B and C); naming 4 and 5 settles it.
+        self.assertEqual(project_overview.project_overview("DEMO", self.directory, focus="cloison file C")["focus"]["plusieurs"], 2)
+        one = project_overview.project_overview("DEMO", self.directory, focus="cloison file C entre 4 et 5")["focus"]
+        self.assertEqual((one["kind"], one["id"]), ("élément", "W2"))
+        outside = project_overview.project_overview("DEMO", self.directory, focus="mur extérieur façade sud")["focus"]
+        self.assertEqual(outside["id"], "W3")
+        none = project_overview.project_overview("DEMO", self.directory, focus="porte file B")["focus"]
+        self.assertFalse(none["found"])
 
     def test_without_a_model_reading_the_focus_says_so(self):
         (self.directory / "DEMO.maquette-maquette.json").unlink()
