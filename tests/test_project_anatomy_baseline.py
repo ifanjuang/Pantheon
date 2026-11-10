@@ -22,6 +22,7 @@ ACTIVE_SCHEMAS = {
     "observation_bundle.schema.yaml",
     "phase_profile.schema.yaml",
     "program.schema.yaml",
+    "property_profile.schema.yaml",
     "relation_claim.schema.yaml",
     "relation_profile.schema.yaml",
     "requirement.schema.yaml",

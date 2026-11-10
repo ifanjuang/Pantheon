@@ -34,6 +34,7 @@ def test_registry_foundation_holds_only_reviewed_governance_registries() -> None
     assert business_registries == [
         "registries/architecture_phase_orientation.registry.json",
         "registries/architecture_phase_profile.registry.json",
+        "registries/architecture_property_profile.registry.json",
         "registries/architecture_relation_profile.registry.json",
         "registries/architecture_source_kind_profile.registry.json",
     ]

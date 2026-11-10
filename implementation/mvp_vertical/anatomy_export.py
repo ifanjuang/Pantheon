@@ -22,6 +22,7 @@ import sqlite3
 from typing import Any
 
 from . import project_pieces
+from . import apu_vocabulary
 from .project_anatomy_projection import get_project_anatomy_projection
 
 SCHEMA = "pantheon.anatomy.v1"
@@ -43,6 +44,23 @@ def export_dir() -> Path | None:
     return path
 
 
+def property_labels(anatomy: dict[str, Any]) -> dict[str, Any]:
+    """Label, unit and facet of each property the Anatomy uses, from the property profile.
+
+    Screens and Hermes show French labels and units without reading the registry.
+    Undeclared keys are listed, never refused. Without a readable profile the
+    section says so and the Anatomy is published anyway.
+    """
+    keys = sorted({claim.get("attribute_key") for claim in anatomy.get("attribute_claims") or []
+                   if isinstance(claim, dict) and isinstance(claim.get("attribute_key"), str)})
+    try:
+        labels = {key: {field: entry[field] for field in ("label", "unit", "facet") if entry.get(field)}
+                  for key in keys if (entry := apu_vocabulary.describe_property(key))}
+    except apu_vocabulary.VocabularyUnavailable:
+        return {"error": "property_profile_unavailable", "keys": keys}
+    return {"labels": labels, "undeclared": [key for key in keys if key not in labels]}
+
+
 def export_project_anatomy(conn, project_id: str, *, directory: Path | None = None) -> Path | None:
     """Write the Project's projection atomically; None when no export directory is configured."""
     directory = directory or export_dir()
@@ -57,11 +75,13 @@ def export_project_anatomy(conn, project_id: str, *, directory: Path | None = No
     code = str(row[1] or "").strip()
     if not _CODE.fullmatch(code):
         raise AnatomyExportError(f"Project code cannot name an export file: {code!r}")
+    anatomy = get_project_anatomy_projection(conn, project_id=project_id)
     document: dict[str, Any] = {
         "schema": SCHEMA,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "project": {"project_id": row[0], "code": code, "display_name": row[2]},
-        "anatomy": get_project_anatomy_projection(conn, project_id=project_id),
+        "anatomy": anatomy,
+        "properties": property_labels(anatomy),
     }
     # The current state of the affaire's documents travels with its Anatomy, so a
     # screen or Hermes reads one file. A reading failure never blocks the Anatomy.

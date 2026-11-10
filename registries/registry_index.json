@@ -40,6 +40,18 @@
       ]
     },
     {
+      "id": "architecture_property_profile",
+      "path": "registries/architecture_property_profile.registry.json",
+      "schema": "schemas/architecture-project-understanding/property_profile.schema.yaml",
+      "registry_kind": "vocabulary",
+      "status": "candidate",
+      "profile": "architecture@1",
+      "consumers": [
+        "implementation/mvp_vertical/apu_vocabulary.py",
+        "implementation/mvp_vertical/anatomy_export.py"
+      ]
+    },
+    {
       "id": "architecture_phase_profile",
       "path": "registries/architecture_phase_profile.registry.json",
       "schema": "schemas/architecture-project-understanding/phase_profile.schema.yaml",
