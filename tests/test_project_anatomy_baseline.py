@@ -14,6 +14,7 @@ EXAMPLES = ROOT / "schemas" / "examples" / "architecture-project-understanding"
 ACTIVE_SCHEMAS = {
     "adapter_result.schema.yaml",
     "attribute_claim.schema.yaml",
+    "category_profile.schema.yaml",
     "calibration.schema.yaml",
     "classification_scheme.schema.yaml",
     "contradiction.schema.yaml",

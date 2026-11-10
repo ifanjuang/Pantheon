@@ -217,6 +217,14 @@ undeclared key != refused key
 property label != reader that extracts it
 ```
 
+`architecture_category_profile.registry.json` (vocabulary, candidate) says what a model element is for the model reading, whatever the family a modeller picked: each category names its French label, the words people use for it (synonyms) and the clues that recognise it (IFC classes, predefined types, type-name patterns, exterior side, sill, height, width, thickness, orientation). The first matching category by priority wins; an element matching none stays "element (IFC class)"; a category marked `ignore` (furniture, generic objects) is counted, not read. The door and window rules are entries like any other, so adding a category needs no code. Consumers: `implementation/mvp_vertical/apu_vocabulary.py` (loader with the agency file `PANTHEON_CATEGORY_OVERLAY`) and `model_reading.py`, which classifies every element and publishes the words of the categories present, so `get_project` designations ("poteaux", "garde corps R01") use them. `tests/test_category_vocabulary_conformance.py` keeps it valid.
+
+```text
+category recognised != fact admitted
+synonym != reader of the drawings
+ignored element != deleted element
+```
+
 ## Admission rule
 
 Do not create a Registry merely because data can be serialized.
@@ -234,7 +242,7 @@ A Registry is justified only when:
 
 A vocabulary registry of this repository may allow the agency to add values
 without changing the repository. Today `architecture_source_kind_profile`,
-`architecture_phase_profile` and `architecture_property_profile` do, each through its own local file kept
+`architecture_phase_profile`, `architecture_property_profile` and `architecture_category_profile` do, each through its own local file kept
 **outside** the repository (real professional values and environment-specific
 configuration stay out of the public repo).
 

@@ -26,6 +26,25 @@ Every side, façade and neighbour is a geometric deduction and is said to be one
 A façade named from a model north left at its default is flagged as to be
 confirmed before any comparison with elevations named by orientation.
 
+## Every element, one engine
+
+Besides spaces, walls and openings, the reading describes every building element
+the same way (columns, beams, members, footings, slabs, roofs, stairs, railings,
+coverings, plates): IFC class, predefined type, declared type, level, measured
+length, width and height, orientation, the space holding it and its grid
+position. What an element is comes from the category profile
+(`registries/architecture_category_profile.registry.json`): IFC classes,
+predefined types, type-name patterns and geometric conditions, first match by
+priority; the door and window rules are entries like any other. The words of
+the categories present are published with the reading, so designations such as
+"poteaux", "garde corps R01" or "poutres séjour" work for any category.
+
+Sizes of doors and windows are measured from geometry (along the host wall and
+in height): families often carry their real sizes in custom parameters and leave
+the IFC ones at a default. Declared sizes, from the IFC attributes or from family
+parameters by name, stay visible, and a difference over 5 cm is pointed out.
+An agency names its own size parameters in the conventions file.
+
 ## Model quality and re-export
 
 Each reading carries a quality level (`bonne`, `à améliorer`, `insuffisante`),

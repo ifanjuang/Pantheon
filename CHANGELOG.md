@@ -110,6 +110,20 @@
   and reading rules. Indices and numbers come from the file so a local model
   quotes them instead of computing or recalling them. No database access; never
   evidence or a decision.
+- Category profile `architecture@1`
+  (`registries/architecture_category_profile.registry.json`) and one reading
+  engine for every element: what a model element is (opening natures, walls,
+  columns, beams, members, footings, slabs, roofs, stairs, railings,
+  coverings, plates; furniture and generic objects counted, not read) comes
+  from declarative rules (IFC classes, predefined types, type-name patterns,
+  exterior side, sill, height, width, thickness, orientation), first match by
+  priority, with synonyms; agencies may add categories (add-only). The model
+  reading describes every element the same way with a spatial index, measures
+  opening sizes from geometry and points out declared sizes (IFC or custom
+  family parameters) that differ. `get_project` designations use the category
+  words of the reading ("poteaux", "garde corps R01"), room sheets list what a
+  room contains, the summary counts elements by category per model, and long
+  selections give counts by level and room with an extract.
 - Model reading made rigorous on imperfect models
   (`docs/domain-packs/architecture/IFC_EXPORT_FOR_MODEL_READING.md`): the
   nature of an opening is deduced from geometry (exterior side outside the

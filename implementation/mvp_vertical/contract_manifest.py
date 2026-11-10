@@ -44,5 +44,6 @@ REGISTRY_PATHS: dict[str, str] = {
     "apu_source_kind_profile": "registries/architecture_source_kind_profile.registry.json",
     "apu_phase_profile": "registries/architecture_phase_profile.registry.json",
     "apu_property_profile": "registries/architecture_property_profile.registry.json",
+    "model_category_profile": "registries/architecture_category_profile.registry.json",
     "phase_orientation": "registries/architecture_phase_orientation.registry.json",
 }

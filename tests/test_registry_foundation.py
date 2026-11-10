@@ -32,6 +32,7 @@ def test_registry_foundation_holds_only_reviewed_governance_registries() -> None
         for path in (ROOT / "registries").rglob("*.registry.json")
     )
     assert business_registries == [
+        "registries/architecture_category_profile.registry.json",
         "registries/architecture_phase_orientation.registry.json",
         "registries/architecture_phase_profile.registry.json",
         "registries/architecture_property_profile.registry.json",
