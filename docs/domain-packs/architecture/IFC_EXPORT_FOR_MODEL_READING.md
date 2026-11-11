@@ -101,6 +101,39 @@ superseded through a reviewed batch. A confirmed overlay is attached to the
 pair of model indices and falls at the next index. While no file of an affaire
 declares anything, every current model piece is read as before.
 
+### Workspace contract
+
+What the Workspace Cockpit writes, in its own database, and the agency reads
+read-only:
+
+- on a file card, `anatomy_source` inside the card corrections
+  (`workspace_document_metadata_overrides.overrides_json`), an object:
+
+  ```json
+  {"active": true, "mode": "complément | remplacement", "replaces": "<path of the replaced file>",
+   "role": "référence | complément | contrôle", "discipline": "…", "usage": "conception | permis | DCE | exé | DOE",
+   "perimeter": "…", "declared_alignment": "coordonnées partagées | origine convenue | aucun",
+   "note": "…", "consolidate_now": true, "set_by": "…", "set_at": "<UTC>",
+   "alignment_confirmed": {"by": "…", "at": "<UTC>", "reference_fingerprint": "<from the published overlay>"}}
+  ```
+
+  Unknown values fall back to defaults (complement); texts are cut at 300
+  characters. The correction endpoint must accept this one object field besides
+  its strings and lists. Model files (IFC, and DWG later) must appear as file
+  cards for the declaration to be possible;
+- on a project card, the "Consolider les sources" button adds a row to
+  `workspace_anatomy_consolidation_requests (workspace, project_code,
+  requested_at, requested_by)`.
+
+What the agency publishes and the Workspace displays: `anatomy_sources` in
+`<CODE>.json` (one line per file: state, reasons, reading, overlay, replacement,
+last consolidation). A timer runs `agency consolidate-pending`: a project card
+request consolidates every declared source of the affaire; a changed card
+consolidates the sources that ask for it now; each request is handled once,
+remembered on the agency side, never written back to the Workspace. The card
+compares its own request time with the published last consolidation to show
+"demandée" or "faite".
+
 ## File sheets and the project core
 
 The Anatomy has two layers. Each activated file has a **file sheet**: what this

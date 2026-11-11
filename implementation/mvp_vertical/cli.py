@@ -200,6 +200,11 @@ def main() -> int:
     )
     p_consolidate.add_argument("--code", required=True, help="affaire code")
 
+    sub.add_parser(
+        "consolidate-pending",
+        help="consolidate the affaires whose Workspace asked for it since the last pass (run by a timer)",
+    )
+
     p_pieces = sub.add_parser(
         "pieces",
         help="current state of an affaire's documents: latest index of each piece, and the questions raised",
@@ -591,6 +596,15 @@ def main() -> int:
                 "execution_result": execution_id, "result": result_id, "batch_digest": preview["batch_digest"],
                 "items": [apu_batch.preview_row(item) for item in preview["items"]],
             }, sort_keys=False, allow_unicode=True))
+            return 0
+        finally:
+            conn.close()
+
+    if args.command == "consolidate-pending":
+        conn = store.connect()
+        try:
+            for code in anatomy_export.consolidate_pending(conn):
+                print(code)
             return 0
         finally:
             conn.close()
