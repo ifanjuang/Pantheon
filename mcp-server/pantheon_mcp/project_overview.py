@@ -328,7 +328,8 @@ def _quality(reading: dict[str, Any]) -> dict[str, Any] | None:
     q = reading.get("quality")
     if not isinstance(q, dict):
         return None
-    return {"niveau": q.get("niveau"), "réexport_conseillé": q.get("réexport_conseillé"),
+    return {"niveau": q.get("niveau"), **({"discipline": q["discipline"]} if q.get("discipline") else {}),
+            "réexport_conseillé": q.get("réexport_conseillé"),
             "conseils_export": list(q.get("conseils_export") or [])[:5],
             "déclaré_constaté": list(reading.get("declared_vs_observed") or [])[:3]}
 
@@ -468,7 +469,8 @@ def _selection(reading: dict[str, Any], wanted: str, states: dict[str, str]) -> 
                 **({"épaisseur_m": item["thickness_m"]} if item.get("thickness_m") else {}),
                 **({"longueur_m": item["length_m"]} if item.get("length_m") else {}),
                 "locaux": sides, **({"façade": item["facade"]} if item.get("facade") else {}),
-                **({"files": item["grid"]} if item.get("grid") else {}), "niveau": item.get("level"), "id": item["id"]}
+                **({"files": item["grid"]} if item.get("grid") else {}), "niveau": item.get("level"),
+                **({"à_vérifier": _to_check(item)} if _to_check(item) else {}), "id": item["id"]}
 
     words = wanted.split()
     designated = _designation(reading, words, names, elements, row)
@@ -621,6 +623,12 @@ def _compact(full: dict[str, Any], directory: Path, data: dict[str, Any]) -> dic
     if models_read and _quality(models_read[0]):
         compact["model_quality"] = {"maquette": models_read[0]["source"].get("piece"),
                                     "index": models_read[0]["source"].get("index"), **_quality(models_read[0])}
+        others = [{"maquette": r["source"].get("piece"), "index": r["source"].get("index"),
+                   "discipline": (r.get("quality") or {}).get("discipline"), "niveau": (r.get("quality") or {}).get("niveau"),
+                   "conseils_export": list((r.get("quality") or {}).get("conseils_export") or [])[:2]}
+                  for r in models_read[1:] if isinstance(r.get("quality"), dict)]
+        if others:
+            compact["model_quality"]["autres_maquettes"] = others
     compact["status"] = full.get("status")
     compact["reading_rules"] = full.get("reading_rules")
     compact["detail"] = DETAIL_HINT

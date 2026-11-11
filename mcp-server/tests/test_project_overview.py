@@ -365,6 +365,26 @@ class TestFocus(unittest.TestCase):
         asked = project_overview.project_overview("DEMO", self.directory, focus="poteau file C")["focus"]
         self.assertTrue(asked["question"].startswith("Plusieurs correspondent : poteau sur la file C"))
 
+    def test_a_designated_element_shows_its_size_gap_and_each_model_its_quality(self):
+        reading = _model_reading()
+        reading["openings"][1].update(nature="porte-fenêtre", clues=["dimension déclarée height (OverallHeight) = 2,80 m, mesurée 2,18 m"])
+        reading["quality"] = {"niveau": "à améliorer", "discipline": "architecture", "conseils_export": []}
+        reading["categories"] = {"porte-fenêtre": ["porte-fenetre", "pf"]}
+        (self.directory / "DEMO.maquette-maquette.json").write_text(json.dumps(reading), encoding="utf-8")
+        structure = {"schema": "pantheon.model_reading.v1", "source": {"piece": "STRUCTURE", "index": "H"}, "spaces": [],
+                     "openings": [], "walls": [], "elements": [], "neighbours": [],
+                     "quality": {"niveau": "à améliorer", "discipline": "structure",
+                                 "conseils_export": ["Exporter en coordonnées partagées (...)"]}}
+        (self.directory / "DEMO.maquette-structure.json").write_text(json.dumps(structure), encoding="utf-8")
+        data = json.loads((self.directory / "DEMO.json").read_text(encoding="utf-8"))
+        data["models"].append({"piece": "STRUCTURE", "index": "H", "file": "DEMO.maquette-structure.json", "status": "read"})
+        (self.directory / "DEMO.json").write_text(json.dumps(data), encoding="utf-8")
+        found = project_overview.project_overview("DEMO", self.directory, focus="porte-fenêtre cuisine")["focus"]
+        self.assertIn("mesurée 2,18 m", found["à_vérifier"][0])
+        quality = project_overview.project_overview("DEMO", self.directory)["model_quality"]
+        self.assertEqual(quality["autres_maquettes"][0]["discipline"], "structure")
+        self.assertIn("coordonnées partagées", quality["autres_maquettes"][0]["conseils_export"][0])
+
     def test_without_a_model_reading_the_focus_says_so(self):
         (self.directory / "DEMO.maquette-maquette.json").unlink()
         self.assertFalse(project_overview.project_overview("DEMO", self.directory, focus="cuisine")["focus"]["found"])
