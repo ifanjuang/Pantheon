@@ -236,6 +236,29 @@ def read_workspace(db_path: Path, project_code: str, *, workspace: str = WORKSPA
     return files
 
 
+def read_declared_sources(db_path: Path, project_code: str, *, workspace: str = WORKSPACE_NAME) -> dict[str, dict[str, Any]]:
+    """Files of the affaire declared as anatomy sources on their card (any file type, IFC included)."""
+    from . import anatomy_sources
+
+    prefix = project_code + "/"
+    connection = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    try:
+        if not connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' "
+                                  "AND name='workspace_document_metadata_overrides'").fetchone():
+            return {}
+        rows = connection.execute(
+            "SELECT source_path, overrides_json FROM workspace_document_metadata_overrides "
+            "WHERE workspace=? AND substr(source_path,1,?)=?", (workspace, len(prefix), prefix)).fetchall()
+    finally:
+        connection.close()
+    declared = {}
+    for path, overrides in rows:
+        entry = anatomy_sources.normalize(_loads(overrides).get("anatomy_source"))
+        if entry is not None:
+            declared[path[len(prefix):]] = entry
+    return declared
+
+
 def scan_models(affaires_root: Path, project_code: str) -> list[dict[str, Any]]:
     """IFC models of the affaire outside ARCHIVES folders (the Workspace lists neither)."""
     base = affaires_root / project_code
@@ -393,9 +416,13 @@ def read_project_pieces(project_code: str, *, workspace_db: Path | None = None,
     if workspace_db is None and affaires_root is None:
         return None
     files = read_workspace(workspace_db, project_code) if workspace_db and workspace_db.is_file() else []
+    declared = read_declared_sources(workspace_db, project_code) if workspace_db and workspace_db.is_file() else {}
     if affaires_root:
         files += scan_models(affaires_root, project_code)
-    return current_state(files, project_code)
+    state = current_state(files, project_code)
+    if declared:
+        state["declared_sources"] = declared
+    return state
 
 
 def _env_path(name: str) -> Path | None:

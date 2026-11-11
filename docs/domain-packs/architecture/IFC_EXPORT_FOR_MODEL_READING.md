@@ -70,6 +70,37 @@ stays "to be confirmed": a human confirms it once per pair of indices. Shared
 coordinates, or an agreed common origin such as the intersection of two grid
 lines at level 0.00, remain the reliable way.
 
+## Anatomy sources
+
+Which files the readings rest on is a human choice made on each file's card in
+the Workspace (`anatomy_source` in the card corrections): add the file as a
+complement, or replace another source (by default the previous index of the
+same piece), with its role (reference, complement, control), discipline, use,
+scope, the alignment known at export (shared coordinates, agreed origin, none),
+a note, and whether to consolidate now. The Workspace owns that declaration;
+the agency side only reads it.
+
+Consolidation (`agency consolidate --code X`, or an export when the card asks
+for it) reads the declared sources, overlays the engineers' models, and
+publishes each source's state in `<CODE>.json` (`anatomy_sources`) for the
+Cockpit and Hermes:
+
+| State | Meaning |
+|---|---|
+| en attente | declared, not consolidated yet (or file or declaration changed since): not read |
+| activée | consolidated without problem; a well-indexed drawing is "activée (index and text, no geometric alignment)" |
+| avertissement | consolidated with minor inconsistencies: model quality to improve, overlay to confirm, size gaps, index read from the file name or not read |
+| erreur | cannot be brought together: unreadable model, uncertain overlay without shared coordinates, insufficient quality, missing file |
+| remplacée | replaced by a source whose consolidation succeeded |
+| inactive | switched off on its card: not read |
+
+A replacement takes effect only when the new source is `activée` or in
+`avertissement`; otherwise the old source stays active and the new one says why.
+In the validated Anatomy nothing is erased: values from a replaced source are
+superseded through a reviewed batch. A confirmed overlay is attached to the
+pair of model indices and falls at the next index. While no file of an affaire
+declares anything, every current model piece is read as before.
+
 ## Model quality and re-export
 
 Each reading carries a quality level (`bonne`, `à améliorer`, `insuffisante`),
@@ -106,6 +137,7 @@ The checks above are the first, built-in step.
 
 ```text
 model reading != model copied into the Anatomy
+declared source != consolidated source
 declared property != observed fact
 quality advice != approval of the model
 ```

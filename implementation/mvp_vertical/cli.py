@@ -194,6 +194,12 @@ def main() -> int:
     )
     p_export.add_argument("--project", help="project_id; default: every Project with an APU owner")
 
+    p_consolidate = sub.add_parser(
+        "consolidate",
+        help="bring an affaire's declared anatomy sources in now (read, overlay, states) and republish it",
+    )
+    p_consolidate.add_argument("--code", required=True, help="affaire code")
+
     p_pieces = sub.add_parser(
         "pieces",
         help="current state of an affaire's documents: latest index of each piece, and the questions raised",
@@ -586,6 +592,29 @@ def main() -> int:
                 "items": [apu_batch.preview_row(item) for item in preview["items"]],
             }, sort_keys=False, allow_unicode=True))
             return 0
+        finally:
+            conn.close()
+
+    if args.command == "consolidate":
+        conn = store.connect()
+        try:
+            if anatomy_export.export_dir() is None:
+                print(f"{anatomy_export.EXPORT_DIR_ENV} is not set; nothing to publish", file=sys.stderr)
+                return 1
+            row = conn.execute("SELECT project_id FROM agency_projects WHERE lower(code) = lower(%s)", (args.code,)).fetchone()
+            if row is None:
+                print(f"unknown affaire code: {args.code}", file=sys.stderr)
+                return 1
+            import json
+            import yaml
+
+            path = anatomy_export.export_project_anatomy(conn, row[0], consolidate=True)
+            document = json.loads(path.read_text(encoding="utf-8"))
+            print(yaml.safe_dump(document.get("anatomy_sources") or {}, sort_keys=False, allow_unicode=True))
+            return 0
+        except anatomy_export.AnatomyExportError as exc:
+            print(f"consolidation refused: {exc}", file=sys.stderr)
+            return 1
         finally:
             conn.close()
 

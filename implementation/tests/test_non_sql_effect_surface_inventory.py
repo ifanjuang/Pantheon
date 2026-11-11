@@ -27,6 +27,10 @@ EFFECT_INVENTORY: dict[tuple[str, str], dict[str, str]] = {
         "effect": "filesystem_projection",
         "reviewed": "rewrites an engineer's model reading atomically with its estimated overlay on the architect's model and the rooms and grid lines its elements inherit; regenerable, never a source",
     },
+    ("anatomy_export.py", "read_declared_sources"): {
+        "effect": "filesystem_projection",
+        "reviewed": "reads the anatomy sources declared on Workspace cards (read-only), writes the model readings of the consolidated ones through model_reading.ensure and one agency-owned record of what was consolidated (file fingerprint and declaration) next to the projection, atomically; never writes the Workspace, never a source of the Anatomy",
+    },
     ("model_reading.py", "ensure"): {
         "effect": "filesystem_projection",
         "reviewed": "rewrites one model reading file atomically (partial then rename) in the caller's projection directory, only when the model file fingerprint changed; a reading, never a source",
