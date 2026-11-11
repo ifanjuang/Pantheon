@@ -380,6 +380,16 @@ def read(path: Path) -> dict[str, Any]:
     from shapely.strtree import STRtree
 
     tree = STRtree([s["poly"] for s in geo]) if geo else None
+    # Minimal geometry kept with the reading, so models can be overlaid without reading the IFC again.
+    geometry: dict[str, Any] = {"walls": {}, "points": {}, "spaces": {}, "floors": {}}
+    for space_item, shape_item in zip(spaces, geo):
+        outline = shape_item["poly"].simplify(0.05)
+        rings = list(getattr(outline, "geoms", [outline]))
+        if rings and hasattr(rings[0], "exterior"):
+            geometry["spaces"][space_item["id"]] = [[round(x, 2), round(y, 2)] for x, y in rings[0].exterior.coords]
+        if space_item["level"]:
+            floor = round(shape_item["z"][0], 3)
+            geometry["floors"][space_item["level"]] = min(geometry["floors"].get(space_item["level"], floor), floor)
 
     def space_at(x: float, y: float, z: float) -> str | None:
         from shapely.geometry import Point
@@ -525,7 +535,18 @@ def read(path: Path) -> dict[str, Any]:
             items = material.ForLayerSet.MaterialLayers
             thickness = round(sum(float(l.LayerThickness) for l in items) * scale, 3)
             layers = " + ".join(f"{l.Material.Name if l.Material else '?'} {float(l.LayerThickness) * scale * 100:.0f} cm" for l in items)
+        if not length:  # no exported axis: take the long side of the wall's footprint
+            try:
+                wall_verts, _ = mesh(wall)
+                along = np.dot(wall_verts[:, :2] - origin[:2], np.array(axis_dir))
+                origin = np.array([*(origin[:2] + np.array(axis_dir) * float(along.min())), float(wall_verts[:, 2].min())])
+                length = float(along.max() - along.min()) or None
+            except Exception:
+                pass
         mid = origin[:2] + np.array(axis_dir) * (length or 0) / 2
+        if length:
+            end = origin[:2] + np.array(axis_dir) * length
+            geometry["walls"][wall.GlobalId] = [round(float(v), 3) for v in (*origin[:2], *end, origin[2])]
         item = {"id": wall.GlobalId, "type": type_name(wall), "level": level(wall),
                 "length_m": round(length, 2) if length else None, "thickness_m": thickness, "composition": layers,
                 "junctions": junctions.get(wall.GlobalId, [])}
@@ -571,6 +592,7 @@ def read(path: Path) -> dict[str, Any]:
                         width=round(width, 3), height=round(height, 3), thickness=round(min(width, height), 3))
         rule = classify(features, rules)
         center = (verts.min(axis=0) + verts.max(axis=0)) / 2
+        geometry["points"][element.GlobalId] = [round(float(v), 3) for v in (center[0], center[1], verts[:, 2].min(), verts[:, 2].max())]
         item = {"id": element.GlobalId, "ifc_class": element.is_a(), "type": declared_type, "level": level(element),
                 "category": rule["id"] if rule else None, "label": rule["label"] if rule else f"élément ({element.is_a()})",
                 "length_m": round(length, 2), "width_m": round(width, 2), "height_m": round(height, 2),
@@ -578,6 +600,13 @@ def read(path: Path) -> dict[str, Any]:
                 "space": space_at(float(center[0]), float(center[1]), float(center[2])),
                 "grid": grid_position((float(center[0]), float(center[1])), axes)}
         elements.append(item)
+
+    for item in walls + elements:  # levels without spaces (structural models): the lowest element bottom
+        if item.get("level") and item["level"] not in {s["level"] for s in spaces}:
+            bottom = (geometry["walls"].get(item["id"]) or [None] * 5)[4] if item in walls else (geometry["points"].get(item["id"]) or [None] * 3)[2]
+            if bottom is not None:
+                geometry["floors"][item["level"]] = min(geometry["floors"].get(item["level"], bottom), bottom)
+    geometry["axes"] = {tag: [round(a[0], 3), round(a[1], 3), round(d[0], 5), round(d[1], 5)] for tag, (a, d) in axes.items()}
 
     linked = {frozenset(pair["spaces"]) for pair in neighbours(openings, walls)}
     pairs = neighbours(openings, walls) + open_neighbours(geo, linked)
@@ -643,6 +672,7 @@ def read(path: Path) -> dict[str, Any]:
         "declared_vs_observed": notes,
         "discipline": model_discipline,
         "quality": quality(checks, model_discipline),
+        "geometry": geometry,
         "limits": [
             "Côtés, façades et voisinages calculés par la géométrie : déductions, à confirmer.",
             "Façades nommées d'après le nord de la maquette"

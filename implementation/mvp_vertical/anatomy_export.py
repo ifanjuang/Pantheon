@@ -21,7 +21,7 @@ import re
 import sqlite3
 from typing import Any
 
-from . import apu_owner, apu_vocabulary, model_reading, project_pieces
+from . import apu_owner, apu_vocabulary, model_alignment, model_reading, project_pieces
 from .project_anatomy_projection import get_project_anatomy_projection
 
 SCHEMA = "pantheon.anatomy.v1"
@@ -128,7 +128,44 @@ def read_current_models(code: str, pieces: dict[str, Any], directory: Path) -> l
         slug = re.sub(r"[^a-z0-9]+", "-", project_pieces._fold(str(piece["piece"]))).strip("-")[:40] or "maquette"
         statuses.append(model_reading.ensure(root / code / path, directory / f"{code}.maquette-{slug}.json",
                                              piece=str(piece["piece"]), index=current.get("index")))
+    align_structural_models(directory, statuses)
     return statuses
+
+
+def align_structural_models(directory: Path, statuses: list[dict[str, Any]]) -> None:
+    """Overlay each engineer's model on the architect's, once per pair of model files (part of the preparation)."""
+    readings: dict[str, dict[str, Any]] = {}
+    for status in statuses:
+        try:
+            readings[status["file"]] = json.loads((directory / status["file"]).read_text(encoding="utf-8"))
+        except (KeyError, OSError, ValueError):
+            continue
+    architects = [(name, r) for name, r in readings.items() if r.get("discipline") == "architecture" and r.get("spaces")]
+    if not architects:
+        return
+    reference_name, reference = max(architects, key=lambda item: len(item[1].get("spaces") or []))
+    stamp = f"{reference.get('source', {}).get('fingerprint')}"
+    for status in statuses:
+        reading = readings.get(status.get("file"))
+        if reading is None or reading.get("discipline") != "structure" or "geometry" not in reading:
+            continue
+        previous = reading.get("alignment") or {}
+        if previous.get("reference_fingerprint") == stamp:
+            status["recalage"] = previous.get("verdict")
+            continue
+        result = model_alignment.align(reference.get("geometry") or {}, reading["geometry"])
+        result.update(reference=reference.get("source", {}).get("piece"), reference_index=reference.get("source", {}).get("index"),
+                      reference_fingerprint=stamp)
+        for element in reading.get("elements") or []:
+            element.pop("via_recalage", None)
+        if result.get("verdict") == "probable":
+            result["placed"] = model_alignment.place(reading, reference, result)
+        reading["alignment"] = result
+        target = directory / status["file"]
+        partial = target.with_name(f".{target.name}.partial")
+        partial.write_text(json.dumps(reading, ensure_ascii=False), encoding="utf-8")
+        partial.replace(target)
+        status["recalage"] = result.get("verdict")
 
 
 def export_all(conn, *, directory: Path | None = None) -> list[Path]:

@@ -110,6 +110,18 @@
   and reading rules. Indices and numbers come from the file so a local model
   quotes them instead of computing or recalling them. No database access; never
   evidence or a decision.
+- Overlay of engineer models without shared coordinates (`model_alignment`):
+  during the preparation of a new model index, each structural model is laid
+  on the architect's (height by the ground floors, rotation by dominant wall
+  directions at the four quarter turns, position from the building core
+  refined onto the architect's walls), scored by the share of its points on
+  architect walls and its margin over the next candidate, applied only when
+  probable and marked to be confirmed. Its elements then inherit the
+  architect's level, rooms and grid position. Model readings keep a minimal
+  geometry (wall ends, element points, room outlines, grid lines, floors) for
+  this. `get_project` answers engineer elements by grid line or room through
+  the overlay, merges a category across models, gives each model's overlay in
+  the summary, and tells Hermes to say an overlay is estimated.
 - Model quality by discipline: a model with only load-bearing elements is a
   structural model, for which missing spaces, marks and space boundaries are
   set aside rather than failed; a new check asks for shared coordinates (a

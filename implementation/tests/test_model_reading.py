@@ -165,3 +165,37 @@ def test_quality_follows_the_discipline_and_asks_for_shared_coordinates() -> Non
     assert "coordonnées partagées" in structure["conseils_export"][0]  # the most useful advice first
     assert reading.quality({"spaces": False}, "architecture")["niveau"] == "insuffisante"
 
+
+
+def _house(dx=0.0, dy=0.0, turn=0.0):
+    """A 20 x 10 m house: four exterior walls and one inner wall; posts every metre inside the walls."""
+    from mvp_vertical import model_alignment as al
+    corners = [(0, 0), (20, 0), (20, 10), (0, 10)]
+    walls = [[*corners[i], *corners[(i + 1) % 4], 0.0] for i in range(4)] + [[12, 0, 12, 10, 0.0]]
+    posts = [(x, 0.0) for x in range(0, 21, 2)] + [(x, 10.0) for x in range(0, 21, 2)] + [(12.0, y) for y in range(1, 10, 2)]
+    moved = [(x + dx, y + dy) for x, y in al.rotate(posts, turn)]
+    return walls, moved
+
+
+def test_an_engineer_model_without_shared_coordinates_is_laid_on_the_architects() -> None:
+    from mvp_vertical import model_alignment as al
+    walls, posts = _house(dx=230.0, dy=-40.0, turn=0.0)
+    architect = {"walls": {f"w{i}": w for i, w in enumerate(walls)}, "floors": {"R00": -22.9},
+                 "spaces": {"s": [[0, 0], [20, 0], [20, 10], [0, 10], [0, 0]]}}
+    engineer = {"walls": {}, "points": {f"p{i}": [x, y, -0.35, 2.5] for i, (x, y) in enumerate(posts)},
+                "floors": {"Fondations": -1.5, "RDC structure": -0.35, "Portail": -0.8}}
+    engineer["walls"] = {"e0": [230.0, -40.0, 250.0, -40.0, -0.35], "e1": [230.0, -30.0, 250.0, -30.0, -0.35]}
+    result = al.align(architect, engineer)
+    assert result["verdict"] == "probable" and result["score"] > 0.9
+    assert abs(result["dx"] + 230.0) < 0.05 and abs(result["dy"] - 40.0) < 0.05
+    assert result["dz"] == round(-22.9 + 0.35, 3)  # the ground floor, not the gate level
+    assert result["status"] == "à confirmer"
+
+
+def test_an_overlay_without_evidence_is_never_applied() -> None:
+    from mvp_vertical import model_alignment as al
+    walls, _ = _house()
+    architect = {"walls": {f"w{i}": w for i, w in enumerate(walls)}, "floors": {"R00": 0.0}}
+    scattered = {"walls": {}, "points": {f"p{i}": [i * 7.3 % 50, i * 3.1 % 40, 0.0, 1.0] for i in range(40)}, "floors": {"RDC": 0.0}}
+    assert al.align(architect, scattered)["verdict"] == "incertain"
+    assert al.align({"walls": {}}, scattered)["verdict"] == "impossible"

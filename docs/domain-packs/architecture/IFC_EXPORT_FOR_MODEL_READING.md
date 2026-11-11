@@ -45,6 +45,31 @@ the IFC ones at a default. Declared sizes, from the IFC attributes or from famil
 parameters by name, stay visible, and a difference over 5 cm is pointed out.
 An agency names its own size parameters in the conventions file.
 
+## Overlaying an engineer's model without shared coordinates
+
+Engineers often export from their own origin (no site, another origin, sometimes
+a slight rotation), so their columns and beams cannot inherit the architect's
+rooms and grid lines. During the preparation of a new model index
+(`anatomy_export.align_structural_models`, `model_alignment.py`), each structural
+model is laid on the architect's model with the most rooms:
+
+1. height: the engineer's ground floor (a level named RDC, R00 or ground floor,
+   else the lowest non-foundation level) on the architect's lowest floor;
+2. rotation: the dominant wall directions of both models, tried at the four
+   quarter turns;
+3. position: the core of the engineer's points on the architect's rooms, then
+   refined so they fall on the architect's walls;
+4. score: the share of the engineer's points on an architect wall, with the
+   margin over the next best candidate.
+
+The overlay is applied only when probable (score of at least 60 % and margin of
+at least 15 points). Elements then carry the architect's level, room (or the
+rooms on either side for a post inside a wall) and grid position, marked as
+obtained by overlay. The overlay is recomputed when either model changes and
+stays "to be confirmed": a human confirms it once per pair of indices. Shared
+coordinates, or an agreed common origin such as the intersection of two grid
+lines at level 0.00, remain the reliable way.
+
 ## Model quality and re-export
 
 Each reading carries a quality level (`bonne`, `à améliorer`, `insuffisante`),
