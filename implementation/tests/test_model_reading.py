@@ -6,6 +6,7 @@ The geometry helpers are tested on synthetic shapes; no project model is involve
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -83,7 +84,9 @@ def test_the_export_reads_the_current_model_pieces_only(tmp_path, monkeypatch) -
         {"piece": "DEVIS IFC", "category": "a_confronter", "current": {"paths": ["ACT/devis.ifc"]}},
     ]}
     assert anatomy_export.read_current_models("DEMO", pieces, tmp_path) == [{"status": "read"}]
-    assert seen == [("DEMO_E.ifc", "DEMO.maquette-maquette.json", {"piece": "MAQUETTE", "index": "E"})]
+    assert [(model, kwargs) for model, _, kwargs in seen] == [("DEMO_E.ifc", {"piece": "MAQUETTE", "index": "E"})]
+    # the sheet is named by the model file fingerprint, so an unchanged file is never read twice
+    assert re.fullmatch(r"DEMO\.maquette-maquette-[0-9a-f]{12}\.json", seen[0][1])
 
 
 @pytest.mark.parametrize("cls, exterior, sill, height, width, declared, expected", [

@@ -14,6 +14,7 @@ and ``export-anatomy`` regenerates it at any time. Without
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -136,15 +137,54 @@ def read_current_models(code: str, pieces: dict[str, Any], directory: Path) -> l
         path = next((p for p in current.get("paths") or [] if p.lower().endswith(".ifc")), None)
         if not path or piece.get("category") != "projet":
             continue
-        slug = re.sub(r"[^a-z0-9]+", "-", project_pieces._fold(str(piece["piece"]))).strip("-")[:40] or "maquette"
-        statuses.append(model_reading.ensure(root / code / path, directory / f"{code}.maquette-{slug}.json",
+        statuses.append(model_reading.ensure(root / code / path, sheet_file(directory, code, str(piece["piece"]), root / code / path),
                                              piece=str(piece["piece"]), index=current.get("index")))
     align_structural_models(directory, statuses)
+    prune_sheets(directory, code, {s["file"] for s in statuses if s.get("file")})
     return statuses
 
 
 def _slug(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", project_pieces._fold(text)).strip("-")[:40] or "maquette"
+
+
+SNAPSHOTS_KEPT = 20
+
+
+def sheet_file(directory: Path, code: str, piece: str, path: Path) -> Path:
+    """The file sheet of one model file, named by its fingerprint: an unchanged file is never read twice.
+
+    Deactivating and reactivating a source, or coming back to an earlier index,
+    finds its sheet again; a changed file gets a new sheet.
+    """
+    try:
+        stamp = model_reading.fingerprint(path)
+    except OSError:
+        stamp = "absent"
+    digest = hashlib.sha1(stamp.encode("utf-8")).hexdigest()[:12]
+    return directory / f"{code}.maquette-{_slug(piece)[:26].strip('-') or 'maquette'}-{digest}.json"
+
+
+def prune_sheets(directory: Path, code: str, keep: set[str]) -> None:
+    """Remove the affaire's model sheets nothing refers to any more (derived files, regenerable)."""
+    for sheet in directory.glob(f"{code}.maquette-*.json"):
+        if sheet.name not in keep:
+            sheet.unlink(missing_ok=True)
+
+
+def _snapshots(directory: Path, code: str) -> list[dict[str, Any]]:
+    try:
+        data = json.loads((directory / f"{code}.consolidations.json").read_text(encoding="utf-8"))
+        return data if isinstance(data, list) else []
+    except (OSError, ValueError):
+        return []
+
+
+def _write_json(target: Path, data: Any) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    partial = target.with_name(f".{target.name}.partial")
+    partial.write_text(json.dumps(data, ensure_ascii=False, sort_keys=True), encoding="utf-8")
+    partial.replace(target)
 
 
 def read_declared_sources(code: str, pieces: dict[str, Any], declared: dict[str, dict[str, Any]], directory: Path,
@@ -162,11 +202,15 @@ def read_declared_sources(code: str, pieces: dict[str, Any], declared: dict[str,
         record = json.loads(record_file.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         record = {}
+    for path, entry in declared.items():  # a moved file keeps what was consolidated
+        if entry.get("moved_from") in record and path not in record:
+            record[path] = record.pop(entry["moved_from"])
     current = {}
     for piece in pieces.get("pieces") or []:
         for path in (piece.get("current") or {}).get("paths") or []:
             current[path] = piece
     now = datetime.now(timezone.utc).isoformat()
+    consolidated_now = False
     results: dict[str, dict[str, Any]] = {}
     statuses: dict[str, dict[str, Any]] = {}
     for path, entry in sorted(declared.items()):
@@ -183,7 +227,7 @@ def read_declared_sources(code: str, pieces: dict[str, Any], declared: dict[str,
         fresh = previous.get("fingerprint") == stamp and previous.get("declaration") == anatomy_sources.declaration_stamp(entry)
         if stamp is not None and (consolidate or entry["consolidate_now"]) and not fresh:
             record[path] = {"fingerprint": stamp, "declaration": anatomy_sources.declaration_stamp(entry), "consolidated_at": now}
-            fresh = True
+            fresh = consolidated_now = True
         if stamp is None:
             result["état"], result["messages"] = anatomy_sources.ERROR, ["fichier introuvable"]
             continue
@@ -196,11 +240,15 @@ def read_declared_sources(code: str, pieces: dict[str, Any], declared: dict[str,
         if path.lower().endswith(".ifc"):
             name = str(piece["piece"]) if piece else Path(path).stem
             index = (piece.get("current") or {}).get("index") if piece else None
-            statuses[path] = model_reading.ensure(root / code / path, directory / f"{code}.maquette-{_slug(name)}.json",
+            statuses[path] = model_reading.ensure(root / code / path, sheet_file(directory, code, name, root / code / path),
                                                   piece=name, index=index)
+            record[path]["sheet"] = statuses[path].get("file")
         else:
             result["état"], result["messages"] = anatomy_sources.document_state(
                 piece, [q.get("text", "") for q in pieces.get("questions") or []])
+            if piece:
+                result["lecture"] = {"pièce": piece.get("piece"), **{k: v for k, v in (piece.get("current") or {}).items()
+                                                                     if k in ("index", "date", "position") and v}}
 
     def judge() -> None:
         for path, status in statuses.items():
@@ -231,16 +279,25 @@ def read_declared_sources(code: str, pieces: dict[str, Any], declared: dict[str,
     align_structural_models(directory, kept)
     judge()
     record = {p: r for p, r in record.items() if p in declared}
-    directory.mkdir(parents=True, exist_ok=True)
-    partial = record_file.with_name(f".{record_file.name}.partial")
-    partial.write_text(json.dumps(record, ensure_ascii=False, sort_keys=True), encoding="utf-8")
-    partial.replace(record_file)
+    _write_json(record_file, record)
+    snapshots = _snapshots(directory, code)
+    if consolidated_now:  # what the state of the affaire rested on, at this consolidation
+        snapshots = (snapshots + [{"at": now, "sources": [
+            {"fichier": p, "empreinte": (record.get(p) or {}).get("fingerprint"), "état": r["état"],
+             **({"fiche": statuses[p].get("file")} if p in statuses and statuses[p].get("file") else {})}
+            for p, r in results.items()]}])[-SNAPSHOTS_KEPT:]
+        _write_json(directory / f"{code}.consolidations.json", snapshots)
+    # Sheets stay while a source, inactive included, or a kept snapshot refers to them.
+    prune_sheets(directory, code, {s["file"] for s in statuses.values() if s.get("file")}
+                 | {r["sheet"] for r in record.values() if r.get("sheet")}
+                 | {src["fiche"] for snap in snapshots for src in snap.get("sources") or [] if src.get("fiche")})
 
     models = [s for p, s in statuses.items() if results[p]["état"] in anatomy_sources.USABLE]
     section = {
         "mode": "déclarées",
         "liste": [anatomy_sources.summary_line(path, result) for path, result in results.items()],
         "en_attente": sum(1 for r in results.values() if r["état"] == anatomy_sources.PENDING),
+        **({"dernière_consolidation": snapshots[-1]["at"]} if snapshots else {}),
         "règle": "seules les sources activées ou en avertissement sont lues ; une source en attente attend la "
                  "consolidation ; un remplacement n'a lieu que si la nouvelle source n'est pas en erreur.",
     }

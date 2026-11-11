@@ -101,6 +101,65 @@ superseded through a reviewed batch. A confirmed overlay is attached to the
 pair of model indices and falls at the next index. While no file of an affaire
 declares anything, every current model piece is read as before.
 
+## File sheets and the project core
+
+The Anatomy has two layers. Each activated file has a **file sheet**: what this
+file says. Each project has a **core**: what the project keeps. The sheets are
+the plug-and-play part; the core holds what crosses files.
+
+```text
+FILE SHEET (one per activated file)         CORE (one per project)
+"what this file says"                       "what the project keeps"
+identity: fingerprint, path, piece, index   nodes: rooms, walls, lots…
+declaration (from the Workspace card)       shared vocabulary
+state and reasons                           validated facts, each citing its files
+alignment, typed by the file's nature       questions between files
+body: what was read                         history (replacements)
+Hermes proposals about this file
+```
+
+| Nature | Body | Alignment |
+|---|---|---|
+| IFC model | rooms, openings, walls, elements by category, minimal geometry, quality | 3D overlay: rotation, offsets, score, confirmed or not |
+| PDF drawing | index and text | level and scale (later) |
+| Section / elevation | index and text | section mark / façade (later) |
+| Specification (CCTP) | lots (later) | lot, discipline |
+| Quote | lot, company, amounts to confront (later) | lot |
+| Photo | date, room proposed by Hermes (later) | room |
+
+Three rules keep it light:
+
+1. **What is computed is keyed by the file's fingerprint.** An unchanged file is
+   never read twice: deactivating and reactivating a source, or coming back to an
+   earlier index, finds its sheet again. A changed file gets a new sheet.
+2. **Comparisons are keyed by the pair of fingerprints** (an engineer's overlay
+   on the architect's model, later drawing against drawing or drawing against
+   model) and kept while the pair is the same.
+3. **The project file stays small.** `<CODE>.json` carries the core, one line per
+   source and the questions; a sheet is read on demand (`get_project` focus
+   `fichier <name>`). A local model then reads whole what it is given.
+
+Where things live: the truth of a source is on its file. What a human enters
+(declaration, corrections, overlay confirmation) is on the Workspace card; what
+is computed (reading, alignment, state) and Hermes' proposals are published by
+the agency and shown on the card. The project's list of sources is a view
+rebuilt at each consolidation, never edited; each consolidation that brings a
+source in keeps a snapshot (files, fingerprints, states) of what the state of
+the affaire rested on, the last twenty kept. A file moved in the Workspace keeps
+its declaration, found again by its content digest.
+
+Hermes analyses and enriches both layers by proposals only: about a file ("this
+specification describes lot 04", "this photo shows the kitchen") or about the
+core ("room 3 of the model is the kitchen of the drawing", "remember that…",
+"confirm the overlay"). Proposals go through the existing candidate path and a
+human validates them; Hermes writes neither a sheet nor the core. One task, one
+sheet: the size a local model holds.
+
+Status: fingerprint-keyed model sheets, the drawing sheet (index and text),
+consolidation snapshots, moved files and the `fichier` focus are implemented on
+the agency side. The Cockpit card display and actions, the other natures and
+Hermes proposals are not implemented yet.
+
 ## Model quality and re-export
 
 Each reading carries a quality level (`bonne`, `à améliorer`, `insuffisante`),
@@ -138,6 +197,7 @@ The checks above are the first, built-in step.
 ```text
 model reading != model copied into the Anatomy
 declared source != consolidated source
+file sheet != project core
 declared property != observed fact
 quality advice != approval of the model
 ```

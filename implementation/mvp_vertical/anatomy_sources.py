@@ -165,6 +165,8 @@ def summary_line(path: str, result: dict[str, Any]) -> dict[str, Any]:
     for key in ("discipline", "usage", "perimeter"):
         if declared.get(key):
             line[key] = declared[key]
+    if declared.get("moved_from"):
+        line["déplacé_depuis"] = declared["moved_from"]
     if result.get("calage"):
         line["calage"] = result["calage"]
     for key in ("remplace", "remplacée_par"):

@@ -7,6 +7,8 @@ readings; no real project data is involved.
 from __future__ import annotations
 
 import json
+import os
+import re
 import sqlite3
 from pathlib import Path
 
@@ -38,10 +40,15 @@ def affaire(tmp_path, monkeypatch):
     readings: dict[str, dict | None] = {ARCHI: _reading("architecture"), ARCHI_NEW: _reading("architecture"),
                                         BET: _reading("structure")}
 
+    reads: list[str] = []
+
     def fake_ensure(path, out_file, *, piece, index=None):
         reading = readings[path.relative_to(root / "DEMO").as_posix()]
         if reading is None:
             return {"piece": piece, "index": index, "file": out_file.name, "status": "unreadable", "error": "ValueError"}
+        if out_file.exists():  # the real ensure keeps a sheet whose file is unchanged
+            return {"piece": piece, "index": index, "file": out_file.name, "status": "cached"}
+        reads.append(out_file.name)
         out_file.write_text(json.dumps({"source": {"piece": piece, "fingerprint": "f"}, **reading}), encoding="utf-8")
         return {"piece": piece, "index": index, "file": out_file.name, "status": "read"}
 
@@ -57,6 +64,8 @@ def affaire(tmp_path, monkeypatch):
     class Affaire:
         directory = tmp_path / "anatomie"
         models = readings
+        read_log = reads
+        files = root / "DEMO"
 
         def declare(self, path: str, **source) -> None:
             with sqlite3.connect(db) as c:
@@ -184,3 +193,48 @@ def test_a_drawing_source_is_read_for_its_index_only() -> None:
     piece = {"piece": "PLAN RDC", "current": {"index": "C", "position": "probable"}}
     state, messages = anatomy_sources.document_state(piece, ["PLAN RDC : deux variantes de l'indice C ; laquelle fait foi ?"])
     assert state == "avertissement" and messages[0] == "indice lu dans le nom du fichier" and len(messages) == 3
+
+
+def test_reactivating_an_unchanged_file_reads_nothing_again(affaire) -> None:
+    affaire.declare(ARCHI, active=True)
+    affaire.consolidate(force=True)
+    assert len(affaire.read_log) == 1
+    affaire.declare(ARCHI, active=False)
+    models, section = affaire.consolidate()
+    assert _states(section) == {ARCHI: "inactive"} and models == []
+    affaire.declare(ARCHI, active=True)
+    models, section = affaire.consolidate()
+    assert _states(section) == {ARCHI: "activée"} and len(models) == 1
+    assert len(affaire.read_log) == 1  # same fingerprint: the sheet was kept
+
+
+def test_a_changed_file_gets_a_new_sheet_and_each_consolidation_a_snapshot(affaire) -> None:
+    affaire.declare(ARCHI, active=True)
+    first, _ = affaire.consolidate(force=True)
+    target = affaire.files / ARCHI
+    target.write_text("ISO-10303-21; changed")
+    os.utime(target, (1_900_000_000, 1_900_000_000))
+    second, section = affaire.consolidate(force=True)
+    assert first[0]["file"] != second[0]["file"] and len(affaire.read_log) == 2
+    snapshots = json.loads((affaire.directory / "DEMO.consolidations.json").read_text(encoding="utf-8"))
+    assert len(snapshots) == 2 and snapshots[-1]["sources"][0]["fiche"] == second[0]["file"]
+    assert section["dernière_consolidation"] == snapshots[-1]["at"]
+    # An export without consolidation adds no snapshot.
+    affaire.consolidate()
+    assert len(json.loads((affaire.directory / "DEMO.consolidations.json").read_text(encoding="utf-8"))) == 2
+
+
+def test_a_moved_file_keeps_its_declaration_through_its_digest() -> None:
+    declared = {"OLD/plan.pdf": {"active": True, "_sha256": "abc"}, "gone.pdf": {"active": True, "_sha256": "zzz"}}
+    files = [{"path": "DCE/plan.pdf", "fingerprint": "abc"}]
+    followed = project_pieces.follow_moved_sources(declared, files)
+    assert followed["DCE/plan.pdf"] == {"active": True, "moved_from": "OLD/plan.pdf"}
+    assert "gone.pdf" in followed and "_sha256" not in followed["gone.pdf"]
+
+
+def test_sheet_names_follow_the_file_fingerprint(tmp_path) -> None:
+    model = tmp_path / "m.ifc"
+    model.write_text("x")
+    a = anatomy_export.sheet_file(tmp_path, "DEMO", "Maquette architecte très longue pour un nom", model)
+    assert a == anatomy_export.sheet_file(tmp_path, "DEMO", "Maquette architecte très longue pour un nom", model)
+    assert re.fullmatch(r"DEMO\.maquette-[a-z0-9-]{1,40}\.json", a.name)

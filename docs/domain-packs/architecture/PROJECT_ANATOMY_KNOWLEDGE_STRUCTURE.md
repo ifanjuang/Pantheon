@@ -210,6 +210,12 @@ Exact Revit context, binding freshness, local exposure, preflight and transactio
 requirements are owned by `REVIT_LOCAL_ADAPTER.md` and its subordinate plugin
 contracts. They are not repeated here.
 
+Operationally, each activated file carries a file sheet (what it says, keyed by
+its fingerprint) and each project a small core (what crosses files); see
+"File sheets and the project core" in `IFC_EXPORT_FOR_MODEL_READING.md`. A file
+sheet is a projection of the file's source representations, not a second
+identity or authority.
+
 ## 6. Candidate routing categories
 
 The following are presentation and routing categories over existing owners, not

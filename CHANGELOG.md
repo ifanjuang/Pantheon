@@ -110,6 +110,15 @@
   and reading rules. Indices and numbers come from the file so a local model
   quotes them instead of computing or recalling them. No database access; never
   evidence or a decision.
+- File sheets and the project core: model sheets are named by the model file's
+  fingerprint, so deactivating, reactivating or coming back to an earlier index
+  reads nothing again, and sheets nothing refers to are removed. A drawing
+  source's sheet carries its index and text. Each consolidation that brings a
+  source in keeps a snapshot of what the affaire's state rested on (last
+  twenty). A file moved in the Workspace keeps its declaration through its
+  content digest. `get_project` answers `fichier <name>` with a source's sheet
+  and gives the last consolidation date. Direction documented: per-file sheets,
+  a small project core, Hermes enriching both by proposals only.
 - Anatomy sources (`anatomy_sources`): the files an affaire's readings rest on
   are declared on their Workspace card (`anatomy_source`: complement or
   replacement, role, discipline, use, scope, declared alignment, consolidate

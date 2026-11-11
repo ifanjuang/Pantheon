@@ -246,17 +246,36 @@ def read_declared_sources(db_path: Path, project_code: str, *, workspace: str = 
         if not connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' "
                                   "AND name='workspace_document_metadata_overrides'").fetchone():
             return {}
+        columns = {row[1] for row in connection.execute("PRAGMA table_info(workspace_document_metadata_overrides)")}
+        sha = "source_sha256" if "source_sha256" in columns else "NULL"
         rows = connection.execute(
-            "SELECT source_path, overrides_json FROM workspace_document_metadata_overrides "
+            f"SELECT source_path, overrides_json, {sha} FROM workspace_document_metadata_overrides "
             "WHERE workspace=? AND substr(source_path,1,?)=?", (workspace, len(prefix), prefix)).fetchall()
     finally:
         connection.close()
     declared = {}
-    for path, overrides in rows:
+    for path, overrides, digest in rows:
         entry = anatomy_sources.normalize(_loads(overrides).get("anatomy_source"))
         if entry is not None:
+            if digest:
+                entry["_sha256"] = digest
             declared[path[len(prefix):]] = entry
     return declared
+
+
+def follow_moved_sources(declared: dict[str, dict[str, Any]], files: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """A declared file that moved keeps its declaration: found again by its content digest."""
+    paths = {file["path"] for file in files}
+    by_digest = {file["fingerprint"]: file["path"] for file in files if file.get("fingerprint")}
+    followed = {}
+    for path, entry in declared.items():
+        digest = entry.pop("_sha256", None)
+        moved_to = by_digest.get(digest) if path not in paths and digest else None
+        if moved_to and moved_to not in declared:
+            followed[moved_to] = {**entry, "moved_from": path}
+        else:
+            followed[path] = entry
+    return followed
 
 
 def scan_models(affaires_root: Path, project_code: str) -> list[dict[str, Any]]:
@@ -420,6 +439,7 @@ def read_project_pieces(project_code: str, *, workspace_db: Path | None = None,
     if affaires_root:
         files += scan_models(affaires_root, project_code)
     state = current_state(files, project_code)
+    declared = follow_moved_sources(declared, files)
     if declared:
         state["declared_sources"] = declared
     return state

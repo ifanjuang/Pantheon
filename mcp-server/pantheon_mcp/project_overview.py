@@ -606,12 +606,13 @@ def _focus(directory: Path, data: dict[str, Any], focus: str) -> dict[str, Any]:
             "reason": "aucun local ni élément ne correspond"}
 
 
-DETAIL_HINT = ("Détail sur demande avec focus : « pièces » (toutes les pièces courantes et leurs fichiers), "
+DETAIL_HINT = ("Détail sur demande avec focus : « sources » (sources anatomiques et leurs états), "
+               "« fichier <partie du nom> » (fiche d'une source), « pièces » (toutes les pièces courantes et leurs fichiers), "
                "« devis », « locaux », un local (« cuisine », « chambre 101 »), « file M », « façade sud », "
                "un niveau (« R01 »), ou un élément (« cloison file 5 », « fenêtre façade sud chambre 1 »).")
 
 
-SOURCE_KEYS = ("fichier", "état", "rôle", "discipline", "usage", "perimeter", "remplace", "remplacée_par", "messages")
+SOURCE_KEYS = ("fichier", "état", "rôle", "discipline", "usage", "perimeter", "remplace", "remplacée_par", "déplacé_depuis", "messages")
 
 
 def _sources(section: dict[str, Any]) -> dict[str, Any]:
@@ -635,7 +636,25 @@ def _sources(section: dict[str, Any]) -> dict[str, Any]:
         out["liste"] = lines
     if section.get("en_attente"):
         out["en_attente"] = section["en_attente"]
+    if section.get("dernière_consolidation"):
+        out["dernière_consolidation"] = section["dernière_consolidation"]
     return out
+
+
+def _file_sheet(section: dict[str, Any], wanted: str) -> dict[str, Any]:
+    """The sheet of one declared source file, found by a part of its path or of its piece name."""
+    lines = [line for line in section.get("liste") or [] if isinstance(line, dict)]
+    found = [line for line in lines
+             if wanted and (wanted in _fold(str(line.get("fichier", "")))
+                            or wanted in _fold(str((line.get("lecture") or {}).get("pièce", ""))))]
+    if not found:
+        return {"found": False, "kind": "fiche fichier",
+                "message": "aucune source anatomique déclarée ne correspond" if lines else "aucune source anatomique déclarée",
+                "fichiers": [line.get("fichier") for line in lines][:SELECTION_ROWS]}
+    if len(found) > 1:
+        return {"found": False, "kind": "fiche fichier", "question": "Plusieurs fichiers correspondent : lequel ?",
+                "candidats": [{k: line.get(k) for k in ("fichier", "état") if line.get(k)} for line in found][:SELECTION_ROWS]}
+    return {"found": True, "kind": "fiche fichier", "fiche": found[0]}
 
 
 def _compact(full: dict[str, Any], directory: Path, data: dict[str, Any]) -> dict[str, Any]:
@@ -732,6 +751,9 @@ def project_overview(code: str, directory: Path | None = None, focus: str = "") 
         if wanted in {"sources", "source", "sources anatomiques"}:
             overview = {key: full[key] for key in ("code", "found", "source", "project") if key in full}
             return {**overview, "anatomy_sources": full.get("anatomy_sources") or {"mode": "non publié"}}
+        if wanted.startswith("fichier ") or wanted.startswith("fiche "):
+            overview = {key: full[key] for key in ("code", "found", "source", "project") if key in full}
+            return {**overview, "focus": _file_sheet(sources if isinstance(sources, dict) else {}, wanted.partition(" ")[2])}
         # With a focus, only a short header travels with the detail asked for.
         overview = {key: full[key] for key in ("code", "found", "source", "project", "anatomy_status", "open_questions")
                     if key in full}

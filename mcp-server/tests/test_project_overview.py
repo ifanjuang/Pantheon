@@ -168,6 +168,10 @@ class TestProjectOverview(unittest.TestCase):
         self.assertEqual(summary["en_attente"], 1)
         self.assertEqual(summary["liste"][0], {"fichier": "DCE/archi.ifc", "état": "activée", "rôle": "référence", "indice": "C"})
         self.assertEqual(summary["liste"][1]["calage"], "probable, non confirmé")
+        sheet = project_overview.project_overview("DEMO", self.directory, focus="fichier archi")["focus"]
+        self.assertEqual(sheet["fiche"]["lecture"]["éléments"], 400)
+        self.assertIn("question", project_overview.project_overview("DEMO", self.directory, focus="fichier bet")["focus"])
+        self.assertFalse(project_overview.project_overview("DEMO", self.directory, focus="fichier rien")["focus"]["found"])
         focused = project_overview.project_overview("DEMO", self.directory, focus="sources")
         self.assertEqual(len(focused["anatomy_sources"]["liste"]), 3)
         self.assertNotIn("reading_rules", focused)
