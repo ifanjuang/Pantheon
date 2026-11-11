@@ -110,6 +110,18 @@
   and reading rules. Indices and numbers come from the file so a local model
   quotes them instead of computing or recalling them. No database access; never
   evidence or a decision.
+- Anatomy sources (`anatomy_sources`): the files an affaire's readings rest on
+  are declared on their Workspace card (`anatomy_source`: complement or
+  replacement, role, discipline, use, scope, declared alignment, consolidate
+  now), read read-only. Consolidation (`agency consolidate --code`, or an
+  export when the card asks for it) reads them, overlays the engineers' models
+  and publishes each source's state (en attente, activée, avertissement,
+  erreur, remplacée, inactive) with its reasons, reading, quality and overlay
+  in `<CODE>.json`. A replacement happens only when the new source succeeds.
+  Only consolidated, usable sources are read; without any declaration the
+  former behaviour stays. An agency-owned record next to the projection keeps
+  what was consolidated. `get_project` lists the sources, one line each, and
+  answers the `sources` focus.
 - Overlay of engineer models without shared coordinates (`model_alignment`):
   during the preparation of a new model index, each structural model is laid
   on the architect's (height by the ground floors, rotation by dominant wall

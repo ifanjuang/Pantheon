@@ -56,6 +56,9 @@ READING_RULES = [
     "l'utilisateur au lieu de choisir.",
     "Quand une position est déduite (droite, gauche, côté), citer l'indice utilisé (façade, files) et "
     "l'hypothèse du nord en haut du plan.",
+    "Quand des sources anatomiques sont déclarées, seules les sources activées ou en avertissement sont lues : "
+    "qualifier la réponse par leur rôle (contrôle, complément), un calage non confirmé ou un périmètre ; "
+    "une source en attente ou en erreur n'est pas lue, le dire si on la demande.",
     "Les locaux et files d'un élément du BET marqués « par recalage » sont estimés : le dire, citer le score du "
     "recalage et demander sa confirmation.",
     "Si la qualité de la maquette est insuffisante ou qu'un réexport est conseillé : répondre avec ce qui "
@@ -608,6 +611,33 @@ DETAIL_HINT = ("Détail sur demande avec focus : « pièces » (toutes les pièc
                "un niveau (« R01 »), ou un élément (« cloison file 5 », « fenêtre façade sud chambre 1 »).")
 
 
+SOURCE_KEYS = ("fichier", "état", "rôle", "discipline", "usage", "perimeter", "remplace", "remplacée_par", "messages")
+
+
+def _sources(section: dict[str, Any]) -> dict[str, Any]:
+    """The anatomy sources, one short line each: which files the readings rest on, and in what state."""
+    out: dict[str, Any] = {"mode": section.get("mode")}
+    lines = []
+    for line in (section.get("liste") or [])[:SELECTION_ROWS]:
+        if not isinstance(line, dict):
+            continue
+        short = {k: line[k] for k in SOURCE_KEYS if line.get(k)}
+        reading = line.get("lecture") or {}
+        if reading.get("indice"):
+            short["indice"] = reading["indice"]
+        calage = line.get("calage") or {}
+        if calage.get("verdict"):
+            short["calage"] = f"{calage['verdict']}, " + ("confirmé" if calage.get("confirmé") else "non confirmé")
+        elif calage.get("déclaré"):
+            short["calage"] = f"déclaré : {calage['déclaré']}"
+        lines.append(short)
+    if lines:
+        out["liste"] = lines
+    if section.get("en_attente"):
+        out["en_attente"] = section["en_attente"]
+    return out
+
+
 def _compact(full: dict[str, Any], directory: Path, data: dict[str, Any]) -> dict[str, Any]:
     """The answer without focus: small enough for a local model to read whole (target a few kilobytes)."""
     pieces = full.get("pieces") or {}
@@ -655,6 +685,8 @@ def _compact(full: dict[str, Any], directory: Path, data: dict[str, Any]) -> dic
                   for r in models_read[1:] if isinstance(r.get("quality"), dict)]
         if others:
             compact["model_quality"]["autres_maquettes"] = others
+    if full.get("anatomy_sources"):
+        compact["anatomy_sources"] = full["anatomy_sources"]
     compact["status"] = full.get("status")
     compact["reading_rules"] = full.get("reading_rules")
     compact["detail"] = DETAIL_HINT
@@ -691,9 +723,15 @@ def project_overview(code: str, directory: Path | None = None, focus: str = "") 
         if data.get("models"):
             full["models"] = [{k: m.get(k) for k in ("piece", "index", "status") if m.get(k)}
                               for m in data["models"] if isinstance(m, dict)]
+        sources = data.get("anatomy_sources")
+        if isinstance(sources, dict):
+            full["anatomy_sources"] = _sources(sources)
         wanted = _fold(focus)
         if not wanted:
             return _compact(full, directory, data)
+        if wanted in {"sources", "source", "sources anatomiques"}:
+            overview = {key: full[key] for key in ("code", "found", "source", "project") if key in full}
+            return {**overview, "anatomy_sources": full.get("anatomy_sources") or {"mode": "non publié"}}
         # With a focus, only a short header travels with the detail asked for.
         overview = {key: full[key] for key in ("code", "found", "source", "project", "anatomy_status", "open_questions")
                     if key in full}

@@ -21,7 +21,7 @@ import re
 import sqlite3
 from typing import Any
 
-from . import apu_owner, apu_vocabulary, model_alignment, model_reading, project_pieces
+from . import anatomy_sources, apu_owner, apu_vocabulary, model_alignment, model_reading, project_pieces
 from .project_anatomy_projection import get_project_anatomy_projection
 
 SCHEMA = "pantheon.anatomy.v1"
@@ -67,8 +67,13 @@ def property_labels(anatomy: dict[str, Any]) -> dict[str, Any]:
     return {"labels": labels, "undeclared": [key for key in keys if key not in labels]}
 
 
-def export_project_anatomy(conn, project_id: str, *, directory: Path | None = None) -> Path | None:
-    """Write the Project's projection atomically; None when no export directory is configured."""
+def export_project_anatomy(conn, project_id: str, *, directory: Path | None = None,
+                           consolidate: bool = False) -> Path | None:
+    """Write the Project's projection atomically; None when no export directory is configured.
+
+    ``consolidate`` brings every declared anatomy source in now; otherwise only the
+    sources whose card asks for an immediate consolidation are, the others wait.
+    """
     directory = directory or export_dir()
     if directory is None:
         return None
@@ -102,8 +107,14 @@ def export_project_anatomy(conn, project_id: str, *, directory: Path | None = No
     except (OSError, sqlite3.Error) as exc:
         pieces = {"error": f"pieces_unreadable: {type(exc).__name__}"}
     if pieces is not None:
+        declared = pieces.pop("declared_sources", None) if isinstance(pieces, dict) else None
         document["pieces"] = pieces
-        models = read_current_models(code, pieces, directory)
+        if declared:
+            models, document["anatomy_sources"] = read_declared_sources(code, pieces, declared, directory,
+                                                                        consolidate=consolidate)
+        else:
+            models = read_current_models(code, pieces, directory)
+            document["anatomy_sources"] = {"mode": "toutes les maquettes courantes (aucune source déclarée)"}
         if models:
             document["models"] = models
     directory.mkdir(parents=True, exist_ok=True)
@@ -130,6 +141,114 @@ def read_current_models(code: str, pieces: dict[str, Any], directory: Path) -> l
                                              piece=str(piece["piece"]), index=current.get("index")))
     align_structural_models(directory, statuses)
     return statuses
+
+
+def _slug(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", project_pieces._fold(text)).strip("-")[:40] or "maquette"
+
+
+def read_declared_sources(code: str, pieces: dict[str, Any], declared: dict[str, dict[str, Any]], directory: Path,
+                          *, consolidate: bool = False) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Read the declared anatomy sources, decide their states, return the model statuses and the published section.
+
+    A declared source is read once consolidated: on ``consolidate``, or when its
+    card asks for it. The record of what was consolidated (file fingerprint and
+    declaration) lives beside the projection, owned by the agency; a changed file
+    or declaration waits for the next consolidation.
+    """
+    root = project_pieces._env_path(project_pieces.AFFAIRES_ROOT_ENV)
+    record_file = directory / f"{code}.sources.json"
+    try:
+        record = json.loads(record_file.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        record = {}
+    current = {}
+    for piece in pieces.get("pieces") or []:
+        for path in (piece.get("current") or {}).get("paths") or []:
+            current[path] = piece
+    now = datetime.now(timezone.utc).isoformat()
+    results: dict[str, dict[str, Any]] = {}
+    statuses: dict[str, dict[str, Any]] = {}
+    for path, entry in sorted(declared.items()):
+        result: dict[str, Any] = {"declared": entry, "messages": []}
+        results[path] = result
+        if not entry["active"]:
+            result["état"] = anatomy_sources.DISABLED
+            continue
+        try:
+            stamp = model_reading.fingerprint(root / code / path) if root else None
+        except OSError:
+            stamp = None
+        previous = record.get(path) or {}
+        fresh = previous.get("fingerprint") == stamp and previous.get("declaration") == anatomy_sources.declaration_stamp(entry)
+        if stamp is not None and (consolidate or entry["consolidate_now"]) and not fresh:
+            record[path] = {"fingerprint": stamp, "declaration": anatomy_sources.declaration_stamp(entry), "consolidated_at": now}
+            fresh = True
+        if stamp is None:
+            result["état"], result["messages"] = anatomy_sources.ERROR, ["fichier introuvable"]
+            continue
+        if not fresh:
+            result["état"] = anatomy_sources.PENDING
+            result["messages"] = ["consolidation à lancer" if path not in record else "fichier ou déclaration modifiés : consolidation à relancer"]
+            continue
+        result["consolidée_le"] = record[path]["consolidated_at"]
+        piece = current.get(path)
+        if path.lower().endswith(".ifc"):
+            name = str(piece["piece"]) if piece else Path(path).stem
+            index = (piece.get("current") or {}).get("index") if piece else None
+            statuses[path] = model_reading.ensure(root / code / path, directory / f"{code}.maquette-{_slug(name)}.json",
+                                                  piece=name, index=index)
+        else:
+            result["état"], result["messages"] = anatomy_sources.document_state(
+                piece, [q.get("text", "") for q in pieces.get("questions") or []])
+
+    def judge() -> None:
+        for path, status in statuses.items():
+            try:
+                reading = json.loads((directory / status["file"]).read_text(encoding="utf-8"))
+            except (KeyError, OSError, ValueError):
+                reading = None
+            entry = results[path]["declared"]
+            results[path]["état"], results[path]["messages"] = anatomy_sources.model_state(reading, status, entry)
+            results[path]["état_propre"] = results[path]["état"]
+            calage = anatomy_sources.alignment_line((reading or {}).get("alignment"), entry) if reading else None
+            if calage:
+                results[path]["calage"] = calage
+            if reading:
+                results[path]["lecture"] = {"pièce": status.get("piece"), "indice": status.get("index"),
+                                            "discipline": reading.get("discipline"),
+                                            "qualité": (reading.get("quality") or {}).get("niveau"),
+                                            "éléments": len(reading.get("elements") or [])}
+                by_label: dict[str, int] = {}
+                for element in reading.get("elements") or []:
+                    by_label[element.get("label") or "?"] = by_label.get(element.get("label") or "?", 0) + 1
+                if by_label:
+                    results[path]["lecture"]["par_catégorie"] = dict(sorted(by_label.items(), key=lambda kv: -kv[1])[:8])
+        anatomy_sources.resolve_replacements(results)
+
+    judge()  # replacements first, so an old architect's model is not the overlay reference
+    kept = [s for p, s in statuses.items() if results[p]["état"] in anatomy_sources.USABLE]
+    align_structural_models(directory, kept)
+    judge()
+    record = {p: r for p, r in record.items() if p in declared}
+    directory.mkdir(parents=True, exist_ok=True)
+    partial = record_file.with_name(f".{record_file.name}.partial")
+    partial.write_text(json.dumps(record, ensure_ascii=False, sort_keys=True), encoding="utf-8")
+    partial.replace(record_file)
+
+    models = [s for p, s in statuses.items() if results[p]["état"] in anatomy_sources.USABLE]
+    section = {
+        "mode": "déclarées",
+        "liste": [anatomy_sources.summary_line(path, result) for path, result in results.items()],
+        "en_attente": sum(1 for r in results.values() if r["état"] == anatomy_sources.PENDING),
+        "règle": "seules les sources activées ou en avertissement sont lues ; une source en attente attend la "
+                 "consolidation ; un remplacement n'a lieu que si la nouvelle source n'est pas en erreur.",
+    }
+    for line, result in zip(section["liste"], results.values()):
+        for key in ("lecture", "consolidée_le"):
+            if result.get(key):
+                line[key] = result[key]
+    return models, section
 
 
 def align_structural_models(directory: Path, statuses: list[dict[str, Any]]) -> None:

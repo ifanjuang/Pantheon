@@ -156,6 +156,22 @@ class TestProjectOverview(unittest.TestCase):
         self.assertEqual(result["levels"][0]["spaces"][0], "Cuisine 12.46 m² (projeté)")
         self.assertLess(len(json.dumps(result, ensure_ascii=False)), 6000)
 
+    def test_anatomy_sources_come_one_short_line_each_and_on_their_own_focus(self):
+        data = _projection()
+        data["anatomy_sources"] = {"mode": "déclarées", "en_attente": 1, "liste": [
+            {"fichier": "DCE/archi.ifc", "état": "activée", "rôle": "référence", "lecture": {"indice": "C", "éléments": 400}},
+            {"fichier": "DCE/bet.ifc", "état": "avertissement", "rôle": "complément", "messages": ["recalage estimé à confirmer"],
+             "calage": {"verdict": "probable", "confirmé": False, "score": 0.84}},
+            {"fichier": "DCE/bet-b.ifc", "état": "en attente", "rôle": "complément"}]}
+        (self.directory / "DEMO.json").write_text(json.dumps(data), encoding="utf-8")
+        summary = project_overview.project_overview("DEMO", self.directory)["anatomy_sources"]
+        self.assertEqual(summary["en_attente"], 1)
+        self.assertEqual(summary["liste"][0], {"fichier": "DCE/archi.ifc", "état": "activée", "rôle": "référence", "indice": "C"})
+        self.assertEqual(summary["liste"][1]["calage"], "probable, non confirmé")
+        focused = project_overview.project_overview("DEMO", self.directory, focus="sources")
+        self.assertEqual(len(focused["anatomy_sources"]["liste"]), 3)
+        self.assertNotIn("reading_rules", focused)
+
     def test_an_empty_or_unknown_code_lists_the_published_affaires(self):
         self.assertEqual(project_overview.project_overview("", self.directory)["available_codes"], ["DEMO"])
         unknown = project_overview.project_overview("AUTRE", self.directory)
