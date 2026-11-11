@@ -385,6 +385,27 @@ class TestFocus(unittest.TestCase):
         self.assertEqual(quality["autres_maquettes"][0]["discipline"], "structure")
         self.assertIn("coordonnées partagées", quality["autres_maquettes"][0]["conseils_export"][0])
 
+    def test_engineer_elements_take_the_rooms_and_grid_of_the_overlay(self):
+        structure = {"schema": "pantheon.model_reading.v1", "source": {"piece": "STRUCTURE", "index": "H"},
+                     "discipline": "structure", "spaces": [], "openings": [], "walls": [], "neighbours": [], "levels": [],
+                     "categories": {"poteau": ["poteau", "poteaux"]},
+                     "alignment": {"verdict": "probable", "score": 0.85, "reference": "MAQUETTE", "reference_index": "E", "status": "à confirmer"},
+                     "elements": [{"id": "C1", "label": "poteau", "via_recalage": {"niveau_archi": "RDC", "locaux_voisins": ["Salon", "Cuisine"], "files": "sur la file C ; entre 3 et 4"}},
+                                  {"id": "C2", "label": "poteau", "via_recalage": {"niveau_archi": "RDC", "local": "Salon", "files": "entre B et C ; entre 3 et 4"}}]}
+        (self.directory / "DEMO.maquette-structure.json").write_text(json.dumps(structure), encoding="utf-8")
+        data = json.loads((self.directory / "DEMO.json").read_text(encoding="utf-8"))
+        data["models"].append({"piece": "STRUCTURE", "index": "H", "file": "DEMO.maquette-structure.json", "status": "read"})
+        (self.directory / "DEMO.json").write_text(json.dumps(data), encoding="utf-8")
+        reading = _model_reading()
+        reading["grid_lines"] = ["B", "C", "3", "4"]
+        (self.directory / "DEMO.maquette-maquette.json").write_text(json.dumps(reading), encoding="utf-8")
+        on_c = project_overview.project_overview("DEMO", self.directory, focus="poteaux file C")["focus"]
+        self.assertEqual(on_c["recalage"]["verdict"], "probable")
+        rows = on_c.get("éléments") or [on_c]
+        self.assertTrue(all(row.get("par_recalage") for row in rows))
+        in_salon = project_overview.project_overview("DEMO", self.directory, focus="poteaux salon")["focus"]
+        self.assertEqual(in_salon["nombre"], 2)
+
     def test_without_a_model_reading_the_focus_says_so(self):
         (self.directory / "DEMO.maquette-maquette.json").unlink()
         self.assertFalse(project_overview.project_overview("DEMO", self.directory, focus="cuisine")["focus"]["found"])

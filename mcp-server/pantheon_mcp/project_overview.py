@@ -56,6 +56,8 @@ READING_RULES = [
     "l'utilisateur au lieu de choisir.",
     "Quand une position est déduite (droite, gauche, côté), citer l'indice utilisé (façade, files) et "
     "l'hypothèse du nord en haut du plan.",
+    "Les locaux et files d'un élément du BET marqués « par recalage » sont estimés : le dire, citer le score du "
+    "recalage et demander sa confirmation.",
     "Si la qualité de la maquette est insuffisante ou qu'un réexport est conseillé : répondre avec ce qui "
     "est lu sans rien inventer, dire ce qui manque, et proposer à l'utilisateur de réexporter la maquette "
     "en citant les conseils d'export.",
@@ -306,6 +308,18 @@ def _to_check(item: dict[str, Any]) -> list[str]:
     return [c for c in item.get("clues") or [] if "contredit" in c or "dit intérieur" in c or "dimension déclarée" in c]
 
 
+def _with_overlay(element: dict[str, Any]) -> dict[str, Any]:
+    """An element of the reading as the selections see it; an engineer's element takes the rooms and grid
+    position its estimated overlay on the architect's model gives it."""
+    item = {**element, "_what": _what(element), "sides": [element["space"]] if element.get("space") else []}
+    overlay = element.get("via_recalage")
+    if overlay and not element.get("space"):
+        rooms = [overlay["local"]] if overlay.get("local") else list(overlay.get("locaux_voisins") or [])
+        item.update(_rooms=rooms, grid=element.get("grid") or overlay.get("files"),
+                    level=overlay.get("niveau_archi") or element.get("level"), _overlaid=True)
+    return item
+
+
 def _category_phrase(reading: dict[str, Any], words: list[str]) -> tuple[set[str], list[str], bool] | None:
     """Labels named by the longest synonym phrase of the query (« garde corps », « poteaux »), the other words, plural."""
     vocabulary: dict[str, set[str]] = {}
@@ -413,7 +427,8 @@ def _designation(reading: dict[str, Any], words: list[str], names: dict[str, str
              and all(_on_grid(e.get("grid"), tag) for tag in tags)
              and (facade_dir is None or e.get("facade") == facade_dir)
              and (level is None or _fold(e.get("level")) == level)
-             and (not room or any(room in _fold(names.get(s)) for s in e.get("sides") or [] if s))]
+             and (not room or any(room in _fold(name) for name in
+                                  (e.get("_rooms") or [names.get(s) for s in e.get("sides") or [] if s])))]
     label = LABELS.get((kind, exterior if kind == "mur" else None))
     if not found:
         return {"found": False, "kind": "désignation", "reason": f"aucun élément ne correspond à « {' '.join(words)} »"}
@@ -459,18 +474,18 @@ def _selection(reading: dict[str, Any], wanted: str, states: dict[str, str]) -> 
     names = {s["id"]: s["name"] for s in reading.get("spaces") or []}
     elements = [{**o, "_what": _what(o)} for o in reading.get("openings") or []] + \
                [{**w, "_what": w.get("label") or "mur"} for w in reading.get("walls") or []] + \
-               [{**e, "_what": _what(e), "sides": [e.get("space")] if e.get("space") else []}
-                for e in reading.get("elements") or []]
+               [_with_overlay(e) for e in reading.get("elements") or []]
 
     def row(item: dict[str, Any]) -> dict[str, Any]:
-        sides = [names.get(s, "?") for s in item.get("sides") or [] if s]
+        sides = item.get("_rooms") or [names.get(s, "?") for s in item.get("sides") or [] if s]
         return {"élément": item["_what"], **({"largeur_m": item["width_m"]} if item.get("width_m") else {}),
                 **({"hauteur_m": item["height_m"]} if item.get("height_m") else {}),
                 **({"épaisseur_m": item["thickness_m"]} if item.get("thickness_m") else {}),
                 **({"longueur_m": item["length_m"]} if item.get("length_m") else {}),
                 "locaux": sides, **({"façade": item["facade"]} if item.get("facade") else {}),
                 **({"files": item["grid"]} if item.get("grid") else {}), "niveau": item.get("level"),
-                **({"à_vérifier": _to_check(item)} if _to_check(item) else {}), "id": item["id"]}
+                **({"à_vérifier": _to_check(item)} if _to_check(item) else {}),
+                **({"par_recalage": True} if item.get("_overlaid") else {}), "id": item["id"]}
 
     words = wanted.split()
     designated = _designation(reading, words, names, elements, row)
@@ -505,16 +520,25 @@ def _focus(directory: Path, data: dict[str, Any], focus: str) -> dict[str, Any]:
     states = _states(data)
     # The architect's model (with spaces) first; engineers' models complete it.
     models.sort(key=lambda r: -len(r.get("spaces") or []))
-    missed = None
+    missed, found = None, []
     for reading in models:
         selected = _selection(reading, wanted, states)
         if selected is None:
             continue
         selected = {**selected, "source": {"piece": reading["source"].get("piece"), "index": reading["source"].get("index")},
                     "limites": list(reading.get("limits") or [])}
+        if reading.get("alignment"):
+            align = reading["alignment"]
+            selected["recalage"] = {k: align.get(k) for k in ("verdict", "score", "reference", "reference_index", "status")}
         if selected.get("found"):
-            return selected
-        missed = missed or selected
+            found.append(selected)
+        else:
+            missed = missed or selected
+    if len(found) == 1 or (found and found[0].get("kind") != "sélection"):
+        return found[0]
+    if found:  # the same category in several models (an architect's posts, an engineer's columns): one answer per model
+        return {"found": True, "kind": "sélections", "par_maquette": found,
+                "nombre": sum(f.get("nombre") or 0 for f in found)}
     if missed is not None:
         return missed
     for reading in models:
@@ -625,7 +649,9 @@ def _compact(full: dict[str, Any], directory: Path, data: dict[str, Any]) -> dic
                                     "index": models_read[0]["source"].get("index"), **_quality(models_read[0])}
         others = [{"maquette": r["source"].get("piece"), "index": r["source"].get("index"),
                    "discipline": (r.get("quality") or {}).get("discipline"), "niveau": (r.get("quality") or {}).get("niveau"),
-                   "conseils_export": list((r.get("quality") or {}).get("conseils_export") or [])[:2]}
+                   "conseils_export": list((r.get("quality") or {}).get("conseils_export") or [])[:2],
+                   **({"recalage": {k: r["alignment"].get(k) for k in ("verdict", "score", "margin", "reference", "reference_index", "status")}}
+                      if r.get("alignment") else {})}
                   for r in models_read[1:] if isinstance(r.get("quality"), dict)]
         if others:
             compact["model_quality"]["autres_maquettes"] = others
