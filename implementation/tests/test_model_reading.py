@@ -155,3 +155,13 @@ def test_the_words_of_the_categories_present_are_published() -> None:
     words = reading.category_words(reading.load_rules(), {"poteau", "garde-corps"})
     assert "poteaux" in words["poteau"] and "garde corps" in words["garde-corps"]
     assert "mobilier" not in words
+
+
+def test_quality_follows_the_discipline_and_asks_for_shared_coordinates() -> None:
+    assert reading.discipline({"spaces": 0, "openings": 0, "structure": 700}) == "structure"
+    assert reading.discipline({"spaces": 14, "openings": 22, "structure": 150}) == "architecture"
+    structure = reading.quality({"spaces": False, "marks": False, "coordinates": False, "north": True}, "structure")
+    assert structure["niveau"] == "à améliorer" and structure["contrôles"]["spaces"] is None
+    assert "coordonnées partagées" in structure["conseils_export"][0]  # the most useful advice first
+    assert reading.quality({"spaces": False}, "architecture")["niveau"] == "insuffisante"
+

@@ -234,17 +234,38 @@ EXPORT_ADVICE = {
     "external": "Régler la fonction (intérieur / extérieur) des types de murs ; à défaut, IfcExportAs / Pset_WallCommon.IsExternal.",
     "load_bearing": "Cocher « porteur » (structural) sur les murs porteurs, exporté dans Pset_WallCommon.LoadBearing.",
     "classes": "Utiliser IfcExportAs / IfcExportType dans les familles pour exporter portes et fenêtres dans leur vraie classe.",
+    "coordinates": "Exporter en coordonnées partagées (même point de base que la maquette d'architecture, site géoréférencé), "
+                   "ou convenir d'une origine commune (par exemple l'intersection de deux files au niveau 0,00), "
+                   "pour superposer les maquettes archi et BET.",
 }
 
 
-def quality(checks: dict[str, bool | None]) -> dict[str, Any]:
-    """Model quality from named checks (True passes, False fails, None unknown), with export advice."""
-    important = ("spaces", "north", "phases", "marks", "space_boundaries")
+def discipline(counts: dict[str, int]) -> str:
+    """Architecture when spaces or doors and windows are modelled; structure when only load-bearing elements are."""
+    if counts.get("spaces") or counts.get("openings"):
+        return "architecture"
+    if counts.get("structure"):
+        return "structure"
+    return "autre"
+
+
+def quality(checks: dict[str, bool | None], model_discipline: str = "architecture") -> dict[str, Any]:
+    """Model quality from named checks (True passes, False fails, None unknown), with export advice.
+
+    Checks that do not apply to the model's discipline (spaces, marks, space boundaries for a structural
+    model) are set aside rather than failed.
+    """
+    if model_discipline != "architecture":
+        checks = {name: (None if name in {"spaces", "marks", "space_boundaries", "external"} else ok)
+                  for name, ok in checks.items()}
+    important = ("spaces", "north", "phases", "marks", "space_boundaries", "coordinates")
     failed = [name for name, ok in checks.items() if ok is False]
     blocking = "spaces" in failed
     level = "insuffisante" if blocking else ("à améliorer" if failed else "bonne")
-    advice = [EXPORT_ADVICE[name] for name in failed if name in EXPORT_ADVICE]
-    return {"niveau": level, "contrôles": {name: ok for name, ok in checks.items()},
+    order = ["spaces", "coordinates", "north", "phases", "marks", "space_boundaries", "schema", "external", "load_bearing", "classes"]
+    advice = [EXPORT_ADVICE[name] for name in sorted(failed, key=lambda n: order.index(n) if n in order else len(order))
+              if name in EXPORT_ADVICE]
+    return {"niveau": level, "discipline": model_discipline, "contrôles": {name: ok for name, ok in checks.items()},
             "réexport_conseillé": blocking or sum(1 for name in failed if name in important) >= 2,
             "conseils_export": advice}
 
@@ -596,7 +617,15 @@ def read(path: Path) -> dict[str, Any]:
         "marks": has_property(model.by_type("IfcWindow") + model.by_type("IfcDoor"), ("mark", "marque")),
         "external": (agree >= 0.8 * len(declared_external)) if declared_external else None,
         "load_bearing": any(load_bearing) if load_bearing else None,
+        # Shared coordinates: a georeferenced site or a map conversion lets models of several authors overlay.
+        "coordinates": any(site.RefLatitude for site in model.by_type("IfcSite"))
+                       or bool(model.schema.upper().startswith("IFC4") and model.by_type("IfcMapConversion")),
     }
+    model_discipline = discipline({
+        "spaces": len(spaces),
+        "openings": len(model.by_type("IfcWindow")) + len(model.by_type("IfcDoor")),
+        "structure": sum(len(model.by_type(c)) for c in ("IfcColumn", "IfcBeam", "IfcFooting", "IfcMember")),
+    })
 
     return {
         "north": {"angle_deg": round(north, 1), "set_in_model": north_set},
@@ -612,7 +641,8 @@ def read(path: Path) -> dict[str, Any]:
                                      | {e.get("label") for e in elements} | {"baie libre"}),
         "ifc_schema": model.schema,
         "declared_vs_observed": notes,
-        "quality": quality(checks),
+        "discipline": model_discipline,
+        "quality": quality(checks, model_discipline),
         "limits": [
             "Côtés, façades et voisinages calculés par la géométrie : déductions, à confirmer.",
             "Façades nommées d'après le nord de la maquette"

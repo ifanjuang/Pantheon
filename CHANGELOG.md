@@ -110,6 +110,13 @@
   and reading rules. Indices and numbers come from the file so a local model
   quotes them instead of computing or recalling them. No database access; never
   evidence or a decision.
+- Model quality by discipline: a model with only load-bearing elements is a
+  structural model, for which missing spaces, marks and space boundaries are
+  set aside rather than failed; a new check asks for shared coordinates (a
+  georeferenced site or a map conversion), first in the export advice, so
+  architect and engineer models can overlay. `get_project` gives the quality
+  of every published model and shows declared-against-measured size gaps on
+  designated elements.
 - Category profile `architecture@1`
   (`registries/architecture_category_profile.registry.json`) and one reading
   engine for every element: what a model element is (opening natures, walls,
