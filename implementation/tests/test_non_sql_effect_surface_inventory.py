@@ -29,7 +29,11 @@ EFFECT_INVENTORY: dict[tuple[str, str], dict[str, str]] = {
     },
     ("anatomy_export.py", "read_declared_sources"): {
         "effect": "filesystem_projection",
-        "reviewed": "reads the anatomy sources declared on Workspace cards (read-only), writes the model readings of the consolidated ones through model_reading.ensure and one agency-owned record of what was consolidated (file fingerprint and declaration) next to the projection, atomically; never writes the Workspace, never a source of the Anatomy",
+        "reviewed": "reads the anatomy sources declared on Workspace cards (read-only), writes the model readings of the consolidated ones through model_reading.ensure and one agency-owned record of what was consolidated (file fingerprint and declaration) next to the projection, plus a bounded list of consolidation snapshots, atomically; removes model sheets nothing refers to (prune_sheets); never writes the Workspace, never a source of the Anatomy",
+    },
+    ("anatomy_export.py", "prune_sheets"): {
+        "effect": "filesystem_projection",
+        "reviewed": "removes the affaire's derived model sheets (<CODE>.maquette-*.json) in the projection directory that no current model, declared source or kept consolidation snapshot refers to; regenerable from the model files, never a source",
     },
     ("model_reading.py", "ensure"): {
         "effect": "filesystem_projection",
