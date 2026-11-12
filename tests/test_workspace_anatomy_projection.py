@@ -39,6 +39,7 @@ def publish(directory: Path, code: str = "DEMO", **overrides) -> Path:
             "liste": [{
                 "fichier": "MODELE_A.ifc", "état": "avertissement", "rôle": "référence",
                 "indice": "DCE", "calage": {"verdict": "probable"},
+                "déplacé_depuis": "ANCIEN/MODELE_A.ifc",
                 "messages": ["calage à confirmer"], "private_field": "never forwarded",
             }],
             "en_attente": 0,
@@ -74,7 +75,8 @@ def test_published_projection_is_rebuilt_to_what_the_card_shows(tmp_path):
     assert result["sources"]["rep.room"] == {"page": 2, "kind": "document", "identity_pending": True}
     assert result["anatomy_sources"]["liste"] == [{
         "fichier": "MODELE_A.ifc", "état": "avertissement", "rôle": "référence",
-        "indice": "DCE", "calage": {"verdict": "probable"}, "messages": ["calage à confirmer"],
+        "indice": "DCE", "calage": {"verdict": "probable"}, "déplacé_depuis": "ANCIEN/MODELE_A.ifc",
+        "messages": ["calage à confirmer"],
     }]
     assert result["anatomy_sources"]["dernière_consolidation"] == "2026-11-06T08:00:00Z"
 

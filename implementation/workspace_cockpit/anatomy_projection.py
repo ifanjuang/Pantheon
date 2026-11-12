@@ -80,7 +80,7 @@ def read_anatomy(directory: Path | None, code: str) -> dict[str, Any]:
                 continue
             source_lines.append({key: item[key] for key in (
                 "fichier", "état", "rôle", "discipline", "usage", "perimeter", "indice", "calage",
-                "remplace", "remplacée_par", "messages", "lecture", "consolidée_le",
+                "remplace", "remplacée_par", "déplacé_depuis", "messages", "lecture", "consolidée_le",
             ) if key in item})
         return {
             "available": True,
