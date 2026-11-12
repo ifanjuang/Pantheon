@@ -167,7 +167,8 @@ def same_model_questions(readings: list[dict[str, Any]], dates: dict[str, str] |
             text = (f"Maquettes {a.get('discipline') or 'de même discipline'} : "
                     f"{named[0][0]}{f' ({named[0][1]})' if named[0][1] else ''} et {named[1][0]}"
                     f"{f' ({named[1][1]})' if named[1][1] else ''} : même maquette sous deux noms "
-                    f"({round(100 * share)} % d'identifiants IFC communs)")
+                    f"({round(100 * share)} % d'identifiants IFC communs entre elles ; sans rapport avec "
+                    f"leur recalage sur l'architecture)")
             if named[0][1] and named[1][1] and named[0][1] != named[1][1]:
                 text += f" ; la plus récente est {max(named, key=lambda n: n[1])[0]}"
             from .project_pieces import question

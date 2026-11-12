@@ -504,6 +504,23 @@ class TestFocus(unittest.TestCase):
         self.assertEqual(answer["discipline_demandée"], "structure")
         self.assertEqual(answer["disciplines_disponibles"], ["architecture"])
 
+    def test_a_room_sheet_groups_its_exterior_openings_by_facade(self):
+        sheet = project_overview.project_overview("DEMO", self.directory, focus="cuisine")["focus"]
+        self.assertEqual(sheet["ouvertures_par_façade"], {"sud": ["fenêtre 1,61 × 1,87 m"]})
+
+    def test_an_element_between_two_rooms_is_designated_and_an_interior_wall_answers_cloison(self):
+        reading = _model_reading()
+        reading["walls"] = [{"id": "G-M1", "label": "mur intérieur", "sides": ["G-SAL", "G-CUI"], "thickness_m": 0.2, "length_m": 2.65},
+                            {"id": "G-M2", "label": "cloison", "sides": ["G-CH1", "G-CH2"], "thickness_m": 0.07, "length_m": 3.1}]
+        reading["categories"] = {"cloison": ["cloison", "cloisons"]}
+        reading["spaces"][3]["name"] = "Bureau"  # two distinct names (same-name rooms told by number: not yet)
+        (self.directory / "DEMO.maquette-maquette.json").write_text(json.dumps(reading), encoding="utf-8")
+        between = project_overview.project_overview("DEMO", self.directory, focus="cloison entre la cuisine et le salon")["focus"]
+        self.assertEqual((between["kind"], between["id"]), ("élément", "G-M1"))
+        self.assertIn("murs intérieurs", between["note"])
+        partition = project_overview.project_overview("DEMO", self.directory, focus="cloison entre la chambre et le bureau")["focus"]
+        self.assertEqual(partition.get("id"), "G-M2")
+
     def test_an_unknown_room_gives_the_rooms_and_advice_instead_of_a_dead_end(self):
         missed = project_overview.project_overview("DEMO", self.directory, focus="portes grenier")["focus"]
         self.assertFalse(missed["found"])

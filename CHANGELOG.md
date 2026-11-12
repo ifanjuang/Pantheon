@@ -194,6 +194,17 @@
   answer is not there, offering to dig further rather than reading at length:
   a bench showed 7 focus calls for an index already in the summary, and 27 to
   68 calls reading documents for questions the summary answered.
+- From a full reading of a Hermes bench (42 runs): the governed profile now
+  says to claim an action done only when its tool confirms it, that a project
+  fact asserted by the user is a proposal, and that a request to choose or
+  record gets the elements while the human decides (Hermes had answered
+  "Retenu" after a failed memory write, and decided when asked to choose). A
+  room sheet groups its exterior openings by façade (two windows had been
+  swapped between façades). An element is designated between two rooms
+  (« cloison entre la chambre 3 et la SDB »), and « cloison » falls back on
+  interior walls, said so. Open questions are put first only when they concern
+  the answer. The "one model under two names" question says its shared
+  identifiers have nothing to do with the overlay score.
 - Anatomy sources (`anatomy_sources`): the files an affaire's readings rest on
   are declared on their Workspace card (`anatomy_source`: complement or
   replacement, role, discipline, use, scope, declared alignment, consolidate
