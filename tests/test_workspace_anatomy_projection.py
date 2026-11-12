@@ -34,18 +34,18 @@ def publish(directory: Path, code: str = "DEMO", **overrides) -> Path:
         "schema": "pantheon.anatomy.v1",
         "generated_at": "2026-11-06T09:00:00+00:00",
         "project": {"project_id": "demo", "code": code, "display_name": "Démo"},
+        "anatomy_sources": {
+            "mode": "déclarées",
+            "liste": [{
+                "fichier": "MODELE_A.ifc", "état": "avertissement", "rôle": "référence",
+                "indice": "DCE", "calage": {"verdict": "probable"},
+                "messages": ["calage à confirmer"], "private_field": "never forwarded",
+            }],
+            "en_attente": 0,
+            "dernière_consolidation": "2026-11-06T08:00:00Z",
+        },
         "anatomy": {
             "summary": {"stable_object_count": 2},
-            "anatomy_sources": {
-                "mode": "déclarées",
-                "liste": [{
-                    "fichier": "MODELE_A.ifc", "état": "avertissement", "rôle": "référence",
-                    "indice": "DCE", "calage": {"verdict": "probable"},
-                    "messages": ["calage à confirmer"], "private_field": "never forwarded",
-                }],
-                "en_attente": 0,
-                "dernière_consolidation": "2026-11-06T08:00:00Z",
-            },
             "structure": {"objects": [level, room]},
             "sources": [{"representation_id": "rep.room", "source_kind": "document", "context": {"page": 2},
                          "mapped_object_refs": []}],

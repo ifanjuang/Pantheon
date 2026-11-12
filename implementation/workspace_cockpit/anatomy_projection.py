@@ -73,7 +73,7 @@ def read_anatomy(directory: Path | None, code: str) -> dict[str, Any]:
             }
             for item in (anatomy.get("structure") or {}).get("objects") or []
         ]
-        published_sources = anatomy.get("anatomy_sources") or {}
+        published_sources = data.get("anatomy_sources") or {}
         source_lines = []
         for item in published_sources.get("liste") or []:
             if not isinstance(item, dict):
