@@ -114,7 +114,8 @@
   (for a timer) reads, read-only, the project card requests
   (`workspace_anatomy_consolidation_requests`) and the changed `anatomy_source`
   cards, consolidates those affaires once per request and remembers what it
-  handled on the agency side. The Workspace contract (the `anatomy_source`
+  handled on the agency side; a requested consolidation is always dated, even
+  when every source was up to date, so the card shows it done. The Workspace contract (the `anatomy_source`
   object, the request table, what is published back) is documented.
 - File sheets and the project core: model sheets are named by the model file's
   fingerprint, so deactivating, reactivating or coming back to an earlier index
@@ -129,6 +130,19 @@
   short labels of what to correct (`à_corriger`) instead of the full export
   advice, and `focus="qualité"` gives every model's checks, full advice to
   cite, declared against observed and overlay.
+- One confidence scale for every value: validé (confirmed by a human), lu
+  (written in the source), déduit (computed from the source), estimé (brought
+  together across sources). Each piece's current index says it (from where the
+  index was read: card, title block, file name, none), model answers carry the
+  legend and mark overlay-placed rows `estimé`, a source's overlay is `validé`
+  once confirmed; Hermes qualifies an answer by its weakest value.
+- Changes between two indices of a model (`model_diff`): each model is compared
+  with the previous index of its piece, element by element through the IFC
+  GlobalIds the authoring tool keeps, on the readings (rooms, openings, walls,
+  elements by category), once per pair of fingerprints. `get_project` gives
+  one line per model and `focus="changements <maquette>"` the detail. Two
+  current models sharing most identifiers raise the question "one model under
+  two names: which one is authoritative?".
 - Index order checked by dates: indices follow each other, and a known date
   (card, title block read by the preflight, file name; never the PDF creation
   date) checks it. A lower index dated after the current one (indices

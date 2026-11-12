@@ -22,7 +22,7 @@ import re
 import sqlite3
 from typing import Any
 
-from . import anatomy_sources, apu_owner, apu_vocabulary, model_alignment, model_reading, project_pieces
+from . import anatomy_sources, apu_owner, apu_vocabulary, model_alignment, model_diff, model_reading, project_pieces
 from .project_anatomy_projection import get_project_anatomy_projection
 
 SCHEMA = "pantheon.anatomy.v1"
@@ -110,14 +110,21 @@ def export_project_anatomy(conn, project_id: str, *, directory: Path | None = No
     if pieces is not None:
         declared = pieces.pop("declared_sources", None) if isinstance(pieces, dict) else None
         document["pieces"] = pieces
+        previous = previous_models(code, pieces, directory)
+        keep = frozenset(entry[1].name for entry in previous.values())
         if declared:
             models, document["anatomy_sources"] = read_declared_sources(code, pieces, declared, directory,
-                                                                        consolidate=consolidate)
+                                                                        consolidate=consolidate, keep_extra=keep)
         else:
-            models = read_current_models(code, pieces, directory)
+            models = read_current_models(code, pieces, directory, keep_extra=keep)
             document["anatomy_sources"] = {"mode": "toutes les maquettes courantes (aucune source déclarée)"}
         if models:
             document["models"] = models
+            changes, questions = compare_models(code, models, previous, directory)
+            if changes:
+                document["model_changes"] = changes
+            if questions and isinstance(pieces.get("questions"), list):
+                pieces["questions"].extend(questions)
     directory.mkdir(parents=True, exist_ok=True)
     target = directory / f"{code}.json"
     partial = directory / f".{code}.json.partial"
@@ -126,7 +133,8 @@ def export_project_anatomy(conn, project_id: str, *, directory: Path | None = No
     return target
 
 
-def read_current_models(code: str, pieces: dict[str, Any], directory: Path) -> list[dict[str, Any]]:
+def read_current_models(code: str, pieces: dict[str, Any], directory: Path,
+                        keep_extra: frozenset[str] = frozenset()) -> list[dict[str, Any]]:
     """Read the current index of each model piece next to the projection; cached by file fingerprint."""
     root = project_pieces._env_path(project_pieces.AFFAIRES_ROOT_ENV)
     if root is None:
@@ -140,8 +148,63 @@ def read_current_models(code: str, pieces: dict[str, Any], directory: Path) -> l
         statuses.append(model_reading.ensure(root / code / path, sheet_file(directory, code, str(piece["piece"]), root / code / path),
                                              piece=str(piece["piece"]), index=current.get("index")))
     align_structural_models(directory, statuses)
-    prune_sheets(directory, code, {s["file"] for s in statuses if s.get("file")})
+    prune_sheets(directory, code, {s["file"] for s in statuses if s.get("file")} | keep_extra)
     return statuses
+
+
+def previous_models(code: str, pieces: dict[str, Any], directory: Path) -> dict[str, tuple[Path, Path, str | None]]:
+    """For each model piece, its previous index's file and the sheet it is (or will be) read into."""
+    root = project_pieces._env_path(project_pieces.AFFAIRES_ROOT_ENV)
+    if root is None:
+        return {}
+    previous = {}
+    for piece in pieces.get("pieces") or []:
+        path = next((p for p in (piece.get("previous") or {}).get("paths") or [] if p.lower().endswith(".ifc")), None)
+        if path and piece.get("category") == "projet":
+            previous[str(piece["piece"])] = (root / code / path, sheet_file(directory, code, str(piece["piece"]), root / code / path),
+                                             (piece.get("previous") or {}).get("index"))
+    return previous
+
+
+def compare_models(code: str, models: list[dict[str, Any]], previous: dict[str, tuple[Path, Path, str | None]],
+                   directory: Path) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """What changed since each model's previous index, and current models that are one model under two names.
+
+    The previous index is read once into its own sheet; each comparison is kept
+    per pair of fingerprints and recomputed only when either file changes.
+    """
+    readings: dict[str, dict[str, Any]] = {}
+    for status in models:
+        try:
+            readings[status["piece"]] = json.loads((directory / status["file"]).read_text(encoding="utf-8"))
+        except (KeyError, OSError, ValueError):
+            continue
+    changes, kept = [], set()
+    for piece, reading in readings.items():
+        if piece not in previous:
+            continue
+        old_path, old_sheet, old_index = previous[piece]
+        model_reading.ensure(old_path, old_sheet, piece=piece, index=old_index)
+        try:
+            old = json.loads(old_sheet.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        pair = f"{(old.get('source') or {}).get('fingerprint')}|{(reading.get('source') or {}).get('fingerprint')}"
+        target = directory / f"{code}.changements-{_slug(piece)[:26].strip('-') or 'maquette'}-" \
+                             f"{hashlib.sha1(pair.encode('utf-8')).hexdigest()[:12]}.json"
+        try:
+            diff = json.loads(target.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            diff = model_diff.compare(old, reading)
+            _write_json(target, diff)
+        kept.add(target.name)
+        changes.append({"pièce": piece, "de": diff["de"].get("index"), "à": diff["à"].get("index"),
+                        "fiable": diff.get("fiable"), "résumé": diff.get("résumé") or diff.get("raison"),
+                        "fichier": target.name})
+    for stale in directory.glob(f"{code}.changements-*.json"):
+        if stale.name not in kept:
+            stale.unlink(missing_ok=True)
+    return changes, model_diff.same_model_questions(list(readings.values()))
 
 
 def _slug(text: str) -> str:
@@ -188,7 +251,8 @@ def _write_json(target: Path, data: Any) -> None:
 
 
 def read_declared_sources(code: str, pieces: dict[str, Any], declared: dict[str, dict[str, Any]], directory: Path,
-                          *, consolidate: bool = False) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+                          *, consolidate: bool = False,
+                          keep_extra: frozenset[str] = frozenset()) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Read the declared anatomy sources, decide their states, return the model statuses and the published section.
 
     A declared source is read once consolidated: on ``consolidate``, or when its
@@ -281,7 +345,9 @@ def read_declared_sources(code: str, pieces: dict[str, Any], declared: dict[str,
     record = {p: r for p, r in record.items() if p in declared}
     _write_json(record_file, record)
     snapshots = _snapshots(directory, code)
-    if consolidated_now:  # what the state of the affaire rested on, at this consolidation
+    # What the state of the affaire rested on, at this consolidation. A requested consolidation is
+    # always dated, even when every source was already up to date: the card then shows it done.
+    if consolidated_now or consolidate:
         snapshots = (snapshots + [{"at": now, "sources": [
             {"fichier": p, "empreinte": (record.get(p) or {}).get("fingerprint"), "état": r["état"],
              **({"fiche": statuses[p].get("file")} if p in statuses and statuses[p].get("file") else {})}
@@ -290,7 +356,8 @@ def read_declared_sources(code: str, pieces: dict[str, Any], declared: dict[str,
     # Sheets stay while a source, inactive included, or a kept snapshot refers to them.
     prune_sheets(directory, code, {s["file"] for s in statuses.values() if s.get("file")}
                  | {r["sheet"] for r in record.values() if r.get("sheet")}
-                 | {src["fiche"] for snap in snapshots for src in snap.get("sources") or [] if src.get("fiche")})
+                 | {src["fiche"] for snap in snapshots for src in snap.get("sources") or [] if src.get("fiche")}
+                 | keep_extra)
 
     models = [s for p, s in statuses.items() if results[p]["état"] in anatomy_sources.USABLE]
     section = {

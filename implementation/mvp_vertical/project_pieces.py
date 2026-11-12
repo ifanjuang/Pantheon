@@ -345,20 +345,21 @@ RELIABLE_DATES = {"fiche", "cartouche", "nom"}  # the PDF creation date is not t
 
 
 def _revision(file: dict[str, Any]) -> dict[str, Any]:
-    parsed, position = None, POSITION_UNCERTAIN
-    for key, level in (("index_card", POSITION_CERTAIN), ("index_read", POSITION_CERTAIN)):
+    parsed, position, index_source = None, POSITION_UNCERTAIN, None
+    for key, level, source in (("index_card", POSITION_CERTAIN, "fiche"), ("index_read", POSITION_CERTAIN, "cartouche")):
         if parsed := parse_index(file.get(key), numeric=True):
-            position = level
+            position, index_source = level, source
             break
     if parsed is None and (parsed := filename_index(file["title"])):
-        position = POSITION_PROBABLE
+        position, index_source = POSITION_PROBABLE, "nom"
     when, when_source = None, None
     for key, source in (("date_card", "fiche"), ("date_read", "cartouche"), ("title", "nom"), ("date_pdf", "pdf")):
         value = filename_date(file["title"]) if key == "title" else parse_date(file.get(key))
         if value:
             when, when_source = value, source
             break
-    revision = {"index": format_index(parsed), "position": position, "date": when, "date_source": when_source,
+    revision = {"index": format_index(parsed), "position": position, "index_source": index_source,
+                "date": when, "date_source": when_source,
                 "paths": [file["path"]], "fingerprint": file.get("fingerprint"), "_parsed": parsed,
                 "_format": Path(file["title"]).suffix.lower()}
     if file.get("issuer"):
@@ -460,10 +461,16 @@ def current_state(files: list[dict[str, Any]], project_code: str) -> dict[str, A
             if count > 1:
                 questions.append({"piece": name, "kind": "meme_indice_contenus_differents",
                                   "text": f"{name} : {count} fichiers différents portent l'indice {label}."})
+        # The revision before the current one, in the same format: what a model index is compared with.
+        # Variants of the current index (C1, C2 of C) are alternatives, not earlier revisions.
+        letter = current["_parsed"][0] if current.get("_parsed") else None
+        earlier = [r for r in revisions if r.get("_format") == current.get("_format") and r["paths"] != current["paths"]
+                   and _order(r) < _order(current) and not (letter and r.get("_parsed") and r["_parsed"][0] == letter)]
         pieces.append({
             "piece": name,
             "category": piece["category"],
             "current": {k: v for k, v in current.items() if not k.startswith("_") and k != "fingerprint"},
+            **({"previous": {k: earlier[-1][k] for k in ("index", "date", "paths") if earlier[-1].get(k)}} if earlier else {}),
             "revisions": len(revisions),
             **({"variants": variants} if len(variants) > 1 else {}),
         })
