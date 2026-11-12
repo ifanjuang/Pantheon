@@ -522,6 +522,14 @@ class TestProjectStateRouting(unittest.TestCase):
         self.assertIn(phrase.capitalize(), " ".join(server.get_project.__doc__.split()))
         self.assertIn("get_project is the live project-state", server.mcp.instructions)
 
+    def test_the_tool_description_names_the_anatomy_and_its_focuses(self):
+        # A bench showed « sources anatomiques » read as medical anatomy and searched on the web.
+        doc = " ".join(server.get_project.__doc__.split())
+        for words in ("anatomie du projet", "sources anatomiques", "poteaux du BET séjour",
+                      "changements <maquette>", "« qualité »", "never search the web", "retry once"):
+            self.assertIn(words, doc)
+        self.assertLess(len(server.get_project.__doc__), 2000)  # read with every tool list
+
 
 if __name__ == "__main__":
     unittest.main()

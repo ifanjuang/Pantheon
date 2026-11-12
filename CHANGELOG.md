@@ -181,6 +181,13 @@
   tying the engineers' question to the architect's changes. Change lines give a
   total per kind ("éléments : 197 changés (143 ajoutés, …)") so it is quoted,
   not added up (the bench showed a wrong sum).
+- The `get_project` tool description, read with every tool list, now names the
+  project's Anatomy and its vocabulary (« anatomie du projet », « sources
+  anatomiques »), says it is the first call for any question about an affaire's
+  building, lists the focuses (rooms, elements by category and place with « du
+  BET », changes, quality, sources, files), forbids searching the web for an
+  affaire and asks for one retry on "not found". A bench showed « sources
+  anatomiques » read as medical anatomy and searched on the web.
 - Anatomy sources (`anatomy_sources`): the files an affaire's readings rest on
   are declared on their Workspace card (`anatomy_source`: complement or
   replacement, role, discipline, use, scope, declared alignment, consolidate
