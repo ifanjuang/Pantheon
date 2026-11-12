@@ -840,7 +840,8 @@ def project_overview(code: str, directory: Path | None = None, focus: str = "") 
         elif wanted:
             overview["focus"] = _focus(directory, data, str(focus))
             if overview["focus"].get("kind") in {"sélection", "sélections", "élément", "local", "désignation"}:
-                overview["focus"]["confiance"] = MODEL_CONFIDENCE
+                # Its own key: a single element answered at the top level keeps its own "confiance".
+                overview["focus"]["légende_confiance"] = MODEL_CONFIDENCE
         return overview
     except (ValueError, TypeError, KeyError, AttributeError):
         return {**result, "error": "anatomy_unreadable"}

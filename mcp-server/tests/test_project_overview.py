@@ -441,6 +441,14 @@ class TestFocus(unittest.TestCase):
         self.assertTrue(all(row.get("confiance") == "estimé" for row in rows))
         in_salon = project_overview.project_overview("DEMO", self.directory, focus="poteaux salon")["focus"]
         self.assertEqual(in_salon["nombre"], 2)
+        self.assertIn("déduit", in_salon["légende_confiance"]["dimensions, nature, côtés, façade, files, locaux"])
+        # One element answered alone keeps its own confidence beside the legend.
+        structure["elements"] = structure["elements"][:1]
+        (self.directory / "DEMO.maquette-structure.json").write_text(json.dumps(structure), encoding="utf-8")
+        alone = project_overview.project_overview("DEMO", self.directory, focus="poteau salon")["focus"]
+        self.assertEqual(alone["kind"], "élément")
+        self.assertEqual(alone["confiance"], "estimé")
+        self.assertIn("légende_confiance", alone)
 
     def test_without_a_model_reading_the_focus_says_so(self):
         (self.directory / "DEMO.maquette-maquette.json").unlink()
