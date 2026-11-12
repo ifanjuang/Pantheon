@@ -61,8 +61,65 @@ HINDSIGHT_ELIGIBLE_EXTENSIONS = {
     ".pdf", ".docx", ".xlsx", ".xls", ".pptx", ".txt", ".md", ".markdown",
     ".html", ".htm", ".csv", ".tsv", ".json", ".xml", ".msg", ".epub",
 }
-SCANNED_SOURCE_EXTENSIONS = HINDSIGHT_ELIGIBLE_EXTENSIONS | {".eml"}
-HEAVY_VISIBLE_EXTENSIONS = {".rvt", ".rfa", ".rte", ".psd", ".psb"}
+SCANNED_SOURCE_EXTENSIONS = HINDSIGHT_ELIGIBLE_EXTENSIONS | {".eml", ".ifc"}
+HEAVY_VISIBLE_EXTENSIONS = {".rvt", ".rfa", ".rte", ".psd", ".psb", ".ifc"}
+ANATOMY_SOURCE_FIELDS = {
+    "active", "mode", "replaces", "role", "discipline", "usage", "perimeter",
+    "declared_alignment", "note", "consolidate_now", "set_by", "set_at", "alignment_confirmed",
+}
+ANATOMY_SOURCE_MODES = {"complément", "remplacement"}
+ANATOMY_SOURCE_ROLES = {"référence", "complément", "contrôle"}
+ANATOMY_ALIGNMENTS = {"coordonnées partagées", "origine convenue", "aucun"}
+ANATOMY_PROJECT_CODE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
+
+
+def _validate_anatomy_source(value: Any) -> tuple[dict[str, Any] | None, str | None]:
+    """Validate the one structured correction owned by the Anatomy workflow."""
+    if value is None:
+        return None, None
+    if not isinstance(value, dict):
+        return None, "anatomy_source_must_be_object_or_null"
+    unknown = set(value) - ANATOMY_SOURCE_FIELDS
+    if unknown:
+        return None, "unknown_anatomy_source_field"
+    result: dict[str, Any] = {}
+    for key in ("active", "consolidate_now"):
+        if key in value:
+            if not isinstance(value[key], bool):
+                return None, f"invalid_anatomy_source_{key}"
+            result[key] = value[key]
+    for key, allowed in (("mode", ANATOMY_SOURCE_MODES), ("role", ANATOMY_SOURCE_ROLES),
+                         ("declared_alignment", ANATOMY_ALIGNMENTS)):
+        if key in value:
+            item = value[key]
+            if item is None:
+                continue
+            if not isinstance(item, str) or item not in allowed:
+                return None, f"invalid_anatomy_source_{key}"
+            result[key] = item
+    for key in ("replaces", "discipline", "usage", "perimeter", "note", "set_by", "set_at"):
+        if key not in value or value[key] is None:
+            continue
+        item = value[key]
+        if not isinstance(item, str):
+            return None, f"invalid_anatomy_source_{key}"
+        item = item.strip()
+        if len(item) > 300:
+            return None, f"anatomy_source_text_too_long:{key}"
+        if item:
+            result[key] = item
+    if "alignment_confirmed" in value and value["alignment_confirmed"] is not None:
+        confirmation = value["alignment_confirmed"]
+        if not isinstance(confirmation, dict) or set(confirmation) - {"by", "at", "reference_fingerprint"}:
+            return None, "invalid_anatomy_source_alignment_confirmed"
+        clean_confirmation: dict[str, str] = {}
+        for key, item in confirmation.items():
+            if not isinstance(item, str) or len(item.strip()) > 300:
+                return None, "invalid_anatomy_source_alignment_confirmed"
+            if item.strip():
+                clean_confirmation[key] = item.strip()
+        result["alignment_confirmed"] = clean_confirmation
+    return result, None
 TEMP_SUFFIXES = {".bak", ".lock", ".lck", ".swp", ".tmp", ".temp", ".autosave"}
 ARCHIVE_STEM_MARKERS = {"archive", "bak", "backup", "old"}
 MAX_CARTOUCHE_BYTES = 512 * 1024
@@ -2750,6 +2807,9 @@ class CockpitHandler(BaseHTTPRequestHandler):
         if path == "/api/document-metadata-overrides":
             self._save_document_metadata_overrides()
             return
+        if path == "/api/anatomy-consolidation-requests":
+            self._request_anatomy_consolidation()
+            return
         if path == "/api/document-hindsight-metadata-sync":
             self._request_hindsight_metadata_sync()
             return
@@ -3131,6 +3191,13 @@ class CockpitHandler(BaseHTTPRequestHandler):
         }
         normalized: dict[str, Any] = {}
         for key, value in values.items():
+            if key == "anatomy_source":
+                anatomy_source, error = _validate_anatomy_source(value)
+                if error:
+                    self._json({"error": error, "field": key}, HTTPStatus.BAD_REQUEST)
+                    return
+                normalized[key] = anatomy_source
+                continue
             if key not in allowed_fields:
                 self._json({"error": "unknown_metadata_field", "field": str(key)}, HTTPStatus.BAD_REQUEST)
                 return
@@ -3214,6 +3281,15 @@ class CockpitHandler(BaseHTTPRequestHandler):
                                 merged[key] = normalized[key]
                             else:
                                 merged.pop(key, None)
+                    if "anatomy_source" in values:
+                        anatomy_source = normalized["anatomy_source"]
+                        if anatomy_source is None:
+                            merged.pop("anatomy_source", None)
+                        else:
+                            # The timestamp is server-owned; callers cannot backdate a declaration.
+                            anatomy_source["set_at"] = now
+                            anatomy_source.setdefault("set_by", "workspace-cockpit")
+                            merged["anatomy_source"] = anatomy_source
                     if not merged:
                         if existing:
                             connection.execute(
@@ -3251,6 +3327,81 @@ class CockpitHandler(BaseHTTPRequestHandler):
             return
         self._json({"status": status, "values": {} if status == "deleted" else merged,
                     "updated_at": now, "source_sha256": source_sha256})
+
+    def _request_anatomy_consolidation(self) -> None:
+        origin = self.headers.get("Origin", "").strip()
+        host = self.headers.get("Host", "").strip()
+        if not origin or not host or urlparse(origin).netloc.casefold() != host.casefold():
+            self._json({"error": "same_origin_required"}, HTTPStatus.FORBIDDEN)
+            return
+        if self.headers.get("Sec-Fetch-Site", "").casefold() not in {"", "same-origin"}:
+            self._json({"error": "same_origin_required"}, HTTPStatus.FORBIDDEN)
+            return
+        if self.headers.get("X-Pantheon-Intent", "").strip() != "anatomy-consolidation-request":
+            self._json({"error": "explicit_intent_required"}, HTTPStatus.FORBIDDEN)
+            return
+        if self.headers.get("Content-Type", "").split(";", 1)[0].strip().casefold() != "application/json":
+            self._json({"error": "application_json_required"}, HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
+            return
+        try:
+            content_length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            self._json({"error": "invalid_content_length"}, HTTPStatus.BAD_REQUEST)
+            return
+        if content_length < 0 or content_length > 4096:
+            self._json({"error": "request_too_large"}, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+            return
+        try:
+            body = json.loads(self.rfile.read(content_length).decode("utf-8") or "{}")
+        except (UnicodeError, json.JSONDecodeError):
+            self._json({"error": "invalid_json"}, HTTPStatus.BAD_REQUEST)
+            return
+        if not isinstance(body, dict):
+            self._json({"error": "json_object_required"}, HTTPStatus.BAD_REQUEST)
+            return
+        workspace_name = body.get("workspace")
+        project_code = body.get("project_code")
+        requested_by = "workspace-cockpit"
+        if not isinstance(workspace_name, str) or workspace_name not in dict(self.roots):
+            self._json({"error": "workspace_not_found"}, HTTPStatus.NOT_FOUND)
+            return
+        if not isinstance(project_code, str) or not ANATOMY_PROJECT_CODE.fullmatch(project_code):
+            self._json({"error": "invalid_project_code"}, HTTPStatus.BAD_REQUEST)
+            return
+        root = dict(self.roots).get(workspace_name)
+        try:
+            project = (root / project_code).resolve(strict=True) if root else None
+            if project is None or not project.is_dir() or project.parent != root.resolve(strict=True):
+                raise ValueError("project_not_found")
+        except (OSError, RuntimeError, ValueError):
+            self._json({"error": "project_not_found"}, HTTPStatus.NOT_FOUND)
+            return
+        state_db = self._workspace_state_db(workspace_name)
+        if state_db is None or not state_db.is_file():
+            self._json({"error": "workspace_index_unavailable"}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+        requested_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        try:
+            connection = sqlite3.connect(state_db, timeout=3)
+            try:
+                with connection:
+                    connection.execute(
+                        """CREATE TABLE IF NOT EXISTS workspace_anatomy_consolidation_requests (
+                            workspace TEXT NOT NULL, project_code TEXT NOT NULL,
+                            requested_at TEXT NOT NULL, requested_by TEXT NOT NULL)"""
+                    )
+                    connection.execute(
+                        "INSERT INTO workspace_anatomy_consolidation_requests "
+                        "(workspace, project_code, requested_at, requested_by) VALUES (?, ?, ?, ?)",
+                        (workspace_name, project_code, requested_at, requested_by.strip() or "workspace-cockpit"),
+                    )
+            finally:
+                connection.close()
+        except (OSError, sqlite3.Error):
+            self._json({"error": "anatomy_request_storage_unavailable"}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+        self._json({"status": "requested", "workspace": workspace_name,
+                    "project_code": project_code, "requested_at": requested_at})
 
     def _request_hindsight_metadata_sync(self) -> None:
         origin = self.headers.get("Origin", "").strip()
@@ -3764,8 +3915,36 @@ class CockpitHandler(BaseHTTPRequestHandler):
             self._json(read_otel_snapshot(self.otel_snapshot))
             return
         if path == "/api/anatomy":
-            code = (parse_qs(parsed.query).get("code") or [""])[0]
-            self._json(read_anatomy(self.anatomy_dir, code))
+            query = parse_qs(parsed.query)
+            code = (query.get("code") or [""])[0]
+            result = read_anatomy(self.anatomy_dir, code)
+            workspace_name = (query.get("workspace") or [""])[0]
+            if workspace_name in dict(self.roots):
+                state_db = self._workspace_state_db(workspace_name)
+                request = None
+                if state_db is not None and state_db.is_file():
+                    try:
+                        connection = sqlite3.connect(state_db, timeout=2)
+                        connection.row_factory = sqlite3.Row
+                        try:
+                            connection.execute("PRAGMA query_only=ON")
+                            table = connection.execute(
+                                "SELECT 1 FROM sqlite_master WHERE type='table' "
+                                "AND name='workspace_anatomy_consolidation_requests'"
+                            ).fetchone()
+                            if table:
+                                row = connection.execute(
+                                    "SELECT requested_at, requested_by FROM workspace_anatomy_consolidation_requests "
+                                    "WHERE workspace=? AND project_code=? ORDER BY requested_at DESC, rowid DESC LIMIT 1",
+                                    (workspace_name, code),
+                                ).fetchone()
+                                request = dict(row) if row else None
+                        finally:
+                            connection.close()
+                    except (OSError, sqlite3.Error):
+                        request = None
+                result["consolidation_request"] = request
+            self._json(result)
             return
         if path == "/api/role-traces/latest":
             self._proxy_role_trace("/internal/role-traces/latest")

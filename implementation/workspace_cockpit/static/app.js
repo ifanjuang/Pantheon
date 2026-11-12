@@ -440,6 +440,17 @@ function openCardSource(workspace, path) {
   openDocumentSource(workspace, path);
 }
 
+function isAnatomyFile(card) {
+  return /\.(ifc|dwg)$/i.test(card.name || card.path || "");
+}
+
+function anatomySourceAction(card) {
+  if (!isAnatomyFile(card)) return "";
+  const source = card.metadata_override?.values?.anatomy_source;
+  const active = source?.active === true;
+  return `<button type="button" class="anatomy-source-toggle${active ? " is-declared" : ""}" data-anatomy-source-toggle data-workspace="${escapeHtml(card.workspace)}" data-source-path="${escapeHtml(card.path)}">${active ? "Désactiver l’Anatomie" : "Anatomie"}</button>`;
+}
+
 function documentCardBody(card) {
   const preflight = card.preflight_metadata || {};
   const overrideValues = card.metadata_override?.values || {};
@@ -470,6 +481,7 @@ function documentCardBody(card) {
       ${details.length ? `<span>${escapeHtml(details.join(" · "))}</span>` : ""}
     </div>
     <div class="document-front-summary">${preflightDetails}${summary}</div>
+    ${anatomySourceAction(card)}
     ${hermesDiscussionsTemplate(card)}
   `;
 }
@@ -524,6 +536,7 @@ function documentCardBack(card) {
     ${facts ? `<div class="facts">${facts}</div>` : ""}
     ${documentNoteEditor(card)}
     ${reconcile}
+    ${anatomyFileSlot(card)}
   </div>`;
 }
 
@@ -625,7 +638,165 @@ function surfaceBar(entries) {
 function anatomySlot(card) {
   // Une affaire est un dossier de premier niveau ; son nom est le code du projet.
   if (card.kind !== "folder" || !card.path || card.path.includes("/")) return "";
-  return `<section class="anatomy-panel" data-anatomy-slot data-anatomy-code="${escapeHtml(card.name || card.path)}" hidden></section>`;
+  return `<section class="anatomy-panel" data-anatomy-slot data-anatomy-code="${escapeHtml(card.name || card.path)}" data-anatomy-workspace="${escapeHtml(card.workspace || "")}" hidden></section>`;
+}
+
+function anatomyFileSlot(card) {
+  if (!isAnatomyFile(card) || !card.path || !card.path.includes("/")) return "";
+  const code = card.path.split("/", 1)[0];
+  const declaration = card.metadata_override?.values?.anatomy_source || null;
+  return `<section class="anatomy-file-panel" data-anatomy-slot data-anatomy-file-path="${escapeHtml(card.path)}" data-anatomy-code="${escapeHtml(code)}" data-anatomy-workspace="${escapeHtml(card.workspace || "")}" data-anatomy-declaration="${escapeHtml(JSON.stringify(declaration))}" hidden></section>`;
+}
+
+function anatomyCardIndex(card) {
+  const values = card.metadata_override?.values || {};
+  const value = values.index || card.index || card.preflight_metadata?.fields?.index?.value;
+  if (typeof value === "string" && value.trim()) return value.trim();
+  const stem = String(card.name || "").replace(/\.(ifc|dwg)$/i, "");
+  const labelled = stem.match(/(?:^|[ ._-])(?:indice?|index|rev(?:ision)?)[ .:_-]*([A-Z0-9]{1,6})(?=$|[ ._-])/i);
+  const phase = stem.match(/(?:^|[ ._-])(?:DCE|PRO|EXE|DOE)[ ._-]+([A-Z0-9]{1,6})(?=$|[ ._-])/i);
+  return (labelled?.[1] || phase?.[1] || "").toLocaleUpperCase("fr");
+}
+
+function previousAnatomySource(card) {
+  const code = (card.path || "").split("/", 1)[0];
+  const collator = new Intl.Collator("fr", { numeric: true, sensitivity: "base" });
+  const currentIndex = anatomyCardIndex(card);
+  const candidates = allCards().filter((item) => item.kind === "document"
+    && item.workspace === card.workspace && item.path !== card.path
+    && item.path.startsWith(`${code}/`) && item.parent_path === card.parent_path
+    && isAnatomyFile(item));
+  if (!candidates.length) return null;
+  const earlier = currentIndex
+    ? candidates.filter((item) => anatomyCardIndex(item) && collator.compare(anatomyCardIndex(item), currentIndex) < 0)
+    : [];
+  return (earlier.sort((a, b) => collator.compare(anatomyCardIndex(a), anatomyCardIndex(b))).at(-1)) || null;
+}
+
+function createAnatomySourceDialog(card) {
+  const previous = previousAnatomySource(card);
+  const candidates = allCards().filter((item) => item.kind === "document"
+    && item.workspace === card.workspace && item.path !== card.path
+    && item.path.startsWith(`${card.path.split("/", 1)[0]}/`) && item.parent_path === card.parent_path
+    && isAnatomyFile(item));
+  const projectCode = card.path.split("/", 1)[0];
+  const preferredPath = previous?.path || "";
+  const dialog = document.createElement("dialog");
+  dialog.className = "anatomy-dialog";
+  dialog.innerHTML = `<form method="dialog" data-anatomy-source-form>
+    <h2>Déclarer une source d’Anatomie</h2>
+    <p class="anatomy-dialog-file">${escapeHtml(card.name || card.path)}</p>
+    <fieldset><legend>Action</legend>
+      <label><input type="radio" name="mode" value="complément" checked> Ajouter (complément)</label>
+      <label><input type="radio" name="mode" value="remplacement"${candidates.length ? "" : " disabled"}> Remplacer une source</label>
+    </fieldset>
+    <label class="anatomy-replacement-field">Fichier remplacé
+      <select name="replaces"${candidates.length ? "" : " disabled"}>${candidates.map((item) => `<option value="${escapeHtml(item.path.slice(projectCode.length + 1))}"${item.path === preferredPath ? " selected" : ""}>${escapeHtml(item.name || item.path)}${anatomyCardIndex(item) ? ` · ${escapeHtml(anatomyCardIndex(item))}` : ""}</option>`).join("")}</select>
+      ${previous ? `<small>Indice précédent proposé : ${escapeHtml(previous.name || previous.path)}</small>` : '<small>Choisissez le fichier source à remplacer.</small>'}
+    </label>
+    <div class="anatomy-dialog-grid">
+      <label>Rôle<select name="role"><option>complément</option><option>référence</option><option>contrôle</option></select></label>
+      <label>Discipline<input name="discipline" maxlength="300"></label>
+      <label>Usage<input name="usage" maxlength="300" placeholder="conception, permis, DCE…"></label>
+      <label>Périmètre<input name="perimeter" maxlength="300"></label>
+      <label>Calage déclaré<select name="declared_alignment"><option>aucun</option><option>coordonnées partagées</option><option>origine convenue</option></select></label>
+      <label class="anatomy-dialog-note">Note<input name="note" maxlength="300"></label>
+    </div>
+    <label class="anatomy-consolidate-now"><input type="checkbox" name="consolidate_now"> Consolider maintenant</label>
+    <p class="anatomy-dialog-error" data-anatomy-dialog-error role="alert"></p>
+    <div class="anatomy-dialog-actions"><button type="button" data-anatomy-cancel>Annuler</button><button type="submit" data-mode="complément">Ajouter</button><button type="submit" data-mode="remplacement"${candidates.length ? "" : " disabled"}>Remplacer</button></div>
+  </form>`;
+  document.body.append(dialog);
+  const form = dialog.querySelector("form");
+  const replace = dialog.querySelector('input[name="mode"][value="remplacement"]');
+  const replaceField = dialog.querySelector(".anatomy-replacement-field");
+  const replaceButton = dialog.querySelector('[data-mode="remplacement"]');
+  const syncMode = () => {
+    replaceField.hidden = !replace.checked;
+    replaceButton.disabled = !replace.checked || candidates.length === 0;
+  };
+  form.querySelectorAll('input[name="mode"]').forEach((input) => input.addEventListener("change", syncMode));
+  syncMode();
+  dialog.querySelector("[data-anatomy-cancel]").addEventListener("click", () => dialog.close());
+  dialog.addEventListener("close", () => dialog.remove(), { once: true });
+  return dialog;
+}
+
+async function saveAnatomySource(card, source, dialog = null) {
+  const response = await fetch(workspaceUrl("api/document-metadata-overrides"), {
+    method: "POST", cache: "no-store",
+    headers: { "Content-Type": "application/json", "X-Pantheon-Intent": "document-metadata-save" },
+    body: JSON.stringify({ workspace: card.workspace, path: card.path, values: { anatomy_source: source } }),
+  });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+  card.metadata_override ||= { values: {} };
+  card.metadata_override.values ||= {};
+  if (payload.values?.anatomy_source) card.metadata_override.values.anatomy_source = payload.values.anatomy_source;
+  else delete card.metadata_override.values.anatomy_source;
+  if (dialog?.open) dialog.close();
+  renderCards();
+}
+
+function handleAnatomySourceToggle(button) {
+  const card = allCards().find((item) => item.workspace === button.dataset.workspace && item.path === button.dataset.sourcePath);
+  if (!card) return;
+  const prior = card.metadata_override?.values?.anatomy_source;
+  if (prior?.active === true) {
+    void saveAnatomySource(card, { ...prior, active: false, consolidate_now: false, set_by: "workspace-cockpit" })
+      .catch((error) => window.alert(`Échec de l’enregistrement : ${error.message || error}`));
+    return;
+  }
+  const dialog = createAnatomySourceDialog(card);
+  const form = dialog.querySelector("form");
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const action = event.submitter?.dataset.mode;
+    const fields = new FormData(form);
+    const mode = action === "remplacement" ? "remplacement" : "complément";
+    const source = {
+      active: true,
+      mode,
+      role: String(fields.get("role") || "complément"),
+      discipline: String(fields.get("discipline") || "").trim(),
+      usage: String(fields.get("usage") || "").trim(),
+      perimeter: String(fields.get("perimeter") || "").trim(),
+      declared_alignment: String(fields.get("declared_alignment") || "aucun"),
+      note: String(fields.get("note") || "").trim(),
+      consolidate_now: fields.get("consolidate_now") === "on",
+      set_by: "workspace-cockpit",
+    };
+    if (mode === "remplacement") source.replaces = String(fields.get("replaces") || "");
+    const errorNode = dialog.querySelector("[data-anatomy-dialog-error]");
+    void saveAnatomySource(card, source, dialog).catch((error) => {
+      errorNode.textContent = `Échec : ${error.message || error}`;
+    });
+  });
+  dialog.showModal();
+}
+
+async function requestAnatomyConsolidation(button) {
+  const slot = button.closest("[data-anatomy-slot]");
+  const status = slot?.querySelector("[data-anatomy-request-status]");
+  button.disabled = true;
+  if (status) status.textContent = "Demande en cours…";
+  try {
+    const response = await fetch(workspaceUrl("api/anatomy-consolidation-requests"), {
+      method: "POST", cache: "no-store",
+      headers: { "Content-Type": "application/json", "X-Pantheon-Intent": "anatomy-consolidation-request" },
+      body: JSON.stringify({ workspace: button.dataset.workspace, project_code: button.dataset.projectCode, requested_by: "workspace-cockpit" }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+    if (status) status.textContent = "Consolidation demandée.";
+    if (slot) {
+      delete slot.dataset.anatomyLoaded;
+      await loadAnatomy(slot);
+    }
+  } catch (error) {
+    if (status) status.textContent = `Échec : ${error.message || error}`;
+    button.disabled = false;
+  }
 }
 
 function anatomyValue(claim) {
@@ -635,7 +806,66 @@ function anatomyValue(claim) {
   return `${ATTRIBUTE_LABELS[claim.key] || claim.key} ${value}${unit ? ` ${unit}` : ""}${claim.certainty ? ` · ${claim.certainty}` : ""}`;
 }
 
-function renderAnatomy(data) {
+function anatomyStateClass(state) {
+  return ({ "en attente": "pending", "activée": "active", "avertissement": "warning", "erreur": "error", "remplacée": "quiet", inactive: "quiet" })[state] || "quiet";
+}
+
+function anatomyValueText(value) {
+  if (value === null || value === undefined || value === "") return "";
+  const text = typeof value === "object" ? JSON.stringify(value) : String(value);
+  return text.length > 600 ? `${text.slice(0, 597)}…` : text;
+}
+
+function anatomySourceLine(item, compact = false) {
+  const state = item["état"] || "en attente";
+  const details = [
+    item["rôle"] ? `Rôle : ${item["rôle"]}` : "",
+    item.indice || item.lecture?.indice ? `Indice : ${item.indice || item.lecture?.indice}` : "",
+    item.usage ? `Usage : ${item.usage}` : "",
+    item.calage ? `Calage : ${anatomyValueText(item.calage)}` : "",
+    item.lecture ? `Lecture : ${anatomyValueText(item.lecture)}` : "",
+    item.remplace ? `Remplace : ${item.remplace}` : "",
+    item.remplacée_par ? `Remplacée par : ${item.remplacée_par}` : "",
+    ...(Array.isArray(item.messages) ? item.messages : []),
+  ].filter(Boolean);
+  return `<li class="anatomy-source-line"><span class="anatomy-state is-${anatomyStateClass(state)}" role="img" aria-label="${escapeHtml(state)}" title="${escapeHtml(state)}">●</span><strong>${escapeHtml(item.fichier || "Fichier")}</strong>${compact && details.length ? `<span class="anatomy-details">${escapeHtml(details.join(" · "))}</span>` : !compact && details.length ? `<span class="anatomy-details">${escapeHtml(details.join(" · "))}</span>` : ""}</li>`;
+}
+
+function renderProjectAnatomySources(data, slot) {
+  const section = data.anatomy_sources || {};
+  const list = Array.isArray(section.liste) ? section.liste : [];
+  const request = data.consolidation_request;
+  const last = section["dernière_consolidation"];
+  const pending = request?.requested_at && (!last || Date.parse(request.requested_at) > Date.parse(last));
+  const requestedStatus = request ? (pending ? "demandée" : "faite") : "aucune demande";
+  const date = (value) => value ? new Date(value).toLocaleString("fr-FR") : "jamais";
+  return `<section class="anatomy-project-sources" aria-label="Sources de l’Anatomie">
+    <h4>Sources · ${list.length}</h4>
+    ${list.length ? `<ul class="anatomy-source-list">${list.map((item) => anatomySourceLine(item)).join("")}</ul>` : '<p class="anatomy-note">Aucune source déclarée.</p>'}
+    <p class="anatomy-note">Dernière consolidation : ${escapeHtml(date(last))} · Demande : <strong>${pending ? "demandée" : escapeHtml(requestedStatus)}</strong>${request?.requested_at ? ` (${escapeHtml(date(request.requested_at))})` : ""}</p>
+    <button type="button" class="anatomy-consolidate" data-anatomy-consolidate data-workspace="${escapeHtml(slot.dataset.anatomyWorkspace || "")}" data-project-code="${escapeHtml(slot.dataset.anatomyCode || "")}">Consolider les sources</button>
+    <p class="anatomy-request-status" data-anatomy-request-status role="status"></p>
+  </section>`;
+}
+
+function renderFileAnatomySource(data, slot) {
+  const filePath = (slot.dataset.anatomyFilePath || "").replaceAll("\\", "/");
+  const prefix = `${slot.dataset.anatomyCode || ""}/`;
+  const relative = filePath.startsWith(prefix) ? filePath.slice(prefix.length) : filePath;
+  let entry = (data.anatomy_sources?.liste || []).find((item) => String(item.fichier || "").replaceAll("\\", "/") === relative);
+  if (!entry) {
+    let declaration = null;
+    try { declaration = JSON.parse(slot.dataset.anatomyDeclaration || "null"); } catch { declaration = null; }
+    if (!declaration) return '<h3>Anatomie</h3><p class="anatomy-note">Aucune déclaration publiée pour ce fichier.</p>';
+    entry = { fichier: relative, "état": declaration.active === false ? "inactive" : "en attente", "rôle": declaration.role,
+      usage: declaration.usage, calage: declaration.declared_alignment, remplace: declaration.replaces,
+      messages: ["La déclaration attend sa publication par l’agence."] };
+  }
+  return `<h3>Anatomie · ${escapeHtml(entry["état"] || "en attente")}</h3><ul class="anatomy-source-list">${anatomySourceLine(entry)}</ul>`;
+}
+
+function renderAnatomy(data, slot) {
+  if (slot.dataset.anatomyFilePath) return renderFileAnatomySource(data, slot);
   const objects = new Map((data.objects || []).map((item) => [item.id, item]));
   const children = new Map();
   const contained = new Set();
@@ -661,6 +891,7 @@ function renderAnatomy(data) {
   const stamp = data.generated_at ? new Date(data.generated_at).toLocaleString("fr-FR") : "";
   const placed = [...children.values()].flat();
   return `<h3>Anatomie</h3>
+    ${renderProjectAnatomySources(data, slot)}
     ${surfaceBar(placed)}
     <ul class="anatomy-tree">${groups.join("")}${loose.join("")}</ul>
     <p class="anatomy-note">Valeurs candidates, non validées${pending ? ` · identité en attente de preuve pour ${pending} source${pending > 1 ? "s" : ""}` : ""}${stamp ? ` · publié le ${escapeHtml(stamp)}` : ""}</p>`;
@@ -670,12 +901,18 @@ async function loadAnatomy(slot) {
   if (slot.dataset.anatomyLoaded) return;
   slot.dataset.anatomyLoaded = "1";
   try {
-    const response = await fetch(workspaceUrl(`api/anatomy?code=${encodeURIComponent(slot.dataset.anatomyCode)}`), { cache: "no-store" });
+    const response = await fetch(workspaceUrl(`api/anatomy?code=${encodeURIComponent(slot.dataset.anatomyCode)}&workspace=${encodeURIComponent(slot.dataset.anatomyWorkspace || "")}`), { cache: "no-store" });
     const data = await response.json();
     if (data.available) {
-      slot.innerHTML = renderAnatomy(data);
+      slot.innerHTML = renderAnatomy(data, slot);
       slot.hidden = false;
-    } else if (!["no_anatomy", "anatomy_not_configured"].includes(data.error)) {
+    } else if (slot.dataset.anatomyFilePath) {
+      slot.innerHTML = renderFileAnatomySource({ anatomy_sources: { liste: [] } }, slot);
+      slot.hidden = false;
+    } else if (["no_anatomy", "anatomy_not_configured"].includes(data.error)) {
+      slot.innerHTML = renderProjectAnatomySources({ anatomy_sources: { liste: [] }, consolidation_request: data.consolidation_request }, slot);
+      slot.hidden = false;
+    } else {
       slot.innerHTML = `<p class="anatomy-note">Anatomie illisible pour le moment.</p>`;
       slot.hidden = false;
     }
@@ -1432,6 +1669,16 @@ elements.cards.addEventListener("click", (event) => {
     card.classList.toggle("is-verso", !showingVerso);
     const anatomy = !showingVerso ? card.querySelector("[data-anatomy-slot]") : null;
     if (anatomy) void loadAnatomy(anatomy);
+    return;
+  }
+  const anatomyToggle = event.target.closest("[data-anatomy-source-toggle]");
+  if (anatomyToggle) {
+    handleAnatomySourceToggle(anatomyToggle);
+    return;
+  }
+  const consolidateButton = event.target.closest("[data-anatomy-consolidate]");
+  if (consolidateButton) {
+    void requestAnatomyConsolidation(consolidateButton);
     return;
   }
   const noteButton = event.target.closest("[data-save-document-note]");
