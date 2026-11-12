@@ -212,22 +212,6 @@ class TestProjectOverview(unittest.TestCase):
         self.assertTrue(project_overview._room_match("local technique", "L.Tech"))
         self.assertFalse(project_overview._room_match("salon", "Chambre 1"))
 
-    def test_multiword_room_synonyms_survive_element_designation_parsing(self):
-        reading = _model_reading()
-        reading["spaces"] = [
-            {"id": "SDB", "name": "SDB", "number": "1", "level": "RDC"},
-            {"id": "SAM", "name": "SAM", "number": "2", "level": "RDC"},
-        ]
-        reading["openings"] = [
-            {"id": "P-SDB", "kind": "porte", "sides": ["SDB"]},
-            {"id": "P-SAM", "kind": "porte", "sides": ["SAM"]},
-        ]
-        (self.directory / "DEMO.maquette-maquette.json").write_text(json.dumps(reading), encoding="utf-8")
-        bath = project_overview.project_overview("DEMO", self.directory, focus="portes salle de bain")["focus"]
-        dining = project_overview.project_overview("DEMO", self.directory, focus="portes salle à manger")["focus"]
-        self.assertEqual((bath["kind"], bath["id"]), ("élément", "P-SDB"))
-        self.assertEqual((dining["kind"], dining["id"]), ("élément", "P-SAM"))
-
     def test_an_empty_or_unknown_code_lists_the_published_affaires(self):
         self.assertEqual(project_overview.project_overview("", self.directory)["available_codes"], ["DEMO"])
         unknown = project_overview.project_overview("AUTRE", self.directory)
@@ -317,6 +301,22 @@ class TestFocus(unittest.TestCase):
         result = project_overview.project_overview("DEMO", self.directory, focus="0fenetre01")
         self.assertEqual((result["focus"]["kind"], result["focus"]["facade"]), ("élément", "sud"))
         self.assertEqual(result["focus"]["côtés"], ["Cuisine", "extérieur"])
+
+    def test_multiword_room_synonyms_survive_element_designation_parsing(self):
+        reading = _model_reading()
+        reading["spaces"] = [
+            {"id": "SDB", "name": "SDB", "number": "1", "level": "RDC"},
+            {"id": "SAM", "name": "SAM", "number": "2", "level": "RDC"},
+        ]
+        reading["openings"] = [
+            {"id": "P-SDB", "kind": "porte", "sides": ["SDB"]},
+            {"id": "P-SAM", "kind": "porte", "sides": ["SAM"]},
+        ]
+        (self.directory / "DEMO.maquette-maquette.json").write_text(json.dumps(reading), encoding="utf-8")
+        bath = project_overview.project_overview("DEMO", self.directory, focus="portes salle de bain")["focus"]
+        dining = project_overview.project_overview("DEMO", self.directory, focus="portes salle à manger")["focus"]
+        self.assertEqual((bath["kind"], bath["id"]), ("élément", "P-SDB"))
+        self.assertEqual((dining["kind"], dining["id"]), ("élément", "P-SAM"))
 
     def test_reverse_questions_select_by_grid_line_facade_or_level(self):
         reading = _model_reading()
