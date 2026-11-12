@@ -341,6 +341,9 @@ def _loads(value: Any) -> dict[str, Any]:
     return data if isinstance(data, dict) else {}
 
 
+RELIABLE_DATES = {"fiche", "cartouche", "nom"}  # the PDF creation date is not the drawing's date
+
+
 def _revision(file: dict[str, Any]) -> dict[str, Any]:
     parsed, position = None, POSITION_UNCERTAIN
     for key, level in (("index_card", POSITION_CERTAIN), ("index_read", POSITION_CERTAIN)):
@@ -420,6 +423,19 @@ def current_state(files: list[dict[str, Any]], project_code: str) -> dict[str, A
             if newer:
                 questions.append({"piece": name, "kind": "fichier_sans_indice_plus_recent",
                                   "text": f"{name} : un fichier sans indice est plus récent que l'indice {current['index']}."})
+            # Indices follow each other; a known date checks it. A lower index dated after the current one
+            # (indices restarted at a new phase, a wrong index) is asked, never decided: the PDF creation
+            # date is not the drawing's date and does not count.
+            dated = lambda r: r["date"] and r.get("date_source") in RELIABLE_DATES
+            if dated(current):
+                later = [r for r in indexed if r is not current and r.get("_format") == current.get("_format")
+                         and r["_parsed"][0] != current["_parsed"][0] and dated(r) and r["date"] > current["date"]]
+                if later:
+                    newest = max(later, key=lambda r: r["date"])
+                    questions.append({"piece": name, "kind": "indice_et_date_contradictoires",
+                                      "text": f"{name} : l'indice {newest['index']} est daté du {newest['date']}, après "
+                                              f"l'indice {current['index']} ({current['date']}) ; les indices ont-ils "
+                                              f"repris à une nouvelle phase ? lequel fait foi ?"})
         chosen = [r for r in revisions if r.get("reference")]
         if chosen:
             latest = current
@@ -457,7 +473,8 @@ def current_state(files: list[dict[str, Any]], project_code: str) -> dict[str, A
         "questions": questions,
         "documents_not_followed": not_followed,
         "rule": "A, B, C : indices successifs ; C1, C2 : variantes de C ; sans indice : position incertaine, placée par la date ; "
-                "un fichier marqué référence projet sur sa fiche l'emporte.",
+                "une date connue (fiche, cartouche, nom) contrôle l'ordre des indices : un indice plus bas daté après "
+                "l'indice courant est une question ; un fichier marqué référence projet sur sa fiche l'emporte.",
         "authority": {"is_register": False, "is_evidence": False, "is_decision": False},
     }
 

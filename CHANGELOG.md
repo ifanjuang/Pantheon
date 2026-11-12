@@ -129,6 +129,11 @@
   short labels of what to correct (`à_corriger`) instead of the full export
   advice, and `focus="qualité"` gives every model's checks, full advice to
   cite, declared against observed and overlay.
+- Index order checked by dates: indices follow each other, and a known date
+  (card, title block read by the preflight, file name; never the PDF creation
+  date) checks it. A lower index dated after the current one (indices
+  restarted at a new phase, a wrong index) becomes a question; the current
+  index is not changed automatically.
 - Anatomy sources (`anatomy_sources`): the files an affaire's readings rest on
   are declared on their Workspace card (`anatomy_source`: complement or
   replacement, role, discipline, use, scope, declared alignment, consolidate

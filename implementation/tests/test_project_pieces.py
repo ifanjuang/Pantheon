@@ -206,3 +206,19 @@ def test_numbered_engineer_indices_are_ordered(tmp_path) -> None:
     cctp = next(p for p in state["pieces"] if p["piece"] == "CCTP LOT 08")
     assert (cctp["current"]["index"], cctp["revisions"]) == ("10", 2)
     assert next(p for p in state["pieces"] if p["piece"] == "NOTE STRUCTURE")["current"]["index"] == "0"
+
+
+def test_a_lower_index_dated_after_the_current_one_is_asked_not_decided(tmp_path) -> None:
+    # An engineer restarted at A in the next phase: the index order keeps C, the dates ask the question.
+    state = _state(tmp_path, {"APS/PLAN STRUCTURE.pdf": {"sha": "1", "index": "C", "document_date": "2025-12-01"},
+                              "PRO/PLAN STRUCTURE.pdf": {"sha": "2", "index": "A", "document_date": "2026-05-04"}})
+    piece = next(p for p in state["pieces"] if p["piece"] == "PLAN STRUCTURE")
+    assert piece["current"]["index"] == "C"
+    question = next(q for q in state["questions"] if q["kind"] == "indice_et_date_contradictoires")
+    assert "l'indice A est daté du 2026-05-04, après l'indice C" in question["text"] and "lequel fait foi" in question["text"]
+
+
+def test_a_pdf_creation_date_does_not_contradict_an_index(tmp_path) -> None:
+    state = _state(tmp_path, {"APS/PLAN STRUCTURE.pdf": {"sha": "1", "index": "C", "pdf_creation_date": "2025-12-01"},
+                              "PRO/PLAN STRUCTURE.pdf": {"sha": "2", "index": "A", "pdf_creation_date": "2026-05-04"}})
+    assert not [q for q in state["questions"] if q["kind"] == "indice_et_date_contradictoires"]
