@@ -175,6 +175,12 @@
 - Summarised selections give distributions over every element (counts by
   grid position, size ranges) and say the 8-row extract is a sample: a control
   showed Hermes generalising positions and sections from the extract alone.
+- The summary names each model's discipline and file, and the "one model under
+  two names" question starts with the discipline ("Maquettes structure : …"):
+  a bench showed Hermes taking an engineer's file for the architect's model and
+  tying the engineers' question to the architect's changes. Change lines give a
+  total per kind ("éléments : 197 changés (143 ajoutés, …)") so it is quoted,
+  not added up (the bench showed a wrong sum).
 - Anatomy sources (`anatomy_sources`): the files an affaire's readings rest on
   are declared on their Workspace card (`anatomy_source`: complement or
   replacement, role, discipline, use, scope, declared alignment, consolidate

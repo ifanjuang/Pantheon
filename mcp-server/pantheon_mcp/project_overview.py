@@ -911,11 +911,19 @@ def project_overview(code: str, directory: Path | None = None, focus: str = "") 
             raise ValueError("schema")
         full = {**result, **summarize(data)}
         if data.get("models"):
-            full["models"] = [{k: m.get(k) for k in ("piece", "index", "status") if m.get(k)}
+            # Each model with its discipline and file: an engineer's model is never taken for the architect's.
+            known = {r["source"].get("piece"): r for r in _load_models(directory, data)}
+            full["models"] = [{**{k: m.get(k) for k in ("piece", "index") if m.get(k)},
+                               **({"discipline": known[m.get("piece")].get("discipline")}
+                                  if known.get(m.get("piece"), {}).get("discipline") else {}),
+                               **({"fichier": known[m.get("piece")]["source"].get("file")}
+                                  if known.get(m.get("piece"), {}).get("source", {}).get("file") else {})}
                               for m in data["models"] if isinstance(m, dict)]
         changes = [c for c in data.get("model_changes") or [] if isinstance(c, dict)]
         if changes:
+            disciplines = {m.get("piece"): m.get("discipline") for m in full.get("models") or []}
             full["model_changes"] = [{k: c.get(k) for k in ("pièce", "de", "à", "résumé") if c.get(k)}
+                                     | ({"discipline": disciplines[c.get("pièce")]} if disciplines.get(c.get("pièce")) else {})
                                      | ({"fiable": False} if c.get("fiable") is False else {}) for c in changes]
         sources = data.get("anatomy_sources")
         if isinstance(sources, dict):
