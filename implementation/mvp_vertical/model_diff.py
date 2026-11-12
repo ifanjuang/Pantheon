@@ -30,7 +30,8 @@ FIELDS = {
     "spaces": (("name", None), ("level", None), ("area_m2", AREA_TOLERANCE)),
     "openings": (("nature", None), ("level", None), ("width_m", LENGTH_TOLERANCE), ("height_m", LENGTH_TOLERANCE),
                  ("sill_m", LENGTH_TOLERANCE), ("facade", None)),
-    "walls": (("level", None), ("thickness_m", LENGTH_TOLERANCE), ("length_m", LENGTH_TOLERANCE), ("facade", None)),
+    "walls": (("label", None), ("level", None), ("thickness_m", LENGTH_TOLERANCE), ("length_m", LENGTH_TOLERANCE),
+              ("facade", None)),
     "elements": (("label", None), ("level", None), ("width_m", LENGTH_TOLERANCE), ("height_m", LENGTH_TOLERANCE),
                  ("length_m", LENGTH_TOLERANCE)),
 }

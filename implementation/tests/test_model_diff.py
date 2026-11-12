@@ -90,3 +90,17 @@ def test_the_publication_compares_each_model_with_its_previous_index_once(tmp_pa
     assert questions == []
     again, _ = anatomy_export.compare_models("DEMO", models, previous, tmp_path)
     assert again == changes and reads == ["old.ifc"]  # the previous index is read once
+
+
+def test_a_wall_changing_category_is_a_change() -> None:
+    old = _reading("S", walls=[{"id": "w1", "label": "cloison", "thickness_m": 0.10, "length_m": 3.0}])
+    new = _reading("T", walls=[{"id": "w1", "label": "mur porteur", "thickness_m": 0.10, "length_m": 3.0}])
+    assert model_diff.compare(old, new)["murs"]["modifiés"][0]["changements"] == {"catégorie": ["cloison", "mur porteur"]}
+
+
+def test_variants_of_the_current_index_are_not_its_previous_index() -> None:
+    files = [{"path": "PRO/PLAN_B.ifc", "title": "PLAN_B.ifc", "fingerprint": "1"},
+             {"path": "DCE/PLAN_C1.ifc", "title": "PLAN_C1.ifc", "fingerprint": "2"},
+             {"path": "DCE/PLAN_C2.ifc", "title": "PLAN_C2.ifc", "fingerprint": "3"}]
+    piece = project_pieces.current_state(files, "DEMO")["pieces"][0]
+    assert piece["current"]["index"] == "C2" and piece["previous"]["index"] == "B"
