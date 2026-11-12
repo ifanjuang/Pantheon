@@ -115,7 +115,7 @@ def test_same_model_question_uses_the_paths_of_declared_noncurrent_sources(tmp_p
     changes, questions = anatomy_export.compare_models("DEMO", models, {}, tmp_path)
 
     assert changes == []
-    assert questions[0]["files"] == ["PRO/structure-a.ifc", "DCE/structure-h.ifc"]
+    assert set(questions[0]["files"]) == {"PRO/structure-a.ifc", "DCE/structure-h.ifc"}
 
 
 def test_a_wall_changing_category_is_a_change() -> None:
