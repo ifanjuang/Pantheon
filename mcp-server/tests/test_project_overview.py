@@ -437,6 +437,8 @@ class TestFocus(unittest.TestCase):
         (self.directory / "DEMO.maquette-maquette.json").write_text(json.dumps(reading), encoding="utf-8")
         many = project_overview.project_overview("DEMO", self.directory, focus="poteaux")["focus"]
         self.assertEqual((many["nombre"], many["par_niveau"], len(many["extrait"])), (39, {"RDC": 39}, 8))
+        self.assertEqual(sum(many["par_position"].values()), 39)
+        self.assertIn("n'en tirer aucune répartition", many["note"])
         asked = project_overview.project_overview("DEMO", self.directory, focus="poteau file C")["focus"]
         self.assertTrue(asked["question"].startswith("Plusieurs correspondent : poteau sur la file C"))
 
