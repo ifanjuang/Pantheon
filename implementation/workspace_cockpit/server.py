@@ -2543,7 +2543,7 @@ class CockpitHandler(BaseHTTPRequestHandler):
         if body is None:
             return
         create_match = path == "/api/hermes-chat/sessions"
-        session_match = re.fullmatch(r"/api/hermes-chat/sessions/([A-Za-z0-9._:_-]{1,192})(?:/(messages|archive|restore|delete))?", path)
+        session_match = re.fullmatch(r"/api/hermes-chat/sessions/([A-Za-z0-9._:_-]{1,192})(?:/(messages|annotations|archive|restore|delete))?", path)
         try:
             if create_match:
                 card = self._validate_hermes_chat_card(body.get("workspace"), body.get("path"), body.get("kind"))
@@ -2570,6 +2570,20 @@ class CockpitHandler(BaseHTTPRequestHandler):
                     return
                 discussion, messages = self.hermes_chat.send_message(session_id, message)
                 self._json({"discussion": discussion, "messages": messages}, HTTPStatus.ACCEPTED)
+            elif action == "annotations":
+                if not isinstance(body.get("visible"), bool):
+                    self._json({"error": "layer_visibility_required"}, HTTPStatus.BAD_REQUEST)
+                    return
+                layer = self.hermes_chat.save_annotation_layer(
+                    session_id,
+                    body.get("layer_id"),
+                    body.get("source_sha256"),
+                    body.get("title"),
+                    "user",
+                    body["visible"],
+                    body.get("annotations"),
+                )
+                self._json({"layer": layer}, HTTPStatus.OK)
             elif action == "archive":
                 self._json({"discussion": self.hermes_chat.set_archived(session_id, True)})
             elif action == "restore":
@@ -3670,6 +3684,22 @@ class CockpitHandler(BaseHTTPRequestHandler):
             if not include_archived:
                 sessions = [item for item in sessions if not item["archived"]]
             self._json({"discussions": sessions})
+            return
+        hermes_annotations_match = re.fullmatch(
+            r"/api/hermes-chat/sessions/([A-Za-z0-9._:_-]{1,192})/annotations", path
+        )
+        if hermes_annotations_match:
+            if self.hermes_chat is None:
+                self._json({"error": "hermes_chat_not_configured"}, HTTPStatus.SERVICE_UNAVAILABLE)
+                return
+            query = parse_qs(parsed.query, keep_blank_values=True)
+            fingerprint = (query.get("source_sha256") or [""])[0]
+            try:
+                self._json(self.hermes_chat.annotation_layers(hermes_annotations_match.group(1), fingerprint))
+            except HermesChatError as exc:
+                self._json({"error": str(exc)}, HTTPStatus.BAD_GATEWAY)
+            except (OSError, sqlite3.Error):
+                self._json({"error": "hermes_chat_storage_unavailable"}, HTTPStatus.SERVICE_UNAVAILABLE)
             return
         hermes_messages_match = re.fullmatch(
             r"/api/hermes-chat/sessions/([A-Za-z0-9._:_-]{1,192})/messages", path

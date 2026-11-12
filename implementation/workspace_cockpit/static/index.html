@@ -7,11 +7,12 @@
     <meta name="description" content="Navigation des dossiers et documents Affaires et Bibliothèque.">
     <title>Pantheon — Workspace</title>
     <base href="/workspace/">
-    <link rel="stylesheet" href="styles.css?v=20261112-anatomy-sources-1">
+    <link rel="stylesheet" href="styles.css?v=20261112-pdf-annotation-1">
     <link rel="stylesheet" href="vendor/swiper-14.3.0-bundle.min.css" integrity="sha384-xkKzAc7JSlGq3SLCZHugx/i0gfYZf6kaFzg3v9/wz0HtsAFYPLz7aUvCFTac8KBk">
     <link rel="stylesheet" href="role_trace_graph.css">
     <script src="vendor/sortable-1.15.7.min.js" integrity="sha256-v0JBvHP+9/EcWaKDpp/oBRzdMcbY/1orm6IZ54Mfz3Y=" crossorigin="anonymous" defer></script>
-    <script src="app.js?v=20261112-anatomy-sources-1" defer></script>
+    <script type="module" src="pdf-annotation-reader.js"></script>
+    <script src="app.js?v=20261112-pdf-annotation-1" defer></script>
   </head>
   <body>
     <main class="shell">
@@ -233,8 +234,28 @@
             </div>
           </div>
           <p id="document-reader-status" class="document-reader-status" role="status" aria-live="polite"></p>
+          <section id="document-reader-annotation-tools" class="document-reader-annotation-tools" aria-label="Annotations de la discussion" hidden>
+            <div class="document-reader-annotation-row">
+              <label for="document-reader-discussion">Discussion</label>
+              <select id="document-reader-discussion" aria-label="Discussion Hermes liée aux annotations"></select>
+              <button id="document-reader-open-chat" type="button">Discuter</button>
+            </div>
+            <div id="document-reader-annotation-layers" class="document-reader-annotation-layers" aria-label="Couches de repères"></div>
+            <p id="document-reader-annotation-status" class="document-reader-annotation-status" role="status" aria-live="polite"></p>
+          </section>
           <div class="document-reader-pane">
-            <iframe id="document-reader-pdf" title="Lecteur PDF" hidden></iframe>
+            <div id="document-reader-pdf" class="pantheon-pdf-reader" aria-label="Lecteur PDF" hidden>
+              <div class="pdf-reader-toolbar" aria-label="Outils du lecteur PDF">
+                <div class="pdf-reader-page-strip" data-pdf-page-strip role="navigation" aria-label="Pages du document"></div>
+                <div class="pdf-reader-zoom-tools"><button type="button" data-pdf-zoom="out" aria-label="Dézoomer">−</button><button type="button" data-pdf-zoom="fit" aria-label="Ajuster à la page">Ajuster</button><button type="button" data-pdf-zoom="in" aria-label="Zoomer">+</button></div>
+                <div class="pdf-reader-mark-tools" role="toolbar" aria-label="Outils d’annotation">
+                  <button type="button" data-pdf-tool="select" aria-pressed="true" title="Déplacer et sélectionner">↖</button><button type="button" data-pdf-tool="point" aria-pressed="false" title="Poser un point">●</button><button type="button" data-pdf-tool="line" aria-pressed="false" title="Tracer une ligne">／</button><button type="button" data-pdf-tool="arrow" aria-pressed="false" title="Tracer une flèche">➤</button><button type="button" data-pdf-tool="circle" aria-pressed="false" title="Tracer un cercle">○</button><button type="button" data-pdf-tool="rectangle" aria-pressed="false" title="Tracer un rectangle">□</button>
+                </div>
+                <button type="button" data-pdf-annotate-toggle aria-pressed="false">Annoter</button>
+              </div>
+              <div class="pdf-reader-comment-row"><input data-pdf-comment maxlength="4000" placeholder="Commentaire du repère (facultatif)" aria-label="Commentaire du repère"><button type="button" data-pdf-send-to-hermes>Questionner Hermès</button></div>
+              <div class="pdf-reader-scroll" data-pdf-scroll><div class="pdf-reader-pages" data-pdf-pages></div></div>
+            </div>
             <article id="document-reader-markdown" class="ocr-markdown" aria-live="polite" hidden></article>
           </div>
         </div>
