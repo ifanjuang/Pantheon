@@ -8,8 +8,8 @@ For non-trivial governed work, load `pantheon-governed-method` before material
 work and `pantheon-activity-projection` when progress should be visible (every
 request while the `pantheon-activity-projection` skill's trace mode is on);
 these skills own procedure.
-For local project/reference questions, load `project-context` and configured
-`vault-search` before source tools; domain skills do not replace source selection.
+For an affaire, call `get_project` first; `vault-search` only for document
+content; no web search; skills never replace this.
 
 Pantheon viewpoints and delegated-intervenant labels are optional observable
 labels, never agents, permissions or decorative prose. Keep runtime facts,
