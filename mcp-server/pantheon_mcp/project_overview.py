@@ -436,15 +436,24 @@ def _plain(text: Any) -> str:
     return " ".join(re.sub(r"[^\w ]", " ", _fold(text)).split())
 
 
+ROOM_STOPWORDS = {"de", "du", "des", "la", "le", "les", "a", "au", "aux", "d"}
+
+
+def _room_key(text: Any) -> str:
+    """Canonical room phrase, matching the grammatical-word removal in designations."""
+    return " ".join(word for word in _plain(text).split() if word not in ROOM_STOPWORDS)
+
+
 def _room_match(query: str, name: Any) -> bool:
     """A room named by the query, directly or through a usual synonym ("salon" for "Séjour")."""
-    query, plain = _plain(query), _plain(name)
+    query, plain = _room_key(query), _room_key(name)
     if not query:
         return False
     if query in plain:
         return True
+    groups = [{_room_key(word) for word in group} for group in ROOM_SYNONYMS]
     return any(query in group and any(word == plain or plain.startswith(word + " ") for word in group)
-               for group in ROOM_SYNONYMS)
+               for group in groups)
 
 
 def _selected(criterion: str, rows: list[dict[str, Any]], limit: int = SELECTION_ROWS) -> dict[str, Any]:
@@ -620,8 +629,11 @@ def _focus(directory: Path, data: dict[str, Any], focus: str) -> dict[str, Any]:
                                 ({"archi", "architecte", "architecture"}, "architecture")):
         if markers & set(words):
             kept = [r for r in models if r.get("discipline") == discipline]
-            if kept:
-                models = kept
+            if not kept:
+                available = sorted({r.get("discipline") for r in models if r.get("discipline")})
+                return {"found": False, "reason": f"aucune lecture publiée pour la discipline {discipline}",
+                        "discipline_demandée": discipline, "disciplines_disponibles": available}
+            models = kept
             words = [w for i, w in enumerate(words) if w not in markers
                      and not (w in {"du", "de", "la", "l"} and i + 1 < len(words) and words[i + 1] in markers)]
             wanted = " ".join(words)
