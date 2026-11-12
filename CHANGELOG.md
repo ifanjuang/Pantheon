@@ -172,6 +172,9 @@
   The Anatomy's seven rules for an AI (deterministic readings, per-file sheets,
   short answers, one confidence scale, questions not decisions, proposals
   validated by a human, one owner per information) are written once.
+- Summarised selections give distributions over every element (counts by
+  grid position, size ranges) and say the 8-row extract is a sample: a control
+  showed Hermes generalising positions and sections from the extract alone.
 - Anatomy sources (`anatomy_sources`): the files an affaire's readings rest on
   are declared on their Workspace card (`anatomy_source`: complement or
   replacement, role, discipline, use, scope, declared alignment, consolidate

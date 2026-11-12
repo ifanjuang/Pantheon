@@ -463,13 +463,25 @@ def _selected(criterion: str, rows: list[dict[str, Any]], limit: int = SELECTION
         return {**answer, "éléments": rows}
     by_level: dict[str, int] = {}
     by_room: dict[str, int] = {}
+    by_position: dict[str, int] = {}
+    sizes: dict[str, list[float]] = {}
     for row in rows:
         by_level[str(row.get("niveau") or "?")] = by_level.get(str(row.get("niveau") or "?"), 0) + 1
         for room in row.get("locaux") or ["hors local"]:
             by_room[room] = by_room.get(room, 0) + 1
+        position = str(row.get("files") or row.get("façade") or "sans repère")
+        by_position[position] = by_position.get(position, 0) + 1
+        for key in ("largeur_m", "longueur_m", "hauteur_m", "épaisseur_m"):
+            if isinstance(row.get(key), (int, float)):
+                sizes.setdefault(key, []).append(row[key])
+    # Distributions over every row: the extract is a sample and must not be generalised from.
     return {**answer, "par_niveau": by_level, "par_local": dict(sorted(by_room.items(), key=lambda kv: -kv[1])[:15]),
+            "par_position": dict(sorted(by_position.items(), key=lambda kv: -kv[1])[:10]),
+            **({"dimensions_m": {k: [round(min(v), 2), round(max(v), 2)] for k, v in sizes.items()}} if sizes else {}),
             "extrait": [{k: v for k, v in row.items() if k != "id"} for row in rows[:8]], "reste": len(rows) - 8,
-            "note": "Liste longue : préciser une file, une façade, un niveau ou un local pour le détail."}
+            "note": "Liste longue : par_niveau, par_local, par_position et dimensions_m (min, max) portent sur tous "
+                    "les éléments ; l'extrait n'en montre que 8, n'en tirer aucune répartition. Préciser une file, "
+                    "une façade, un niveau ou un local pour le détail."}
 # Element words of a designation: kind of element, and whether it is exterior (None: either).
 ELEMENT_WORDS = {
     "cloison": ("mur", False), "cloisons": ("mur", False), "mur": ("mur", None), "murs": ("mur", None),
