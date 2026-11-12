@@ -525,7 +525,7 @@ class TestProjectStateRouting(unittest.TestCase):
     def test_the_tool_description_names_the_anatomy_and_its_focuses(self):
         # A bench showed « sources anatomiques » read as medical anatomy and searched on the web.
         doc = " ".join(server.get_project.__doc__.split())
-        for words in ("anatomie du projet", "sources anatomiques", "poteaux du BET séjour",
+        for words in ("anatomie du projet", "sources anatomiques", "poteaux du BET <local>",
                       "changements <maquette>", "« qualité »", "never search the web", "retry once",
                       "Start without `focus`", "offer to dig further"):
             self.assertIn(words, doc)
