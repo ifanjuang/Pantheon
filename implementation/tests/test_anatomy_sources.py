@@ -113,6 +113,7 @@ def test_a_source_waits_until_consolidated_unless_its_card_asks_for_it_now(affai
     models, section = affaire.consolidate()
     assert _states(section) == {ARCHI: "en attente", BET: "avertissement"}
     assert section["en_attente"] == 1 and [m["piece"] for m in models] == [Path(BET).stem]
+    assert models[0]["_workspace_path"] == BET
 
     models, section = affaire.consolidate(force=True)
     assert _states(section)[ARCHI] == "activée" and section["en_attente"] == 0 and len(models) == 2

@@ -100,6 +100,24 @@ def test_the_publication_compares_each_model_with_its_previous_index_once(tmp_pa
     assert again == changes and reads == ["old.ifc"]  # the previous index is read once
 
 
+def test_same_model_question_uses_the_paths_of_declared_noncurrent_sources(tmp_path) -> None:
+    bet_a = _reading("A", elements=[{"id": f"c{i}"} for i in range(10)], discipline="structure")
+    bet_h = _reading("H", elements=[{"id": f"c{i}"} for i in range(1, 12)], discipline="structure")
+    bet_a["source"]["piece"] = "BET A"
+    bet_h["source"]["piece"] = "BET H"
+    (tmp_path / "BET-A.json").write_text(json.dumps(bet_a), encoding="utf-8")
+    (tmp_path / "BET-H.json").write_text(json.dumps(bet_h), encoding="utf-8")
+    models = [
+        {"piece": "BET A", "file": "BET-A.json", "_workspace_path": "PRO/structure-a.ifc"},
+        {"piece": "BET H", "file": "BET-H.json", "_workspace_path": "DCE/structure-h.ifc"},
+    ]
+
+    changes, questions = anatomy_export.compare_models("DEMO", models, {}, tmp_path)
+
+    assert changes == []
+    assert questions[0]["files"] == ["PRO/structure-a.ifc", "DCE/structure-h.ifc"]
+
+
 def test_a_wall_changing_category_is_a_change() -> None:
     old = _reading("S", walls=[{"id": "w1", "label": "cloison", "thickness_m": 0.10, "length_m": 3.0}])
     new = _reading("T", walls=[{"id": "w1", "label": "mur porteur", "thickness_m": 0.10, "length_m": 3.0}])
