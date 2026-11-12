@@ -2003,3 +2003,123 @@ def test_additional_converter_formats_are_indexed_without_enabling_unknown_binar
         assert "." + extension in module.HINDSIGHT_ELIGIBLE_EXTENSIONS
     assert not module._is_source_file(Path("document.exe"))
     assert not module._is_source_file(Path("document.tmp"))
+
+
+def test_anatomy_sources_are_visible_and_hindsight_ineligible(tmp_path: Path) -> None:
+    module = _module()
+    root = tmp_path / "Affaires"
+    project = root / "DEMO"
+    project.mkdir(parents=True)
+    (project / "MODELE.ifc").write_bytes(b"IFC fixture")
+    result = module.scan_workspaces([("Affaires", root)], max_depth=2)
+    card = next(item for item in _cards(result) if item["name"] == "MODELE.ifc")
+    assert card["heavy_binary"] is True
+    assert card["hindsight_eligible"] is False
+
+
+def test_anatomy_declaration_and_project_request_are_written_to_workspace_db(tmp_path: Path) -> None:
+    module = _module()
+    root = tmp_path / "Affaires"
+    project = root / "DEMO"
+    project.mkdir(parents=True)
+    (project / "MODELE.ifc").write_bytes(b"IFC fixture")
+    state_db = tmp_path / "workspace.sqlite3"
+    index = module.WorkspaceIndex([("Affaires", root)], 2, state_db, enable_watcher=False)
+    index.reconcile("test")
+    connection = sqlite3.connect(state_db)
+    try:
+        connection.execute(
+            "CREATE TABLE workspace_document_identity(document_id TEXT PRIMARY KEY, workspace TEXT, source_path TEXT, source_sha256 TEXT)"
+        )
+        connection.execute(
+            "INSERT INTO workspace_document_identity VALUES (?, ?, ?, ?)",
+            ("doc-model", "Affaires", "DEMO/MODELE.ifc", "ifc-digest"),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    handler = module.CockpitHandler
+    old_roots, old_index, old_anatomy = handler.roots, handler.workspace_index, handler.anatomy_dir
+    handler.roots = [("Affaires", root)]
+    handler.workspace_index = module.PersistedWorkspaceProjection([("Affaires", root)], state_db)
+    handler.anatomy_dir = tmp_path / "anatomy"
+    handler.anatomy_dir.mkdir()
+    server = module.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    origin = f"http://127.0.0.1:{server.server_port}"
+
+    def post(path: str, body: dict, intent: str) -> tuple[int, dict]:
+        request = Request(
+            f"{origin}/workspace/api/{path}", data=json.dumps(body).encode("utf-8"),
+            headers={"Content-Type": "application/json", "Origin": origin, "X-Pantheon-Intent": intent}, method="POST",
+        )
+        try:
+            with urlopen(request, timeout=3) as response:
+                return response.status, json.loads(response.read().decode("utf-8"))
+        except HTTPError as error:
+            return error.code, json.loads(error.read().decode("utf-8"))
+
+    try:
+        declaration = {
+            "active": True, "mode": "complément", "role": "référence", "usage": "DCE",
+            "declared_alignment": "coordonnées partagées", "note": "Vérifier la lecture", "consolidate_now": True,
+        }
+        status, saved = post(
+            "document-metadata-overrides",
+            {"workspace": "Affaires", "path": "DEMO/MODELE.ifc", "values": {"anatomy_source": declaration}},
+            "document-metadata-save",
+        )
+        assert status == 200
+        assert saved["values"]["anatomy_source"]["active"] is True
+        assert saved["values"]["anatomy_source"]["set_at"].endswith("Z")
+        assert saved["values"]["anatomy_source"]["set_by"] == "workspace-cockpit"
+
+        status, payload = post(
+            "document-metadata-overrides",
+            {"workspace": "Affaires", "path": "DEMO/MODELE.ifc", "values": {"anatomy_source": {**declaration, "unexpected": True}}},
+            "document-metadata-save",
+        )
+        assert status == 400 and payload["error"] == "unknown_anatomy_source_field"
+        status, payload = post(
+            "document-metadata-overrides",
+            {"workspace": "Affaires", "path": "DEMO/MODELE.ifc", "values": {"anatomy_source": {**declaration, "note": "x" * 301}}},
+            "document-metadata-save",
+        )
+        assert status == 400 and payload["error"] == "anatomy_source_text_too_long:note"
+        status, _ = post(
+            "document-metadata-overrides",
+            {"workspace": "Affaires", "path": "DEMO/MODELE.ifc", "values": {"anatomy_source": None}},
+            "document-metadata-save",
+        )
+        assert status == 200
+        connection = sqlite3.connect(state_db)
+        try:
+            row = connection.execute("SELECT overrides_json FROM workspace_document_metadata_overrides").fetchone()
+            assert row is None or "anatomy_source" not in json.loads(row[0])
+        finally:
+            connection.close()
+
+        status, requested = post(
+            "anatomy-consolidation-requests",
+            {"workspace": "Affaires", "project_code": "DEMO"},
+            "anatomy-consolidation-request",
+        )
+        assert status == 200 and requested["status"] == "requested"
+        with urlopen(f"{origin}/workspace/api/anatomy?code=DEMO&workspace=Affaires", timeout=3) as response:
+            projected = json.load(response)
+        assert projected["consolidation_request"]["requested_at"] == requested["requested_at"]
+        connection = sqlite3.connect(state_db)
+        try:
+            row = connection.execute(
+                "SELECT workspace, project_code, requested_at, requested_by FROM workspace_anatomy_consolidation_requests"
+            ).fetchone()
+            assert row == ("Affaires", "DEMO", requested["requested_at"], "workspace-cockpit")
+        finally:
+            connection.close()
+    finally:
+        server.shutdown()
+        thread.join(2)
+        server.server_close()
+        handler.roots, handler.workspace_index, handler.anatomy_dir = old_roots, old_index, old_anatomy

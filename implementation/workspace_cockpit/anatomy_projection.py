@@ -73,6 +73,15 @@ def read_anatomy(directory: Path | None, code: str) -> dict[str, Any]:
             }
             for item in (anatomy.get("structure") or {}).get("objects") or []
         ]
+        published_sources = data.get("anatomy_sources") or {}
+        source_lines = []
+        for item in published_sources.get("liste") or []:
+            if not isinstance(item, dict):
+                continue
+            source_lines.append({key: item[key] for key in (
+                "fichier", "état", "rôle", "discipline", "usage", "perimeter", "indice", "calage",
+                "remplace", "remplacée_par", "déplacé_depuis", "messages", "lecture", "consolidée_le",
+            ) if key in item})
         return {
             "available": True,
             "schema": SCHEMA,
@@ -82,6 +91,12 @@ def read_anatomy(directory: Path | None, code: str) -> dict[str, Any]:
             "objects": objects,
             "sources": sources,
             "phases": {"status": (anatomy.get("phases") or {}).get("status")},
+            "anatomy_sources": {
+                "mode": published_sources.get("mode"),
+                "liste": source_lines,
+                "en_attente": published_sources.get("en_attente", 0),
+                "dernière_consolidation": published_sources.get("dernière_consolidation"),
+            },
         }
     except (ValueError, TypeError, KeyError, AttributeError):
         return {"available": False, "error": "anatomy_unreadable"}
