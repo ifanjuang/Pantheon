@@ -177,7 +177,7 @@ Where things live: the truth of a source is on its file. What a human enters
 is computed (reading, alignment, state) and Hermes' proposals are published by
 the agency and shown on the card. The project's list of sources is a view
 rebuilt at each consolidation, never edited; each consolidation that brings a
-source in keeps a snapshot (files, fingerprints, states) of what the state of
+source in, or that was requested, keeps a snapshot (files, fingerprints, states) of what the state of
 the affaire rested on, the last twenty kept. A file moved in the Workspace keeps
 its declaration, found again by its content digest.
 

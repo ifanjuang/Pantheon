@@ -114,7 +114,8 @@
   (for a timer) reads, read-only, the project card requests
   (`workspace_anatomy_consolidation_requests`) and the changed `anatomy_source`
   cards, consolidates those affaires once per request and remembers what it
-  handled on the agency side. The Workspace contract (the `anatomy_source`
+  handled on the agency side; a requested consolidation is always dated, even
+  when every source was up to date, so the card shows it done. The Workspace contract (the `anatomy_source`
   object, the request table, what is published back) is documented.
 - File sheets and the project core: model sheets are named by the model file's
   fingerprint, so deactivating, reactivating or coming back to an earlier index
