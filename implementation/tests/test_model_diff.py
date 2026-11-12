@@ -62,6 +62,9 @@ def test_one_model_under_two_names_becomes_a_question() -> None:
     dated = model_diff.same_model_questions([bet_a, bet_h], {"MAQUETTE": "2026-06-16", "BET H": "2026-10-28"})
     assert "MAQUETTE A (2026-06-16) et BET H H (2026-10-28)" in dated[0]["text"]
     assert "la plus récente est BET H H" in dated[0]["text"]
+    with_files = model_diff.same_model_questions([bet_a, bet_h], {}, {"MAQUETTE": ["BIM/a.ifc"], "BET H": ["PRO/h.ifc"]})
+    assert with_files[0]["files"] == ["BIM/a.ifc", "PRO/h.ifc"]
+    assert with_files[0]["action"]["code"] == "activer_source_remplacement"
 
 
 def test_each_piece_keeps_its_previous_index_in_the_same_format() -> None:
@@ -95,6 +98,24 @@ def test_the_publication_compares_each_model_with_its_previous_index_once(tmp_pa
     assert questions == []
     again, _ = anatomy_export.compare_models("DEMO", models, previous, tmp_path)
     assert again == changes and reads == ["old.ifc"]  # the previous index is read once
+
+
+def test_same_model_question_uses_the_paths_of_declared_noncurrent_sources(tmp_path) -> None:
+    bet_a = _reading("A", elements=[{"id": f"c{i}"} for i in range(10)], discipline="structure")
+    bet_h = _reading("H", elements=[{"id": f"c{i}"} for i in range(1, 12)], discipline="structure")
+    bet_a["source"]["piece"] = "BET A"
+    bet_h["source"]["piece"] = "BET H"
+    (tmp_path / "BET-A.json").write_text(json.dumps(bet_a), encoding="utf-8")
+    (tmp_path / "BET-H.json").write_text(json.dumps(bet_h), encoding="utf-8")
+    models = [
+        {"piece": "BET A", "file": "BET-A.json", "_workspace_path": "PRO/structure-a.ifc"},
+        {"piece": "BET H", "file": "BET-H.json", "_workspace_path": "DCE/structure-h.ifc"},
+    ]
+
+    changes, questions = anatomy_export.compare_models("DEMO", models, {}, tmp_path)
+
+    assert changes == []
+    assert set(questions[0]["files"]) == {"PRO/structure-a.ifc", "DCE/structure-h.ifc"}
 
 
 def test_a_wall_changing_category_is_a_change() -> None:

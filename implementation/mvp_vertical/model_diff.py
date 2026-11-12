@@ -138,7 +138,8 @@ def summary(counts: dict[str, dict[str, int]]) -> str:
     return " ; ".join(parts) or "aucun changement lu"
 
 
-def same_model_questions(readings: list[dict[str, Any]], dates: dict[str, str] | None = None) -> list[dict[str, Any]]:
+def same_model_questions(readings: list[dict[str, Any]], dates: dict[str, str] | None = None,
+                         paths: dict[str, list[str]] | None = None) -> list[dict[str, Any]]:
     """Current model pieces that are one model under two names: a question each, never a decision.
 
     The question gives each index and its date, and which one is more recent: a fact to help the
@@ -163,6 +164,9 @@ def same_model_questions(readings: list[dict[str, Any]], dates: dict[str, str] |
                     f"({round(100 * share)} % d'identifiants IFC communs)")
             if named[0][1] and named[1][1] and named[0][1] != named[1][1]:
                 text += f" ; la plus récente est {max(named, key=lambda n: n[1])[0]}"
-            questions.append({"piece": named[0][0], "kind": "meme_maquette", "share": round(share, 2),
-                              "text": text + " ; laquelle fait foi ?"})
+            from .project_pieces import question
+
+            files = [p for r in (a, b) for p in ((paths or {}).get(str((r.get("source") or {}).get("piece"))) or [])[:1]]
+            questions.append({**question(named[0][0], "meme_maquette", text + " ; laquelle fait foi ?", files),
+                              "share": round(share, 2)})
     return questions

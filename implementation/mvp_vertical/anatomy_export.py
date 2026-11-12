@@ -119,9 +119,12 @@ def export_project_anatomy(conn, project_id: str, *, directory: Path | None = No
             models = read_current_models(code, pieces, directory, keep_extra=keep)
             document["anatomy_sources"] = {"mode": "toutes les maquettes courantes (aucune source déclarée)"}
         if models:
-            document["models"] = models
+            # The source path is internal comparison metadata, not part of the public projection.
+            document["models"] = [{key: value for key, value in status.items() if not key.startswith("_")}
+                                  for status in models]
             dates = {str(p.get("piece")): (p.get("current") or {}).get("date") for p in pieces.get("pieces") or []}
-            changes, questions = compare_models(code, models, previous, directory, dates=dates)
+            paths = {str(p.get("piece")): (p.get("current") or {}).get("paths") or [] for p in pieces.get("pieces") or []}
+            changes, questions = compare_models(code, models, previous, directory, dates=dates, paths=paths)
             if changes:
                 document["model_changes"] = changes
             if questions and isinstance(pieces.get("questions"), list):
@@ -168,7 +171,8 @@ def previous_models(code: str, pieces: dict[str, Any], directory: Path) -> dict[
 
 
 def compare_models(code: str, models: list[dict[str, Any]], previous: dict[str, tuple[Path, Path, str | None]],
-                   directory: Path, *, dates: dict[str, str] | None = None) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+                   directory: Path, *, dates: dict[str, str] | None = None,
+                   paths: dict[str, list[str]] | None = None) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """What changed since each model's previous index, and current models that are one model under two names.
 
     The previous index is read once into its own sheet; each comparison is kept
@@ -205,7 +209,14 @@ def compare_models(code: str, models: list[dict[str, Any]], previous: dict[str, 
     for stale in directory.glob(f"{code}.changements-*.json"):
         if stale.name not in kept:
             stale.unlink(missing_ok=True)
-    return changes, model_diff.same_model_questions(list(readings.values()), dates)
+    question_paths = {piece: list(file_paths) for piece, file_paths in (paths or {}).items()}
+    for status in models:
+        piece, workspace_path = status.get("piece"), status.get("_workspace_path")
+        if piece and workspace_path:
+            known = question_paths.setdefault(str(piece), [])
+            if workspace_path not in known:
+                known.append(workspace_path)
+    return changes, model_diff.same_model_questions(list(readings.values()), dates, question_paths)
 
 
 def _slug(text: str) -> str:
@@ -305,8 +316,10 @@ def read_declared_sources(code: str, pieces: dict[str, Any], declared: dict[str,
         if path.lower().endswith(".ifc"):
             name = str(piece["piece"]) if piece else Path(path).stem
             index = (piece.get("current") or {}).get("index") if piece else None
-            statuses[path] = model_reading.ensure(root / code / path, sheet_file(directory, code, name, root / code / path),
-                                                  piece=name, index=index)
+            status = model_reading.ensure(root / code / path, sheet_file(directory, code, name, root / code / path),
+                                          piece=name, index=index)
+            status["_workspace_path"] = path
+            statuses[path] = status
             record[path]["sheet"] = statuses[path].get("file")
         else:
             result["état"], result["messages"] = anatomy_sources.document_state(

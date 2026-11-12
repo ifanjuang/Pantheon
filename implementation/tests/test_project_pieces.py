@@ -222,3 +222,16 @@ def test_a_pdf_creation_date_does_not_contradict_an_index(tmp_path) -> None:
     state = _state(tmp_path, {"APS/PLAN STRUCTURE.pdf": {"sha": "1", "index": "C", "pdf_creation_date": "2025-12-01"},
                               "PRO/PLAN STRUCTURE.pdf": {"sha": "2", "index": "A", "pdf_creation_date": "2026-05-04"}})
     assert not [q for q in state["questions"] if q["kind"] == "indice_et_date_contradictoires"]
+
+
+def test_a_question_names_its_files_and_the_action_that_settles_it(tmp_path) -> None:
+    files = {"DCE/PLAN RDC C1.pdf": {"sha": "1"}, "DCE/PLAN RDC C2.pdf": {"sha": "2"}}
+    state = _state(tmp_path, files)
+    asked = next(q for q in state["questions"] if q["kind"] == "variantes")
+    assert asked["files"] == ["DCE/PLAN RDC C1.pdf", "DCE/PLAN RDC C2.pdf"]
+    assert asked["action"]["code"] == "marquer_reference" and "référence projet" in asked["action"]["texte"]
+    assert asked["id"].startswith("q-")
+    # The identifier is stable from one reading to the next, so a screen can attach a dismissal to it.
+    again = tmp_path / "again"
+    again.mkdir()
+    assert next(q for q in _state(again, files)["questions"] if q["kind"] == "variantes")["id"] == asked["id"]
