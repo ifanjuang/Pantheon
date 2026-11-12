@@ -62,6 +62,9 @@ def test_one_model_under_two_names_becomes_a_question() -> None:
     dated = model_diff.same_model_questions([bet_a, bet_h], {"MAQUETTE": "2026-06-16", "BET H": "2026-10-28"})
     assert "MAQUETTE A (2026-06-16) et BET H H (2026-10-28)" in dated[0]["text"]
     assert "la plus récente est BET H H" in dated[0]["text"]
+    with_files = model_diff.same_model_questions([bet_a, bet_h], {}, {"MAQUETTE": ["BIM/a.ifc"], "BET H": ["PRO/h.ifc"]})
+    assert with_files[0]["files"] == ["BIM/a.ifc", "PRO/h.ifc"]
+    assert with_files[0]["action"]["code"] == "activer_source_remplacement"
 
 
 def test_each_piece_keeps_its_previous_index_in_the_same_format() -> None:

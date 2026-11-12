@@ -29,6 +29,7 @@ few columns named in ``read_workspace`` are relied upon.
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -343,6 +344,31 @@ def _loads(value: Any) -> dict[str, Any]:
 
 RELIABLE_DATES = {"fiche", "cartouche", "nom"}  # the PDF creation date is not the drawing's date
 
+# What settles each question, on which card: the Cockpit shows the question on the cards of its files
+# with this action; once the human acts, the question disappears because the data changed.
+QUESTION_ACTIONS = {
+    "fichier_sans_indice_plus_recent": ("corriger_indice", "Renseigner l'indice sur la fiche du fichier sans indice, "
+                                        "ou marquer le fichier qui fait foi « référence projet »."),
+    "indice_et_date_contradictoires": ("marquer_reference", "Marquer le fichier qui fait foi « référence projet », "
+                                       "ou corriger l'indice ou la date sur sa fiche."),
+    "plusieurs_references": ("retirer_reference", "Retirer la marque « référence projet » des fichiers qui ne font plus foi."),
+    "reference_depassee": ("marquer_reference", "Déplacer la marque « référence projet » sur l'indice qui fait foi."),
+    "variantes": ("marquer_reference", "Marquer la variante qui fait foi « référence projet »."),
+    "meme_indice_contenus_differents": ("corriger_indice", "Corriger l'indice du fichier mal indicé, ou marquer celui "
+                                        "qui fait foi « référence projet »."),
+    "meme_maquette": ("activer_source_remplacement", "Activer comme source anatomique la maquette qui fait foi, "
+                      "en remplacement de l'autre."),
+}
+
+
+def question(piece: str, kind: str, text: str, files: list[str]) -> dict[str, Any]:
+    """A question with a stable identifier, the files it concerns and the action that settles it."""
+    files = sorted(dict.fromkeys(f for f in files if f))
+    code, label = QUESTION_ACTIONS.get(kind, ("examiner", "Examiner les fichiers concernés."))
+    stamp = hashlib.sha1("|".join([kind, piece, *files]).encode("utf-8")).hexdigest()[:12]
+    return {"id": f"q-{stamp}", "piece": piece, "kind": kind, "text": text, "files": files,
+            "action": {"code": code, "texte": label}}
+
 
 def _revision(file: dict[str, Any]) -> dict[str, Any]:
     parsed, position, index_source = None, POSITION_UNCERTAIN, None
@@ -422,8 +448,9 @@ def current_state(files: list[dict[str, Any]], project_code: str) -> dict[str, A
             current = indexed[-1]
             newer = [r for r in revisions if not r["_parsed"] and r["date"] and current["date"] and r["date"] > current["date"]]
             if newer:
-                questions.append({"piece": name, "kind": "fichier_sans_indice_plus_recent",
-                                  "text": f"{name} : un fichier sans indice est plus récent que l'indice {current['index']}."})
+                questions.append(question(name, "fichier_sans_indice_plus_recent",
+                                          f"{name} : un fichier sans indice est plus récent que l'indice {current['index']}.",
+                                          [p for r in [current, *newer] for p in r["paths"][:1]]))
             # Indices follow each other; a known date checks it. A lower index dated after the current one
             # (indices restarted at a new phase, a wrong index) is asked, never decided: the PDF creation
             # date is not the drawing's date and does not count.
@@ -433,34 +460,39 @@ def current_state(files: list[dict[str, Any]], project_code: str) -> dict[str, A
                          and r["_parsed"][0] != current["_parsed"][0] and dated(r) and r["date"] > current["date"]]
                 if later:
                     newest = max(later, key=lambda r: r["date"])
-                    questions.append({"piece": name, "kind": "indice_et_date_contradictoires",
-                                      "text": f"{name} : l'indice {newest['index']} est daté du {newest['date']}, après "
+                    questions.append(question(name, "indice_et_date_contradictoires",
+                                              f"{name} : l'indice {newest['index']} est daté du {newest['date']}, après "
                                               f"l'indice {current['index']} ({current['date']}) ; les indices ont-ils "
-                                              f"repris à une nouvelle phase ? lequel fait foi ?"})
+                                              f"repris à une nouvelle phase ? lequel fait foi ?",
+                                              [current["paths"][0], newest["paths"][0]]))
         chosen = [r for r in revisions if r.get("reference")]
         if chosen:
             latest = current
             current = {**chosen[-1], "position": POSITION_REFERENCE}
             if len(chosen) > 1:
-                questions.append({"piece": name, "kind": "plusieurs_references",
-                                  "text": f"{name} : {len(chosen)} fichiers sont marqués comme référence projet."})
+                questions.append(question(name, "plusieurs_references",
+                                          f"{name} : {len(chosen)} fichiers sont marqués comme référence projet.",
+                                          [r["paths"][0] for r in chosen]))
             elif latest is not chosen[-1] and _order(latest) > _order(chosen[-1]):
-                questions.append({"piece": name, "kind": "reference_depassee",
-                                  "text": f"{name} : la référence projet est à l'indice {chosen[-1]['index'] or '(sans indice)'}, "
-                                          f"un indice plus récent existe ({latest['index'] or latest['date']})."})
+                questions.append(question(name, "reference_depassee",
+                                          f"{name} : la référence projet est à l'indice {chosen[-1]['index'] or '(sans indice)'}, "
+                                          f"un indice plus récent existe ({latest['index'] or latest['date']}).",
+                                          [chosen[-1]["paths"][0], latest["paths"][0]]))
         variants = sorted({r["index"] for r in same_letter if r["_parsed"][1]})
         if len(variants) > 1:
-            questions.append({"piece": name, "kind": "variantes",
-                              "text": f"{name} : plusieurs variantes de l'indice {latest_letter} ({', '.join(variants)}) ; laquelle fait foi ?"})
+            questions.append(question(name, "variantes",
+                                      f"{name} : plusieurs variantes de l'indice {latest_letter} ({', '.join(variants)}) ; laquelle fait foi ?",
+                                      [r["paths"][0] for r in same_letter if r["_parsed"][1]]))
         # A drawing and its model under one index (plan.pdf, plan.ifc) are two formats of one piece.
         by_index: dict[tuple[str, str], int] = {}
         for revision in indexed:
             key = (revision["index"], revision["_format"])
             by_index[key] = by_index.get(key, 0) + 1
-        for (label, _), count in sorted(by_index.items()):
+        for (label, fmt), count in sorted(by_index.items()):
             if count > 1:
-                questions.append({"piece": name, "kind": "meme_indice_contenus_differents",
-                                  "text": f"{name} : {count} fichiers différents portent l'indice {label}."})
+                questions.append(question(name, "meme_indice_contenus_differents",
+                                          f"{name} : {count} fichiers différents portent l'indice {label}.",
+                                          [r["paths"][0] for r in indexed if r["index"] == label and r["_format"] == fmt]))
         # The revision before the current one, in the same format: what a model index is compared with.
         # Variants of the current index (C1, C2 of C) are alternatives, not earlier revisions.
         letter = current["_parsed"][0] if current.get("_parsed") else None

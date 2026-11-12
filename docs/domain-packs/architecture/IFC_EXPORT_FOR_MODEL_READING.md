@@ -10,6 +10,57 @@ clues, because models are rarely exported to the letter of the IFC schema. This
 page says what the reading does with an imperfect model, and what to set in the
 authoring tool so the reading becomes exact.
 
+## The Anatomy for an AI: seven rules
+
+The project's understanding is built so that a local model answers from it
+reliably. These rules hold across the sections below.
+
+1. **Readings are deterministic; the AI does not compute.** Code reads models,
+   drawings and documents and publishes what it found; the AI asks and phrases.
+   Every number it quotes comes from a tool result.
+2. **One sheet per activated file, one small core per project** (see "File
+   sheets and the project core"). Sheets are keyed by the file's fingerprint;
+   comparisons by the pair of fingerprints. Nothing unchanged is read twice.
+3. **Short, targeted answers.** One focus per question; long lists are
+   summarised with counts and an extract; a summary stays near 6 KB. A "not
+   found" gives the candidates and the advice to retry, never a dead end.
+4. **One confidence scale**: validé (confirmed by a human), lu (written in the
+   source), déduit (computed from the source), estimé (brought together across
+   sources). An answer is as sure as its weakest value.
+5. **Questions, never silent decisions.** Inconsistencies (variants, index
+   against date, one model under two names, overlay to confirm) become
+   questions with a stable identifier, the files they concern and the action
+   that settles them. A question disappears when the data that raised it
+   changes.
+6. **The AI proposes, the human validates.** Hermes writes no sheet, no core and
+   no status; it produces candidates through the governed path, validated in
+   one click.
+7. **Every piece of information has one owner:**
+
+| Information | Owner | Written by |
+|---|---|---|
+| Files, card corrections (index, date, project reference), anatomy-source declarations, overlay confirmations, consolidation requests, dismissed questions | Workspace | the Cockpit (the human) |
+| Readings (pieces, model sheets, comparisons), source states, computed questions | agency publication, regenerated at each pass | the agency; never edited |
+| Project record, validated Anatomy, Hermes candidates, decisions | agency database | the governed path (decision point) |
+| Document memory (passages) | Hindsight | the ingestion |
+
+### Questions
+
+Each published question carries `id` (stable while its files and kind are the
+same), `piece`, `kind`, `text`, `files` (paths within the affaire) and `action`
+(`code` and `texte`). A screen shows it on the cards of its files with the
+button of its action; the action writes in the Workspace (marking the project
+reference, correcting an index, activating a source as a replacement,
+confirming an overlay); the next reading no longer raises it. A dismissal ("not
+now") is a Workspace display choice attached to the identifier.
+
+| Kind | Action |
+|---|---|
+| `variantes`, `reference_depassee`, `indice_et_date_contradictoires` | `marquer_reference` |
+| `fichier_sans_indice_plus_recent`, `meme_indice_contenus_differents` | `corriger_indice` |
+| `plusieurs_references` | `retirer_reference` |
+| `meme_maquette` | `activer_source_remplacement` |
+
 ## What the reading does with an imperfect model
 
 | Common situation | What the reading does |

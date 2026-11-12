@@ -164,6 +164,14 @@
   confidence scale, positions, engineers' overlays, changes between indices,
   quality and re-export). Short main files for a local model, details in
   references; agency conventions in a reference an installation may replace.
+- Question/action publication contract: each published question carries a
+  stable identifier, the files it concerns and a proposed action (mark the
+  project reference, correct an index, remove a reference, activate a source as
+  a replacement). The consuming Cockpit UI and write endpoint are not part of
+  this change.
+  The Anatomy's seven rules for an AI (deterministic readings, per-file sheets,
+  short answers, one confidence scale, questions not decisions, proposals
+  validated by a human, one owner per information) are written once.
 - Anatomy sources (`anatomy_sources`): the files an affaire's readings rest on
   are declared on their Workspace card (`anatomy_source`: complement or
   replacement, role, discipline, use, scope, declared alignment, consolidate
