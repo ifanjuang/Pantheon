@@ -205,6 +205,22 @@ consolidation snapshots, moved files and the `fichier` focus are implemented on
 the agency side. The Cockpit card display and actions, the other natures and
 Hermes proposals are not implemented yet.
 
+## Changes between two indices
+
+Authoring tools keep an element's IFC GlobalId from one export to the next, so
+each model index is compared with the previous index of the same piece, element
+by element, on their readings (`model_diff`): rooms added, removed, renamed or
+resized, openings and walls resized or moved to another façade, elements of each
+category added or removed. The comparison is kept per pair of fingerprints and
+published beside the projection; `get_project` gives one line per model in its
+summary and the detail with focus `changements <maquette>`. A change can come
+from the modelling (a room drawn, a family changed) as well as from the project:
+the comparison says so. When few identifiers are shared, it says the comparison
+is not meaningful instead of listing everything as removed and added.
+
+Two current model pieces sharing most identifiers are one model under two names
+(a provisional index filed apart); it becomes a question for the architect.
+
 ## Model quality and re-export
 
 Each reading carries a quality level (`bonne`, `à améliorer`, `insuffisante`),

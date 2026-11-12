@@ -445,10 +445,16 @@ def current_state(files: list[dict[str, Any]], project_code: str) -> dict[str, A
             if count > 1:
                 questions.append({"piece": name, "kind": "meme_indice_contenus_differents",
                                   "text": f"{name} : {count} fichiers différents portent l'indice {label}."})
+        # The revision before the current one, in the same format: what a model index is compared with.
+        # Variants of the current index (C1, C2 of C) are alternatives, not earlier revisions.
+        letter = current["_parsed"][0] if current.get("_parsed") else None
+        earlier = [r for r in revisions if r.get("_format") == current.get("_format") and r["paths"] != current["paths"]
+                   and _order(r) < _order(current) and not (letter and r.get("_parsed") and r["_parsed"][0] == letter)]
         pieces.append({
             "piece": name,
             "category": piece["category"],
             "current": {k: v for k, v in current.items() if not k.startswith("_") and k != "fingerprint"},
+            **({"previous": {k: earlier[-1][k] for k in ("index", "date", "paths") if earlier[-1].get(k)}} if earlier else {}),
             "revisions": len(revisions),
             **({"variants": variants} if len(variants) > 1 else {}),
         })

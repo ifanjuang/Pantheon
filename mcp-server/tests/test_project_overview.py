@@ -189,6 +189,23 @@ class TestProjectOverview(unittest.TestCase):
         self.assertEqual(len(focused["anatomy_sources"]["liste"]), 3)
         self.assertNotIn("reading_rules", focused)
 
+    def test_changes_since_the_previous_index_come_in_the_summary_and_on_their_focus(self):
+        data = _projection()
+        data["model_changes"] = [{"pièce": "MAQUETTE", "de": "S", "à": "T", "fiable": True,
+                                  "résumé": "locaux : 1 ajoutés", "fichier": "DEMO.changements-maquette-0123456789ab.json"}]
+        (self.directory / "DEMO.json").write_text(json.dumps(data), encoding="utf-8")
+        detail = {"de": {"index": "S"}, "à": {"index": "T"}, "fiable": True, "locaux": {"ajoutés": ["WC R01"]},
+                  "murs": {"ajoutés": [f"mur {i}" for i in range(12)], "modifiés": [{"élément": "x"}] * 3}}
+        (self.directory / "DEMO.changements-maquette-0123456789ab.json").write_text(json.dumps(detail), encoding="utf-8")
+        summary = project_overview.project_overview("DEMO", self.directory)
+        self.assertEqual(summary["model_changes"], [{"pièce": "MAQUETTE", "de": "S", "à": "T", "résumé": "locaux : 1 ajoutés"}])
+        focus = project_overview.project_overview("DEMO", self.directory, focus="changements maquette")["focus"]
+        comparison = focus["comparaisons"][0]
+        self.assertEqual(comparison["locaux"]["ajoutés"], ["WC R01"])
+        self.assertEqual(len(comparison["murs"]["ajoutés"]), 8)
+        self.assertEqual(comparison["murs"]["modifiés"], 3)
+        self.assertFalse(project_overview.project_overview("DEMO", self.directory, focus="changements cctp")["focus"]["found"])
+
     def test_an_empty_or_unknown_code_lists_the_published_affaires(self):
         self.assertEqual(project_overview.project_overview("", self.directory)["available_codes"], ["DEMO"])
         unknown = project_overview.project_overview("AUTRE", self.directory)
