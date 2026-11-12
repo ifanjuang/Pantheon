@@ -102,9 +102,9 @@ class TestProjectOverview(unittest.TestCase):
                   "to_confront": project_overview.project_overview("DEMO", self.directory, focus="devis")["focus"]["devis"],
                   "questions": result["open_questions"]}
         self.assertEqual(pieces["current"][0], {"piece": "PLAN RDC", "index": "E", "date": "2026-01-01", "position": "certaine",
-                                              "file": "DEMO/DCE/x.pdf"})
+                                              "confiance": "lu", "file": "DEMO/DCE/x.pdf"})
         self.assertEqual(pieces["current"][1]["variants"], ["C1", "C2"])
-        self.assertEqual(pieces["to_confront"], [{"piece": "DEVIS LOT 4", "position": "incertaine"}])
+        self.assertEqual(pieces["to_confront"], [{"piece": "DEVIS LOT 4", "position": "incertaine", "confiance": "estimé"}])
         self.assertEqual(pieces["questions"], ["CCTP : plusieurs variantes de l'indice C"])
 
     def test_questions_come_first_with_a_written_synthesis_and_the_project_nature(self):
@@ -142,6 +142,19 @@ class TestProjectOverview(unittest.TestCase):
         self.assertIn("non encore installée", result["anatomy_status"])
         self.assertNotIn("levels", result)
         self.assertEqual(result["pieces"]["counts"], {"current": 2, "to_confront": 1})
+
+    def test_every_piece_and_model_answer_says_how_sure_it_is(self):
+        data = _projection()
+        data["pieces"]["pieces"][0]["current"]["index_source"] = "cartouche"
+        data["pieces"]["pieces"][1]["current"]["index_source"] = "nom"
+        data["pieces"]["pieces"][1]["current"]["reference"] = True
+        (self.directory / "DEMO.json").write_text(json.dumps(data), encoding="utf-8")
+        pieces = project_overview.project_overview("DEMO", self.directory, focus="pièces")["focus"]["pièces"]
+        self.assertEqual([p["confiance"] for p in pieces], ["lu", "validé"])
+        devis = project_overview.project_overview("DEMO", self.directory, focus="devis")["focus"]["devis"]
+        self.assertEqual(devis[0]["confiance"], "estimé")
+        self.assertTrue(any("validé (confirmé par un humain)" in r
+                            for r in project_overview.project_overview("DEMO", self.directory)["reading_rules"]))
 
     def test_a_focus_answer_carries_only_a_header_and_the_piece_list_can_be_filtered(self):
         result = project_overview.project_overview("DEMO", self.directory, focus="pièces plan")
@@ -425,7 +438,7 @@ class TestFocus(unittest.TestCase):
         on_c = project_overview.project_overview("DEMO", self.directory, focus="poteaux file C")["focus"]
         self.assertEqual(on_c["recalage"]["verdict"], "probable")
         rows = on_c.get("éléments") or [on_c]
-        self.assertTrue(all(row.get("par_recalage") for row in rows))
+        self.assertTrue(all(row.get("confiance") == "estimé" for row in rows))
         in_salon = project_overview.project_overview("DEMO", self.directory, focus="poteaux salon")["focus"]
         self.assertEqual(in_salon["nombre"], 2)
 

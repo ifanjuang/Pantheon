@@ -129,6 +129,7 @@ def alignment_line(alignment: dict[str, Any] | None, declared: dict[str, Any]) -
     confirmed = declared.get("alignment_confirmed") or {}
     line["confirmé"] = ({"par": confirmed.get("by"), "le": confirmed.get("at")}
                         if confirmed.get("reference_fingerprint") == alignment.get("reference_fingerprint") else False)
+    line["confiance"] = "validé" if line["confirmé"] else "estimé"
     if declared.get("declared_alignment"):
         line["déclaré"] = declared["declared_alignment"]
     return line

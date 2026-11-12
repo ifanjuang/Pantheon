@@ -129,6 +129,12 @@
   short labels of what to correct (`à_corriger`) instead of the full export
   advice, and `focus="qualité"` gives every model's checks, full advice to
   cite, declared against observed and overlay.
+- One confidence scale for every value: validé (confirmed by a human), lu
+  (written in the source), déduit (computed from the source), estimé (brought
+  together across sources). Each piece's current index says it (from where the
+  index was read: card, title block, file name, none), model answers carry the
+  legend and mark overlay-placed rows `estimé`, a source's overlay is `validé`
+  once confirmed; Hermes qualifies an answer by its weakest value.
 - Anatomy sources (`anatomy_sources`): the files an affaire's readings rest on
   are declared on their Workspace card (`anatomy_source`: complement or
   replacement, role, discipline, use, scope, declared alignment, consolidate
