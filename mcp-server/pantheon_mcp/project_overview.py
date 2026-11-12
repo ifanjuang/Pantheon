@@ -63,7 +63,7 @@ READING_RULES = [
     "recalage et demander sa confirmation.",
     "Si la qualité de la maquette est insuffisante ou qu'un réexport est conseillé : répondre avec ce qui "
     "est lu sans rien inventer, dire ce qui manque, et proposer à l'utilisateur de réexporter la maquette "
-    "en citant les conseils d'export.",
+    "en citant les conseils d'export (donnés en entier par le focus « qualité »).",
 ]
 PIECE_KEYS = ("index", "date", "position")
 SYNTHESIS_NAMES = 10  # names listed in one synthesis line; the full list stays in "current"
@@ -351,6 +351,49 @@ def _quality(reading: dict[str, Any]) -> dict[str, Any] | None:
             "déclaré_constaté": list(reading.get("declared_vs_observed") or [])[:3]}
 
 
+# Short labels for the summary; the full export advice is in focus "qualité".
+ADVICE_LABELS = (("coordonnées partagées", "coordonnées partagées"), ("nord", "nord géographique"),
+                 ("phase", "phases"), ("Marque", "repères des portes et fenêtres"),
+                 ("limites d'espace", "limites d'espace"), ("IFC4", "IFC4"), ("locaux", "noms des locaux"),
+                 ("fonction", "fonction des murs"), ("porteur", "murs porteurs"), ("IfcExportAs", "classes IFC"))
+
+
+def _advice_label(advice: str) -> str:
+    return next((label for word, label in ADVICE_LABELS if word in advice), advice[:50])
+
+
+def _quality_short(reading: dict[str, Any]) -> dict[str, Any] | None:
+    """The quality of a model in a few words, for the summary."""
+    q = reading.get("quality")
+    if not isinstance(q, dict):
+        return None
+    short = {"niveau": q.get("niveau"), **({"discipline": q["discipline"]} if q.get("discipline") else {})}
+    if q.get("réexport_conseillé"):
+        short["réexport_conseillé"] = True
+    labels = list(dict.fromkeys(_advice_label(str(a)) for a in q.get("conseils_export") or []))
+    if labels:
+        short["à_corriger"] = labels
+    return short
+
+
+def _overlay(reading: dict[str, Any], keys=("verdict", "score", "margin", "reference", "reference_index", "status")):
+    return {k: reading["alignment"].get(k) for k in keys} if isinstance(reading.get("alignment"), dict) else None
+
+
+def _quality_focus(models: list[dict[str, Any]]) -> dict[str, Any]:
+    """Every model's quality in full: checks, export advice to cite, declared against observed, overlay."""
+    rows = []
+    for reading in models:
+        quality = _quality(reading)
+        if quality is None:
+            continue
+        row = {"maquette": reading["source"].get("piece"), "index": reading["source"].get("index"), **quality}
+        if _overlay(reading):
+            row["recalage"] = _overlay(reading)
+        rows.append(row)
+    return {"found": bool(rows), "kind": "qualité", "maquettes": rows}
+
+
 FACADE_NAMES = {"nord", "est", "sud", "ouest"}
 SELECTION_ROWS = 30  # beyond this, a selection gives counts by level and room with an extract
 
@@ -606,7 +649,8 @@ def _focus(directory: Path, data: dict[str, Any], focus: str) -> dict[str, Any]:
             "reason": "aucun local ni élément ne correspond"}
 
 
-DETAIL_HINT = ("Détail sur demande avec focus : « sources » (sources anatomiques et leurs états), "
+DETAIL_HINT = ("Détail sur demande avec focus : « qualité » (contrôles et conseils d'export de chaque maquette), "
+               "« sources » (sources anatomiques et leurs états), "
                "« fichier <partie du nom> » (fiche d'une source), « pièces » (toutes les pièces courantes et leurs fichiers), "
                "« devis », « locaux », un local (« cuisine », « chambre 101 »), « file M », « façade sud », "
                "un niveau (« R01 »), ou un élément (« cloison file 5 », « fenêtre façade sud chambre 1 »).")
@@ -693,15 +737,15 @@ def _compact(full: dict[str, Any], directory: Path, data: dict[str, Any]) -> dic
             counted[f"{reading['source'].get('piece')} {reading['source'].get('index') or ''}".strip()] = counts
     if counted:
         compact["model_elements"] = counted
-    if models_read and _quality(models_read[0]):
-        compact["model_quality"] = {"maquette": models_read[0]["source"].get("piece"),
-                                    "index": models_read[0]["source"].get("index"), **_quality(models_read[0])}
-        others = [{"maquette": r["source"].get("piece"), "index": r["source"].get("index"),
-                   "discipline": (r.get("quality") or {}).get("discipline"), "niveau": (r.get("quality") or {}).get("niveau"),
-                   "conseils_export": list((r.get("quality") or {}).get("conseils_export") or [])[:2],
-                   **({"recalage": {k: r["alignment"].get(k) for k in ("verdict", "score", "margin", "reference", "reference_index", "status")}}
-                      if r.get("alignment") else {})}
-                  for r in models_read[1:] if isinstance(r.get("quality"), dict)]
+    if models_read and _quality_short(models_read[0]):
+        main = models_read[0]
+        compact["model_quality"] = {"maquette": main["source"].get("piece"), "index": main["source"].get("index"),
+                                    **_quality_short(main),
+                                    "déclaré_constaté": list(main.get("declared_vs_observed") or [])[:2],
+                                    "détail": "focus « qualité » : conseils d'export complets à citer"}
+        others = [{"maquette": r["source"].get("piece"), "index": r["source"].get("index"), **_quality_short(r),
+                   **({"recalage": _overlay(r, ("verdict", "score", "status"))} if _overlay(r) else {})}
+                  for r in models_read[1:] if _quality_short(r)]
         if others:
             compact["model_quality"]["autres_maquettes"] = others
     if full.get("anatomy_sources"):
@@ -751,6 +795,10 @@ def project_overview(code: str, directory: Path | None = None, focus: str = "") 
         if wanted in {"sources", "source", "sources anatomiques"}:
             overview = {key: full[key] for key in ("code", "found", "source", "project") if key in full}
             return {**overview, "anatomy_sources": full.get("anatomy_sources") or {"mode": "non publié"}}
+        if wanted in {"qualite", "qualité", "qualite maquette", "qualité maquette", "qualite des maquettes"}:
+            overview = {key: full[key] for key in ("code", "found", "source", "project") if key in full}
+            return {**overview, "focus": _quality_focus(sorted(_load_models(directory, data),
+                                                                key=lambda r: -len(r.get("spaces") or [])))}
         if wanted.startswith("fichier ") or wanted.startswith("fiche "):
             overview = {key: full[key] for key in ("code", "found", "source", "project") if key in full}
             return {**overview, "focus": _file_sheet(sources if isinstance(sources, dict) else {}, wanted.partition(" ")[2])}

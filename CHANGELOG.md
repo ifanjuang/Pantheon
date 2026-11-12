@@ -125,6 +125,10 @@
   content digest. `get_project` answers `fichier <name>` with a source's sheet
   and gives the last consolidation date. Direction documented: per-file sheets,
   a small project core, Hermes enriching both by proposals only.
+- `get_project` summary lighter for a local model: each model's quality gives
+  short labels of what to correct (`à_corriger`) instead of the full export
+  advice, and `focus="qualité"` gives every model's checks, full advice to
+  cite, declared against observed and overlay.
 - Anatomy sources (`anatomy_sources`): the files an affaire's readings rest on
   are declared on their Workspace card (`anatomy_source`: complement or
   replacement, role, discipline, use, scope, declared alignment, consolidate
