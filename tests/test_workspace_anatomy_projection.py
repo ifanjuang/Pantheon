@@ -34,6 +34,17 @@ def publish(directory: Path, code: str = "DEMO", **overrides) -> Path:
         "schema": "pantheon.anatomy.v1",
         "generated_at": "2026-11-06T09:00:00+00:00",
         "project": {"project_id": "demo", "code": code, "display_name": "Démo"},
+        "anatomy_sources": {
+            "mode": "déclarées",
+            "liste": [{
+                "fichier": "MODELE_A.ifc", "état": "avertissement", "rôle": "référence",
+                "indice": "DCE", "calage": {"verdict": "probable"},
+                "déplacé_depuis": "ANCIEN/MODELE_A.ifc",
+                "messages": ["calage à confirmer"], "private_field": "never forwarded",
+            }],
+            "en_attente": 0,
+            "dernière_consolidation": "2026-11-06T08:00:00Z",
+        },
         "anatomy": {
             "summary": {"stable_object_count": 2},
             "structure": {"objects": [level, room]},
@@ -62,6 +73,12 @@ def test_published_projection_is_rebuilt_to_what_the_card_shows(tmp_path):
     level = next(item for item in result["objects"] if item["id"] == "obj.level")
     assert level["relations"][0]["qualifier"] == {"ouvrage_state": "projected"}
     assert result["sources"]["rep.room"] == {"page": 2, "kind": "document", "identity_pending": True}
+    assert result["anatomy_sources"]["liste"] == [{
+        "fichier": "MODELE_A.ifc", "état": "avertissement", "rôle": "référence",
+        "indice": "DCE", "calage": {"verdict": "probable"}, "déplacé_depuis": "ANCIEN/MODELE_A.ifc",
+        "messages": ["calage à confirmer"],
+    }]
+    assert result["anatomy_sources"]["dernière_consolidation"] == "2026-11-06T08:00:00Z"
 
 
 def test_unconfigured_missing_or_invalid_requests_are_refused_quietly(tmp_path):

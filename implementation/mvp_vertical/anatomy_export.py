@@ -345,7 +345,9 @@ def read_declared_sources(code: str, pieces: dict[str, Any], declared: dict[str,
     record = {p: r for p, r in record.items() if p in declared}
     _write_json(record_file, record)
     snapshots = _snapshots(directory, code)
-    if consolidated_now:  # what the state of the affaire rested on, at this consolidation
+    # What the state of the affaire rested on, at this consolidation. A requested consolidation is
+    # always dated, even when every source was already up to date: the card then shows it done.
+    if consolidated_now or consolidate:
         snapshots = (snapshots + [{"at": now, "sources": [
             {"fichier": p, "empreinte": (record.get(p) or {}).get("fingerprint"), "état": r["état"],
              **({"fiche": statuses[p].get("file")} if p in statuses and statuses[p].get("file") else {})}

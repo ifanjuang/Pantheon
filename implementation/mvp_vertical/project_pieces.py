@@ -342,20 +342,21 @@ def _loads(value: Any) -> dict[str, Any]:
 
 
 def _revision(file: dict[str, Any]) -> dict[str, Any]:
-    parsed, position = None, POSITION_UNCERTAIN
-    for key, level in (("index_card", POSITION_CERTAIN), ("index_read", POSITION_CERTAIN)):
+    parsed, position, index_source = None, POSITION_UNCERTAIN, None
+    for key, level, source in (("index_card", POSITION_CERTAIN, "fiche"), ("index_read", POSITION_CERTAIN, "cartouche")):
         if parsed := parse_index(file.get(key), numeric=True):
-            position = level
+            position, index_source = level, source
             break
     if parsed is None and (parsed := filename_index(file["title"])):
-        position = POSITION_PROBABLE
+        position, index_source = POSITION_PROBABLE, "nom"
     when, when_source = None, None
     for key, source in (("date_card", "fiche"), ("date_read", "cartouche"), ("title", "nom"), ("date_pdf", "pdf")):
         value = filename_date(file["title"]) if key == "title" else parse_date(file.get(key))
         if value:
             when, when_source = value, source
             break
-    revision = {"index": format_index(parsed), "position": position, "date": when, "date_source": when_source,
+    revision = {"index": format_index(parsed), "position": position, "index_source": index_source,
+                "date": when, "date_source": when_source,
                 "paths": [file["path"]], "fingerprint": file.get("fingerprint"), "_parsed": parsed,
                 "_format": Path(file["title"]).suffix.lower()}
     if file.get("issuer"):

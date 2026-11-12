@@ -59,13 +59,23 @@ READING_RULES = [
     "Quand des sources anatomiques sont déclarées, seules les sources activées ou en avertissement sont lues : "
     "qualifier la réponse par leur rôle (contrôle, complément), un calage non confirmé ou un périmètre ; "
     "une source en attente ou en erreur n'est pas lue, le dire si on la demande.",
-    "Les locaux et files d'un élément du BET marqués « par recalage » sont estimés : le dire, citer le score du "
-    "recalage et demander sa confirmation.",
+    "Confiance, de la plus sûre à la moins sûre : validé (confirmé par un humain), lu (écrit dans la source), "
+    "déduit (calculé), estimé (rapprochement entre sources, ex. recalage du BET : citer son score et demander "
+    "confirmation). Qualifier la réponse par le niveau le plus faible ; ne jamais présenter un déduit ou un estimé comme lu.",
     "Si la qualité de la maquette est insuffisante ou qu'un réexport est conseillé : répondre avec ce qui "
     "est lu sans rien inventer, dire ce qui manque, et proposer à l'utilisateur de réexporter la maquette "
     "en citant les conseils d'export (donnés en entier par le focus « qualité »).",
 ]
 PIECE_KEYS = ("index", "date", "position")
+# One confidence scale for every value, strongest first: validé (confirmed by a human), lu (written in the
+# source), déduit (computed from the source: geometry, neighbours), estimé (brought together across sources).
+INDEX_CONFIDENCE = {"fiche": "validé", "cartouche": "lu", "nom": "déduit", None: "estimé"}
+MODEL_CONFIDENCE = {
+    "dimensions, nature, côtés, façade, files, locaux": "déduit (géométrie de la maquette)",
+    "type_déclaré, dimension déclarée": "lu (déclaré dans la maquette)",
+    "lignes marquées confiance estimé": "estimé (recalage sur la maquette d'architecture, à confirmer)",
+    "état": "lu (Anatomie, valeurs candidates)",
+}
 SYNTHESIS_NAMES = 10  # names listed in one synthesis line; the full list stays in "current"
 DATE_SOURCES = {"fiche": "fiche", "cartouche": "cartouche", "nom": "nom du fichier", "pdf": "création du PDF (incertaine)"}
 
@@ -102,7 +112,8 @@ def _pieces(data: dict[str, Any]) -> dict[str, Any] | None:
         if not isinstance(item, dict):
             continue
         state = item.get("current") if isinstance(item.get("current"), dict) else {}
-        row = {"piece": item.get("piece"), **{key: state.get(key) for key in PIECE_KEYS if state.get(key)}}
+        row = {"piece": item.get("piece"), **{key: state.get(key) for key in PIECE_KEYS if state.get(key)},
+               "confiance": _piece_confidence(state)}
         if state.get("date") and state.get("date_source"):
             row["date_from"] = DATE_SOURCES.get(state["date_source"], state["date_source"])
         if state.get("paths"):
@@ -118,6 +129,15 @@ def _pieces(data: dict[str, Any]) -> dict[str, Any] | None:
         "current": current[:MAX_LISTED],
         "to_confront": to_confront[:MAX_LISTED],
     }
+
+
+def _piece_confidence(state: dict[str, Any]) -> str:
+    """How sure the current index of a piece is; files published before the index origin was kept use its position."""
+    if state.get("reference"):
+        return "validé"
+    if "index_source" in state:
+        return INDEX_CONFIDENCE.get(state["index_source"], "estimé")
+    return {"certaine": "lu", "probable": "déduit"}.get(str(state.get("position")), "estimé")
 
 
 def anatomy_dir() -> Path | None:
@@ -532,7 +552,7 @@ def _selection(reading: dict[str, Any], wanted: str, states: dict[str, str]) -> 
                 "locaux": sides, **({"façade": item["facade"]} if item.get("facade") else {}),
                 **({"files": item["grid"]} if item.get("grid") else {}), "niveau": item.get("level"),
                 **({"à_vérifier": _to_check(item)} if _to_check(item) else {}),
-                **({"par_recalage": True} if item.get("_overlaid") else {}), "id": item["id"]}
+                **({"confiance": "estimé"} if item.get("_overlaid") else {}), "id": item["id"]}
 
     words = wanted.split()
     designated = _designation(reading, words, names, elements, row)
@@ -864,6 +884,9 @@ def project_overview(code: str, directory: Path | None = None, focus: str = "") 
                                  "spaces_counted_in_totals": full.get("spaces_counted_in_totals")}
         elif wanted:
             overview["focus"] = _focus(directory, data, str(focus))
+            if overview["focus"].get("kind") in {"sélection", "sélections", "élément", "local", "désignation"}:
+                # Its own key: a single element answered at the top level keeps its own "confiance".
+                overview["focus"]["légende_confiance"] = MODEL_CONFIDENCE
         return overview
     except (ValueError, TypeError, KeyError, AttributeError):
         return {**result, "error": "anatomy_unreadable"}
