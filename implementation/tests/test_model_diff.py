@@ -55,8 +55,13 @@ def test_a_comparison_without_shared_identifiers_says_it_is_not_meaningful() -> 
 def test_one_model_under_two_names_becomes_a_question() -> None:
     bet_a = _reading("A", elements=[{"id": f"c{i}"} for i in range(10)], discipline="structure")
     bet_h = _reading("H", elements=[{"id": f"c{i}"} for i in range(1, 12)], discipline="structure")
-    questions = model_diff.same_model_questions([bet_a, bet_h, OLD])
+    questions = model_diff.same_model_questions([bet_a, bet_h, OLD], {"MAQUETTE": None})
     assert len(questions) == 1 and questions[0]["kind"] == "meme_maquette" and "laquelle fait foi" in questions[0]["text"]
+    assert "identifiants IFC communs" in questions[0]["text"]
+    bet_h["source"] = {**bet_h["source"], "piece": "BET H"}
+    dated = model_diff.same_model_questions([bet_a, bet_h], {"MAQUETTE": "2026-06-16", "BET H": "2026-10-28"})
+    assert "MAQUETTE A (2026-06-16) et BET H H (2026-10-28)" in dated[0]["text"]
+    assert "la plus récente est BET H H" in dated[0]["text"]
 
 
 def test_each_piece_keeps_its_previous_index_in_the_same_format() -> None:

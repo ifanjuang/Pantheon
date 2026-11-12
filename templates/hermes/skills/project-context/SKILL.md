@@ -110,6 +110,15 @@ from memory or direct verification. Keep the label brief for simple answers.
    file name or from which files are present; when the live source gives no
    index, say so. If no live inventory is available, state that limitation
    instead of inferring activity from indexed content.
+9. For a question about the building itself — rooms, walls, openings,
+   columns, beams or any element, where they are (level, room, façade, grid
+   line), their size, or what changed since the previous index — ask the live
+   project-state source with a focus first: a room name, a category and a
+   place (`poteaux du BET séjour`, `cloison file 5`), `façade sud`, `file C`
+   or `changements <maquette>`. When it answers "not found", retry once with a
+   name from the list it returns. Read drawings or PDFs only for what model
+   readings do not hold (sections, reinforcement, notes, loads, annotations),
+   when no model is read, or to cite a drawing; say which source answered.
 
 Keep the user's original question and requested outcome active through the
 answer. After each useful recall or read, update the next step from the evidence

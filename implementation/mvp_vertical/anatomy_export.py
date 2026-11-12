@@ -120,7 +120,8 @@ def export_project_anatomy(conn, project_id: str, *, directory: Path | None = No
             document["anatomy_sources"] = {"mode": "toutes les maquettes courantes (aucune source déclarée)"}
         if models:
             document["models"] = models
-            changes, questions = compare_models(code, models, previous, directory)
+            dates = {str(p.get("piece")): (p.get("current") or {}).get("date") for p in pieces.get("pieces") or []}
+            changes, questions = compare_models(code, models, previous, directory, dates=dates)
             if changes:
                 document["model_changes"] = changes
             if questions and isinstance(pieces.get("questions"), list):
@@ -167,7 +168,7 @@ def previous_models(code: str, pieces: dict[str, Any], directory: Path) -> dict[
 
 
 def compare_models(code: str, models: list[dict[str, Any]], previous: dict[str, tuple[Path, Path, str | None]],
-                   directory: Path) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+                   directory: Path, *, dates: dict[str, str] | None = None) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """What changed since each model's previous index, and current models that are one model under two names.
 
     The previous index is read once into its own sheet; each comparison is kept
@@ -204,7 +205,7 @@ def compare_models(code: str, models: list[dict[str, Any]], previous: dict[str, 
     for stale in directory.glob(f"{code}.changements-*.json"):
         if stale.name not in kept:
             stale.unlink(missing_ok=True)
-    return changes, model_diff.same_model_questions(list(readings.values()))
+    return changes, model_diff.same_model_questions(list(readings.values()), dates)
 
 
 def _slug(text: str) -> str:

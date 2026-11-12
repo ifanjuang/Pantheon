@@ -148,6 +148,14 @@
   date) checks it. A lower index dated after the current one (indices
   restarted at a new phase, a wrong index) becomes a question; the current
   index is not changed automatically.
+- From a control of Hermes' answers: rooms are found through usual synonyms
+  ("salon" for "Séjour", "salle de bain" for "SDB"); "du BET" or "archi" in a
+  focus keeps only that discipline's models; a room or element not found gives
+  the rooms and the advice to retry instead of a dead end; an answer spanning
+  several models summarises each beyond 12 rows, and the piece list stops at 30
+  with a filter hint. The "one model under two names" question gives each
+  index's date, which one is more recent, and speaks of shared IFC identifiers
+  so it is not mistaken for the overlay score.
 - Anatomy sources (`anatomy_sources`): the files an affaire's readings rest on
   are declared on their Workspace card (`anatomy_source`: complement or
   replacement, role, discipline, use, scope, declared alignment, consolidate
