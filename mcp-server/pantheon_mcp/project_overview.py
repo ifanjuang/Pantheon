@@ -47,7 +47,7 @@ READING_RULES = [
     "une position « référence » signifie choisie par l'architecte sur la fiche du fichier, et l'emporte ; "
     "« incertaine » signifie sans indice, « probable » un indice lu dans le nom du fichier.",
     "Les questions sont des écarts relevés, à poser à l'architecte : ne pas les trancher ; "
-    "toujours les signaler, en tête de réponse.",
+    "les signaler en tête quand elles concernent la réponse, sinon en fin, en une ligne.",
     "Chaque date dit d'où elle vient (fiche, cartouche, nom du fichier, création du PDF) : "
     "une date de création du PDF n'est pas la date du plan.",
     "Ne rien ajouter qui ne figure pas ici (type de bâtiment, statut d'une pièce, pièces absentes) : "
@@ -432,6 +432,10 @@ NOT_FOUND_ADVICE = ("Réessayer avec un nom de la liste, précédé d'une catég
                     "(« poteaux Séjour », « poteaux du BET Séjour ») ; ne pas chercher ailleurs avant.")
 
 
+def _fr(value: float) -> str:
+    return f"{value:.2f}".replace(".", ",")
+
+
 def _plain(text: Any) -> str:
     return " ".join(re.sub(r"[^\w ]", " ", _fold(text)).split())
 
@@ -538,22 +542,45 @@ def _designation(reading: dict[str, Any], words: list[str], names: dict[str, str
             room_words.append(word)
         i += 1
     room = " ".join(room_words)
-    found = [e for e in elements if (e["_what"] in labels or e["_what"] == kind)
-             and (exterior is None or bool(e.get("exterior")) == exterior)
-             and all(_on_grid(e.get("grid"), tag) for tag in tags)
-             and (facade_dir is None or e.get("facade") == facade_dir)
-             and (level is None or _fold(e.get("level")) == level)
-             and (not room or any(_room_match(room, name) for name in
-                                  (e.get("_rooms") or [names.get(s) for s in e.get("sides") or [] if s])))]
+    # « cloison entre la chambre 3 et la SDB »: two rooms named, the element between them.
+    rooms_known = {n for n in names.values() if n}
+    pair = None
+    if room and not any(_room_match(room, n) for n in rooms_known):
+        split_words = room.split()
+        for cut in range(1, len(split_words)):
+            left, right = " ".join(split_words[:cut]), " ".join(split_words[cut:])
+            if any(_room_match(left, n) for n in rooms_known) and any(_room_match(right, n) for n in rooms_known):
+                pair = (left, right)
+                break
+
+    def in_rooms(e: dict[str, Any]) -> bool:
+        around = e.get("_rooms") or [names.get(s) for s in e.get("sides") or [] if s]
+        if pair:
+            return all(any(_room_match(part, n) for n in around) for part in pair)
+        return not room or any(_room_match(room, n) for n in around)
+
+    def matching(wanted_labels: set[str]) -> list[dict[str, Any]]:
+        return [e for e in elements if (e["_what"] in wanted_labels or e["_what"] == kind)
+                and (exterior is None or bool(e.get("exterior")) == exterior)
+                and all(_on_grid(e.get("grid"), tag) for tag in tags)
+                and (facade_dir is None or e.get("facade") == facade_dir)
+                and (level is None or _fold(e.get("level")) == level)
+                and in_rooms(e)]
+
+    found, note = matching(labels), None
+    # « Cloison » is said of any interior wall: without a partition there, the interior walls answer, said so.
+    if not found and labels == {"cloison"}:
+        found = matching({"cloison", "mur intérieur"})
+        note = "aucune cloison à cet endroit : murs intérieurs donnés à la place" if found else None
     label = LABELS.get((kind, exterior if kind == "mur" else None))
     if not found:
         return {"found": False, "kind": "désignation", "reason": f"aucun élément ne correspond à « {' '.join(words)} »",
                 "locaux": sorted(set(names.values()))[:MAX_LISTED], "conseil": NOT_FOUND_ADVICE}
     rows = [row(e) for e in found]
     if len(rows) == 1:
-        return {"found": True, "kind": "élément", **rows[0]}
+        return {"found": True, "kind": "élément", **rows[0], **({"note": note} if note else {})}
     if plural:
-        return _selected(" ".join(words), rows)
+        return {**_selected(" ".join(words), rows), **({"note": note} if note else {})}
 
     def describe(item: dict[str, Any], detailed: bool = False) -> str:
         where = (item.get("files") or "position non déterminée").replace(" ; ", ", ")
@@ -705,6 +732,15 @@ def _focus(directory: Path, data: dict[str, Any], focus: str) -> dict[str, Any]:
                          **({"type_déclaré": o["type"]} if o.get("type") else {}),
                          **({"à_vérifier": _to_check(o)} if _to_check(o) else {}), "id": o["id"]}
                         for o in reading.get("openings") or [] if sid in (o.get("sides") or [])]
+            # Exterior openings grouped by façade, ready to quote: a local model restating the list
+            # once swapped two windows between façades.
+            by_facade: dict[str, list[str]] = {}
+            for o in openings:
+                side = str(o.get("donne") or "")
+                if "façade" in side:
+                    size = " × ".join(_fr(v) for v in (o.get("largeur_m"), o.get("hauteur_m")) if isinstance(v, (int, float)))
+                    by_facade.setdefault(side.split("façade", 1)[1].strip(), []).append(
+                        f"{o['élément']}{' ' + size + ' m' if size else ''}")
             walls = [{"mur": _side(w, sid, names), "épaisseur_m": w.get("thickness_m"), "longueur_m": w.get("length_m"),
                       **({"composition": w["composition"]} if w.get("composition") else {}),
                       **({"files": w["grid"]} if w.get("grid") else {}), "jonctions": len(w.get("junctions") or []),
@@ -727,7 +763,8 @@ def _focus(directory: Path, data: dict[str, Any], focus: str) -> dict[str, Any]:
                     "surface_m2": space.get("area_m2"), "état": states.get(sid, UNSTATED),
                     "relié_par_porte_à": linked, **({"relié_par_baie_libre_à": free} if free else {}),
                     **({"ouvert_sur": open_onto} if open_onto else {}), "mur_commun_avec": touching,
-                    "ouvertures": openings, "murs": walls, "source": source, "limites": notes,
+                    "ouvertures": openings, **({"ouvertures_par_façade": by_facade} if by_facade else {}),
+                    "murs": walls, "source": source, "limites": notes,
                     **({"qualité_maquette": _quality(reading)["niveau"]} if _quality(reading) else {})}
         if element:
             return {"found": True, "kind": "élément", "élément": element.get("kind", "mur"),
