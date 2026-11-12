@@ -35,6 +35,10 @@ EFFECT_INVENTORY: dict[tuple[str, str], dict[str, str]] = {
         "effect": "filesystem_projection",
         "reviewed": "reads the consolidation requests the Workspace recorded (project card button, changed anatomy_source) read-only, republishes those affaires through export_project_anatomy and keeps the last handled request per affaire in one agency-owned file next to the projections; never writes the Workspace",
     },
+    ("anatomy_export.py", "compare_models"): {
+        "effect": "filesystem_projection",
+        "reviewed": "reads each model's previous index into its own sheet through model_reading.ensure, writes one comparison per pair of fingerprints (<CODE>.changements-*.json) atomically and removes comparisons no current model refers to; derived and regenerable, never a source",
+    },
     ("anatomy_export.py", "prune_sheets"): {
         "effect": "filesystem_projection",
         "reviewed": "removes the affaire's derived model sheets (<CODE>.maquette-*.json) in the projection directory that no current model, declared source or kept consolidation snapshot refers to; regenerable from the model files, never a source",

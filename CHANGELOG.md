@@ -129,6 +129,13 @@
   short labels of what to correct (`à_corriger`) instead of the full export
   advice, and `focus="qualité"` gives every model's checks, full advice to
   cite, declared against observed and overlay.
+- Changes between two indices of a model (`model_diff`): each model is compared
+  with the previous index of its piece, element by element through the IFC
+  GlobalIds the authoring tool keeps, on the readings (rooms, openings, walls,
+  elements by category), once per pair of fingerprints. `get_project` gives
+  one line per model and `focus="changements <maquette>"` the detail. Two
+  current models sharing most identifiers raise the question "one model under
+  two names: which one is authoritative?".
 - Anatomy sources (`anatomy_sources`): the files an affaire's readings rest on
   are declared on their Workspace card (`anatomy_source`: complement or
   replacement, role, discipline, use, scope, declared alignment, consolidate

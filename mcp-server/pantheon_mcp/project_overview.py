@@ -238,6 +238,7 @@ def summarize(data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+CHANGES_FILE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}\.changements-[a-z0-9-]{1,40}\.json$")
 MODEL_FILE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}\.maquette-[a-z0-9-]{1,40}\.json$")
 MAX_MODEL_BYTES = 8 * 1024 * 1024
 
@@ -649,7 +650,7 @@ def _focus(directory: Path, data: dict[str, Any], focus: str) -> dict[str, Any]:
             "reason": "aucun local ni élément ne correspond"}
 
 
-DETAIL_HINT = ("Détail sur demande avec focus : « qualité » (contrôles et conseils d'export de chaque maquette), "
+DETAIL_HINT = ("Détail sur demande avec focus : « changements <maquette> » (ce qui a changé depuis l'indice précédent), « qualité » (contrôles et conseils d'export de chaque maquette), "
                "« sources » (sources anatomiques et leurs états), "
                "« fichier <partie du nom> » (fiche d'une source), « pièces » (toutes les pièces courantes et leurs fichiers), "
                "« devis », « locaux », un local (« cuisine », « chambre 101 »), « file M », « façade sud », "
@@ -683,6 +684,41 @@ def _sources(section: dict[str, Any]) -> dict[str, Any]:
     if section.get("dernière_consolidation"):
         out["dernière_consolidation"] = section["dernière_consolidation"]
     return out
+
+
+def _changes(directory: Path, changes: list[dict[str, Any]], wanted: str) -> dict[str, Any]:
+    """What changed since the previous index of one model (or of every model), from the published comparison."""
+    chosen = [c for c in changes if not wanted or wanted in _fold(c.get("pièce"))]
+    if not chosen:
+        return {"found": False, "kind": "changements",
+                "message": "aucune comparaison publiée" if not changes else "aucune maquette ne correspond",
+                "maquettes": [c.get("pièce") for c in changes]}
+    if len(chosen) > 1 and wanted:
+        return {"found": False, "kind": "changements", "question": "Plusieurs maquettes correspondent : laquelle ?",
+                "candidats": [c.get("pièce") for c in chosen]}
+    answers = []
+    for change in chosen:
+        name = change.get("fichier")
+        detail = None
+        if isinstance(name, str) and CHANGES_FILE.fullmatch(name):
+            try:
+                with (directory / name).open("rb") as file:
+                    raw = file.read(MAX_MODEL_BYTES + 1)
+                detail = json.loads(raw) if len(raw) <= MAX_MODEL_BYTES else None
+            except (OSError, ValueError):
+                detail = None
+        if isinstance(detail, dict):
+            # Rooms and openings in full; walls and elements as short lists and counts (a local model reads it whole).
+            for section in ("murs", "éléments"):
+                if isinstance(detail.get(section), dict):
+                    part = detail[section]
+                    detail[section] = {**{k: part[k][:8] for k in ("ajoutés", "supprimés") if part.get(k)},
+                                       **({"modifiés": len(part["modifiés"])} if part.get("modifiés") else {})}
+            for section in ("locaux", "ouvertures"):
+                for row in (detail.get(section) or {}).get("modifiés") or []:
+                    row.pop("id", None)
+        answers.append(detail if isinstance(detail, dict) else {k: change.get(k) for k in ("pièce", "de", "à", "résumé")})
+    return {"found": True, "kind": "changements", "comparaisons": answers}
 
 
 def _file_sheet(section: dict[str, Any], wanted: str) -> dict[str, Any]:
@@ -750,6 +786,8 @@ def _compact(full: dict[str, Any], directory: Path, data: dict[str, Any]) -> dic
             compact["model_quality"]["autres_maquettes"] = others
     if full.get("anatomy_sources"):
         compact["anatomy_sources"] = full["anatomy_sources"]
+    if full.get("model_changes"):
+        compact["model_changes"] = full["model_changes"]
     compact["status"] = full.get("status")
     compact["reading_rules"] = full.get("reading_rules")
     compact["detail"] = DETAIL_HINT
@@ -786,6 +824,10 @@ def project_overview(code: str, directory: Path | None = None, focus: str = "") 
         if data.get("models"):
             full["models"] = [{k: m.get(k) for k in ("piece", "index", "status") if m.get(k)}
                               for m in data["models"] if isinstance(m, dict)]
+        changes = [c for c in data.get("model_changes") or [] if isinstance(c, dict)]
+        if changes:
+            full["model_changes"] = [{k: c.get(k) for k in ("pièce", "de", "à", "résumé") if c.get(k)}
+                                     | ({"fiable": False} if c.get("fiable") is False else {}) for c in changes]
         sources = data.get("anatomy_sources")
         if isinstance(sources, dict):
             full["anatomy_sources"] = _sources(sources)
@@ -799,6 +841,9 @@ def project_overview(code: str, directory: Path | None = None, focus: str = "") 
             overview = {key: full[key] for key in ("code", "found", "source", "project") if key in full}
             return {**overview, "focus": _quality_focus(sorted(_load_models(directory, data),
                                                                 key=lambda r: -len(r.get("spaces") or [])))}
+        if wanted.split()[0] in {"changements", "changement", "modifications", "evolutions"}:
+            overview = {key: full[key] for key in ("code", "found", "source", "project") if key in full}
+            return {**overview, "focus": _changes(directory, changes, wanted.partition(" ")[2])}
         if wanted.startswith("fichier ") or wanted.startswith("fiche "):
             overview = {key: full[key] for key in ("code", "found", "source", "project") if key in full}
             return {**overview, "focus": _file_sheet(sources if isinstance(sources, dict) else {}, wanted.partition(" ")[2])}
