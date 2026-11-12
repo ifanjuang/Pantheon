@@ -181,6 +181,18 @@ source in, or that was requested, keeps a snapshot (files, fingerprints, states)
 the affaire rested on, the last twenty kept. A file moved in the Workspace keeps
 its declaration, found again by its content digest.
 
+Every value says how sure it is, on one scale, strongest first:
+
+| Confidence | Meaning | Examples |
+|---|---|---|
+| validé | confirmed by a human | index corrected on a card, piece marked as project reference, overlay confirmed, accepted Hermes proposal |
+| lu | written in the source | index read on the title block, declared type or size in the model, Anatomy candidate values |
+| déduit | computed from the source | index read in the file name, opening nature, sides, façades and sizes from geometry |
+| estimé | brought together across sources | engineer elements placed through the overlay, a piece without index placed by date |
+
+An answer is as sure as its weakest value; Hermes says so and never presents a
+deduced or estimated value as read.
+
 Hermes analyses and enriches both layers by proposals only: about a file ("this
 specification describes lot 04", "this photo shows the kitchen") or about the
 core ("room 3 of the model is the kitchen of the drawing", "remember that…",
