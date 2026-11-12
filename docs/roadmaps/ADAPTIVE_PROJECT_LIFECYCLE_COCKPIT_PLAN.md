@@ -515,6 +515,64 @@ The roadmap records the capability but does not prescribe a new universal
 generic graph, architecture-domain typed relations, APU mapping contracts and card
 projection definitions.
 
+### 15.1 Card-back viewer and designation (roadmap, not implemented)
+
+Status: documented, not implemented. Owner: the executable Cockpit under
+`implementation/` (Workspace Cockpit). The agency side and Hermes consume the
+designation; they do not draw it.
+
+A file card gains a button that opens a viewer on its back, by file type, to
+**designate exactly what a question or a remark is about**:
+
+| File | Viewer | Designation |
+|---|---|---|
+| PDF (drawings, written documents) | page view with zoom | a point, a line, a circle or a free shape on a page |
+| Photo, image | image view with zoom | a point or a zone |
+| IFC model | 3D view of the current reading | one or several elements selected (IFC GlobalId), or a point placed in space |
+| DWG / DXF (later) | 2D view | a point, a line, a zone |
+
+With a designation the user can:
+
+- write a **temporary comment** on the zone (a remark, kept with the card
+  until removed; not Evidence, not a decision);
+- **ask Hermes a question** or tell it something, Hermes then knowing the
+  exact subject: file, index, page, zone or element, and the comment.
+
+The designation travels as data, never as an image only:
+
+```text
+designation
+= file (path, fingerprint, current index)
++ kind (pdf | image | ifc | dxf)
++ locator: page + shape in page coordinates (0..1), or IFC GlobalIds, or a
+  3D point in the model's coordinates
++ comment text, author, time
+```
+
+Hermes reads it with the `visual-focus` skill (region of a page or image) and
+the `model-reading` and `drawing-reading` skills (elements, drawings); for an
+IFC element it asks the published model reading by its identifier. A
+designation or comment does not change the source file, the Anatomy or any
+status; turning it into a question, a Tâche or an Anatomy proposal is a
+separate, explicit step.
+
+Constraints for the implementation:
+
+- open-source viewers compatible with the Cockpit's content security policy
+  (served from the Cockpit, no inline style, no remote script), for example
+  PDF.js for PDF and web-ifc / That Open components or IFClite for IFC;
+- large models (100 to 200 MB) need a server-side light representation (the
+  reading's minimal geometry or a converted format) rather than the raw IFC in
+  the browser;
+- the viewer shows the **current index** and says so when another index is
+  open.
+
+```text
+designation != change of the source
+comment != Evidence
+viewer selection != Anatomy fact
+```
+
 ## 16. Connaissances, Compétences and Outils
 
 ```text
