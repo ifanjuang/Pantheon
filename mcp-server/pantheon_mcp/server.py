@@ -26,8 +26,9 @@ mcp = MCPServer(
         "prepare candidates and validate caller-provided structures or evidence. "
         "Decisions are data: Hermes enforces and executes outside Pantheon; the "
         "human decides consequential effects. get_project is the live project-state "
-        "source: use it first for where an affaire stands or the current index of a "
-        "document, and never infer an index from a file name."
+        "source and the project's Anatomy: use it first for where an affaire stands, the "
+        "current index of a document, or anything about its building (rooms, elements, "
+        "changes, anatomy sources); never infer an index from a file name."
     ),
 )
 
@@ -168,18 +169,24 @@ def get_phase_orientation(phase: str) -> str:
 
 @_read_only_tool()
 def get_project(code: str, focus: str = "") -> str:
-    """Live project-state source for one affaire: where it stands, the current index and file of each
-    drawing, model or written document, quotes to confront, open questions, then levels, spaces, surfaces.
+    """Live project-state source and Anatomy of one affaire (« anatomie du projet »): where it stands,
+    the current index and file of each drawing, model or written document, open questions, and the
+    building as read in its models (rooms, walls, openings, columns, any element, their place and size).
 
-    Call it first for "où en est l'affaire", "dernier plan", "indice", "version à jour". Quote the
-    indices, dates and numbers as given; never infer an index or a phase from a file name.
-    `code` is the affaire code (its folder name); an empty code lists the published ones.
-    Without `focus` the answer is a short summary (questions, synthesis, models, rooms). Ask the detail
-    with `focus`: "pièces" (or "pièces dce", "pièces cctp"), "devis", "locaux"; one room ("cuisine",
-    "chambre 101") or element: its sheet from the current model (doors and windows with what they give
-    onto, walls with the other side, grid lines); "file M", "façade sud" or a level ("R01"): the
-    elements or rooms concerned; "cloison file 5": one element, or the question to ask the user.
-    Sides and façades are computed: say so when quoting them.
+    Call it first for any question about an affaire's documents or its building: « où en est »,
+    « dernier plan », « indice », « surface du séjour », « poteaux du BET », « qu'est-ce qui a changé »,
+    « sources anatomiques ». Quote the values as given, with their confidence (validé, lu, déduit,
+    estimé); never infer an index from a file name; never search the web for an affaire.
+    `code` is the affaire code; an empty code lists the published ones. Without `focus`: a short
+    summary. Then one `focus` per question:
+    - a room (« cuisine », « chambre 1 R01 »; « salon » finds the Séjour); a level (« R01 »);
+      « file M »; « façade sud »;
+    - elements by category and place: « poteaux du BET séjour », « cloison file 5 »,
+      « fenêtres façade sud » (« du BET » / « archi » keeps that discipline's models);
+    - « changements <maquette> » (since the previous index), « qualité » (export advice),
+      « sources » (anatomy sources: files the readings rest on), « fichier <nom> »;
+    - « pièces » (« pièces dce »), « devis », « locaux ».
+    On « not found », retry once with a name from the list returned.
     """
     return _call("project_overview", code, focus)
 
