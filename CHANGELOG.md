@@ -143,6 +143,11 @@
   one line per model and `focus="changements <maquette>"` the detail. Two
   current models sharing most identifiers raise the question "one model under
   two names: which one is authoritative?".
+- Index order checked by dates: indices follow each other, and a known date
+  (card, title block read by the preflight, file name; never the PDF creation
+  date) checks it. A lower index dated after the current one (indices
+  restarted at a new phase, a wrong index) becomes a question; the current
+  index is not changed automatically.
 - Anatomy sources (`anatomy_sources`): the files an affaire's readings rest on
   are declared on their Workspace card (`anatomy_source`: complement or
   replacement, role, discipline, use, scope, declared alignment, consolidate
