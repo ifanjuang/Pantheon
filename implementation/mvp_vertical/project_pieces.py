@@ -263,6 +263,41 @@ def read_declared_sources(db_path: Path, project_code: str, *, workspace: str = 
     return declared
 
 
+CONSOLIDATION_REQUESTS_TABLE = "workspace_anatomy_consolidation_requests"
+
+
+def read_consolidation_triggers(db_path: Path, *, workspace: str = WORKSPACE_NAME) -> dict[str, dict[str, str]]:
+    """When each affaire last asked for a consolidation, as the Workspace recorded it (read-only).
+
+    Two triggers, both written by the Workspace only: ``requested`` is the latest
+    press of the project card's "Consolider les sources" button (a row of
+    ``workspace_anatomy_consolidation_requests``); ``changed`` the latest change of
+    a card's ``anatomy_source`` (``updated_at`` of its corrections).
+    """
+    connection = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    triggers: dict[str, dict[str, str]] = {}
+    try:
+        tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if CONSOLIDATION_REQUESTS_TABLE in tables:
+            for code, at in connection.execute(
+                    f"SELECT project_code, MAX(requested_at) FROM {CONSOLIDATION_REQUESTS_TABLE} "
+                    "WHERE workspace=? GROUP BY project_code", (workspace,)):
+                if code and at:
+                    triggers.setdefault(str(code), {})["requested"] = str(at)
+        if "workspace_document_metadata_overrides" in tables:
+            columns = {row[1] for row in connection.execute("PRAGMA table_info(workspace_document_metadata_overrides)")}
+            if "updated_at" in columns:
+                for path, overrides, at in connection.execute(
+                        "SELECT source_path, overrides_json, updated_at FROM workspace_document_metadata_overrides "
+                        "WHERE workspace=?", (workspace,)):
+                    if at and "/" in str(path) and "anatomy_source" in _loads(overrides):
+                        entry = triggers.setdefault(str(path).split("/", 1)[0], {})
+                        entry["changed"] = max(str(at), entry.get("changed", ""))
+    finally:
+        connection.close()
+    return triggers
+
+
 def follow_moved_sources(declared: dict[str, dict[str, Any]], files: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     """A declared file that moved keeps its declaration: found again by its content digest."""
     paths = {file["path"] for file in files}

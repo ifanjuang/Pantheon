@@ -110,6 +110,12 @@
   and reading rules. Indices and numbers come from the file so a local model
   quotes them instead of computing or recalling them. No database access; never
   evidence or a decision.
+- Consolidation requests from the Workspace: `agency consolidate-pending`
+  (for a timer) reads, read-only, the project card requests
+  (`workspace_anatomy_consolidation_requests`) and the changed `anatomy_source`
+  cards, consolidates those affaires once per request and remembers what it
+  handled on the agency side. The Workspace contract (the `anatomy_source`
+  object, the request table, what is published back) is documented.
 - File sheets and the project core: model sheets are named by the model file's
   fingerprint, so deactivating, reactivating or coming back to an earlier index
   reads nothing again, and sheets nothing refers to are removed. A drawing

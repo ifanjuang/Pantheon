@@ -31,6 +31,10 @@ EFFECT_INVENTORY: dict[tuple[str, str], dict[str, str]] = {
         "effect": "filesystem_projection",
         "reviewed": "reads the anatomy sources declared on Workspace cards (read-only), writes the model readings of the consolidated ones through model_reading.ensure and one agency-owned record of what was consolidated (file fingerprint and declaration) next to the projection, plus a bounded list of consolidation snapshots, atomically; removes model sheets nothing refers to (prune_sheets); never writes the Workspace, never a source of the Anatomy",
     },
+    ("anatomy_export.py", "consolidate_pending"): {
+        "effect": "filesystem_projection",
+        "reviewed": "reads the consolidation requests the Workspace recorded (project card button, changed anatomy_source) read-only, republishes those affaires through export_project_anatomy and keeps the last handled request per affaire in one agency-owned file next to the projections; never writes the Workspace",
+    },
     ("anatomy_export.py", "prune_sheets"): {
         "effect": "filesystem_projection",
         "reviewed": "removes the affaire's derived model sheets (<CODE>.maquette-*.json) in the projection directory that no current model, declared source or kept consolidation snapshot refers to; regenerable from the model files, never a source",

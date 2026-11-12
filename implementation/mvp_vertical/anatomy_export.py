@@ -344,6 +344,47 @@ def align_structural_models(directory: Path, statuses: list[dict[str, Any]]) -> 
         status["recalage"] = result.get("verdict")
 
 
+def consolidate_pending(conn, *, directory: Path | None = None) -> list[str]:
+    """Consolidate the affaires whose Workspace asked for it since the last pass; returns their codes.
+
+    Run by a timer on the agency side. The Workspace records the requests (the
+    project card button, a changed ``anatomy_source``); the agency never writes
+    them back: it keeps, beside the projections, the moment of the last request
+    it has handled for each affaire. A card asking for an immediate consolidation
+    is consolidated now; the others stay pending until the project card asks.
+    """
+    directory = directory or export_dir()
+    db = project_pieces._env_path(project_pieces.WORKSPACE_DB_ENV)
+    if directory is None or db is None or not db.is_file():
+        return []
+    handled_file = directory / "consolidation-requests.json"
+    try:
+        handled = json.loads(handled_file.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        handled = {}
+    done = []
+    for code, trigger in sorted(project_pieces.read_consolidation_triggers(db).items()):
+        previous = handled.get(code) if isinstance(handled.get(code), dict) else {}
+        asked = trigger.get("requested", "") > previous.get("requested", "")
+        changed = trigger.get("changed", "") > previous.get("changed", "")
+        if not (asked or changed):
+            continue
+        row = conn.execute("SELECT project_id FROM agency_projects WHERE code = %s", (code,)).fetchone()
+        if row is None:
+            continue
+        # The project card button consolidates every declared source; a changed card
+        # only brings in the sources whose card asks for it now.
+        try:
+            export_project_anatomy(conn, row[0], directory=directory, consolidate=asked)
+        except AnatomyExportError:
+            continue
+        handled[code] = trigger
+        done.append(code)
+    if done:
+        _write_json(handled_file, handled)
+    return done
+
+
 def export_all(conn, *, directory: Path | None = None) -> list[Path]:
     """Every Project with a code, whether or not its Anatomy is installed yet."""
     rows = conn.execute("SELECT project_id FROM agency_projects WHERE code IS NOT NULL ORDER BY project_id").fetchall()
