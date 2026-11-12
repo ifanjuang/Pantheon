@@ -144,11 +144,49 @@ html.dialog-open body { position: fixed; inset-inline: 0; top: calc(-1 * var(--d
 .document-reader-actions .icon-action { color: var(--ink); }
 .document-reader-status:empty { display: none; }
 .document-reader-status { margin: 0; color: var(--muted); font-size: 13px; line-height: 19px; }
+.document-reader-annotation-tools { display: grid; gap: 6px; flex: 0 0 auto; padding: 8px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.document-reader-annotation-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.document-reader-annotation-row label:not(.visually-hidden) { color: var(--muted); font-size: 12px; }
+.document-reader-annotation-tools select, .document-reader-annotation-tools input { min-width: 0; min-height: 34px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
+.document-reader-annotation-tools select:first-of-type { flex: 1 1 180px; }
+.document-reader-annotation-tools input { flex: 1 1 260px; }
+.document-reader-annotation-tools button { min-height: 34px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); cursor: pointer; white-space: nowrap; }
+.document-reader-annotation-tools button[aria-pressed="true"] { border-color: var(--blue); background: var(--blue); color: #fff; }
+.document-reader-annotation-tools button:disabled, .document-reader-annotation-tools select:disabled, .document-reader-annotation-tools input:disabled { opacity: .55; cursor: not-allowed; }
+.document-reader-annotation-layers { display: flex; flex-wrap: wrap; gap: 6px; }
+.document-reader-annotation-layer { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: 11px; }
+.document-reader-annotation-layer input { min-height: 0; margin: 0; }
+.document-reader-annotation-status { min-height: 0; margin: 0; color: var(--muted); font-size: 11px; }
+.document-reader-annotation-status:empty { display: none; }
+.document-reader-annotation-status.is-error { color: var(--danger); }
 .document-reader-pane { width: 100%; height: 0; min-width: 0; min-height: 0; flex: 1 1 0; overflow: hidden; }
 .document-reader-pane iframe { display: block; width: 100%; height: 100%; min-height: 0; max-height: 100%; border: 0; background: var(--surface); }
-.document-reader-pane iframe[hidden], .document-reader-pane .ocr-markdown[hidden] { display: none; }
+.document-reader-pane iframe[hidden], .document-reader-pane .ocr-markdown[hidden], .pantheon-pdf-reader[hidden] { display: none; }
+.pantheon-pdf-reader { display: flex; width: 100%; height: 100%; min-height: 0; flex-direction: column; gap: 8px; color: var(--ink); }
+.pdf-reader-toolbar { order: 3; position: sticky; bottom: 0; z-index: 3; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 6px 8px max(8px, env(safe-area-inset-bottom)); border: 1px solid var(--line); background: var(--surface); }
+.pdf-reader-toolbar button { min-width: 44px; min-height: 44px; padding: 4px 8px; border: 1px solid #000; border-radius: 2px; background: var(--surface); color: var(--ink); cursor: pointer; }
+.pdf-reader-toolbar button[aria-pressed="true"], .pdf-reader-toolbar button.is-active { border-color: #000; background: #111; color: #fff; }
+.pdf-reader-page-strip, .pdf-reader-zoom-tools, .pdf-reader-mark-tools { display: flex; align-items: center; gap: 4px; }
+.pdf-reader-page-strip { min-width: 0; flex: 1 1 180px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; touch-action: pan-x; }
+.pdf-reader-page-strip::-webkit-scrollbar { display: none; }
+.pdf-reader-comment-row { order: 2; display: flex; gap: 6px; }
+.pdf-reader-comment-row input { min-width: 0; min-height: 34px; flex: 1 1 auto; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
+.pdf-reader-comment-row button { min-height: 34px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); cursor: pointer; white-space: nowrap; }
+.pdf-reader-scroll { order: 1; min-height: 0; flex: 1 1 auto; overflow: auto; overscroll-behavior: contain; background: #35383d; touch-action: pan-x pan-y pinch-zoom; }
+.pdf-reader-pages { display: flex; min-width: 100%; flex-direction: column; align-items: center; gap: 16px; padding: 16px; }
+.pdf-reader-page { position: relative; width: fit-content; max-width: none; flex: 0 0 auto; background: #fff; box-shadow: 0 2px 12px #0008; line-height: 0; }
+.pdf-reader-page canvas { display: block; width: auto; max-width: none; height: auto; }
+.pdf-reader-page .pdf-reader-overlay { position: absolute; inset: 0; cursor: crosshair; }
+.pantheon-pdf-reader:not(.is-annotating) .pdf-reader-page .pdf-reader-overlay { pointer-events: none; }
+.pantheon-pdf-reader:not(.is-annotating) .pdf-reader-page .pdf-reader-overlay { cursor: default; }
+@media (max-width: 700px) { .pdf-reader-toolbar { justify-content: space-between; } .pdf-reader-mark-tools { order: 4; flex: 1 1 100%; justify-content: center; } .pdf-reader-comment-row { flex-wrap: wrap; } .pdf-reader-comment-row button { flex: 1 1 100%; } }
 @supports (height: 100dvh) {
   .document-reader-dialog { height: calc(100dvh - 24px); max-height: calc(100dvh - 24px); }
+}
+@media (max-width: 720px) {
+  .document-reader-annotation-row { flex-wrap: wrap; }
+  .document-reader-annotation-row > * { flex: 1 1 42%; }
+  .document-reader-annotation-row label { flex-basis: auto; }
 }
 .ocr-preview-empty { margin: 0; color: var(--muted); font-size: 13px; line-height: 19px; }
 .ocr-markdown { width: 100%; height: 100%; min-width: 0; max-height: none; overflow: auto; overscroll-behavior: contain; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--ink); font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }

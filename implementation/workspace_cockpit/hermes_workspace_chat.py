@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -19,6 +20,10 @@ from urllib.request import Request, urlopen
 SESSION_ID_RE = re.compile(r"^[A-Za-z0-9._:_-]{1,192}$")
 MAX_MESSAGE_CHARS = 8000
 MAX_SESSION_TITLE_CHARS = 240
+MAX_ANNOTATION_COUNT = 250
+MAX_ANNOTATION_LAYER_BYTES = 5 * 1024 * 1024
+ANNOTATION_LAYER_ID_RE = re.compile(r"^[A-Za-z0-9._:-]{1,192}$")
+SOURCE_SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
 
 
 class HermesChatError(RuntimeError):
@@ -65,6 +70,24 @@ class HermesWorkspaceChat:
             connection.execute(
                 "CREATE INDEX IF NOT EXISTS workspace_hermes_card_idx "
                 "ON workspace_hermes_discussions(workspace, card_path, archived, updated_at DESC)"
+            )
+            connection.execute(
+                """CREATE TABLE IF NOT EXISTS workspace_hermes_annotation_layers (
+                    session_id TEXT NOT NULL,
+                    layer_id TEXT NOT NULL,
+                    source_sha256 TEXT NOT NULL DEFAULT '',
+                    title TEXT NOT NULL,
+                    owner TEXT NOT NULL CHECK(owner IN ('user', 'hermes')),
+                    visible INTEGER NOT NULL DEFAULT 1 CHECK(visible IN (0, 1)),
+                    annotations_json TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    PRIMARY KEY(session_id, layer_id)
+                )"""
+            )
+            connection.execute(
+                "CREATE INDEX IF NOT EXISTS workspace_hermes_annotation_session_idx "
+                "ON workspace_hermes_annotation_layers(session_id, updated_at DESC)"
             )
             connection.commit()
         try:
@@ -275,6 +298,150 @@ class HermesWorkspaceChat:
                 result.append({"role": role, "content": content[:40_000], "created_at": item.get("timestamp") or item.get("created_at")})
         return result
 
+    @staticmethod
+    def _validate_annotations(raw: Any) -> list[dict[str, Any]]:
+        if not isinstance(raw, list) or len(raw) > MAX_ANNOTATION_COUNT:
+            raise HermesChatError("La couche contient trop de repères ou un format invalide.")
+        annotations: list[dict[str, Any]] = []
+        for item in raw:
+            if not isinstance(item, dict):
+                raise HermesChatError("Format de repère invalide.")
+            page = item.get("page")
+            if isinstance(page, bool) or not isinstance(page, int) or page < 1:
+                raise HermesChatError("Chaque repère doit viser une page valide.")
+            geometry = item.get("geometry")
+            if not isinstance(geometry, dict):
+                raise HermesChatError("Géométrie de repère invalide.")
+            kind = geometry.get("type")
+            keys = {
+                "point": ("x", "y"),
+                "circle": ("cx", "cy", "radius"),
+                "line": ("x1", "y1", "x2", "y2"),
+                "arrow": ("x1", "y1", "x2", "y2"),
+                "rectangle": ("x1", "y1", "x2", "y2"),
+                "freehand": ("points",),
+            }.get(kind)
+            if keys is None or set(geometry) != {"type", *keys}:
+                raise HermesChatError("Type ou champs de géométrie non pris en charge.")
+            normalized: dict[str, Any] = {"type": kind}
+            if kind == "freehand":
+                points = geometry.get("points")
+                if not isinstance(points, list) or not 2 <= len(points) <= 500:
+                    raise HermesChatError("Le tracé doit contenir entre 2 et 500 points.")
+                normalized["points"] = [
+                    [HermesWorkspaceChat._coordinate(point[0]), HermesWorkspaceChat._coordinate(point[1])]
+                    for point in points
+                    if isinstance(point, (list, tuple)) and len(point) == 2
+                ]
+                if len(normalized["points"]) != len(points):
+                    raise HermesChatError("Coordonnées de tracé invalides.")
+            else:
+                for key in keys:
+                    normalized[key] = HermesWorkspaceChat._coordinate(geometry.get(key))
+            identifier = item.get("id")
+            if not isinstance(identifier, str) or not ANNOTATION_LAYER_ID_RE.fullmatch(identifier):
+                raise HermesChatError("Identifiant de repère invalide.")
+            comment = item.get("comment", "")
+            if not isinstance(comment, str) or len(comment) > 4000:
+                raise HermesChatError("Le commentaire d’un repère dépasse 4 000 caractères.")
+            photos = item.get("photos", [])
+            if not isinstance(photos, list) or len(photos) > 4 or any(
+                not isinstance(photo, dict)
+                or set(photo) != {"name", "media_type", "data_url"}
+                or not isinstance(photo.get("name"), str)
+                or len(photo["name"]) > 240
+                or photo.get("media_type") not in {"image/jpeg", "image/png", "image/webp"}
+                or not isinstance(photo.get("data_url"), str)
+                or len(photo["data_url"]) > 2_000_000
+                or not photo["data_url"].startswith(f"data:{photo['media_type']};base64,")
+                for photo in photos
+            ):
+                raise HermesChatError("Photo de repère invalide ou trop volumineuse.")
+            annotations.append({
+                "id": identifier,
+                "page": page,
+                "geometry": normalized,
+                "comment": comment,
+                "photos": photos,
+            })
+        encoded = json.dumps(annotations, ensure_ascii=False, separators=(",", ":"))
+        if len(encoded.encode("utf-8")) > MAX_ANNOTATION_LAYER_BYTES:
+            raise HermesChatError("La couche dépasse la taille maximale autorisée.")
+        return annotations
+
+    @staticmethod
+    def _coordinate(value: Any) -> float:
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not 0 <= value <= 1:
+            raise HermesChatError("Les coordonnées doivent être normalisées entre 0 et 1.")
+        return float(value)
+
+    def annotation_layers(self, session_id: str, source_sha256: str | None) -> dict[str, Any]:
+        self._owned_session(session_id)
+        fingerprint = source_sha256 if isinstance(source_sha256, str) and SOURCE_SHA256_RE.fullmatch(source_sha256) else ""
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM workspace_hermes_annotation_layers WHERE session_id = ? "
+                "ORDER BY created_at, layer_id",
+                (session_id,),
+            ).fetchall()
+        layers: list[dict[str, Any]] = []
+        stale_layers = 0
+        for row in rows:
+            if row["source_sha256"] != fingerprint:
+                stale_layers += 1
+                continue
+            try:
+                annotations = json.loads(row["annotations_json"])
+            except (TypeError, json.JSONDecodeError):
+                annotations = []
+            layers.append({
+                "id": str(row["layer_id"]),
+                "title": str(row["title"]),
+                "owner": str(row["owner"]),
+                "visible": bool(row["visible"]),
+                "source_sha256": str(row["source_sha256"]),
+                "annotations": annotations if isinstance(annotations, list) else [],
+                "created_at": str(row["created_at"]),
+                "updated_at": str(row["updated_at"]),
+            })
+        return {"layers": layers, "stale_layers": stale_layers}
+
+    def save_annotation_layer(
+        self, session_id: str, layer_id: str, source_sha256: str | None,
+        title: str, owner: str, visible: bool, raw_annotations: Any,
+    ) -> dict[str, Any]:
+        row = self._owned_session(session_id)
+        if bool(row["archived"]):
+            raise HermesChatError("Cette discussion est archivée; restaurez-la avant de modifier ses repères.")
+        if not isinstance(layer_id, str) or not ANNOTATION_LAYER_ID_RE.fullmatch(layer_id):
+            raise HermesChatError("Identifiant de couche invalide.")
+        fingerprint = source_sha256 or ""
+        if fingerprint and not SOURCE_SHA256_RE.fullmatch(fingerprint):
+            raise HermesChatError("Empreinte du document invalide.")
+        if owner not in {"user", "hermes"}:
+            raise HermesChatError("Propriétaire de couche invalide.")
+        if not isinstance(title, str) or not title.strip() or len(title) > 160:
+            raise HermesChatError("Titre de couche invalide.")
+        annotations = self._validate_annotations(raw_annotations)
+        now = datetime.now(timezone.utc).isoformat()
+        encoded = json.dumps(annotations, ensure_ascii=False, separators=(",", ":"))
+        with self._connect() as connection:
+            connection.execute(
+                """INSERT INTO workspace_hermes_annotation_layers
+                   (session_id, layer_id, source_sha256, title, owner, visible, annotations_json, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(session_id, layer_id) DO UPDATE SET
+                     source_sha256=excluded.source_sha256, title=excluded.title,
+                     owner=excluded.owner, visible=excluded.visible,
+                     annotations_json=excluded.annotations_json, updated_at=excluded.updated_at""",
+                (session_id, layer_id, fingerprint, title.strip(), owner, int(bool(visible)), encoded, now, now),
+            )
+            connection.commit()
+        return {
+            "id": layer_id, "title": title.strip(), "owner": owner, "visible": bool(visible),
+            "source_sha256": fingerprint, "annotations": annotations, "updated_at": now,
+        }
+
     def set_archived(self, session_id: str, archived: bool) -> dict[str, Any]:
         row = self._owned_session(session_id)
         now = datetime.now(timezone.utc).isoformat()
@@ -294,6 +461,9 @@ class HermesWorkspaceChat:
         self._owned_session(session_id)
         self._request("DELETE", self._session_path(session_id))
         with self._connect() as connection:
+            connection.execute(
+                "DELETE FROM workspace_hermes_annotation_layers WHERE session_id = ?", (session_id,)
+            )
             connection.execute(
                 "DELETE FROM workspace_hermes_discussions WHERE session_id = ?", (session_id,)
             )

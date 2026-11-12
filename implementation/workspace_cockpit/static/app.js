@@ -2534,6 +2534,9 @@ async function sendHermesChatMessage(event) {
     renderHermesChatMessages(payload.messages);
     hermesChatInput.value = "";
     hermesChatStatus.textContent = "";
+    if (documentReaderItem?.workspace === card.workspace && documentReaderItem?.path === card.path) {
+      await loadReaderDiscussions(documentReaderItem, payload.discussion.session_id);
+    }
   } catch (error) {
     if (creatingSession) {
       try {
@@ -2686,9 +2689,156 @@ const documentReaderPdf = document.getElementById("document-reader-pdf");
 const documentReaderMarkdown = document.getElementById("document-reader-markdown");
 const documentReaderStatus = document.getElementById("document-reader-status");
 const documentReaderShare = document.getElementById("document-reader-share");
+const documentReaderAnnotationTools = document.getElementById("document-reader-annotation-tools");
+const documentReaderDiscussion = document.getElementById("document-reader-discussion");
+const documentReaderOpenChat = document.getElementById("document-reader-open-chat");
+const documentReaderAnnotate = document.querySelector("[data-pdf-annotate-toggle]");
+const documentReaderAnnotationComment = document.querySelector("[data-pdf-comment]");
+const documentReaderAskHermes = document.querySelector("[data-pdf-send-to-hermes]");
+const documentReaderAnnotationLayers = document.getElementById("document-reader-annotation-layers");
+const documentReaderAnnotationStatus = document.getElementById("document-reader-annotation-status");
 let documentReaderItem = null;
 let documentReaderFormat = "pdf";
 let documentReaderMarkdownSource = "";
+let documentReaderDiscussions = [];
+let documentReaderLayers = [];
+let documentReaderActiveLayerId = "";
+let documentReaderAnnotating = false;
+
+function readerFingerprint(item = documentReaderItem) {
+  const value = item?.source_sha256 || item?.fingerprint || "";
+  return /^[a-f0-9]{64}$/.test(value) ? value : "";
+}
+
+function readerSelectedDiscussion() {
+  return documentReaderDiscussions.find((item) => item.session_id === documentReaderDiscussion.value) || null;
+}
+
+function setReaderAnnotationStatus(message, isError = false) {
+  documentReaderAnnotationStatus.textContent = message || "";
+  documentReaderAnnotationStatus.classList.toggle("is-error", isError);
+}
+
+function sendReaderAnnotationConfig() {
+  window.PantheonPdfReader?.applyConfig({ enabled: documentReaderAnnotating, layers: documentReaderLayers });
+}
+
+function renderReaderAnnotationLayers() {
+  documentReaderAnnotationLayers.replaceChildren();
+  for (const layer of documentReaderLayers) {
+    const label = document.createElement("label");
+    label.className = "document-reader-annotation-layer";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = layer.visible !== false;
+    checkbox.setAttribute("aria-label", `Afficher la couche ${layer.title || layer.id}`);
+    checkbox.addEventListener("change", () => {
+      layer.visible = checkbox.checked;
+      sendReaderAnnotationConfig();
+      if (layer.owner === "user") void saveReaderAnnotationLayer(layer);
+    });
+    const text = document.createElement("span");
+    const count = Array.isArray(layer.annotations) ? layer.annotations.length : 0;
+    text.textContent = `${layer.owner === "hermes" ? "Hermes" : "Vous"} · ${layer.title || "Repères"} (${count})`;
+    label.append(checkbox, text);
+    documentReaderAnnotationLayers.append(label);
+  }
+}
+
+async function saveReaderAnnotationLayer(layer) {
+  const discussion = readerSelectedDiscussion();
+  if (!discussion || discussion.archived || !layer || layer.owner !== "user") return;
+  try {
+    const payload = await hermesChatRequest(
+      `api/hermes-chat/sessions/${encodeURIComponent(discussion.session_id)}/annotations`,
+      "POST",
+      {
+        layer_id: layer.id,
+        source_sha256: readerFingerprint(),
+        title: layer.title || "Mes repères",
+        visible: layer.visible !== false,
+        annotations: layer.annotations || [],
+      },
+    );
+    Object.assign(layer, payload.layer);
+    renderReaderAnnotationLayers();
+    setReaderAnnotationStatus("Repères enregistrés dans cette discussion.");
+  } catch (error) {
+    setReaderAnnotationStatus(error.message || "Enregistrement des repères impossible.", true);
+  }
+}
+
+async function loadReaderLayers(sessionId) {
+  documentReaderAnnotating = false;
+  documentReaderAnnotate.setAttribute("aria-pressed", "false");
+  documentReaderAnnotate.disabled = !sessionId;
+  documentReaderAnnotationComment.disabled = !sessionId;
+  documentReaderAskHermes.disabled = !sessionId;
+  documentReaderLayers = [];
+  documentReaderActiveLayerId = "";
+  if (!sessionId) {
+    renderReaderAnnotationLayers();
+    sendReaderAnnotationConfig();
+    setReaderAnnotationStatus("Choisissez une discussion Hermes pour créer une couche temporaire.");
+    return;
+  }
+  const discussion = readerSelectedDiscussion();
+  const query = new URLSearchParams({ source_sha256: readerFingerprint() });
+  setReaderAnnotationStatus("Chargement des couches de cette discussion…");
+  try {
+    const payload = await hermesChatRequest(
+      `api/hermes-chat/sessions/${encodeURIComponent(sessionId)}/annotations?${query}`,
+    );
+    documentReaderLayers = Array.isArray(payload.layers) ? payload.layers : [];
+    let userLayer = documentReaderLayers.find((layer) => layer.owner === "user");
+    if (!userLayer) {
+      userLayer = { id: "user", title: "Mes repères", owner: "user", visible: true, annotations: [] };
+      documentReaderLayers.push(userLayer);
+    }
+    documentReaderActiveLayerId = userLayer.id;
+    const archived = discussion?.archived === true;
+    documentReaderAnnotate.disabled = archived;
+    documentReaderAnnotationComment.disabled = archived;
+    documentReaderAskHermes.disabled = archived;
+    renderReaderAnnotationLayers();
+    sendReaderAnnotationConfig();
+    setReaderAnnotationStatus(payload.stale_layers ? `${payload.stale_layers} couche(s) d’une autre version du PDF masquée(s).` : "");
+  } catch (error) {
+    documentReaderLayers = [];
+    documentReaderAskHermes.disabled = true;
+    renderReaderAnnotationLayers();
+    sendReaderAnnotationConfig();
+    setReaderAnnotationStatus(error.message || "Chargement des repères impossible.", true);
+  }
+}
+
+async function loadReaderDiscussions(item, preferredSessionId = "") {
+  documentReaderDiscussion.replaceChildren();
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "Choisir une discussion";
+  documentReaderDiscussion.append(placeholder);
+  try {
+    const query = new URLSearchParams({ workspace: item.workspace, path: item.path, include_archived: "true" });
+    const payload = await hermesChatRequest(`api/hermes-chat/sessions?${query}`);
+    documentReaderDiscussions = Array.isArray(payload.discussions) ? payload.discussions : [];
+    for (const discussion of documentReaderDiscussions) {
+      const option = document.createElement("option");
+      option.value = discussion.session_id;
+      option.textContent = `${discussion.title || "Discussion Hermes"}${discussion.archived ? " · archivée" : ""}`;
+      documentReaderDiscussion.append(option);
+    }
+    documentReaderDiscussion.value = documentReaderDiscussions.some((item) => item.session_id === preferredSessionId)
+      ? preferredSessionId : "";
+    await loadReaderLayers(documentReaderDiscussion.value);
+    if (!readerFingerprint()) setReaderAnnotationStatus("Empreinte du PDF indisponible : les repères restent liés au chemin de la fiche.");
+  } catch (error) {
+    documentReaderDiscussions = [];
+    documentReaderDiscussion.value = "";
+    await loadReaderLayers("");
+    setReaderAnnotationStatus(error.message || "Liste des discussions indisponible.", true);
+  }
+}
 function indexedSourceUrl(item) {
   return workspaceUrl(`api/source?workspace=${encodeURIComponent(item.workspace)}&path=${encodeURIComponent(item.source_path)}`);
 }
@@ -2710,14 +2860,29 @@ async function openDocumentReader(item, format = "pdf") {
   showCockpitDialog(documentReaderDialog);
 
   if (documentReaderFormat === "pdf") {
-    const source = new URL(indexedSourceUrl(item), window.location.origin).href;
-    const viewer = new URL(workspaceUrl("vendor/pdfjs/web/viewer.html"), window.location.origin);
-    viewer.searchParams.set("file", source);
-    documentReaderPdf.src = viewer.toString();
+    documentReaderAnnotationTools.hidden = false;
+    documentReaderPdf.hidden = false;
+    documentReaderStatus.textContent = "Chargement du PDF…";
+    try {
+      const pdfReader = window.PantheonPdfReader || await window.PantheonPdfReaderReady;
+      pdfReader.close();
+      await pdfReader.open(new URL(indexedSourceUrl(item), window.location.href).href, (mark) => {
+        const layer = documentReaderLayers.find((entry) => entry.id === documentReaderActiveLayerId);
+        if (!layer || !readerSelectedDiscussion() || readerSelectedDiscussion().archived) return;
+        layer.annotations = [...(layer.annotations || []), { id: `mark-${crypto.randomUUID()}`, ...mark }];
+        sendReaderAnnotationConfig();
+        void saveReaderAnnotationLayer(layer);
+      });
+      documentReaderStatus.textContent = "";
+    } catch (error) {
+      documentReaderStatus.textContent = error.message || "Impossible d’ouvrir ce PDF.";
+    }
+    await loadReaderDiscussions(item, item.hermes_discussions?.[0]?.session_id || "");
     return;
   }
 
-  documentReaderPdf.src = "about:blank";
+  documentReaderAnnotationTools.hidden = true;
+  window.PantheonPdfReader?.close();
   documentReaderMarkdown.innerHTML = '<p class="ocr-preview-empty">Chargement du texte OCR…</p>';
   try {
     const response = await fetch(ocrMarkdownUrl(item), { cache: "no-store" });
@@ -2728,6 +2893,32 @@ async function openDocumentReader(item, format = "pdf") {
     documentReaderMarkdown.innerHTML = `<p class="ocr-preview-empty">Impossible de lire le résultat OCR : ${escapeHtml(error.message || "erreur inconnue")}</p>`;
   }
 }
+
+documentReaderDiscussion.addEventListener("change", () => { void loadReaderLayers(documentReaderDiscussion.value); });
+documentReaderOpenChat.addEventListener("click", () => {
+  const discussion = readerSelectedDiscussion();
+  if (documentReaderItem) void openHermesCardChat(documentReaderItem, discussion);
+});
+documentReaderAnnotate.addEventListener("click", () => {
+  documentReaderAnnotating = !documentReaderAnnotating;
+  window.PantheonPdfReader?.applyConfig({ enabled: documentReaderAnnotating });
+});
+documentReaderAnnotationLayers.addEventListener("change", sendReaderAnnotationConfig);
+documentReaderPdf.addEventListener("pdfreader:ask", () => {
+  const discussion = readerSelectedDiscussion();
+  const layer = documentReaderLayers.find((entry) => entry.id === documentReaderActiveLayerId);
+  if (!documentReaderItem || !discussion || discussion.archived) {
+    setReaderAnnotationStatus("Choisissez une discussion Hermès active avant d’envoyer les repères.");
+    return;
+  }
+  const marks = layer?.annotations || [];
+  const summary = marks.map((mark, index) => `${index + 1}. page ${mark.page}, ${mark.geometry.type}, repère normalisé ${JSON.stringify(mark.geometry)}${mark.comment ? ` : ${mark.comment}` : ""}`).join("\n");
+  const question = documentReaderAnnotationComment.value.trim();
+  void openHermesCardChat(documentReaderItem, discussion).then(() => {
+    hermesChatInput.value = `${question || "Peux-tu examiner ces repères ?"}\n\nRepères du PDF :\n${summary || "Aucun repère dans la couche."}`;
+    hermesChatInput.focus();
+  });
+});
 
 const CP1252_SPECIAL = new Map([
   [0x20ac, 0x80], [0x201a, 0x82], [0x0192, 0x83], [0x201e, 0x84], [0x2026, 0x85], [0x2020, 0x86],
@@ -3645,6 +3836,7 @@ document.addEventListener("click", (event) => {
     renderVaultSwitch();
   }
 });
+documentReaderDialog.addEventListener("close", () => { window.PantheonPdfReader?.close(); });
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") return;
   if (workspaceViewSwitch.dataset.expanded === "true") {
@@ -3666,6 +3858,7 @@ document.addEventListener("click", (event) => {
   const closeDocumentReader = event.target.closest("[data-close-document-reader]");
   if (closeDocumentReader) {
     documentReaderDialog.close();
+    window.PantheonPdfReader?.close();
     return;
   }
   const closeMetadata = event.target.closest("[data-close-metadata-dialog]");
