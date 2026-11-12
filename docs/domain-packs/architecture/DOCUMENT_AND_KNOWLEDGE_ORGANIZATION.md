@@ -5,7 +5,7 @@ Boundary profile: candidate_support_note.
 
 This document records the architecture-agency organization chosen on 2026-07-19 and reconciled on 2026-07-20 for project originals and the reusable Markdown knowledge corpus.
 
-It specializes `KNOWLEDGE_TAXONOMY.md` and `SOURCE_INGESTION_RETRIEVAL_MODEL.md`. The external `ifanjuang/pantheon-mvp` repository now contains a tested candidate for bounded Docling extraction, PostgreSQL/pgvector persistence, strict NAS intake, read-only OpenWebUI Document Cards, versioned Knowledge publication and conflict-safe mobile Markdown editing. That observation does not install, adopt or activate the binding. This document itself creates no NAS folder, moves or renames no file, installs no editor, promotes no memory and authorizes no external action.
+It specializes `KNOWLEDGE_TAXONOMY.md` and `SOURCE_INGESTION_RETRIEVAL_MODEL.md`. The co-located `implementation/` (imported from the former `ifanjuang/pantheon-mvp` repository) contains a tested candidate for bounded Docling extraction, PostgreSQL/pgvector persistence, strict NAS intake, native read-only Document Cards projected by the Pantheon Cockpit, versioned Knowledge publication and conflict-safe mobile Markdown editing. That observation does not install, adopt or activate the binding. This document itself creates no NAS folder, moves or renames no file, installs no editor, promotes no memory and authorizes no external action.
 
 ```text
 Project originals stay on the NAS.
@@ -20,7 +20,7 @@ The human decides consequential promotion.
 The selected target keeps one responsibility per component:
 
 ```text
-OpenWebUI cockpit
+Hermes Web/dashboard + Pantheon Cockpit
 ├── PostgreSQL + pgvector
 │   ├── cards, issues and document metadata
 │   ├── structured CCTP content and versions
@@ -30,21 +30,23 @@ OpenWebUI cockpit
 │   ├── immutable project originals
 │   └── contractual and delivery exports
 └── Hermes
-    └── invokes the bounded external adapter and Docling
+    └── invokes the bounded adapter and Docling
 ```
+
+A runtime client such as OpenWebUI remains optional, replaceable and outside the repository. A deployment may install one locally next to Hermes Web; it then exposes interaction only and owns no card, document, Knowledge or status.
 
 The first observed candidate profile contains only:
 
 ```text
-OpenWebUI read-only cockpit
-external Pantheon MVP adapter
+Pantheon Cockpit read-only projections
+implementation/ adapter (former Pantheon MVP)
 PostgreSQL + pgvector
 Hermes
 Docling / Docling Serve
 NAS
 ```
 
-These components are intended to be self-hosted. The candidate adapter and OpenWebUI Tool are committed and tested but not installed on the agency environment. Docling is the primary document-understanding engine. It performs local extraction, OCR when required, layout analysis, table recovery and structured export. It is not an editor, source store, project classifier, authority service, evidence approver or memory engine.
+These components are intended to be self-hosted. The candidate adapter and its Cockpit projections are committed and tested but not installed on the agency environment; the former OpenWebUI Tool was removed from `implementation/`. Docling is the primary document-understanding engine. It performs local extraction, OCR when required, layout analysis, table recovery and structured export. It is not an editor, source store, project classifier, authority service, evidence approver or memory engine.
 
 The following are deferred until a demonstrated need exists:
 
