@@ -354,7 +354,10 @@ class TestFocus(unittest.TestCase):
         self.assertIn("porte-fenêtre", {row["élément"] for row in doors["éléments"]})
         summary = project_overview.project_overview("DEMO", self.directory)
         self.assertTrue(summary["model_quality"]["réexport_conseillé"])
-        self.assertIn("nord", summary["model_quality"]["conseils_export"][0])
+        self.assertEqual(summary["model_quality"]["à_corriger"], ["nord géographique"])
+        self.assertNotIn("conseils_export", summary["model_quality"])
+        detail = project_overview.project_overview("DEMO", self.directory, focus="qualité")["focus"]
+        self.assertIn("nord", detail["maquettes"][0]["conseils_export"][0])
         self.assertTrue(any("réexporter" in rule for rule in summary["reading_rules"]))
 
     def test_any_category_is_designated_by_its_words(self):
@@ -403,7 +406,7 @@ class TestFocus(unittest.TestCase):
         self.assertIn("mesurée 2,18 m", found["à_vérifier"][0])
         quality = project_overview.project_overview("DEMO", self.directory)["model_quality"]
         self.assertEqual(quality["autres_maquettes"][0]["discipline"], "structure")
-        self.assertIn("coordonnées partagées", quality["autres_maquettes"][0]["conseils_export"][0])
+        self.assertEqual(quality["autres_maquettes"][0]["à_corriger"], ["coordonnées partagées"])
 
     def test_engineer_elements_take_the_rooms_and_grid_of_the_overlay(self):
         structure = {"schema": "pantheon.model_reading.v1", "source": {"piece": "STRUCTURE", "index": "H"},
