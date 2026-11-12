@@ -188,6 +188,12 @@
   BET », changes, quality, sources, files), forbids searching the web for an
   affaire and asks for one retry on "not found". A bench showed « sources
   anatomiques » read as medical anatomy and searched on the web.
+- `get_project` tells Hermes to start with the summary (models with discipline,
+  index and file, open questions, changes, quality) and to answer from it when
+  it suffices, and to open documents only when asked to verify or when the
+  answer is not there, offering to dig further rather than reading at length:
+  a bench showed 7 focus calls for an index already in the summary, and 27 to
+  68 calls reading documents for questions the summary answered.
 - Anatomy sources (`anatomy_sources`): the files an affaire's readings rest on
   are declared on their Workspace card (`anatomy_source`: complement or
   replacement, role, discipline, use, scope, declared alignment, consolidate
