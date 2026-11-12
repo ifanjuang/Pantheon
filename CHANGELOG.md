@@ -156,6 +156,14 @@
   with a filter hint. The "one model under two names" question gives each
   index's date, which one is more recent, and speaks of shared IFC identifiers
   so it is not mistaken for the overlay score.
+- Hermes skills `drawing-reading` and `model-reading`: how to read a drawing
+  (identify it from the title block, grid lines, levels, legend, tables,
+  rooms, walls and partitions, openings; a written dimension is read, a scaled
+  measurement is deduced and only when no dimension answers) and how to answer
+  about a model from the published readings (which focus for which question,
+  confidence scale, positions, engineers' overlays, changes between indices,
+  quality and re-export). Short main files for a local model, details in
+  references; agency conventions in a reference an installation may replace.
 - Anatomy sources (`anatomy_sources`): the files an affaire's readings rest on
   are declared on their Workspace card (`anatomy_source`: complement or
   replacement, role, discipline, use, scope, declared alignment, consolidate
