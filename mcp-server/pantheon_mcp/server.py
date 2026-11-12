@@ -174,19 +174,21 @@ def get_project(code: str, focus: str = "") -> str:
     building as read in its models (rooms, walls, openings, columns, any element, their place and size).
 
     Call it first for any question about an affaire's documents or its building: « où en est »,
-    « dernier plan », « indice », « surface du séjour », « poteaux du BET », « qu'est-ce qui a changé »,
+    « dernier plan », « indice », « surface d'un local », « poteaux du BET », « qu'est-ce qui a changé »,
     « sources anatomiques ». Quote the values as given, with their confidence (validé, lu, déduit,
     estimé); never infer an index from a file name; never search the web for an affaire.
-    `code` is the affaire code; an empty code lists the published ones. Without `focus`: a short
-    summary. Then one `focus` per question:
+    `code` is the affaire code; an empty code lists the published ones. Start without `focus`: the
+    summary already gives the models with discipline, index and file, the open questions, the changes
+    and the quality; answer from it when it suffices. Then one `focus` per detail:
     - a room (« cuisine », « chambre 1 R01 »; « salon » finds the Séjour); a level (« R01 »);
       « file M »; « façade sud »;
-    - elements by category and place: « poteaux du BET séjour », « cloison file 5 »,
+    - elements by category and place: « poteaux du BET <local> », « cloison file 5 »,
       « fenêtres façade sud » (« du BET » / « archi » keeps that discipline's models);
     - « changements <maquette> » (since the previous index), « qualité » (export advice),
       « sources » (anatomy sources: files the readings rest on), « fichier <nom> »;
     - « pièces » (« pièces dce »), « devis », « locaux ».
-    On « not found », retry once with a name from the list returned.
+    On « not found », retry once with a name from the list returned. Open documents only when asked
+    to verify or when the answer is not here; then offer to dig further rather than reading at length.
     """
     return _call("project_overview", code, focus)
 
