@@ -222,6 +222,11 @@ def test_a_changed_file_gets_a_new_sheet_and_each_consolidation_a_snapshot(affai
     # An export without consolidation adds no snapshot.
     affaire.consolidate()
     assert len(json.loads((affaire.directory / "DEMO.consolidations.json").read_text(encoding="utf-8"))) == 2
+    # A requested consolidation is dated even when nothing changed, and reads nothing again.
+    _, section = affaire.consolidate(force=True)
+    snapshots = json.loads((affaire.directory / "DEMO.consolidations.json").read_text(encoding="utf-8"))
+    assert len(snapshots) == 3 and section["dernière_consolidation"] == snapshots[-1]["at"]
+    assert len(affaire.read_log) == 2
 
 
 def test_a_moved_file_keeps_its_declaration_through_its_digest() -> None:
