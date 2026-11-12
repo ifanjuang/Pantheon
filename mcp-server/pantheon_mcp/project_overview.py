@@ -417,12 +417,40 @@ def _quality_focus(models: list[dict[str, Any]]) -> dict[str, Any]:
 
 FACADE_NAMES = {"nord", "est", "sud", "ouest"}
 SELECTION_ROWS = 30  # beyond this, a selection gives counts by level and room with an extract
+SEVERAL_MODELS_ROWS = 12  # per model, when one answer spans several models
+# Words people use for the same room (a model names it "Séjour", the question says "salon").
+ROOM_SYNONYMS = [
+    {"sejour", "salon", "living", "piece de vie", "piece a vivre"},
+    {"sdb", "salle de bain", "salle de bains", "salle d eau", "sde"},
+    {"wc", "toilettes", "toilette", "sanitaires"},
+    {"l tech", "local technique", "chaufferie", "technique"},
+    {"sam", "salle a manger"},
+    {"palier", "degagement", "circulation", "couloir"},
+    {"entree", "hall", "sas"},
+]
+NOT_FOUND_ADVICE = ("Réessayer avec un nom de la liste, précédé d'une catégorie pour des éléments "
+                    "(« poteaux Séjour », « poteaux du BET Séjour ») ; ne pas chercher ailleurs avant.")
 
 
-def _selected(criterion: str, rows: list[dict[str, Any]]) -> dict[str, Any]:
+def _plain(text: Any) -> str:
+    return " ".join(re.sub(r"[^\w ]", " ", _fold(text)).split())
+
+
+def _room_match(query: str, name: Any) -> bool:
+    """A room named by the query, directly or through a usual synonym ("salon" for "Séjour")."""
+    query, plain = _plain(query), _plain(name)
+    if not query:
+        return False
+    if query in plain:
+        return True
+    return any(query in group and any(word == plain or plain.startswith(word + " ") for word in group)
+               for group in ROOM_SYNONYMS)
+
+
+def _selected(criterion: str, rows: list[dict[str, Any]], limit: int = SELECTION_ROWS) -> dict[str, Any]:
     """A selection small enough to read: every row when few, otherwise counts and an extract."""
     answer: dict[str, Any] = {"found": True, "kind": "sélection", "critère": criterion, "nombre": len(rows)}
-    if len(rows) <= SELECTION_ROWS:
+    if len(rows) <= limit:
         return {**answer, "éléments": rows}
     by_level: dict[str, int] = {}
     by_room: dict[str, int] = {}
@@ -431,7 +459,7 @@ def _selected(criterion: str, rows: list[dict[str, Any]]) -> dict[str, Any]:
         for room in row.get("locaux") or ["hors local"]:
             by_room[room] = by_room.get(room, 0) + 1
     return {**answer, "par_niveau": by_level, "par_local": dict(sorted(by_room.items(), key=lambda kv: -kv[1])[:15]),
-            "extrait": rows[:10], "reste": len(rows) - 10,
+            "extrait": [{k: v for k, v in row.items() if k != "id"} for row in rows[:8]], "reste": len(rows) - 8,
             "note": "Liste longue : préciser une file, une façade, un niveau ou un local pour le détail."}
 # Element words of a designation: kind of element, and whether it is exterior (None: either).
 ELEMENT_WORDS = {
@@ -494,11 +522,12 @@ def _designation(reading: dict[str, Any], words: list[str], names: dict[str, str
              and all(_on_grid(e.get("grid"), tag) for tag in tags)
              and (facade_dir is None or e.get("facade") == facade_dir)
              and (level is None or _fold(e.get("level")) == level)
-             and (not room or any(room in _fold(name) for name in
+             and (not room or any(_room_match(room, name) for name in
                                   (e.get("_rooms") or [names.get(s) for s in e.get("sides") or [] if s])))]
     label = LABELS.get((kind, exterior if kind == "mur" else None))
     if not found:
-        return {"found": False, "kind": "désignation", "reason": f"aucun élément ne correspond à « {' '.join(words)} »"}
+        return {"found": False, "kind": "désignation", "reason": f"aucun élément ne correspond à « {' '.join(words)} »",
+                "locaux": sorted(set(names.values()))[:MAX_LISTED], "conseil": NOT_FOUND_ADVICE}
     rows = [row(e) for e in found]
     if len(rows) == 1:
         return {"found": True, "kind": "élément", **rows[0]}
@@ -585,6 +614,17 @@ def _focus(directory: Path, data: dict[str, Any], focus: str) -> dict[str, Any]:
         return {"found": False, "reason": "aucune lecture de maquette publiée pour cette affaire"}
     wanted = _fold(focus)
     states = _states(data)
+    # "poteaux du BET séjour": only the engineers' models; "murs archi": only the architect's.
+    words = wanted.split()
+    for markers, discipline in (({"bet", "structure", "structurel", "structurelle"}, "structure"),
+                                ({"archi", "architecte", "architecture"}, "architecture")):
+        if markers & set(words):
+            kept = [r for r in models if r.get("discipline") == discipline]
+            if kept:
+                models = kept
+            words = [w for i, w in enumerate(words) if w not in markers
+                     and not (w in {"du", "de", "la", "l"} and i + 1 < len(words) and words[i + 1] in markers)]
+            wanted = " ".join(words)
     # The architect's model (with spaces) first; engineers' models complete it.
     models.sort(key=lambda r: -len(r.get("spaces") or []))
     missed, found = None, []
@@ -604,6 +644,11 @@ def _focus(directory: Path, data: dict[str, Any], focus: str) -> dict[str, Any]:
     if len(found) == 1 or (found and found[0].get("kind") != "sélection"):
         return found[0]
     if found:  # the same category in several models (an architect's posts, an engineer's columns): one answer per model
+        for answer in found:
+            rows = answer.get("éléments")
+            if isinstance(rows, list) and len(rows) > SEVERAL_MODELS_ROWS:
+                answer.pop("éléments")
+                answer.update(_selected(answer.get("critère", ""), rows, limit=SEVERAL_MODELS_ROWS))
         return {"found": True, "kind": "sélections", "par_maquette": found,
                 "nombre": sum(f.get("nombre") or 0 for f in found)}
     if missed is not None:
@@ -612,7 +657,7 @@ def _focus(directory: Path, data: dict[str, Any], focus: str) -> dict[str, Any]:
         names = {s["id"]: s["name"] for s in reading.get("spaces") or []}
         spaces = reading.get("spaces") or []
         exact = [s for s in spaces if wanted in {_fold(s.get("name")), _fold(s.get("number"))}]
-        partial = exact or [s for s in spaces if wanted and wanted in _fold(s.get("name"))]
+        partial = exact or [s for s in spaces if wanted and _room_match(wanted, s.get("name"))]
         if not partial:  # "chambre r01": a name followed by a level or a number
             words = wanted.split()
             partial = [s for s in spaces if words and any(
@@ -667,14 +712,14 @@ def _focus(directory: Path, data: dict[str, Any], focus: str) -> dict[str, Any]:
                     "source": source, "limites": notes}
     return {"found": False, "candidates": [f"{s['name']} {s.get('level') or ''} (n° {s.get('number') or '?'})".strip()
                                            for r in models for s in r.get("spaces") or []][:MAX_LISTED],
-            "reason": "aucun local ni élément ne correspond"}
+            "reason": "aucun local ni élément ne correspond", "conseil": NOT_FOUND_ADVICE}
 
 
 DETAIL_HINT = ("Détail sur demande avec focus : « changements <maquette> » (ce qui a changé depuis l'indice précédent), « qualité » (contrôles et conseils d'export de chaque maquette), "
                "« sources » (sources anatomiques et leurs états), "
                "« fichier <partie du nom> » (fiche d'une source), « pièces » (toutes les pièces courantes et leurs fichiers), "
                "« devis », « locaux », un local (« cuisine », « chambre 101 »), « file M », « façade sud », "
-               "un niveau (« R01 »), ou un élément (« cloison file 5 », « fenêtre façade sud chambre 1 »).")
+               "un niveau (« R01 »), ou des éléments (« cloison file 5 », « fenêtre façade sud chambre 1 », « poteaux du BET séjour »).")
 
 
 SOURCE_KEYS = ("fichier", "état", "rôle", "discipline", "usage", "perimeter", "remplace", "remplacée_par", "déplacé_depuis", "messages")
@@ -875,7 +920,11 @@ def project_overview(code: str, directory: Path | None = None, focus: str = "") 
             listed = (full.get("pieces") or {}).get("current", [])
             if rest:  # "pièces dce", "pièces cctp": name or folder contains the word
                 listed = [row for row in listed if rest in _fold(row.get("piece")) or rest in _fold(row.get("file"))]
-            overview["focus"] = {"found": True, "kind": "pièces", "filtre": rest or None, "nombre": len(listed), "pièces": listed}
+            overview["focus"] = {"found": True, "kind": "pièces", "filtre": rest or None, "nombre": len(listed),
+                                 "pièces": listed[:SELECTION_ROWS],
+                                 **({"reste": len(listed) - SELECTION_ROWS,
+                                     "conseil": "liste longue : filtrer par un mot du nom ou du dossier (« pièces dce », « pièces cctp »)"}
+                                    if len(listed) > SELECTION_ROWS else {})}
         elif wanted in {"devis", "offres"}:
             overview["focus"] = {"found": True, "kind": "devis", "devis": (full.get("pieces") or {}).get("to_confront", [])}
         elif wanted in {"locaux", "surfaces", "anatomie"}:

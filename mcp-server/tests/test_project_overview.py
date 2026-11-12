@@ -206,6 +206,12 @@ class TestProjectOverview(unittest.TestCase):
         self.assertEqual(comparison["murs"]["modifiés"], 3)
         self.assertFalse(project_overview.project_overview("DEMO", self.directory, focus="changements cctp")["focus"]["found"])
 
+    def test_usual_room_words_and_discipline_words_reach_the_right_answer(self):
+        self.assertTrue(project_overview._room_match("salon", "Séjour"))
+        self.assertTrue(project_overview._room_match("salle de bain", "SDB"))
+        self.assertTrue(project_overview._room_match("local technique", "L.Tech"))
+        self.assertFalse(project_overview._room_match("salon", "Chambre 1"))
+
     def test_an_empty_or_unknown_code_lists_the_published_affaires(self):
         self.assertEqual(project_overview.project_overview("", self.directory)["available_codes"], ["DEMO"])
         unknown = project_overview.project_overview("AUTRE", self.directory)
@@ -414,7 +420,7 @@ class TestFocus(unittest.TestCase):
         reading["elements"] += [{"id": f"P{n}", "label": "poteau", "space": "G-SAL", "level": "RDC"} for n in range(3, 40)]
         (self.directory / "DEMO.maquette-maquette.json").write_text(json.dumps(reading), encoding="utf-8")
         many = project_overview.project_overview("DEMO", self.directory, focus="poteaux")["focus"]
-        self.assertEqual((many["nombre"], many["par_niveau"], len(many["extrait"])), (39, {"RDC": 39}, 10))
+        self.assertEqual((many["nombre"], many["par_niveau"], len(many["extrait"])), (39, {"RDC": 39}, 8))
         asked = project_overview.project_overview("DEMO", self.directory, focus="poteau file C")["focus"]
         self.assertTrue(asked["question"].startswith("Plusieurs correspondent : poteau sur la file C"))
 
@@ -470,6 +476,13 @@ class TestFocus(unittest.TestCase):
     def test_without_a_model_reading_the_focus_says_so(self):
         (self.directory / "DEMO.maquette-maquette.json").unlink()
         self.assertFalse(project_overview.project_overview("DEMO", self.directory, focus="cuisine")["focus"]["found"])
+    def test_an_unknown_room_gives_the_rooms_and_advice_instead_of_a_dead_end(self):
+        missed = project_overview.project_overview("DEMO", self.directory, focus="portes grenier")["focus"]
+        self.assertFalse(missed["found"])
+        self.assertIn("poteaux", missed["conseil"])
+        self.assertIn("Cuisine", missed["locaux"])
+
+
 class TestProjectStateRouting(unittest.TestCase):
     """Hermes reaches get_project through the words its project-context Skill uses."""
 

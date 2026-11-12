@@ -138,18 +138,31 @@ def summary(counts: dict[str, dict[str, int]]) -> str:
     return " ; ".join(parts) or "aucun changement lu"
 
 
-def same_model_questions(readings: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Current model pieces that are one model under two names: a question each, never a decision."""
+def same_model_questions(readings: list[dict[str, Any]], dates: dict[str, str] | None = None) -> list[dict[str, Any]]:
+    """Current model pieces that are one model under two names: a question each, never a decision.
+
+    The question gives each index and its date, and which one is more recent: a fact to help the
+    architect, not a choice.
+    """
+    dates = dates or {}
     questions = []
     for i, a in enumerate(readings):
         for b in readings[i + 1:]:
             if a.get("discipline") != b.get("discipline"):
                 continue
             share = shared_share(a, b)
-            if share >= SAME_MODEL_SHARE:
-                name_a = f"{(a.get('source') or {}).get('piece')} {(a.get('source') or {}).get('index') or ''}".strip()
-                name_b = f"{(b.get('source') or {}).get('piece')} {(b.get('source') or {}).get('index') or ''}".strip()
-                questions.append({"piece": name_a, "kind": "meme_maquette", "share": round(share, 2),
-                                  "text": f"{name_a} et {name_b} : même maquette sous deux noms "
-                                          f"({round(100 * share)} % d'éléments communs) ; laquelle fait foi ?"})
+            if share < SAME_MODEL_SHARE:
+                continue
+            named = []
+            for reading in (a, b):
+                source = reading.get("source") or {}
+                date = dates.get(str(source.get("piece")))
+                named.append((f"{source.get('piece')} {source.get('index') or ''}".strip(), date))
+            text = (f"{named[0][0]}{f' ({named[0][1]})' if named[0][1] else ''} et {named[1][0]}"
+                    f"{f' ({named[1][1]})' if named[1][1] else ''} : même maquette sous deux noms "
+                    f"({round(100 * share)} % d'identifiants IFC communs)")
+            if named[0][1] and named[1][1] and named[0][1] != named[1][1]:
+                text += f" ; la plus récente est {max(named, key=lambda n: n[1])[0]}"
+            questions.append({"piece": named[0][0], "kind": "meme_maquette", "share": round(share, 2),
+                              "text": text + " ; laquelle fait foi ?"})
     return questions
