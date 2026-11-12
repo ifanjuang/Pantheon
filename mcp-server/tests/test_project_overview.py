@@ -297,7 +297,7 @@ class TestFocus(unittest.TestCase):
 
     def test_an_element_is_found_by_its_id_and_the_overview_lists_the_models(self):
         self.assertEqual(project_overview.project_overview("DEMO", self.directory)["models"],
-                         [{"piece": "MAQUETTE", "index": "E", "status": "read"}])
+                         [{"piece": "MAQUETTE", "index": "E", "fichier": "DEMO_E.ifc"}])
         result = project_overview.project_overview("DEMO", self.directory, focus="0fenetre01")
         self.assertEqual((result["focus"]["kind"], result["focus"]["facade"]), ("élément", "sud"))
         self.assertEqual(result["focus"]["côtés"], ["Cuisine", "extérieur"])

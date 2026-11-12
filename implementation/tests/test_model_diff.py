@@ -42,7 +42,7 @@ def test_changes_are_read_element_by_element_in_the_words_of_the_readings() -> N
     assert diff["ouvertures"]["modifiés"][0]["élément"] == "fenêtre, façade sud, Séjour"
     assert diff["murs"]["ajoutés"] == ["mur, WC (×2)"] and diff["murs"]["supprimés"] == ["mur, Chambre"]
     assert "éléments" not in diff
-    assert diff["résumé"].startswith("locaux : 1 ajoutés, 1 modifiés")
+    assert diff["résumé"].startswith("locaux : 2 changés (1 ajoutés, 1 modifiés)")
     assert "modélisation" in diff["limite"]
 
 
@@ -58,6 +58,7 @@ def test_one_model_under_two_names_becomes_a_question() -> None:
     questions = model_diff.same_model_questions([bet_a, bet_h, OLD], {"MAQUETTE": None})
     assert len(questions) == 1 and questions[0]["kind"] == "meme_maquette" and "laquelle fait foi" in questions[0]["text"]
     assert "identifiants IFC communs" in questions[0]["text"]
+    assert questions[0]["text"].startswith("Maquettes structure : ")  # never read as the architect's model
     bet_h["source"] = {**bet_h["source"], "piece": "BET H"}
     dated = model_diff.same_model_questions([bet_a, bet_h], {"MAQUETTE": "2026-06-16", "BET H": "2026-10-28"})
     assert "MAQUETTE A (2026-06-16) et BET H H (2026-10-28)" in dated[0]["text"]

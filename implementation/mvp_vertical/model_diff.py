@@ -128,13 +128,17 @@ def _grouped(labels: list[str]) -> list[str]:
 
 
 def summary(counts: dict[str, dict[str, int]]) -> str:
-    """One line: « locaux : 2 ajoutés, 3 modifiés ; murs : 12 supprimés … »."""
+    """One line: « locaux : 5 changés (2 ajoutés, 3 modifiés) ; murs : 12 changés (12 supprimés) … ».
+
+    The total is given so a reader quotes it instead of adding the numbers up.
+    """
     names = {"spaces": "locaux", "openings": "ouvertures", "walls": "murs", "elements": "éléments"}
     parts = []
-    for kind, numbers in counts.items():
-        said = [f"{n} {word}" for word, n in numbers.items() if n]
+    for kind in (k for k in names if k in counts):  # fixed order: a stored comparison has sorted keys
+        numbers = counts[kind]
+        said = [f"{numbers[word]} {word}" for word in ("ajoutés", "supprimés", "modifiés") if numbers.get(word)]
         if said:
-            parts.append(f"{names[kind]} : {', '.join(said)}")
+            parts.append(f"{names[kind]} : {sum(numbers.values())} changés ({', '.join(said)})")
     return " ; ".join(parts) or "aucun changement lu"
 
 
@@ -159,7 +163,9 @@ def same_model_questions(readings: list[dict[str, Any]], dates: dict[str, str] |
                 source = reading.get("source") or {}
                 date = dates.get(str(source.get("piece")))
                 named.append((f"{source.get('piece')} {source.get('index') or ''}".strip(), date))
-            text = (f"{named[0][0]}{f' ({named[0][1]})' if named[0][1] else ''} et {named[1][0]}"
+            # The discipline first: an architect's model compared elsewhere is not concerned.
+            text = (f"Maquettes {a.get('discipline') or 'de même discipline'} : "
+                    f"{named[0][0]}{f' ({named[0][1]})' if named[0][1] else ''} et {named[1][0]}"
                     f"{f' ({named[1][1]})' if named[1][1] else ''} : même maquette sous deux noms "
                     f"({round(100 * share)} % d'identifiants IFC communs)")
             if named[0][1] and named[1][1] and named[0][1] != named[1][1]:

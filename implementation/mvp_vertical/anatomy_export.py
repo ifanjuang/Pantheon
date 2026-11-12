@@ -204,7 +204,9 @@ def compare_models(code: str, models: list[dict[str, Any]], previous: dict[str, 
             _write_json(target, diff)
         kept.add(target.name)
         changes.append({"pièce": piece, "de": diff["de"].get("index"), "à": diff["à"].get("index"),
-                        "fiable": diff.get("fiable"), "résumé": diff.get("résumé") or diff.get("raison"),
+                        "fiable": diff.get("fiable"),
+                        "résumé": (model_diff.summary(diff["nombres"]) if diff.get("nombres") else None)
+                                  or diff.get("résumé") or diff.get("raison"),
                         "fichier": target.name})
     for stale in directory.glob(f"{code}.changements-*.json"):
         if stale.name not in kept:

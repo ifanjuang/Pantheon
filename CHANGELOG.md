@@ -175,6 +175,12 @@
 - Summarised selections give distributions over every element (counts by
   grid position, size ranges) and say the 8-row extract is a sample: a control
   showed Hermes generalising positions and sections from the extract alone.
+- The summary names each model's discipline and file, and the "one model under
+  two names" question starts with the discipline ("Maquettes structure : …"):
+  a bench showed Hermes taking an engineer's file for the architect's model and
+  tying the engineers' question to the architect's changes. Change lines give a
+  total per kind ("éléments : 197 changés (143 ajoutés, …)") so it is quoted,
+  not added up (the bench showed a wrong sum).
 - The `get_project` tool description, read with every tool list, now names the
   project's Anatomy and its vocabulary (« anatomie du projet », « sources
   anatomiques »), says it is the first call for any question about an affaire's
