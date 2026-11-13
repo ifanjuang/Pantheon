@@ -37,15 +37,24 @@ FIELD_ALIASES = {
     "auteur": "issuer", "destinataire": "recipient", "famille": "family", "type": "document_type",
     "type_document": "document_type", "corps_d_etat": "corps_etat", "lot": "corps_etat",
     "sujet": "sujet_technique", "résumé": "summary", "resume": "summary", "descriptif": "summary",
-    "description": "summary",
+    "description": "summary", "source_anatomique": "anatomy_source",
 }
 CONFIDENCES = ("lu", "déduit", "estimé")
-CONFIDENCE_ALIASES = {"deduit": "déduit", "estime": "estimé"}
+# The anatomy source of a file (the one card field owned by the Anatomy workflow): which file the readings
+# rest on. Only the user's choice is proposed, marked « déclaré »; the operator's own fields stay out
+# (who and when, consolidation, overlay confirmation).
+SOURCE_FIELD = "anatomy_source"
+SOURCE_KEYS = {"active", "mode", "replaces", "role", "discipline", "usage", "perimeter", "note"}
+SOURCE_MODES = ("complément", "remplacement")
+SOURCE_ROLES = ("référence", "complément", "contrôle")
+SOURCE_TEXT = 300
+CONFIDENCE_ALIASES = {"deduit": "déduit", "estime": "estimé", "declare": "déclaré"}
 
 _DATE_ISO = re.compile(r"^(\d{4})-(\d{1,2})-(\d{1,2})$")
 _DATE_FR = re.compile(r"^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{2}|\d{4})$")
 # A source must say where the value was read; « aucune source », « non lu » say it was not.
 _NO_SOURCE = re.compile(r"\b(absence|aucune?|pas de|sans|non (lue?|confirmée?)|introuvable|inconnue?)\b", re.IGNORECASE)
+_TEMPLATE = re.compile(r"\[[^\]]*\]|<[^>]*>|\bà compléter\b|\ba completer\b")
 _INDEX_PREFIX = re.compile(r"^(?:indice|ind\.?|index|rev\.?|révision)\s*[:\-]?\s*", re.IGNORECASE)
 
 
@@ -102,6 +111,36 @@ def _value(field: str, raw: Any) -> tuple[Any, str | None]:
     return value, None
 
 
+def _anatomy_source(raw: Any) -> tuple[dict[str, Any] | None, str | None]:
+    if not isinstance(raw, dict) or not raw:
+        return None, "objet attendu : {active, mode, replaces, role, discipline, note}"
+    unknown = set(raw) - SOURCE_KEYS
+    if unknown:
+        return None, f"clés non proposables : {', '.join(sorted(map(str, unknown)))} (réservées à l'opérateur)"
+    value: dict[str, Any] = {}
+    if "active" in raw:
+        if not isinstance(raw["active"], bool):
+            return None, "active : true ou false"
+        value["active"] = raw["active"]
+    for key, allowed in (("mode", SOURCE_MODES), ("role", SOURCE_ROLES)):
+        if raw.get(key) is not None:
+            if raw[key] not in allowed:
+                return None, f"{key} : {' ou '.join(allowed)}"
+            value[key] = raw[key]
+    for key in ("replaces", "discipline", "usage", "perimeter", "note"):
+        if raw.get(key) is not None:
+            text = " ".join(str(raw[key]).split())
+            if len(text) > SOURCE_TEXT or _TEMPLATE.search(text):
+                return None, f"{key} : texte trop long ou à compléter"
+            if key == "replaces" and _path_error("v", text):
+                return None, "replaces : le chemin du fichier remplacé, dans le même coffre"
+            if text:
+                value[key] = text
+    if value.get("mode") == "remplacement" and not value.get("replaces"):
+        return None, "remplacement : indiquer le fichier remplacé (replaces)"
+    return value, None
+
+
 def prepare_card_proposal(vault: Any, relative_path: Any, changes: Any) -> dict[str, Any]:
     """Check a proposal and return it with the block to copy into the answer. Stores nothing."""
     error = _path_error(vault, relative_path)
@@ -120,21 +159,27 @@ def prepare_card_proposal(vault: Any, relative_path: Any, changes: Any) -> dict[
             continue
         name = str(item.get("field") or "").strip().casefold().replace(" ", "_").replace("'", "_")
         field = FIELD_ALIASES.get(name, name)
-        if field not in TEXT_FIELDS and field not in LIST_FIELDS:
+        if field not in TEXT_FIELDS and field not in LIST_FIELDS and field != SOURCE_FIELD:
             rejected.append({"field": item.get("field"), "raison": "champ non modifiable sur une fiche "
                              "(un fait sur le bâtiment va à l'Anatomie)"})
             continue
         if field in seen:
             rejected.append({"field": field, "raison": "champ déjà proposé"})
             continue
-        value, problem = _value(field, item.get("value"))
+        if field == SOURCE_FIELD:
+            value, problem = _anatomy_source(item.get("value"))
+        else:
+            value, problem = _value(field, item.get("value"))
         source = " ".join(str(item.get("source") or "").split())
         if not problem and (not source or _NO_SOURCE.search(source)):
             problem = ("source manquante : où la valeur a été lue (page, cartouche, courriel, ou « cartouche, lu par "
                        "l'utilisateur ») ; une valeur que personne n'a lue ne se propose pas")
         confidence = str(item.get("confidence") or "lu").strip().casefold()
         confidence = CONFIDENCE_ALIASES.get(confidence, confidence)
-        if not problem and confidence not in CONFIDENCES:
+        if not problem and field == SOURCE_FIELD and confidence != "déclaré":
+            problem = ("source anatomique : seulement le choix de l'utilisateur, confiance « déclaré » ; "
+                       "sinon donner les éléments et le geste")
+        elif not problem and field != SOURCE_FIELD and confidence not in CONFIDENCES:
             problem = "confiance : lu, déduit ou estimé (seul l'opérateur valide)"
         if problem:
             rejected.append({"field": field, "raison": problem})

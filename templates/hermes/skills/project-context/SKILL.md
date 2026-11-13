@@ -78,6 +78,11 @@ When the user reports what a title block says and the file cannot be opened,
 their reading is the source, said so (« cartouche, lu par l'utilisateur »); do
 not hunt through other files for it. A drawing number (PC2, A-101) is not an
 index. A fact about the building is not a card field: `prepare_fact_proposal`.
+When the user says which model or file is the reference (« c'est la H qui fait
+foi »), that choice settles the open question: propose `anatomy_source` on that
+file's card (active, `remplacement` of the other file, role `référence`,
+confidence `déclaré`), with the vault and paths `get_project` gives. Never
+propose it as your own choice.
 
 ## Core route
 

@@ -24,6 +24,7 @@ from typing import Any
 
 SCHEMA = "pantheon.anatomy.v1"
 ANATOMY_DIR_ENV = "PANTHEON_ANATOMY_DIR"
+COCKPIT_VAULT_ENV = "PANTHEON_COCKPIT_VAULT"  # the Cockpit vault holding the affaires' files (cards), when known
 MAX_BYTES = 2 * 1024 * 1024
 MAX_LISTED = 200
 _CODE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
@@ -931,6 +932,8 @@ def _compact(full: dict[str, Any], directory: Path, data: dict[str, Any]) -> dic
                                        "to_confront": len(pieces.get("to_confront") or [])}
     if full.get("models"):
         compact["models"] = full["models"]
+        if full.get("coffre_cockpit"):
+            compact["coffre_cockpit"] = full["coffre_cockpit"]
     if full.get("levels"):
         compact["levels"] = [{"name": level["name"], "spaces": [
             f"{s['name']}" + (f" {s['area_m2']} m²" if s.get("area_m2") is not None else "")
@@ -1013,6 +1016,17 @@ def project_overview(code: str, directory: Path | None = None, focus: str = "") 
                                **({"fichier": known[m.get("piece")]["source"].get("file")}
                                   if known.get(m.get("piece"), {}).get("source", {}).get("file") else {})}
                               for m in data["models"] if isinstance(m, dict)]
+            # Each model's card in the Cockpit (vault, path), so a proposal can name it outside a card discussion.
+            paths = {str(it.get("piece")): (it.get("current") or {}).get("paths") or []
+                     for it in (data.get("pieces") or {}).get("pieces") or [] if isinstance(it, dict)}
+            for model in full["models"]:
+                found = [p for p in paths.get(str(model.get("piece")), [])
+                         if not model.get("fichier") or p.rsplit("/", 1)[-1] == model["fichier"]]
+                if found:
+                    model["chemin"] = f"{code}/{found[0]}"
+            vault = os.environ.get(COCKPIT_VAULT_ENV, "").strip()
+            if vault:
+                full["coffre_cockpit"] = vault
             # The architect's model first, then the others: a reader taking the first line gets the right one.
             order = {"architecture": 0, "structure": 1}
             full["models"].sort(key=lambda m: order.get(m.get("discipline"), 2))

@@ -208,6 +208,10 @@ def prepare_card_proposal(vault: str, relative_path: str, changes: list[dict[str
     or estimé. Only propose what was read: when the file cannot be opened, the user's own reading is
     a source, said so (« cartouche, lu par l'utilisateur »); a drawing number (PC2, A-101) is not an
     index. A fact about the building is not a card field: use prepare_fact_proposal.
+    `anatomy_source` (which file the readings rest on) only when the user chose it: value
+    {active, mode « remplacement » or « complément », replaces (the other file's path), role,
+    discipline}, confidence « déclaré »; outside a card discussion, take `vault` from `coffre_cockpit`
+    and the paths from each model's `chemin` in `get_project`.
     """
     return _call("card_proposal", vault, relative_path, changes)
 
