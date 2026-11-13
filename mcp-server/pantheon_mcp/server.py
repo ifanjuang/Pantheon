@@ -180,13 +180,15 @@ def get_project(code: str, focus: str = "") -> str:
     `code` is the affaire code; an empty code lists the published ones. Start without `focus`: the
     summary already gives the models with discipline, index and file, the open questions, the changes
     and the quality; answer from it when it suffices. Then one `focus` per detail:
-    - a room (« cuisine », « chambre 1 R01 »; « salon » finds the Séjour); a level (« R01 »);
+    - a room (« cuisine », « chambre 1 R01 »; « salon » finds the Séjour); a level (« R01 »,
+      « rez-de-chaussée », « étage », « R+1 »);
       « file M »; « façade sud »;
     - elements by category and place: « poteaux du BET <local> », « cloison file 5 »,
       « fenêtres façade sud » (« du BET » / « archi » keeps that discipline's models);
     - « changements <maquette> » (since the previous index), « qualité » (export advice),
       « sources » (anatomy sources: files the readings rest on), « fichier <nom> »;
-    - « pièces » (« pièces dce »), « devis », « locaux ».
+    - « pièces » (« pièces dce »), « plans » (current drawings, latest first, ready to open), « devis »,
+      « locaux ».
     On « not found », retry once with a name from the list returned. Open documents only when asked
     to verify or when the answer is not here; then offer to dig further rather than reading at length.
     """

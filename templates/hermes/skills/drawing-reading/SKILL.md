@@ -22,6 +22,11 @@ to cite it.
 
 ## 1. Identify the drawing before reading it
 
+Find it first: `get_project` with focus « plans » lists the current drawings,
+latest first, each with the `project_ref` and `source_path` the document reader
+takes; open only the one that shows what is asked (plan de niveau for a room,
+façade for an elevation), searching the room or mark as text. Do not guess paths.
+
 From the title block (cartouche): project, drawing title, nature (plan de
 niveau, coupe, façade/élévation, détail, plan masse, plan de situation,
 structure, réseaux), level shown, phase, index, date, scale, issuer. The
