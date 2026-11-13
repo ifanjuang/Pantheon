@@ -334,13 +334,21 @@ profile: `Pset_WallCommon` (`IsExternal`, `LoadBearing`, `FireRating`,
 `AcousticRating`, `ThermalTransmittance`), `Pset_WindowCommon` and
 `Pset_DoorCommon` (`IsExternal`, `FireRating`, `ThermalTransmittance`).
 
-## Next: an agency IDS
+## Model requirements (IDS)
 
-An IDS file (buildingSMART Information Delivery Specification) can state the
-agency's model requirements (every wall has its load-bearing function, every
-door and window its mark, every space a name and a number) and check each new
-index; IfcOpenShell's `ifctester` and the catalogued IFClite runtime can run it.
-The checks above are the first, built-in step.
+Each model index is checked against an IDS file (buildingSMART Information
+Delivery Specification) with IfcOpenShell's `ifctester`, when it is installed.
+The default IDS shipped with the reading
+(`implementation/mvp_vertical/model_requirements/default.ids`) asks: every space
+numbered and named, every storey named, every wall saying whether it is exterior
+and load-bearing, every door and window carrying the drawings' mark (letters then
+digits, not a numeric element id). An agency replaces it with its own file
+(`MVP_MODEL_IDS`, absolute path). The result goes into the model quality
+(`exigences`: each requirement, how many elements it applies to and how many
+fail); `get_project` gives « exigences respectées 4/6 » in its summary and the
+detail with focus « qualité ». A requirement met does not mean a value is right:
+« every wall says whether it is load-bearing » passes even when all say « no »;
+the built-in checks above catch that.
 
 ```text
 model reading != model copied into the Anatomy

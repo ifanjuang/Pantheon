@@ -370,7 +370,8 @@ def _quality(reading: dict[str, Any]) -> dict[str, Any] | None:
     return {"niveau": q.get("niveau"), **({"discipline": q["discipline"]} if q.get("discipline") else {}),
             "réexport_conseillé": q.get("réexport_conseillé"),
             "conseils_export": list(q.get("conseils_export") or [])[:5],
-            "déclaré_constaté": list(reading.get("declared_vs_observed") or [])[:3]}
+            "déclaré_constaté": list(reading.get("declared_vs_observed") or [])[:3],
+            **({"exigences": q["exigences"]} if isinstance(q.get("exigences"), dict) else {})}
 
 
 # Short labels for the summary; the full export advice is in focus "qualité".
@@ -392,6 +393,9 @@ def _quality_short(reading: dict[str, Any]) -> dict[str, Any] | None:
     short = {"niveau": q.get("niveau"), **({"discipline": q["discipline"]} if q.get("discipline") else {})}
     if q.get("réexport_conseillé"):
         short["réexport_conseillé"] = True
+    req = q.get("exigences")
+    if isinstance(req, dict) and req.get("total"):
+        short["exigences_respectées"] = f"{req.get('respectées')}/{req.get('total')}"
     labels = list(dict.fromkeys(_advice_label(str(a)) for a in q.get("conseils_export") or []))
     if labels:
         short["à_corriger"] = labels

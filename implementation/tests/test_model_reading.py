@@ -202,3 +202,27 @@ def test_an_overlay_without_evidence_is_never_applied() -> None:
     scattered = {"walls": {}, "points": {f"p{i}": [i * 7.3 % 50, i * 3.1 % 40, 0.0, 1.0] for i in range(40)}, "floors": {"RDC": 0.0}}
     assert al.align(architect, scattered)["verdict"] == "incertain"
     assert al.align({"walls": {}}, scattered)["verdict"] == "impossible"
+
+
+def test_a_model_is_checked_against_the_ids_when_ifctester_is_there(tmp_path, monkeypatch) -> None:
+    pytest.importorskip("ifctester")
+    import ifcopenshell
+    import ifcopenshell.api
+
+    model = ifcopenshell.file(schema="IFC4")
+    project = ifcopenshell.api.run("root.create_entity", model, ifc_class="IfcProject", name="P")
+    ifcopenshell.api.run("unit.assign_unit", model)
+    space = ifcopenshell.api.run("root.create_entity", model, ifc_class="IfcSpace", name="001")
+    door = ifcopenshell.api.run("root.create_entity", model, ifc_class="IfcDoor", name="Porte")
+    door.Tag = "123456"  # an element id, not a drawing mark
+    assert project and space
+    result = reading.check_requirements(model)
+    rows = {r["exigence"]: r for r in result["exigences"]}
+    assert rows["Locaux nommés et numérotés"]["en_échec"] == 1  # no LongName
+    assert rows["Portes : repère"]["en_échec"] == 1
+    assert result["ids_agence"] is False and result["total"] == len(rows)
+    # An agency's own IDS replaces the default.
+    own = tmp_path / "agence.ids"
+    own.write_text(reading.DEFAULT_IDS.read_text(encoding="utf-8"), encoding="utf-8")
+    monkeypatch.setenv(reading.IDS_ENV, str(own))
+    assert reading.check_requirements(model)["ids_agence"] is True
