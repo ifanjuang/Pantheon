@@ -303,10 +303,24 @@ retired, not erased.
 
 Where it is shown: each proposal on the card of its file (or the project card
 for core values), with accept / reject / correct, in batches when they come
-from one bundle. The gesture must produce the signed human decision: either the
-agency Cockpit is deployed with its authentication, or the Workspace Cockpit is
-admitted, by a governance decision, as a place where the authenticated operator
-signs; to be decided before any code.
+from one bundle.
+
+Operator decision (2026-11-13), the human deciding what is consequential:
+
+- building the Anatomy of an affaire, and bringing a new file into it (as a
+  new element or replacing another source), are done directly from the
+  Workspace Cockpit, with a « Constituer l'Anatomie » button on the project
+  card and the anatomy-source action on each file card; they need no signed
+  decision;
+- facts stated by the user, and Hermes proposals, go into a list of pending
+  proposals shown on the Cockpit and validated there by a simple click; the
+  click is recorded (who, when, what) as the operator's validation;
+- the signed decision (HMAC, OIDC) stays for consequential effects outside the
+  Anatomy (external sending, contractual or regulatory commitments) and is
+  never imitated.
+
+The Cockpit side belongs to the Workspace Cockpit work; the agency side offers
+the operations it calls (build, bring in, list and validate proposals).
 
 ## Model quality and re-export
 
