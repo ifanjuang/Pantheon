@@ -216,7 +216,9 @@ def prepare_fact_proposal(code: str, statement: str, reading: str, comparison: s
     """Propose a fact the user states about an affaire's building (« retiens que… », « la cuisine
     donne au nord ») for the operator to validate. Stores nothing and writes no memory.
 
-    Call `get_project` first, then pass: `statement` the fact as said; `reading` what the reading
+    Only for what the user stated, never for Hermes' own choice or conclusion: asked to choose
+    (« laquelle fait foi ? »), give the elements and let the human decide. Call `get_project`
+    first, then pass: `statement` the fact in the user's words; `reading` what the reading
     says on that point (« aucune lecture » if nothing); `comparison` concorde, diffère or non lu;
     `subject` the room or element; `source` who said it (default the user). Copy the returned
     `block` as is at the end of the answer, after saying what the reading shows. Never say the fact
