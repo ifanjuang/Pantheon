@@ -47,7 +47,8 @@ READING_RULES = [
     "une position « référence » signifie choisie par l'architecte sur la fiche du fichier, et l'emporte ; "
     "« incertaine » signifie sans indice, « probable » un indice lu dans le nom du fichier.",
     "Les questions sont des écarts relevés, à poser à l'architecte : ne pas les trancher ; "
-    "les signaler en tête quand elles concernent la réponse, sinon en fin, en une ligne.",
+    "les signaler en tête quand elles concernent la réponse, sinon en fin, en une ligne ; "
+    "à une demande de choisir ou d'enregistrer, donner les éléments et le geste qui règle la question.",
     "Chaque date dit d'où elle vient (fiche, cartouche, nom du fichier, création du PDF) : "
     "une date de création du PDF n'est pas la date du plan.",
     "Ne rien ajouter qui ne figure pas ici (type de bâtiment, statut d'une pièce, pièces absentes) : "
@@ -121,7 +122,10 @@ def _pieces(data: dict[str, Any]) -> dict[str, Any] | None:
         if item.get("variants"):
             row["variants"] = list(item["variants"])
         (to_confront if item.get("category") == "a_confronter" else current).append(row)
-    questions = [str(q.get("text")) for q in pieces.get("questions") or [] if isinstance(q, dict)][:MAX_LISTED]
+    # Each question keeps the gesture that settles it: asked to choose or record, Hermes relays it.
+    questions = [str(q.get("text")) + (f" — à régler par l'humain : {q['action']['texte']}"
+                                       if isinstance(q.get("action"), dict) and q["action"].get("texte") else "")
+                 for q in pieces.get("questions") or [] if isinstance(q, dict)][:MAX_LISTED]
     return {
         "read_at": pieces.get("read_at"),
         "questions": questions,

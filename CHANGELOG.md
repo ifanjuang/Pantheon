@@ -266,6 +266,12 @@
   proposal now carries the user's words only. « Not governed work » now covers
   any question, factual or professional (a rule: the library first), after
   general questions went through governance procedures and five web searches.
+- Open questions in `get_project` keep the gesture that settles them (« à
+  régler par l'humain : activer comme source la maquette qui fait foi… »),
+  which the summary used to drop; a reading rule says to give the elements and
+  that gesture when asked to choose or record. A fact proposal refuses a
+  template (« [indice X] », « à compléter »): a bench showed Hermes, asked to
+  choose, filing a blank proposal for the user to fill.
 - Anatomy sources (`anatomy_sources`): the files an affaire's readings rest on
   are declared on their Workspace card (`anatomy_source`: complement or
   replacement, role, discipline, use, scope, declared alignment, consolidate

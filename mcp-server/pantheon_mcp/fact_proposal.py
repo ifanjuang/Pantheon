@@ -14,6 +14,7 @@ be told apart by the operator), or concerns something the readings do not show.
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from . import project_overview
@@ -25,6 +26,8 @@ COMPARISONS = ("concorde", "diffère", "non lu")
 COMPARISON_ALIASES = {"differe": "diffère", "diffère de la lecture": "diffère", "concordant": "concorde",
                       "conforme": "concorde", "non_lu": "non lu", "absent": "non lu", "inconnu": "non lu"}
 LENGTHS = {"statement": 300, "subject": 120, "reading": 400, "source": 200}
+# A template is not a statement: « [indice X] », « <nom> », « à compléter » mean nobody said it yet.
+_TEMPLATE = re.compile(r"\[[^\]]*\]|<[^>]*>|\bà compléter\b|\ba completer\b")
 
 
 def _text(value: Any, length: int) -> str:
@@ -45,6 +48,9 @@ def prepare_fact_proposal(code: Any, statement: Any, reading: Any, comparison: A
     statement_text = _text(statement, LENGTHS["statement"])
     if not statement_text:
         return {"status": "refused", "reason": "énoncé manquant : le fait tel que l'utilisateur l'a dit"}
+    if _TEMPLATE.search(statement_text) or _TEMPLATE.search(_text(source, LENGTHS["source"])):
+        return {"status": "refused", "reason": "énoncé à compléter : seul un fait que l'utilisateur a dit se propose ; "
+                                               "pour un choix à faire, donner les éléments et le geste qui le règle"}
     reading_text = _text(reading, LENGTHS["reading"])
     if not reading_text:
         return {"status": "refused", "reason": "lecture manquante : ce que dit get_project sur ce point "
