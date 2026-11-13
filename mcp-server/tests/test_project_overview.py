@@ -95,6 +95,12 @@ class TestProjectOverview(unittest.TestCase):
                                               "issuer": "agence", "occurrences": 2}])
         self.assertEqual(result["status"], "valeurs candidates, non validées")
         self.assertTrue(any("recalculer" in rule for rule in result["reading_rules"]))
+        # A compact summary keeps only the rules about what it holds; the always-rules stay.
+        kept = " ".join(project_overview.relevant_rules({"pieces": {"x": 1}}, project_overview.READING_RULES))
+        self.assertIn("validé (confirmé par un humain)", kept)
+        self.assertIn("dernier indice de chaque pièce", kept)
+        self.assertNotIn("sources anatomiques", kept)
+        self.assertNotIn("nord en haut du plan", kept)
 
     def test_the_current_index_of_each_piece_and_the_questions_come_first(self):
         result = project_overview.project_overview("DEMO", self.directory, focus="pièces")
