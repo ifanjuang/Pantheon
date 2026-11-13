@@ -194,6 +194,22 @@ def get_project(code: str, focus: str = "") -> str:
 
 
 @_read_only_tool()
+def prepare_card_proposal(vault: str, relative_path: str, changes: list[dict[str, Any]]) -> str:
+    """Propose corrections to a document card (« fiche », « cartouche ») found during the discussion:
+    a missing or wrong date, index, issuer, recipient, type, or a better title or summary.
+
+    Stores nothing: returns a `block` to copy as is at the end of the answer; the operator ticks the
+    lines and accepts them from the card. `vault` and `relative_path` are those of the discussion's
+    scope. `changes`: one {field, value, source, confidence, reason} per field; field among title,
+    document_date, index, issuer, recipient, family, document_type, corps_etat, sujet_technique,
+    summary; source says where the value was read (page, title block, mail); confidence lu, déduit
+    or estimé. Only propose what was read or clearly deduced; a fact about the building is not a
+    card field.
+    """
+    return _call("card_proposal", vault, relative_path, changes)
+
+
+@_read_only_tool()
 def get_capability_status(status_yaml: str) -> str:
     """Qualify a caller-provided capability observation; perform no live probe."""
     return _call_yaml(status_yaml, "qualify_capability_status")

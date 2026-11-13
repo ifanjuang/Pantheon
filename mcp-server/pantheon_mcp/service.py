@@ -31,6 +31,7 @@ from . import (
     observability,
     passports,
     phase_orientation,
+    card_proposal,
     project_overview,
     policy,
     presets,
@@ -256,6 +257,14 @@ class PantheonPolicyService:
             project_overview.project_overview(code, focus=focus),
             source_mode="published_projection",
             input_value={"code": code, "focus": focus},
+        )
+
+    def card_proposal(self, vault: Any, relative_path: Any, changes: Any) -> dict[str, Any]:
+        return self._project(
+            "card.proposal.prepare",
+            card_proposal.prepare_card_proposal(vault, relative_path, changes),
+            source_mode="provided_card_proposal_candidate",
+            input_value={"vault": vault, "relative_path": relative_path, "changes": changes},
         )
 
     def qualify_capability_status(self, candidate: dict[str, Any]) -> dict[str, Any]:
