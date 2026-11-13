@@ -216,6 +216,11 @@
   or why it may not (model north at default…), and treat it as a proposal to
   validate, never « retenu ». Each model in a multi-model answer names its
   discipline.
+- The governed profile says a factual question on an affaire is not governed
+  work (answer with `get_project`), and keeps the governed method for
+  consequential work: in benches, simple questions (a model index) loaded the
+  governed method, request intake and activity projection skills and called
+  classification and routing tools before reading the summary.
 - Anatomy sources (`anatomy_sources`): the files an affaire's readings rest on
   are declared on their Workspace card (`anatomy_source`: complement or
   replacement, role, discipline, use, scope, declared alignment, consolidate
