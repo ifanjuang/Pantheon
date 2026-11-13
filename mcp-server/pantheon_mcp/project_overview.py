@@ -476,6 +476,13 @@ def _room_match(query: str, name: Any) -> bool:
 def _selected(criterion: str, rows: list[dict[str, Any]], limit: int = SELECTION_ROWS) -> dict[str, Any]:
     """A selection small enough to read: every row when few, otherwise counts and an extract."""
     answer: dict[str, Any] = {"found": True, "kind": "sélection", "critère": criterion, "nombre": len(rows)}
+    kinds: dict[str, int] = {}
+    for row in rows:
+        kinds[str(row.get("élément") or "élément")] = kinds.get(str(row.get("élément") or "élément"), 0) + 1
+    if len(kinds) > 1 or len(rows) > limit:
+        # The total and its split first, in words to quote: a list alone gets summarised without its count.
+        answer["résumé"] = (f"{len(rows)} éléments ({criterion}) : "
+                            + ", ".join(f"{n} {k}" for k, n in sorted(kinds.items(), key=lambda kv: -kv[1])))
     if len(rows) <= limit:
         return {**answer, "éléments": rows}
     by_level: dict[str, int] = {}
@@ -668,6 +675,37 @@ def _selection(reading: dict[str, Any], wanted: str, states: dict[str, str]) -> 
     return None
 
 
+_GROUND = re.compile(r"^(r ?0+|rdc|rez|n ?0|niveau 0|rez de chaussee)\b")
+_LEVEL_PHRASES = (  # everyday words for a storey, counted from the ground floor of each reading
+    (re.compile(r"\b(?:au |du |le |a l'|l')?(?:rez[- ]de[- ]chaussee|rdc|r\+0)\b"), 0),
+    (re.compile(r"\b(?:au |du |le |a l'|l'|de l')?(?:1er|1e|1ere|premier|r\+1)(?: etage)?\b"), 1),
+    (re.compile(r"\b(?:au |du |le )?(?:2e|2eme|deuxieme|second|r\+2)(?: etage)?\b"), 2),
+    (re.compile(r"\b(?:au |du |le )?(?:sous[- ]sol|r-1)\b"), -1),
+)
+_BARE_UPPER = re.compile(r"\b(?:a l'|l'|de l')?etage\b")
+
+
+def _level_words(wanted: str, reading: dict[str, Any]) -> str:
+    """« portes rez-de-chaussée », « fenêtres à l'étage »: the reading's own level name instead.
+
+    Storeys are ordered by elevation; the ground floor is the one named so (R00, RDC…) or else
+    the lowest. A bare « étage » names the floor above only when there is exactly one.
+    """
+    levels = sorted((lv for lv in reading.get("levels") or [] if lv.get("name")),
+                    key=lambda lv: lv.get("elevation") or 0)
+    if not levels:
+        return wanted
+    names = [_fold(lv["name"]) for lv in levels]
+    ground = next((i for i, n in enumerate(names) if _GROUND.match(n)), 0)
+    text = wanted.replace("-", " ") if "chaussee" in wanted or "sous" in wanted else wanted
+    for pattern, offset in _LEVEL_PHRASES:
+        if pattern.search(text) and 0 <= ground + offset < len(names):
+            return " ".join(pattern.sub(f" {names[ground + offset]} ", text).split())
+    if _BARE_UPPER.search(text) and len(names) - ground == 2:
+        return " ".join(_BARE_UPPER.sub(f" {names[ground + 1]} ", text).split())
+    return wanted
+
+
 def _focus(directory: Path, data: dict[str, Any], focus: str) -> dict[str, Any]:
     """Sheet of one space or element, or a selection by grid line, façade or level, from the current model reading."""
     models = _load_models(directory, data)
@@ -693,7 +731,7 @@ def _focus(directory: Path, data: dict[str, Any], focus: str) -> dict[str, Any]:
     models.sort(key=lambda r: -len(r.get("spaces") or []))
     missed, found = None, []
     for reading in models:
-        selected = _selection(reading, wanted, states)
+        selected = _selection(reading, _level_words(wanted, reading), states)
         if selected is None:
             continue
         selected = {**selected, "source": {"piece": reading["source"].get("piece"), "index": reading["source"].get("index"),
@@ -1007,11 +1045,21 @@ def project_overview(code: str, directory: Path | None = None, focus: str = "") 
         overview = {key: full[key] for key in ("code", "found", "source", "project", "anatomy_status", "open_questions")
                     if key in full}
         first, _, rest = wanted.partition(" ")
-        if first in {"pieces", "documents", "plans"}:
+        if first in {"pieces", "documents", "plans", "plan"}:
             listed = (full.get("pieces") or {}).get("current", [])
+            if first in {"plans", "plan"}:  # drawings: « plan » in the name or a folder, not a business plan
+                listed = [row for row in listed if re.search(r"\bplans?\b", _fold(row.get("piece")) + " " + _fold(row.get("file")))
+                          and not re.search(r"business plan|plan de financement", _fold(row.get("piece")))]
+                listed.sort(key=lambda row: str(row.get("date") or ""), reverse=True)  # latest drawings first
             if rest:  # "pièces dce", "pièces cctp": name or folder contains the word
                 listed = [row for row in listed if rest in _fold(row.get("piece")) or rest in _fold(row.get("file"))]
+            # Ready for the document reader: project_ref is the affaire, source_path the file within it.
+            prefix = f"{full.get('code') or code}/"
+            listed = [{**row, **({"source_path": row["file"][len(prefix):]} if str(row.get("file") or "").startswith(prefix) else {})}
+                      for row in listed]
             overview["focus"] = {"found": True, "kind": "pièces", "filtre": rest or None, "nombre": len(listed),
+                                 "ouvrir": {"project_ref": full.get("code") or code,
+                                            "source_path": "celui de la pièce (chemin dans l'affaire)"},
                                  "pièces": listed[:SELECTION_ROWS],
                                  **({"reste": len(listed) - SELECTION_ROWS,
                                      "conseil": "liste longue : filtrer par un mot du nom ou du dossier (« pièces dce », « pièces cctp »)"}

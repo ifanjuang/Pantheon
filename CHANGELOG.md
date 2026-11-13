@@ -272,6 +272,15 @@
   that gesture when asked to choose or record. A fact proposal refuses a
   template (« [indice X] », « à compléter »): a bench showed Hermes, asked to
   choose, filing a blank proposal for the user to fill.
+- `get_project` understands everyday storey words (« rez-de-chaussée », « RDC »,
+  « étage », « 1er étage », « R+1 », « sous-sol ») as each reading's own levels,
+  counted by elevation from its ground floor: a bench showed « portes au
+  rez-de-chaussée » unmatched and answered with the doors of every level. A
+  selection gives its total and split first (« 26 éléments (file C) : 10
+  cloison, 6 mur extérieur… »). The « plans » focus lists the current drawings,
+  latest first, and the piece lists give each file's `project_ref` and
+  `source_path` as the document reader takes them: a plan check spent six calls
+  guessing a path. drawing-reading starts by finding the drawing that way.
 - One owner per rule: the confidence scale and « never an index from a file
   name » now live in the `get_project` reading rules (where the values are)
   instead of being restated in the server instructions, the tool description

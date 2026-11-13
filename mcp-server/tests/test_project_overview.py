@@ -108,7 +108,10 @@ class TestProjectOverview(unittest.TestCase):
                   "to_confront": project_overview.project_overview("DEMO", self.directory, focus="devis")["focus"]["devis"],
                   "questions": result["open_questions"]}
         self.assertEqual(pieces["current"][0], {"piece": "PLAN RDC", "index": "E", "date": "2026-01-01", "position": "certaine",
-                                              "confiance": "lu", "file": "DEMO/DCE/x.pdf"})
+                                              "confiance": "lu", "file": "DEMO/DCE/x.pdf", "source_path": "DCE/x.pdf"})
+        self.assertEqual(result["focus"]["ouvrir"]["project_ref"], "DEMO")
+        drawings = project_overview.project_overview("DEMO", self.directory, focus="plans")["focus"]
+        self.assertEqual([row["piece"] for row in drawings["pièces"]], ["PLAN RDC"])
         self.assertEqual(pieces["current"][1]["variants"], ["C1", "C2"])
         self.assertEqual(pieces["to_confront"], [{"piece": "DEVIS LOT 4", "position": "incertaine", "confiance": "estimé"}])
         self.assertEqual(pieces["questions"], ["CCTP : plusieurs variantes de l'indice C"])
@@ -431,6 +434,14 @@ class TestFocus(unittest.TestCase):
         (self.directory / "DEMO.maquette-maquette.json").write_text(json.dumps(reading), encoding="utf-8")
         columns = project_overview.project_overview("DEMO", self.directory, focus="poteaux file C")["focus"]
         self.assertEqual((columns["kind"], columns["nombre"]), ("sélection", 2))
+        # Everyday storey words name the reading's own levels, counted from its ground floor.
+        for focus in ("poteaux rez-de-chaussée", "poteaux au rdc"):
+            found = project_overview.project_overview("DEMO", self.directory, focus=focus)["focus"]
+            self.assertEqual((found["kind"], found["nombre"]), ("sélection", 2), focus)
+        for focus in ("garde-corps à l'étage", "garde-corps 1er étage", "garde-corps R+1"):
+            found = project_overview.project_overview("DEMO", self.directory, focus=focus)["focus"]
+            self.assertEqual((found["kind"], found["niveau"]), ("élément", "R01"), focus)
+        self.assertEqual(project_overview._level_words("portes sous-sol", reading), "portes sous-sol")
         one = project_overview.project_overview("DEMO", self.directory, focus="poteau file C entre 3 et 4")["focus"]
         self.assertFalse(one["found"])  # on 3, on 4: neither is between them
         rail = project_overview.project_overview("DEMO", self.directory, focus="garde corps R01")["focus"]
