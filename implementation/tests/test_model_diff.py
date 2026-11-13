@@ -131,3 +131,12 @@ def test_variants_of_the_current_index_are_not_its_previous_index() -> None:
              {"path": "DCE/PLAN_C2.ifc", "title": "PLAN_C2.ifc", "fingerprint": "3"}]
     piece = project_pieces.current_state(files, "DEMO")["pieces"][0]
     assert piece["current"]["index"] == "C2" and piece["previous"]["index"] == "B"
+
+
+def test_without_a_read_date_the_file_date_is_given_and_said() -> None:
+    a = _reading("A", elements=[{"id": f"c{i}"} for i in range(10)], discipline="structure")
+    b = _reading("H", elements=[{"id": f"c{i}"} for i in range(10)], discipline="structure")
+    a["source"] = {"piece": "BET A", "index": "A", "fingerprint": "size:1:mtime:1781000000"}
+    b["source"] = {"piece": "BET H", "index": "H", "fingerprint": "size:1:mtime:1793000000"}
+    text = model_diff.same_model_questions([a, b])[0]["text"]
+    assert "date du fichier" in text and "la plus récente est BET H H" in text

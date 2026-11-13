@@ -228,6 +228,9 @@
   it concerns an affaire (newer index, newer reading); differently worded
   questions are recognised by subject; memory keeps preferences and
   conventions, project facts go to the card for validation.
+- The "one model under two names" question gives the model file's own date
+  when no date was read on a card or title block, said « date du fichier », so
+  it can still tell which one is more recent.
 - Anatomy sources (`anatomy_sources`): the files an affaire's readings rest on
   are declared on their Workspace card (`anatomy_source`: complement or
   replacement, role, discipline, use, scope, declared alignment, consolidate

@@ -18,6 +18,8 @@ resolved here.
 
 from __future__ import annotations
 
+import re
+from datetime import datetime, timezone
 from typing import Any
 
 RELIABLE_SHARE = 0.30   # below this share of common identifiers the comparison is not meaningful
@@ -162,6 +164,10 @@ def same_model_questions(readings: list[dict[str, Any]], dates: dict[str, str] |
             for reading in (a, b):
                 source = reading.get("source") or {}
                 date = dates.get(str(source.get("piece")))
+                if not date:  # no date read on a card or title block: the file's own date, said so
+                    stamp = re.search(r"mtime:(\d+)", str(source.get("fingerprint") or ""))
+                    if stamp:
+                        date = datetime.fromtimestamp(int(stamp.group(1)), tz=timezone.utc).date().isoformat() + ", date du fichier"
                 named.append((f"{source.get('piece')} {source.get('index') or ''}".strip(), date))
             # The discipline first: an architect's model compared elsewhere is not concerned.
             text = (f"Maquettes {a.get('discipline') or 'de même discipline'} : "
