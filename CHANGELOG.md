@@ -238,6 +238,9 @@
   and named, storeys named, walls' exterior and load-bearing properties, doors'
   and windows' drawing marks) or an agency's own (`MVP_MODEL_IDS`); results go
   into the model quality and `get_project` gives « exigences respectées n/m ».
+- The "one model under two names" question gives the model file's own date
+  when no date was read on a card or title block, said « date du fichier », so
+  it can still tell which one is more recent.
 - Anatomy sources (`anatomy_sources`): the files an affaire's readings rest on
   are declared on their Workspace card (`anatomy_source`: complement or
   replacement, role, discipline, use, scope, declared alignment, consolidate
