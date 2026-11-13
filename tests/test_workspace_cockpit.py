@@ -2123,3 +2123,16 @@ def test_anatomy_declaration_and_project_request_are_written_to_workspace_db(tmp
         thread.join(2)
         server.server_close()
         handler.roots, handler.workspace_index, handler.anatomy_dir = old_roots, old_index, old_anatomy
+
+
+def test_anatomy_folder_and_upcoming_file_buttons_are_interface_only() -> None:
+    javascript = (ROOT / "implementation" / "workspace_cockpit" / "static" / "app.js").read_text(encoding="utf-8")
+    assert "data-anatomy-folder" in javascript and "Anatomie du dossier" in javascript
+    assert "data-anatomy-source-preview" in javascript
+    assert "Mise en garde" in javascript and "data-anatomy-ack" in javascript
+    assert "Déjà activés" in javascript and "data-anatomy-deactivate" in javascript
+    # Not connected yet: the preview dialogs only read the published Anatomy, never write.
+    start = javascript.index("function anatomyPreviewDialog(")
+    end = javascript.index("function handleAnatomySourceToggle(")
+    assert "method:" not in javascript[start:end] and "POST" not in javascript[start:end]
+    assert "Raccordement à venir" in javascript[start:end]

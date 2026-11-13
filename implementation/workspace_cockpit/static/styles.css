@@ -399,6 +399,16 @@ html[data-swiper-ready="false"] .sibling-navigation { display: none !important; 
 .anatomy-file-panel h3 { margin: 0 0 6px; font-size: 12px; }
 .anatomy-source-toggle, .anatomy-consolidate { margin-top: 8px; border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; }
 .anatomy-source-toggle.is-declared { border-color: #55c88a; }
+.anatomy-source-toggle.is-preview { border-style: dashed; color: var(--muted, inherit); }
+.anatomy-folder-toggle { display: block; }
+.anatomy-warning { margin: 10px 0; border: 1px solid #d9a441; border-radius: 8px; padding: 10px 12px; background: rgb(217 164 65 / 10%); }
+.anatomy-warning ul { margin: 6px 0 0; padding-left: 18px; }
+.anatomy-active-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; }
+.anatomy-active-line { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+.anatomy-active-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.anatomy-active-name small { display: block; opacity: .7; }
+.anatomy-active-line .anatomy-source-toggle { margin-top: 0; flex: none; }
+.anatomy-dialog .anatomy-ack { grid-template-columns: auto 1fr; align-items: center; justify-content: start; margin: 8px 0; }
 .anatomy-source-toggle:disabled, .anatomy-consolidate:disabled { opacity: .55; cursor: wait; }
 .anatomy-request-status { min-height: 1.2em; margin: 4px 0 0; color: var(--muted); font-size: 12px; }
 .anatomy-dialog { width: min(600px, calc(100vw - 24px)); max-height: min(90vh, 850px); overflow: auto; border: 1px solid var(--line); border-radius: 12px; padding: 18px; background: var(--paper); color: var(--ink); }
