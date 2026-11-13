@@ -233,6 +233,9 @@
   pieces and model readings listed: a bench showed Hermes taking the first
   model listed (an engineer's) as the architect's, and reading « Anatomie non
   encore installée » as « no index available ».
+- The "one model under two names" question gives the model file's own date
+  when no date was read on a card or title block, said « date du fichier », so
+  it can still tell which one is more recent.
 - Anatomy sources (`anatomy_sources`): the files an affaire's readings rest on
   are declared on their Workspace card (`anatomy_source`: complement or
   replacement, role, discipline, use, scope, declared alignment, consolidate
