@@ -51,6 +51,19 @@ documents, state the basis proactively in the opening line or section:
 Do this by default; do not wait for the user to ask whether a statement comes
 from memory or direct verification. Keep the label brief for simple answers.
 
+An answer `de mémoire` ends with one short offer to check further, naming the
+exact source that would confirm it (« Voulez-vous que je vérifie dans … ? »).
+
+## Reuse what is already known
+
+Before searching again, use what this conversation already read: cite it as read
+earlier (source, locator) instead of reopening it. A matching earlier session or a
+remembered passage is a lead, not an answer: when it concerns an affaire, check it
+against `get_project` first (the piece may have a newer index, the model a newer
+reading) and say if it changed. Questions worded differently can mean the same
+thing; recognise them by subject, not by wording. Memory keeps user preferences
+and conventions, not project facts; a project fact goes to the card for validation.
+
 ## Core route
 
 1. Before a material recall, state the unresolved question in retrieval-ready

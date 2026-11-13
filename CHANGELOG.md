@@ -205,6 +205,13 @@
   interior walls, said so. Open questions are put first only when they concern
   the answer. The "one model under two names" question says its shared
   identifiers have nothing to do with the overlay score.
+- Memory reuse and verification offer: an answer from memory ends with one
+  short offer to check further, naming the source that would confirm it; what
+  the conversation already read is cited instead of reopened; an earlier
+  session or remembered passage is a lead, checked against `get_project` when
+  it concerns an affaire (newer index, newer reading); differently worded
+  questions are recognised by subject; memory keeps preferences and
+  conventions, project facts go to the card for validation.
 - Anatomy sources (`anatomy_sources`): the files an affaire's readings rest on
   are declared on their Workspace card (`anatomy_source`: complement or
   replacement, role, discipline, use, scope, declared alignment, consolidate
