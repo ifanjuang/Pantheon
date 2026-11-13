@@ -19,6 +19,9 @@ mcp_servers:
       # Optional: where the implementation publishes <CODE>.json Anatomy
       # projections; get_project reads only this directory.
       # PANTHEON_ANATOMY_DIR: "<ANATOMY_EXPORT_DIR>"
+      # Optional: the Workspace Cockpit vault holding the affaires' files, so
+      # get_project can name a model's card for a proposal outside a card discussion.
+      # PANTHEON_COCKPIT_VAULT: "<COCKPIT_VAULT_NAME>"
 
     # This exact surface combines the bounded governance wiki with the
     # read-only request-handling helpers required by the governed Hermes flow.

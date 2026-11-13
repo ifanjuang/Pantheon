@@ -548,9 +548,15 @@ class TestFocus(unittest.TestCase):
         (self.directory / "DEMO.maquette-maquette.json").write_text(json.dumps(reading), encoding="utf-8")
         data["models"] = [{"piece": "AAA STRUCTURE", "index": "H", "file": "DEMO.maquette-structure.json", "status": "read"},
                           *data["models"]]
+        data["pieces"]["pieces"].append({"piece": "AAA STRUCTURE", "current": {"index": "H", "paths": ["BIM/s.ifc"]}})
         (self.directory / "DEMO.json").write_text(json.dumps(data), encoding="utf-8")
-        models = project_overview.project_overview("DEMO", self.directory)["models"]
+        with mock.patch.dict(os.environ, {"PANTHEON_COCKPIT_VAULT": "Affaires"}):
+            summary = project_overview.project_overview("DEMO", self.directory)
+        models = summary["models"]
         self.assertEqual([m.get("discipline") for m in models], ["architecture", "structure"])
+        # Each model's card, so a proposal can name it outside a card discussion.
+        self.assertEqual(models[1]["chemin"], "DEMO/BIM/s.ifc")
+        self.assertEqual(summary["coffre_cockpit"], "Affaires")
 
     def test_an_unknown_room_gives_the_rooms_and_advice_instead_of_a_dead_end(self):
         missed = project_overview.project_overview("DEMO", self.directory, focus="portes grenier")["focus"]

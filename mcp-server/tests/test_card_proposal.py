@@ -47,6 +47,22 @@ class CardProposalTest(unittest.TestCase):
         self.assertEqual([c["value"] for c in result["proposal"]["changes"]], ["B"])
         self.assertEqual(result["rejected"][0]["raison"], "champ déjà proposé")
 
+    def test_anatomy_source_only_as_the_users_choice(self):
+        choice = {"field": "source anatomique", "source": "choix de l'utilisateur dans la discussion",
+                  "confidence": "déclaré",
+                  "value": {"active": True, "mode": "remplacement", "replaces": "A01/BIM/structure A.ifc",
+                            "role": "référence", "discipline": "structure"}}
+        result = prepare_card_proposal("Affaires", "A01/BIM/structure H.ifc", [choice])
+        self.assertEqual(result["status"], "prepared")
+        self.assertEqual(result["proposal"]["changes"][0]["field"], "anatomy_source")
+        self.assertEqual(result["proposal"]["changes"][0]["value"]["mode"], "remplacement")
+        for bad in ({**choice, "confidence": "lu"},
+                    {**choice, "value": {"active": True, "mode": "remplacement"}},
+                    {**choice, "value": {"active": True, "set_by": "hermes"}},
+                    {**choice, "value": {"active": True, "mode": "remplacement", "replaces": "[maquette X]"}},
+                    {**choice, "value": {"active": "oui"}}):
+            self.assertEqual(prepare_card_proposal("Affaires", "A01/h.ifc", [bad])["status"], "refused", bad)
+
     def test_tool_is_read_only_projection(self):
         result = json.loads(server.prepare_card_proposal(
             "agence", "x.pdf", [{"field": "index", "value": "B", "source": "cartouche"}]))

@@ -281,6 +281,14 @@
   latest first, and the piece lists give each file's `project_ref` and
   `source_path` as the document reader takes them: a plan check spent six calls
   guessing a path. drawing-reading starts by finding the drawing that way.
+- Card proposals accept `anatomy_source` (which file the readings rest on:
+  active, complement or replacement of another file, role, discipline) only as
+  the user's choice, marked « déclaré »; who/when, consolidation and overlay
+  confirmation stay the operator's. `get_project` gives each model's path in
+  the affaire and, with `PANTHEON_COCKPIT_VAULT`, the Cockpit vault, so the
+  proposal can target the model's card from any discussion. When the user
+  names the reference model, Hermes proposes it instead of promising to
+  record it.
 - One owner per rule: the confidence scale and « never an index from a file
   name » now live in the `get_project` reading rules (where the values are)
   instead of being restated in the server instructions, the tool description
