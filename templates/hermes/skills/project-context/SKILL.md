@@ -128,6 +128,11 @@ because it is available or has a related title. If the current route fails,
 correct the specific error once or use one materially different admitted route;
 then report the bounded result and blocker instead of repeating failed calls.
 
+For trade words, abbreviations, which discipline or document answers a lot
+(structure, CVC, plomberie, électricité, VRD, menuiseries…) and standards, read
+[references/trade-vocabulary.md](references/trade-vocabulary.md); an unknown or
+ambiguous term is looked up in the library before answering.
+
 When an answer depends on project values not given, read
 [references/project-frame.md](references/project-frame.md) for the frame
 factors, the ways to narrow them and the likely task.

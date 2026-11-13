@@ -205,6 +205,17 @@
   interior walls, said so. Open questions are put first only when they concern
   the answer. The "one model under two names" question says its shared
   identifiers have nothing to do with the overlay score.
+- Trade vocabulary and habits rather than case rules: a `project-context`
+  reference gives, by trade (terrassement and VRD, gros œuvre, charpente and
+  ossature, couverture, façades and isolation, menuiseries, plâtrerie,
+  plomberie, CVC, électricité, extérieurs), the usual words and abbreviations
+  and which document or model discipline answers, how architecture, structure
+  and fluids models differ, and standards to read in the library; an unknown
+  term is looked up in the library first. `model-reading` gains a method for a
+  fact stated by the user: compare it with the reading, say whether it agrees
+  or why it may not (model north at default…), and treat it as a proposal to
+  validate, never « retenu ». Each model in a multi-model answer names its
+  discipline.
 - The governed profile says a factual question on an affaire is not governed
   work (answer with `get_project`), and keeps the governed method for
   consequential work: in benches, simple questions (a model index) loaded the
