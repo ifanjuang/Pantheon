@@ -259,6 +259,13 @@
   index. The governed SOUL adds one general habit: when calls stop bringing a
   decisive fact, answer with what is known, say what is missing and offer to
   continue.
+- The governed SOUL restores « asked to choose or record, give the elements,
+  never your own choice: the human decides », dropped by the previous change:
+  a bench showed Hermes, asked to pick the reference model and record it,
+  writing its own choice as a fact proposal attributed to the user. A fact
+  proposal now carries the user's words only. « Not governed work » now covers
+  any question, factual or professional (a rule: the library first), after
+  general questions went through governance procedures and five web searches.
 - Anatomy sources (`anatomy_sources`): the files an affaire's readings rest on
   are declared on their Workspace card (`anatomy_source`: complement or
   replacement, role, discipline, use, scope, declared alignment, consolidate
