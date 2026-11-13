@@ -289,6 +289,13 @@
   proposal can target the model's card from any discussion. When the user
   names the reference model, Hermes proposes it instead of promising to
   record it.
+- Workspace Cockpit, interface only (not connected yet): an « Anatomie »
+  button at the bottom of every file card (IFC and DWG already declare a
+  source; spreadsheets, Word documents and PDFs open a preview while their
+  reader is prepared), and an « Anatomie du dossier » button on folder cards
+  opening a short warning, an acknowledgement, the files already activated
+  under the folder (read from the published Anatomy) with a « Désactiver »
+  button each, and « Activer tout le dossier ». These dialogs save nothing.
 - One owner per rule: the confidence scale and « never an index from a file
   name » now live in the `get_project` reading rules (where the values are)
   instead of being restated in the server instructions, the tool description

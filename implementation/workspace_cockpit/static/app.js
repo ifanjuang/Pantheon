@@ -444,8 +444,25 @@ function isAnatomyFile(card) {
   return /\.(ifc|dwg)$/i.test(card.name || card.path || "");
 }
 
+// Files the Anatomy will read once their reader is connected: shown, not saved yet.
+const ANATOMY_UPCOMING = [
+  { pattern: /\.(xlsx|xls)$/i, label: "tableau (DPGF, DQE)" },
+  { pattern: /\.(docx|doc)$/i, label: "pièce écrite (CCTP)" },
+  { pattern: /\.pdf$/i, label: "PDF (plan ou pièce écrite)" },
+];
+
+function anatomyUpcomingKind(card) {
+  const name = card.name || card.path || "";
+  return ANATOMY_UPCOMING.find((kind) => kind.pattern.test(name))?.label || "";
+}
+
 function anatomySourceAction(card) {
-  if (!isAnatomyFile(card)) return "";
+  if (!isAnatomyFile(card)) {
+    const upcoming = card.kind === "document" ? anatomyUpcomingKind(card) : "";
+    return upcoming
+      ? `<button type="button" class="anatomy-source-toggle is-preview" data-anatomy-source-preview data-workspace="${escapeHtml(card.workspace)}" data-source-path="${escapeHtml(card.path)}" data-anatomy-kind="${escapeHtml(upcoming)}" title="Lecture de ce type de fichier en préparation">Anatomie</button>`
+      : "";
+  }
   const source = card.metadata_override?.values?.anatomy_source;
   const active = source?.active === true;
   return `<button type="button" class="anatomy-source-toggle${active ? " is-declared" : ""}" data-anatomy-source-toggle data-workspace="${escapeHtml(card.workspace)}" data-source-path="${escapeHtml(card.path)}">${active ? "Désactiver l’Anatomie" : "Anatomie"}</button>`;
@@ -549,12 +566,16 @@ function folderCardBody(card) {
     fact("Projet", card.project),
   ].join("");
   const open = `<button class="folder-open" type="button" data-folder-path="${escapeHtml(card.path)}" aria-label="Ouvrir le dossier ${escapeHtml(card.title || card.name)}">Ouvrir <span aria-hidden="true">↓</span></button>`;
+  const anatomy = card.path
+    ? `<button type="button" class="anatomy-source-toggle anatomy-folder-toggle" data-anatomy-folder data-workspace="${escapeHtml(card.workspace)}" data-folder-path="${escapeHtml(card.path)}">Anatomie du dossier</button>`
+    : "";
   return `
     ${searchResultPath(card)}
     ${summary}
     ${tagsTemplate(card.tags, "Tags du contexte dossier")}
     <div class="facts folder-facts">${facts}</div>
     ${hermesDiscussionsTemplate(card)}
+    ${anatomy}
     ${open}
   `;
 }
@@ -736,6 +757,73 @@ async function saveAnatomySource(card, source, dialog = null) {
   else delete card.metadata_override.values.anatomy_source;
   if (dialog?.open) dialog.close();
   renderCards();
+}
+
+// Interface only for now: these dialogs show what will happen and save nothing.
+function anatomyPreviewDialog(title, body, confirmLabel = "") {
+  const dialog = document.createElement("dialog");
+  dialog.className = "anatomy-dialog";
+  dialog.innerHTML = `<form method="dialog" data-anatomy-preview-form>
+    <h2>${escapeHtml(title)}</h2>
+    ${body}
+    <p class="anatomy-dialog-error" data-anatomy-dialog-error role="status"></p>
+    <div class="anatomy-dialog-actions"><button type="button" data-anatomy-cancel>Fermer</button>${confirmLabel ? `<button type="submit" data-anatomy-confirm disabled>${escapeHtml(confirmLabel)}</button>` : ""}</div>
+  </form>`;
+  document.body.append(dialog);
+  dialog.querySelector("[data-anatomy-cancel]").addEventListener("click", () => dialog.close());
+  dialog.addEventListener("close", () => dialog.remove(), { once: true });
+  const form = dialog.querySelector("form");
+  const confirm = dialog.querySelector("[data-anatomy-confirm]");
+  const ack = dialog.querySelector("[data-anatomy-ack]");
+  if (confirm && ack) ack.addEventListener("change", () => { confirm.disabled = !ack.checked; });
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    dialog.querySelector("[data-anatomy-dialog-error]").textContent =
+      "Raccordement à venir : rien n’a été enregistré.";
+    if (confirm) confirm.disabled = true;
+  });
+  dialog.showModal();
+  return dialog;
+}
+
+function handleAnatomySourcePreview(button) {
+  anatomyPreviewDialog("Source d’Anatomie", `
+    <p class="anatomy-dialog-file">${escapeHtml(button.dataset.sourcePath || "")}</p>
+    <p>Type : ${escapeHtml(button.dataset.anatomyKind || "fichier")}. La lecture de ce type de fichier par l’Anatomie est en préparation : quantités et articles par lot (DPGF, CCTP), confrontés à la maquette.</p>
+    <p class="anatomy-note">Les maquettes IFC et DWG peuvent déjà être déclarées depuis leur fiche.</p>`);
+}
+
+function handleAnatomyFolder(button) {
+  const path = button.dataset.folderPath || "";
+  const code = path.split("/", 1)[0];
+  const inside = path.includes("/") ? `${path.slice(code.length + 1)}/` : "";
+  const dialog = anatomyPreviewDialog("Anatomie du dossier", `
+    <p class="anatomy-dialog-file">${escapeHtml(path)}/</p>
+    <div class="anatomy-warning" role="note">
+      <strong>Mise en garde</strong>
+      <p>Tous les fichiers lisibles du dossier et de ses sous-dossiers alimenteront l’Anatomie. Gardez un seul indice actif par maquette.</p>
+    </div>
+    <label class="anatomy-ack"><input type="checkbox" data-anatomy-ack> J’ai compris</label>
+    <h3>Déjà activés</h3>
+    <ul class="anatomy-active-list" data-anatomy-active-list><li class="anatomy-note">Chargement…</li></ul>`,
+    "Activer tout le dossier");
+  const list = dialog.querySelector("[data-anatomy-active-list]");
+  // Reading only: the declared sources come from the published Anatomy of the affaire.
+  fetch(workspaceUrl(`api/anatomy?code=${encodeURIComponent(code)}&workspace=${encodeURIComponent(button.dataset.workspace || "")}`), { cache: "no-store" })
+    .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`))))
+    .then((data) => {
+      const active = (data.anatomy_sources?.liste || []).filter((item) => {
+        const file = String(item.fichier || "").replaceAll("\\", "/");
+        return (!inside || file.startsWith(inside)) && !/inactive|désactivée/i.test(item["état"] || "");
+      });
+      list.innerHTML = active.length
+        ? active.map((item) => `<li class="anatomy-active-line"><span class="anatomy-active-name">${escapeHtml(item.fichier || "Fichier")}<small>${escapeHtml(item["état"] || "en attente")}</small></span><button type="button" class="anatomy-source-toggle" data-anatomy-deactivate>Désactiver</button></li>`).join("")
+        : '<li class="anatomy-note">Aucun fichier activé dans ce dossier.</li>';
+      list.querySelectorAll("[data-anatomy-deactivate]").forEach((deactivate) => deactivate.addEventListener("click", () => {
+        dialog.querySelector("[data-anatomy-dialog-error]").textContent = "Raccordement à venir : rien n’a été enregistré.";
+      }));
+    })
+    .catch(() => { list.innerHTML = '<li class="anatomy-note">Liste indisponible pour le moment.</li>'; });
 }
 
 function handleAnatomySourceToggle(button) {
@@ -1669,6 +1757,18 @@ elements.cards.addEventListener("click", (event) => {
     card.classList.toggle("is-verso", !showingVerso);
     const anatomy = !showingVerso ? card.querySelector("[data-anatomy-slot]") : null;
     if (anatomy) void loadAnatomy(anatomy);
+    return;
+  }
+  const anatomyPreview = event.target.closest("[data-anatomy-source-preview]");
+  if (anatomyPreview) {
+    event.preventDefault();
+    handleAnatomySourcePreview(anatomyPreview);
+    return;
+  }
+  const anatomyFolder = event.target.closest("[data-anatomy-folder]");
+  if (anatomyFolder) {
+    event.preventDefault();
+    handleAnatomyFolder(anatomyFolder);
     return;
   }
   const anatomyToggle = event.target.closest("[data-anatomy-source-toggle]");
