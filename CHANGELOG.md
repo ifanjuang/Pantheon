@@ -233,6 +233,11 @@
   pieces and model readings listed: a bench showed Hermes taking the first
   model listed (an engineer's) as the architect's, and reading « Anatomie non
   encore installée » as « no index available ».
+- Model requirements as an IDS: each model index is checked with `ifctester`
+  (optional) against a default IDS shipped with the reading (spaces numbered
+  and named, storeys named, walls' exterior and load-bearing properties, doors'
+  and windows' drawing marks) or an agency's own (`MVP_MODEL_IDS`); results go
+  into the model quality and `get_project` gives « exigences respectées n/m ».
 - Anatomy sources (`anatomy_sources`): the files an affaire's readings rest on
   are declared on their Workspace card (`anatomy_source`: complement or
   replacement, role, discipline, use, scope, declared alignment, consolidate

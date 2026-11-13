@@ -155,6 +155,35 @@ def classify(features: dict[str, Any], rules: list[dict[str, Any]]) -> dict[str,
     return None
 
 
+IDS_ENV = "MVP_MODEL_IDS"  # an agency's own IDS file; otherwise the default one shipped here
+DEFAULT_IDS = Path(__file__).with_name("model_requirements") / "default.ids"
+
+
+def check_requirements(model: Any) -> dict[str, Any] | None:
+    """The model checked against the IDS (buildingSMART Information Delivery Specification).
+
+    None when ifctester is not installed or no IDS can be read: the reading never depends on it.
+    """
+    try:
+        from ifctester import ids
+    except ImportError:
+        return None
+    configured = os.environ.get(IDS_ENV, "").strip()
+    path = Path(configured) if configured and Path(configured).is_absolute() else DEFAULT_IDS
+    try:
+        spec = ids.open(str(path))
+        spec.validate(model)
+    except Exception:  # an unreadable IDS or a validation failure never blocks the reading
+        return None
+    rows = []
+    for item in spec.specifications:
+        applicable, failed = len(item.applicable_entities), len(item.failed_entities)
+        if applicable:
+            rows.append({"exigence": item.name, "applicables": applicable, "en_échec": failed})
+    return {"ids": spec.info.get("title") or path.name, "ids_agence": bool(configured),
+            "exigences": rows, "respectées": sum(1 for r in rows if not r["en_échec"]), "total": len(rows)}
+
+
 def load_rules() -> list[dict[str, Any]]:
     """Category rules from the profile; empty (and the reading falls back) when it cannot be read."""
     try:
@@ -671,7 +700,8 @@ def read(path: Path) -> dict[str, Any]:
         "ifc_schema": model.schema,
         "declared_vs_observed": notes,
         "discipline": model_discipline,
-        "quality": quality(checks, model_discipline),
+        "quality": {**quality(checks, model_discipline),
+                    **({"exigences": requirements} if (requirements := check_requirements(model)) else {})},
         "geometry": geometry,
         "limits": [
             "Côtés, façades et voisinages calculés par la géométrie : déductions, à confirmer.",

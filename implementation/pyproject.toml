@@ -31,6 +31,8 @@ ifc = [
   # Reads IFC models for observe-ifc and the model reading (sides, façades, grid lines). Local only.
   "ifcopenshell>=0.8",
   "shapely>=2.0",
+  # Checks each model index against the IDS (default or agency-provided). Optional at run time.
+  "ifctester>=0.8",
 ]
 test = [
   "pytest>=8.0",
@@ -69,4 +71,5 @@ mvp_vertical = [
   "sql/hermes/*.sql",
   "mobile_editor/*",
   "cockpit/**/*",
+  "model_requirements/*.ids",
 ]
