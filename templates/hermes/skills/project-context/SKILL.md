@@ -64,6 +64,17 @@ reading) and say if it changed. Questions worded differently can mean the same
 thing; recognise them by subject, not by wording. Memory keeps user preferences
 and conventions, not project facts; a project fact goes to the card for validation.
 
+## Propose card corrections, never announce them
+
+When a discussion reads something a document card lacks or gets wrong (date,
+index, issuer, recipient, type, a clearer title or summary), call
+`prepare_card_proposal` with the discussion's scope (`vault`, `relative_path`),
+one line per field with where it was read and its confidence, then copy the
+returned block as is at the end of the answer, after one sentence saying what is
+proposed. The card is unchanged until the operator ticks and accepts: never say
+it was updated or « retenu ». Propose only what was read or clearly deduced, not
+a guess from a file name. A fact about the building is not a card field.
+
 ## Core route
 
 1. Before a material recall, state the unresolved question in retrieval-ready
