@@ -521,6 +521,20 @@ class TestFocus(unittest.TestCase):
         partition = project_overview.project_overview("DEMO", self.directory, focus="cloison entre la chambre et le bureau")["focus"]
         self.assertEqual(partition.get("id"), "G-M2")
 
+    def test_the_architect_model_comes_first_in_the_summary(self):
+        structure = {"schema": "pantheon.model_reading.v1", "source": {"piece": "AAA STRUCTURE", "index": "H", "file": "s.ifc"},
+                     "discipline": "structure", "spaces": [], "openings": [], "walls": [], "elements": []}
+        (self.directory / "DEMO.maquette-structure.json").write_text(json.dumps(structure), encoding="utf-8")
+        data = json.loads((self.directory / "DEMO.json").read_text(encoding="utf-8"))
+        reading = _model_reading()
+        reading["discipline"] = "architecture"
+        (self.directory / "DEMO.maquette-maquette.json").write_text(json.dumps(reading), encoding="utf-8")
+        data["models"] = [{"piece": "AAA STRUCTURE", "index": "H", "file": "DEMO.maquette-structure.json", "status": "read"},
+                          *data["models"]]
+        (self.directory / "DEMO.json").write_text(json.dumps(data), encoding="utf-8")
+        models = project_overview.project_overview("DEMO", self.directory)["models"]
+        self.assertEqual([m.get("discipline") for m in models], ["architecture", "structure"])
+
     def test_an_unknown_room_gives_the_rooms_and_advice_instead_of_a_dead_end(self):
         missed = project_overview.project_overview("DEMO", self.directory, focus="portes grenier")["focus"]
         self.assertFalse(missed["found"])

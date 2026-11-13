@@ -228,6 +228,11 @@
   it concerns an affaire (newer index, newer reading); differently worded
   questions are recognised by subject; memory keeps preferences and
   conventions, project facts go to the card for validation.
+- The `get_project` summary lists the architect's model first, and the status
+  of an affaire without a validated Anatomy says that answers come from the
+  pieces and model readings listed: a bench showed Hermes taking the first
+  model listed (an engineer's) as the architect's, and reading « Anatomie non
+  encore installée » as « no index available ».
 - Anatomy sources (`anatomy_sources`): the files an affaire's readings rest on
   are declared on their Workspace card (`anatomy_source`: complement or
   replacement, role, discipline, use, scope, declared alignment, consolidate
