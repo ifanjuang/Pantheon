@@ -75,12 +75,21 @@ what is read, say what is missing, and propose a re-export citing the advice
 given by focus « qualité » (shared coordinates, true north, space boundaries,
 marks, IFC4, IfcExportAs). Never invent what the model does not hold.
 
-## 7. When to open a drawing instead
+## 7. A fact stated by the user
+
+When the user states or asks to remember a project fact (« la cuisine donne au
+nord »), compare it with the reading first. Agreeing: say so and on what. Disagreeing:
+say what the reading shows and the likely cause (model north left at default,
+another index, a room drawn otherwise). Either way it is a proposal for the human to
+validate on the card, never « retenu » or « noté ».
+
+## 8. When to open a drawing instead
 
 For written dimensions, sections, reinforcement, notes, legends, or when no
 model is read: use `drawing-reading`. When model and drawing disagree, give
 both with their sources and ask.
 
+Trade words and disciplines: `project-context/references/trade-vocabulary.md`.
 Agency conventions when the installation provides them:
 [references/agency.md](references/agency.md).
 

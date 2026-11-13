@@ -664,7 +664,7 @@ def _focus(directory: Path, data: dict[str, Any], focus: str) -> dict[str, Any]:
     states = _states(data)
     # "poteaux du BET séjour": only the engineers' models; "murs archi": only the architect's.
     words = wanted.split()
-    for markers, discipline in (({"bet", "structure", "structurel", "structurelle"}, "structure"),
+    for markers, discipline in (({"bet", "structure", "structurel", "structurelle", "beton"}, "structure"),
                                 ({"archi", "architecte", "architecture"}, "architecture")):
         if markers & set(words):
             kept = [r for r in models if r.get("discipline") == discipline]
@@ -683,7 +683,8 @@ def _focus(directory: Path, data: dict[str, Any], focus: str) -> dict[str, Any]:
         selected = _selection(reading, wanted, states)
         if selected is None:
             continue
-        selected = {**selected, "source": {"piece": reading["source"].get("piece"), "index": reading["source"].get("index")},
+        selected = {**selected, "source": {"piece": reading["source"].get("piece"), "index": reading["source"].get("index"),
+                                           **({"discipline": reading["discipline"]} if reading.get("discipline") else {})},
                     "limites": list(reading.get("limits") or [])}
         if reading.get("alignment"):
             align = reading["alignment"]
