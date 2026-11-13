@@ -36,11 +36,9 @@ with a name from the list it returns, before any other source.
 
 ## 2. Say how sure each value is
 
-Every answer carries a confidence: **validé** (confirmed by a human), **lu**
-(declared in the model), **déduit** (computed from geometry: nature of an
-opening, sides, façades, sizes, rooms), **estimé** (engineer elements placed
-through the overlay on the architect's model, before confirmation). Qualify the
-answer by its weakest value; never present déduit or estimé as lu.
+Quote each value with the confidence `get_project` gives it, **validé**, **lu**,
+**déduit** or **estimé** (its reading rules define them). Qualify the answer by
+its weakest value.
 
 ## 3. Positions
 

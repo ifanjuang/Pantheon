@@ -35,6 +35,12 @@ class FactProposalTest(unittest.TestCase):
         self.assertEqual(prepare_fact_proposal("A01", "x", "y", "peut-être")["status"], "refused")
         self.assertEqual(prepare_fact_proposal("A01", "x", "aucune lecture", "differe")["proposal"]["comparison"], "diffère")
 
+    def test_refuses_a_template_instead_of_a_statement(self):
+        for statement in ("la maquette qui fait foi est [indice X]", "la référence est <nom>", "à compléter"):
+            self.assertEqual(prepare_fact_proposal("A01", statement, "aucune lecture", "non lu")["status"], "refused")
+        self.assertEqual(prepare_fact_proposal("A01", "x", "aucune lecture", "non lu", source="à compléter")["status"],
+                         "refused")
+
     def test_tool_is_read_only_projection(self):
         result = json.loads(server.prepare_fact_proposal("A01", "x", "aucune lecture", "non lu"))
         self.assertEqual(result["operation"], "fact.proposal.prepare")

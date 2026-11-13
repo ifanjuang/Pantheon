@@ -28,7 +28,7 @@ mcp = MCPServer(
         "human decides consequential effects. get_project is the live project-state "
         "source and the project's Anatomy: use it first for where an affaire stands, the "
         "current index of a document, or anything about its building (rooms, elements, "
-        "changes, anatomy sources); never infer an index from a file name."
+        "changes, anatomy sources)."
     ),
 )
 
@@ -175,8 +175,8 @@ def get_project(code: str, focus: str = "") -> str:
 
     Call it first for any question about an affaire's documents or its building: « où en est »,
     « dernier plan », « indice », « surface d'un local », « poteaux du BET », « qu'est-ce qui a changé »,
-    « sources anatomiques ». Quote the values as given, with their confidence (validé, lu, déduit,
-    estimé); never infer an index from a file name; never search the web for an affaire.
+    « sources anatomiques »; never search the web for an affaire. Its reading rules say how to quote
+    what it returns.
     `code` is the affaire code; an empty code lists the published ones. Start without `focus`: the
     summary already gives the models with discipline, index and file, the open questions, the changes
     and the quality; answer from it when it suffices. Then one `focus` per detail:
@@ -221,8 +221,8 @@ def prepare_fact_proposal(code: str, statement: str, reading: str, comparison: s
     first, then pass: `statement` the fact in the user's words; `reading` what the reading
     says on that point (« aucune lecture » if nothing); `comparison` concorde, diffère or non lu;
     `subject` the room or element; `source` who said it (default the user). Copy the returned
-    `block` as is at the end of the answer, after saying what the reading shows. Never say the fact
-    is recorded or « retenu »: it waits for the operator; until then the reading is the reference.
+    `block` as is at the end of the answer, after saying what the reading shows. It waits for the
+    operator; until then the reading is the reference.
     """
     return _call("fact_proposal", code, statement, reading, comparison, subject, source)
 

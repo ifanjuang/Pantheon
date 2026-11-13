@@ -47,7 +47,8 @@ READING_RULES = [
     "une position « référence » signifie choisie par l'architecte sur la fiche du fichier, et l'emporte ; "
     "« incertaine » signifie sans indice, « probable » un indice lu dans le nom du fichier.",
     "Les questions sont des écarts relevés, à poser à l'architecte : ne pas les trancher ; "
-    "les signaler en tête quand elles concernent la réponse, sinon en fin, en une ligne.",
+    "les signaler en tête quand elles concernent la réponse, sinon en fin, en une ligne ; "
+    "à une demande de choisir ou d'enregistrer, donner les éléments et le geste qui règle la question.",
     "Chaque date dit d'où elle vient (fiche, cartouche, nom du fichier, création du PDF) : "
     "une date de création du PDF n'est pas la date du plan.",
     "Ne rien ajouter qui ne figure pas ici (type de bâtiment, statut d'une pièce, pièces absentes) : "
@@ -66,6 +67,10 @@ READING_RULES = [
     "est lu sans rien inventer, dire ce qui manque, et proposer à l'utilisateur de réexporter la maquette "
     "en citant les conseils d'export (donnés en entier par le focus « qualité »).",
 ]
+# The summary sends a rule only when its answer holds what the rule is about (rule index → keys, any of).
+# Rules without an entry always go: quoting as given, candidates, nothing added, the confidence scale.
+RULE_NEEDS = {2: ("levels", "model_spaces"), 3: ("surfaces_by_state_m2",), 4: ("pieces",), 5: ("open_questions",),
+              6: ("pieces",), 8: ("models",), 9: ("models",), 10: ("anatomy_sources",), 12: ("model_quality",)}
 PIECE_KEYS = ("index", "date", "position")
 # One confidence scale for every value, strongest first: validé (confirmed by a human), lu (written in the
 # source), déduit (computed from the source: geometry, neighbours), estimé (brought together across sources).
@@ -121,7 +126,10 @@ def _pieces(data: dict[str, Any]) -> dict[str, Any] | None:
         if item.get("variants"):
             row["variants"] = list(item["variants"])
         (to_confront if item.get("category") == "a_confronter" else current).append(row)
-    questions = [str(q.get("text")) for q in pieces.get("questions") or [] if isinstance(q, dict)][:MAX_LISTED]
+    # Each question keeps the gesture that settles it: asked to choose or record, Hermes relays it.
+    questions = [str(q.get("text")) + (f" — à régler par l'humain : {q['action']['texte']}"
+                                       if isinstance(q.get("action"), dict) and q["action"].get("texte") else "")
+                 for q in pieces.get("questions") or [] if isinstance(q, dict)][:MAX_LISTED]
     return {
         "read_at": pieces.get("read_at"),
         "questions": questions,
@@ -869,6 +877,11 @@ def _file_sheet(section: dict[str, Any], wanted: str) -> dict[str, Any]:
     return {"found": True, "kind": "fiche fichier", "fiche": found[0]}
 
 
+def relevant_rules(answer: dict[str, Any], rules: list[str]) -> list[str]:
+    """The reading rules about what this answer holds (see RULE_NEEDS)."""
+    return [rule for i, rule in enumerate(rules) if not RULE_NEEDS.get(i) or any(answer.get(k) for k in RULE_NEEDS[i])]
+
+
 def _compact(full: dict[str, Any], directory: Path, data: dict[str, Any]) -> dict[str, Any]:
     """The answer without focus: small enough for a local model to read whole (target a few kilobytes)."""
     pieces = full.get("pieces") or {}
@@ -921,7 +934,7 @@ def _compact(full: dict[str, Any], directory: Path, data: dict[str, Any]) -> dic
     if full.get("model_changes"):
         compact["model_changes"] = full["model_changes"]
     compact["status"] = full.get("status")
-    compact["reading_rules"] = full.get("reading_rules")
+    compact["reading_rules"] = relevant_rules(compact, full.get("reading_rules") or [])
     compact["detail"] = DETAIL_HINT
     return compact
 

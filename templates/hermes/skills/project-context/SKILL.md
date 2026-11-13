@@ -71,8 +71,8 @@ index, issuer, recipient, type, a clearer title or summary), call
 `prepare_card_proposal` with the discussion's scope (`vault`, `relative_path`),
 one line per field with where it was read and its confidence, then copy the
 returned block as is at the end of the answer, after one sentence saying what is
-proposed. The card is unchanged until the operator ticks and accepts: never say
-it was updated or « retenu ». Propose only what was read: confidence `lu` for a
+proposed. The card is unchanged until the operator ticks and accepts. Propose
+only what was read: confidence `lu` for a
 value seen, `déduit` for one clearly inferred, never a guess from a file name.
 When the user reports what a title block says and the file cannot be opened,
 their reading is the source, said so (« cartouche, lu par l'utilisateur »); do
