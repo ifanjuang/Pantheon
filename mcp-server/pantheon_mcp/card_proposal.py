@@ -44,6 +44,8 @@ CONFIDENCE_ALIASES = {"deduit": "déduit", "estime": "estimé"}
 
 _DATE_ISO = re.compile(r"^(\d{4})-(\d{1,2})-(\d{1,2})$")
 _DATE_FR = re.compile(r"^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{2}|\d{4})$")
+# A source must say where the value was read; « aucune source », « non lu » say it was not.
+_NO_SOURCE = re.compile(r"\b(absence|aucune?|pas de|sans|non (lue?|confirmée?)|introuvable|inconnue?)\b", re.IGNORECASE)
 _INDEX_PREFIX = re.compile(r"^(?:indice|ind\.?|index|rev\.?|révision)\s*[:\-]?\s*", re.IGNORECASE)
 
 
@@ -127,8 +129,9 @@ def prepare_card_proposal(vault: Any, relative_path: Any, changes: Any) -> dict[
             continue
         value, problem = _value(field, item.get("value"))
         source = " ".join(str(item.get("source") or "").split())
-        if not problem and not source:
-            problem = "source manquante : où la valeur a été trouvée (page, cartouche, courriel…)"
+        if not problem and (not source or _NO_SOURCE.search(source)):
+            problem = ("source manquante : où la valeur a été lue (page, cartouche, courriel, ou « cartouche, lu par "
+                       "l'utilisateur ») ; une valeur que personne n'a lue ne se propose pas")
         confidence = str(item.get("confidence") or "lu").strip().casefold()
         confidence = CONFIDENCE_ALIASES.get(confidence, confidence)
         if not problem and confidence not in CONFIDENCES:

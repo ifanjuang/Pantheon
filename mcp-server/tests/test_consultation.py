@@ -277,6 +277,7 @@ class TestHermesCandidateConfiguration(unittest.TestCase):
                 "get_phase_orientation",
                 "get_project",
                 "prepare_card_proposal",
+                "prepare_fact_proposal",
                 "get_capability_status",
                 "evaluate_preflight",
                 "prepare_task_contract_skeleton",

@@ -248,6 +248,17 @@
   the Cockpit shows it as a checklist on the card and saves only what the
   operator accepts. The project-context skill tells Hermes to propose instead
   of announcing a change.
+- Fact proposals: `prepare_fact_proposal` (read-only MCP tool) checks a fact the
+  user states about an affaire, set beside what its reading says with a
+  one-word comparison (concorde, diffère, non lu), and returns a
+  `pantheon-fact-proposal` block for the Cockpit's pending list; nothing is
+  stored and no memory is written. A bench showed Hermes using its task list as
+  memory to « retain » such a fact: it now has the proper action instead.
+  Card proposals refuse a source saying nothing was read, accept the user's
+  own reading of a title block (said so), and tell a drawing number from an
+  index. The governed SOUL adds one general habit: when calls stop bringing a
+  decisive fact, answer with what is known, say what is missing and offer to
+  continue.
 - Anatomy sources (`anatomy_sources`): the files an affaire's readings rest on
   are declared on their Workspace card (`anatomy_source`: complement or
   replacement, role, discipline, use, scope, declared alignment, consolidate

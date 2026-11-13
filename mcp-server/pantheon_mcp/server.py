@@ -203,10 +203,26 @@ def prepare_card_proposal(vault: str, relative_path: str, changes: list[dict[str
     scope. `changes`: one {field, value, source, confidence, reason} per field; field among title,
     document_date, index, issuer, recipient, family, document_type, corps_etat, sujet_technique,
     summary; source says where the value was read (page, title block, mail); confidence lu, déduit
-    or estimé. Only propose what was read or clearly deduced; a fact about the building is not a
-    card field.
+    or estimé. Only propose what was read: when the file cannot be opened, the user's own reading is
+    a source, said so (« cartouche, lu par l'utilisateur »); a drawing number (PC2, A-101) is not an
+    index. A fact about the building is not a card field: use prepare_fact_proposal.
     """
     return _call("card_proposal", vault, relative_path, changes)
+
+
+@_read_only_tool()
+def prepare_fact_proposal(code: str, statement: str, reading: str, comparison: str,
+                          subject: str = "", source: str = "") -> str:
+    """Propose a fact the user states about an affaire's building (« retiens que… », « la cuisine
+    donne au nord ») for the operator to validate. Stores nothing and writes no memory.
+
+    Call `get_project` first, then pass: `statement` the fact as said; `reading` what the reading
+    says on that point (« aucune lecture » if nothing); `comparison` concorde, diffère or non lu;
+    `subject` the room or element; `source` who said it (default the user). Copy the returned
+    `block` as is at the end of the answer, after saying what the reading shows. Never say the fact
+    is recorded or « retenu »: it waits for the operator; until then the reading is the reference.
+    """
+    return _call("fact_proposal", code, statement, reading, comparison, subject, source)
 
 
 @_read_only_tool()

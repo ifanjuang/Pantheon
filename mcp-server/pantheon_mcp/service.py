@@ -32,6 +32,7 @@ from . import (
     passports,
     phase_orientation,
     card_proposal,
+    fact_proposal,
     project_overview,
     policy,
     presets,
@@ -265,6 +266,16 @@ class PantheonPolicyService:
             card_proposal.prepare_card_proposal(vault, relative_path, changes),
             source_mode="provided_card_proposal_candidate",
             input_value={"vault": vault, "relative_path": relative_path, "changes": changes},
+        )
+
+    def fact_proposal(self, code: Any, statement: Any, reading: Any, comparison: Any,
+                      subject: Any = "", source: Any = "") -> dict[str, Any]:
+        return self._project(
+            "fact.proposal.prepare",
+            fact_proposal.prepare_fact_proposal(code, statement, reading, comparison, subject, source),
+            source_mode="provided_fact_proposal_candidate",
+            input_value={"code": code, "statement": statement, "reading": reading, "comparison": comparison,
+                         "subject": subject, "source": source},
         )
 
     def qualify_capability_status(self, candidate: dict[str, Any]) -> dict[str, Any]:
