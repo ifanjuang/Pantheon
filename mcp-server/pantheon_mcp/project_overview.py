@@ -66,6 +66,10 @@ READING_RULES = [
     "est lu sans rien inventer, dire ce qui manque, et proposer à l'utilisateur de réexporter la maquette "
     "en citant les conseils d'export (donnés en entier par le focus « qualité »).",
 ]
+# The summary sends a rule only when its answer holds what the rule is about (rule index → keys, any of).
+# Rules without an entry always go: quoting as given, candidates, nothing added, the confidence scale.
+RULE_NEEDS = {2: ("levels", "model_spaces"), 3: ("surfaces_by_state_m2",), 4: ("pieces",), 5: ("open_questions",),
+              6: ("pieces",), 8: ("models",), 9: ("models",), 10: ("anatomy_sources",), 12: ("model_quality",)}
 PIECE_KEYS = ("index", "date", "position")
 # One confidence scale for every value, strongest first: validé (confirmed by a human), lu (written in the
 # source), déduit (computed from the source: geometry, neighbours), estimé (brought together across sources).
@@ -869,6 +873,11 @@ def _file_sheet(section: dict[str, Any], wanted: str) -> dict[str, Any]:
     return {"found": True, "kind": "fiche fichier", "fiche": found[0]}
 
 
+def relevant_rules(answer: dict[str, Any], rules: list[str]) -> list[str]:
+    """The reading rules about what this answer holds (see RULE_NEEDS)."""
+    return [rule for i, rule in enumerate(rules) if not RULE_NEEDS.get(i) or any(answer.get(k) for k in RULE_NEEDS[i])]
+
+
 def _compact(full: dict[str, Any], directory: Path, data: dict[str, Any]) -> dict[str, Any]:
     """The answer without focus: small enough for a local model to read whole (target a few kilobytes)."""
     pieces = full.get("pieces") or {}
@@ -921,7 +930,7 @@ def _compact(full: dict[str, Any], directory: Path, data: dict[str, Any]) -> dic
     if full.get("model_changes"):
         compact["model_changes"] = full["model_changes"]
     compact["status"] = full.get("status")
-    compact["reading_rules"] = full.get("reading_rules")
+    compact["reading_rules"] = relevant_rules(compact, full.get("reading_rules") or [])
     compact["detail"] = DETAIL_HINT
     return compact
 

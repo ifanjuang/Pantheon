@@ -266,6 +266,12 @@
   proposal now carries the user's words only. « Not governed work » now covers
   any question, factual or professional (a rule: the library first), after
   general questions went through governance procedures and five web searches.
+- One owner per rule: the confidence scale and « never an index from a file
+  name » now live in the `get_project` reading rules (where the values are)
+  instead of being restated in the server instructions, the tool description
+  and model-reading; « never say it is recorded » lives in the SOUL claim rule
+  and the proposal tools' returned instruction. The compact summary sends only
+  the reading rules about what it holds.
 - Anatomy sources (`anatomy_sources`): the files an affaire's readings rest on
   are declared on their Workspace card (`anatomy_source`: complement or
   replacement, role, discipline, use, scope, declared alignment, consolidate
