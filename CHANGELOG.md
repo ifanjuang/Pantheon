@@ -228,6 +228,11 @@
   it concerns an affaire (newer index, newer reading); differently worded
   questions are recognised by subject; memory keeps preferences and
   conventions, project facts go to the card for validation.
+- The `get_project` summary lists the architect's model first, and the status
+  of an affaire without a validated Anatomy says that answers come from the
+  pieces and model readings listed: a bench showed Hermes taking the first
+  model listed (an engineer's) as the architect's, and reading « Anatomie non
+  encore installée » as « no index available ».
 - The "one model under two names" question gives the model file's own date
   when no date was read on a card or title block, said « date du fichier », so
   it can still tell which one is more recent.

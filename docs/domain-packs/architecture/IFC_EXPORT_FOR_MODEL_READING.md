@@ -272,6 +272,42 @@ is not meaningful instead of listing everything as removed and added.
 Two current model pieces sharing most identifiers are one model under two names
 (a provisional index filed apart); it becomes a question for the architect.
 
+## From readings to the validated Anatomy: proposals
+
+Status: design, partly implemented. The write path into the Anatomy exists
+(`observe-ifc` deposits an Observation Bundle of claim candidates; `apu-batch`
+previews it and applies it on one human approval of its digest), and Hermes can
+deposit a Project change candidate through its admitted route. What is not
+deployed is the human decision gesture these require: an authenticated,
+HMAC-signed decision, produced only by the agency Cockpit with OIDC. Nothing
+here forges or bypasses it.
+
+What a proposal is, in one sentence: a candidate value or relation for the core,
+citing the file sheets and fingerprints it rests on, that a human accepts,
+rejects or corrects, and that enters the Anatomy only through the existing
+candidate path.
+
+| Proposal | Comes from | Settles |
+|---|---|---|
+| a room, level, element or surface from a model index | `observe-ifc` (deterministic) | the core's objects and values |
+| two files are one model; which index holds | the reading (question `meme_maquette`, `variantes`) | the source to activate or the reference mark |
+| an overlay is right | the overlay score | `alignment_confirmed` on the source |
+| a room of a drawing is a room of the model; a photo shows a room | Hermes, from a sheet (« le local 3 est la cuisine ») | an identity link, candidate |
+| a fact stated by the user (« la cuisine donne au nord ») | Hermes, compared with the reading | a value or a question to settle (model north) |
+
+Rules: a proposal names its sources and its confidence; Hermes proposes, never
+applies; a rejected proposal is kept with its reason so it is not proposed
+again; a proposal whose sources changed (new fingerprint) is re-read before it
+is shown; validated values keep their sources, and a superseded value is
+retired, not erased.
+
+Where it is shown: each proposal on the card of its file (or the project card
+for core values), with accept / reject / correct, in batches when they come
+from one bundle. The gesture must produce the signed human decision: either the
+agency Cockpit is deployed with its authentication, or the Workspace Cockpit is
+admitted, by a governance decision, as a place where the authenticated operator
+signs; to be decided before any code.
+
 ## Model quality and re-export
 
 Each reading carries a quality level (`bonne`, `à améliorer`, `insuffisante`),
