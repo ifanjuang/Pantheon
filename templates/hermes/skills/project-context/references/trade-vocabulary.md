@@ -36,6 +36,16 @@ sinon demander ce que l'utilisateur entend.
   discipline (« … du BET », « … archi ») ; quand plusieurs maquettes répondent,
   regarder la discipline de chacune avant de choisir.
 
+## Pièces : numéro, indice, date
+
+- Le **numéro de pièce** désigne le document dans le dossier (PC2, PCMI2, A-101,
+  CCTP lot 03) ; il ne change pas d'une version à l'autre.
+- L'**indice** désigne la version (A, B, C ; 01, 02 ; parfois préfixé par la phase,
+  S2, PRO-B) ; il se lit dans le cartouche ou le tableau des indices, jamais dans
+  le nom du fichier seul.
+- La **date** de l'indice se lit au même endroit ; la date du fichier n'est qu'un
+  repère, à dire comme tel.
+
 ## Normes et réglementation
 
 DTU (règles de l'art par ouvrage), Eurocodes (calcul des structures), RE2020 (énergie

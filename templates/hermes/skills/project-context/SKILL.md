@@ -72,8 +72,12 @@ index, issuer, recipient, type, a clearer title or summary), call
 one line per field with where it was read and its confidence, then copy the
 returned block as is at the end of the answer, after one sentence saying what is
 proposed. The card is unchanged until the operator ticks and accepts: never say
-it was updated or « retenu ». Propose only what was read or clearly deduced, not
-a guess from a file name. A fact about the building is not a card field.
+it was updated or « retenu ». Propose only what was read: confidence `lu` for a
+value seen, `déduit` for one clearly inferred, never a guess from a file name.
+When the user reports what a title block says and the file cannot be opened,
+their reading is the source, said so (« cartouche, lu par l'utilisateur »); do
+not hunt through other files for it. A drawing number (PC2, A-101) is not an
+index. A fact about the building is not a card field: `prepare_fact_proposal`.
 
 ## Core route
 
