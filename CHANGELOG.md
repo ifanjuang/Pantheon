@@ -296,6 +296,11 @@
   opening a short warning, an acknowledgement, the files already activated
   under the folder (read from the published Anatomy) with a « Désactiver »
   button each, and « Activer tout le dossier ». These dialogs save nothing.
+- Design: files, facts and questions in the Workspace Cockpit (one truth per
+  file, four memories and which one holds, file card front and back with the
+  Anatomy switch, folders as shortcuts, the project menu « À traiter ·
+  Anatomie », facts and questions per card with optional anchors on a drawing,
+  model element, text or cells, what reaches whom and when, order of work).
 - One owner per rule: the confidence scale and « never an index from a file
   name » now live in the `get_project` reading rules (where the values are)
   instead of being restated in the server instructions, the tool description

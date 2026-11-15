@@ -322,6 +322,109 @@ Operator decision (2026-11-13), the human deciding what is consequential:
 The Cockpit side belongs to the Workspace Cockpit work; the agency side offers
 the operations it calls (build, bring in, list and validate proposals).
 
+## Files, facts and questions in the Workspace Cockpit
+
+Status: design (operator decisions of 2026-11-13 and 2026-11-15). Implemented:
+the anatomy-source declaration on IFC/DWG file cards; an interface-only preview
+of the file and folder buttons. The rest is documented, not implemented.
+
+### One truth per file
+
+Each file card holds what is true of that file: its index, date, summary,
+comment, anatomy-source state, and its facts. Everything else is derived and
+recomputed when read: a folder's activation state, a project's « to handle »
+list, the discrepancies between sources. Nothing is stored twice, so nothing
+goes stale: a settled discrepancy disappears at the next reading.
+
+### Four memories, and which one holds
+
+| | What it is | Written by | For Hermes |
+|---|---|---|---|
+| the card | what the human states about a file | the human, or a click on a proposal | holds |
+| the Anatomy | what the activated files say of the building, plus validated facts | consolidation | holds for the building, with its confidence |
+| project memory (Hindsight) | retrievable passages of the documents | ingestion | a lead: cite the document |
+| past sessions | what was said | Hermes | a lead: check again |
+
+### File card
+
+- **Front**: title, index, date, memory state (to do, in progress, stored,
+  error; « to store again » after the card changed), summary, an editable
+  comment, counts of facts and questions, a badge when Hermes proposals wait,
+  and the **Anatomy switch** (off, pending, read, error).
+- **Back**: the Anatomy detail: source state, role, what the reading found,
+  quality, messages, the file replaced or replacing it.
+- Identifiers (declared, technical) leave the card; they stay in the metadata
+  editor under « Technique ».
+- Activating a newer index of a piece whose older index is active asks inline:
+  « Remplace l'indice B ? ».
+
+### Folders are shortcuts
+
+A folder stores no activation state. It shows one computed from the files
+below (« 3 / 7 actifs », none / partial / all). « Tout activer » opens a
+checklist of the readable files below, pre-ticked, older indices of a piece
+unticked when a newer one exists; « Tout désactiver » asks to confirm the count.
+Files stay switchable one by one.
+
+The project folder (the affaire) has no « activate all ». Its card has one
+menu, « À traiter · Anatomie »: pending proposals, unanswered questions,
+computed questions, errors; the active files grouped by folder, each and each
+group with « Désactiver »; the Anatomy state (last consolidation, sources in
+error); « Consolider maintenant »; later « Constituer l'Anatomie ».
+
+### Facts and questions on each card
+
+- **Facts**: one list per card; a note is a fact, its wording says what it
+  states. Written by the human, a fact holds at once; proposed by Hermes from
+  a discussion, it waits for a click. Each fact can be edited, deleted or
+  added, and keeps its origin (discussion and message, or the human) and date.
+  A fact about no file goes on the project card.
+- **Questions**: the human's questions to Hermes, asked now or later; asking
+  opens a recorded dialogue session on the card, and the answer is linked to
+  the question. Computed questions (« laquelle fait foi ? ») are shown apart
+  and disappear once settled.
+- **Anchors** (optional, per fact or question):
+
+| File | Anchor | What Hermes receives |
+|---|---|---|
+| PDF drawing | a zone or mark on a page | page, zone, surrounding text |
+| IFC model | an element (its identifier) | the element sheet through `get_project` |
+| written piece | a text selection | the exact quote and its place |
+| spreadsheet (DPGF) | a range of cells | the cells with their headings |
+
+  A question asked from an anchor reaches Hermes with its context, so he need
+  not search for it.
+- **Replacement**: when a newer index replaces a file, its facts are offered
+  for carrying over in a checklist: a fact may no longer hold.
+- **Effects**: a validated fact enters the Anatomy at the next consolidation as
+  « validé », citing its card and anchor; a reading that contradicts it raises
+  a computed question. Validated facts may feed project memory, marked as the
+  human's; pending questions do not.
+
+### What reaches whom, and when
+
+| Action | Card | Anatomy | Hermes | Memory |
+|---|---|---|---|---|
+| correct index or date | at once | next consolidation (pieces) | after it | to store again |
+| switch a file on or off | pending | read within minutes, or error | after the reading | unchanged |
+| accept a Hermes proposal | at once, recorded | as above for its field | same discussion re-reads the card | as above |
+| add or validate a fact | at once | next consolidation | at once on that card, in the Anatomy after | may be stored |
+| ask a question from an anchor | linked session | — | with the anchor's context | — |
+
+The card says when a change is taken into account (« Anatomie à jour à
+14:32 », « en attente de consolidation »); Hermes says where an answer comes
+from and its publication date.
+
+### Order of work
+
+1. Interface only: file card (front and back, switch, memory and Anatomy
+   states, proposal badge), folder shortcut, project menu; previewed on the
+   tailnet before deployment.
+2. Server: list readable files under a folder with their index; store facts
+   and questions per card with their anchors; anchors in the drawing reader.
+3. Hermes: facts and questions of the card in a card discussion's context;
+   fact proposals target a card (and an anchor); the replacement checklist.
+
 ## Model quality and re-export
 
 Each reading carries a quality level (`bonne`, `à améliorer`, `insuffisante`),
