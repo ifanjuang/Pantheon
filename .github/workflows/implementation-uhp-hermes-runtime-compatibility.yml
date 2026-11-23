@@ -96,7 +96,7 @@ jobs:
 
       - name: Upload compatibility observation
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: uhp-hermes-runtime-compat-${{ github.run_id }}
           path: ${{ runner.temp }}/uhp-hermes-runtime-compat/

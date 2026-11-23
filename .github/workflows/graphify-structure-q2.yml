@@ -212,7 +212,7 @@ jobs:
 
       - name: Upload raw bounded observations
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: graphify-structure-q2-${{ github.run_id }}
           path: ${{ runner.temp }}/graphify-structure-q2/
