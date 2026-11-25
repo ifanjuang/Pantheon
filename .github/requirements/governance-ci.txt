@@ -1,3 +1,8 @@
 # Stable entry point used by the Governance CI workflow.
 # The resolved dependency set lives in governance-ci.lock.txt.
--r governance-ci.lock.txt
+attrs==26.1.0
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+pyyaml==6.0.4
+referencing==0.37.0
+rpds-py==2026.9.1
